@@ -10,10 +10,11 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 - `build/30-nvidia.sh`: NVIDIA's open kernel modules and the matching driver. It checks that the modules were built for the installed kernel and that the driver packages carry negativo17's signature.
 - `build/80-repos.sh`: disables every repository that is not Fedora's own.
 - `build/90-finalise.sh`: rebuilds the initramfs, cleans up and lints the image.
+- `system/`: files copied into the image as they are, laid out like the filesystem. It holds the install configuration (`usr/lib/bootc/install/00-orielos.toml`), which makes every installation use a Btrfs root filesystem with zstd compression.
 - `keys/`: public keys used to verify packages during the build.
 - `pins.env`: the upstream inputs, each pinned by digest.
 
-System configuration (sysctl settings, udev rules, systemd units) will be added here as it is needed.
+More system configuration (sysctl settings, udev rules, systemd units) will be added to `system/` as it is needed.
 
 ## Building
 

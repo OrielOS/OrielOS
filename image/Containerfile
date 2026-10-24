@@ -38,6 +38,9 @@ RUN --mount=type=bind,source=build,target=/ctx \
 RUN --mount=type=bind,source=build,target=/ctx \
     /ctx/80-repos.sh
 
+# Static configuration goes in after the package layers, so changing it does not rebuild them.
+COPY system/usr/ /usr/
+
 # Each feature script is its own layer on purpose, so a failure shows which step broke.
 # hadolint ignore=DL3059
 RUN --mount=type=bind,source=build,target=/ctx \

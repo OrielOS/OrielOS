@@ -1,0 +1,6 @@
+# Install with a Btrfs root filesystem, mounted with light zstd compression.
+[install.filesystem.root]
+type = "btrfs"
+
+[install]
+kargs = ["rootflags=compress=zstd:1"]
