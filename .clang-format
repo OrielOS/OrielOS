@@ -1,0 +1,28 @@
+# OrielOS C++ style, close to the KDE Frameworks conventions.
+---
+Language: Cpp
+BasedOnStyle: WebKit
+Standard: Latest
+ColumnLimit: 160
+IndentWidth: 4
+UseTab: Never
+PointerAlignment: Right
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterStruct: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterControlStatement: Never
+  BeforeElse: false
+  SplitEmptyFunction: true
+BreakConstructorInitializers: BeforeComma
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+SpaceAfterTemplateKeyword: false
+NamespaceIndentation: None
+FixNamespaceComments: true
+InsertNewlineAtEOF: true

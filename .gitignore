@@ -43,3 +43,6 @@ cosign.key
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local tool downloads
+.cache/
