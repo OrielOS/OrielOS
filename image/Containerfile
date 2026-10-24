@@ -1,0 +1,44 @@
+# The OrielOS image: Fedora bootc with the Fedora CoreOS stable kernel, NVIDIA's open
+# kernel modules and driver, and a minimal KDE Plasma desktop.
+# Build it with tools/build-image.sh, which passes the pinned inputs from image/pins.env.
+ARG BASE_IMAGE=scratch-must-be-set
+ARG AKMODS_IMAGE=scratch-must-be-set
+ARG AKMODS_NVIDIA_IMAGE=scratch-must-be-set
+
+FROM ${AKMODS_IMAGE} AS akmods
+FROM ${AKMODS_NVIDIA_IMAGE} AS akmods-nvidia
+
+FROM ${BASE_IMAGE}
+
+ARG IMAGE_VERSION=must-be-set
+
+LABEL org.opencontainers.image.title="OrielOS" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
+      org.opencontainers.image.source="https://github.com/ncjsvr/OrielOS" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later" \
+      org.opencontainers.image.description="Linux distribution that looks and works like Windows 11, built for gaming" \
+      containers.bootc="1"
+
+# Refuse to build an unversioned image.
+RUN [ "${IMAGE_VERSION}" != "must-be-set" ] || { echo "error: IMAGE_VERSION is not set" >&2; exit 1; }
+
+RUN --mount=type=bind,source=build,target=/ctx \
+    --mount=type=bind,from=akmods,source=/kernel-rpms,target=/akmods/kernel-rpms \
+    --mount=type=bind,from=akmods,source=/rpms,target=/akmods/rpms \
+    /ctx/10-kernel.sh
+
+RUN --mount=type=bind,source=build,target=/ctx \
+    /ctx/20-desktop.sh
+
+RUN --mount=type=bind,source=build,target=/ctx \
+    --mount=type=bind,source=keys,target=/keys \
+    --mount=type=bind,from=akmods-nvidia,source=/rpms,target=/akmods-nvidia/rpms \
+    /ctx/30-nvidia.sh
+
+RUN --mount=type=bind,source=build,target=/ctx \
+    /ctx/80-repos.sh
+
+# Each feature script is its own layer on purpose, so a failure shows which step broke.
+# hadolint ignore=DL3059
+RUN --mount=type=bind,source=build,target=/ctx \
+    /ctx/90-finalise.sh
