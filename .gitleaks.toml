@@ -1,0 +1,15 @@
+# Secret-scanning configuration for gitleaks v8.
+# CI and a local lint script run this against the repository.
+title = "OrielOS gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# The licence texts are published verbatim and are not scanned.
+[[allowlists]]
+description = "Published licence texts"
+paths = [
+  '''^LICENSE$''',
+  '''^artwork/LICENSE$''',
+  '''^docs/LICENSE$''',
+]

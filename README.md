@@ -48,7 +48,7 @@ tools/     Developer scripts
 docs/      User documentation
 ```
 
-These folders are being set up; most are still empty.
+Each folder has a short README describing what belongs there.
 
 ## Contributing
 
@@ -56,7 +56,9 @@ OrielOS is developed in the open on GitHub. Changes go through pull requests int
 
 ## Licence
 
-Code and configuration: GPL-3.0-or-later. Documentation and artwork: CC BY-SA 4.0. Licence files will be added with the repository skeleton.
+Code and configuration are licensed under the GNU General Public License, version 3 or (at your option) any later version (`GPL-3.0-or-later`). The full text is in `LICENSE`.
+
+Documentation in `docs/` and artwork in `artwork/` are licensed under Creative Commons Attribution-ShareAlike 4.0 International (`CC BY-SA 4.0`). The full text is in `docs/LICENSE` and `artwork/LICENSE`.
 
 ## Changes
 

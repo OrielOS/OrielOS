@@ -1,0 +1,45 @@
+# Build output
+build/
+build-*/
+out/
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+/compile_commands.json
+*.user
+.qmlls.ini
+
+# Images and VM disks produced locally
+*.qcow2
+*.raw
+*.img
+*.iso
+*.vmdk
+*.ociarchive
+*.oci.tar
+*_VARS*.fd
+tests/**/swtpm*/
+tools/**/swtpm*/
+
+# Test results and screenshots
+tests/results/
+tests/output/
+
+# Secrets that must never be committed
+*.key
+*.pem
+*.p12
+*.pfx
+cosign.key
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
