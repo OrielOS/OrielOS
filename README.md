@@ -1,6 +1,6 @@
 # OrielOS
 
-OrielOS is a Linux distribution that looks and works like Windows 11 and is tuned for gaming on NVIDIA RTX desktop PCs. The aim is simple: everything you do on Windows, done the same way, without Windows.
+OrielOS is a Linux distribution that looks and works like Windows 11 and is tuned for gaming on desktop PCs, starting with NVIDIA RTX graphics. The aim is simple: everything you do on Windows, done the same way, without Windows.
 
 **Status:** early development. There is nothing to download or install yet. Version 0.0.0 until the first build lands.
 
@@ -18,7 +18,7 @@ OrielOS is a Linux distribution that looks and works like Windows 11 and is tune
 | Area | Choice |
 |---|---|
 | Base | Fedora Atomic, built as a bootable container image with bootc |
-| Kernel and graphics | Fedora's kernel with NVIDIA's open kernel modules, signed for Secure Boot |
+| Kernel and graphics | Fedora's kernel; NVIDIA's open kernel modules and driver for RTX graphics, signed for Secure Boot |
 | Desktop | KDE Plasma with OrielOS's own Windows 11 layer |
 | OrielOS apps | C++ with Qt 6, QML and Kirigami |
 | Apps | Installed from Flathub through the Store; Firefox comes preinstalled |
@@ -26,7 +26,7 @@ OrielOS is a Linux distribution that looks and works like Windows 11 and is tune
 
 ## Hardware
 
-The first release targets desktop PCs with NVIDIA RTX (20-series or newer) graphics. AMD and Intel graphics, laptops and handhelds may follow later.
+The first release targets desktop PCs with NVIDIA RTX (20-series or newer) graphics. Support for AMD and Intel graphics is planned to follow the first release. Laptops and handhelds may come later.
 
 ## Known limitations
 
