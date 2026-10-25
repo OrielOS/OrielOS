@@ -86,6 +86,14 @@ fi
 if [[ ! -f /usr/share/icons/hicolor/scalable/apps/orielos-start.svg ]]; then
     taskbar_errors+=("the Start button's icon, orielos-start.svg, is not installed")
 fi
+# The layout script puts OrielOS's Start menu on the taskbar; Plasma would leave a gap without it.
+if [[ ! -f /usr/lib64/qt6/plugins/plasma/applets/org.orielos.startmenu.so ]]; then
+    taskbar_errors+=("the Start menu widget, org.orielos.startmenu.so, is not installed")
+fi
+# It uses the menu models from plasma-workspace's private kicker QML module.
+if [[ ! -f /usr/lib64/qt6/qml/org/kde/plasma/private/kicker/qmldir ]]; then
+    taskbar_errors+=("plasma-workspace's org.kde.plasma.private.kicker QML module, which the Start menu needs, is missing")
+fi
 # The wallpapers come from the app-builder stage too. The look-and-feel package, its layout script
 # and /etc/xdg/kscreenlockerrc make OrielOS the desktop and lock screen wallpaper.
 for f in OrielOS/metadata.json OrielOS/contents/images/3840x2160.jpg OrielOS/contents/images_dark/3840x2160.jpg \

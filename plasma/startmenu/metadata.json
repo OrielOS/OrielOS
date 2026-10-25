@@ -1,0 +1,21 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Application Launchers",
+        "Description": "Search, pinned apps, recommendations, and the account and power buttons",
+        "EnabledByDefault": true,
+        "Icon": "orielos-start",
+        "Id": "org.orielos.startmenu",
+        "License": "GPL-3.0-or-later",
+        "Name": "Start",
+        "Website": "https://github.com/ncjsvr/OrielOS"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-Provides": [
+        "org.kde.plasma.launchermenu"
+    ]
+}

@@ -8,6 +8,7 @@ Automated and manual checks for the image.
 
 1. **First boot.** The disk has no user account, so Plasma Setup, KDE's first-boot wizard, should start. The test checks that it did, takes `first-boot.png`, then finishes setup over SSH the way the wizard does (see [Finishing setup](#finishing-setup)) and restarts the VM.
 2. **Second boot.** Plasma Setup must not run again, and SDDM shows the login screen. The test checks the services, starts OrielOS's apps and logs the user that setup created in to the Plasma desktop.
+3. **Third boot.** Last, the test drives OrielOS's Start menu with the keyboard and pins an app, then restarts the VM once more to check that the pin is kept (see [Start menu](#start-menu)).
 
 The installation is left to the image's own install configuration, so the test also proves that the root filesystem is Btrfs with zstd compression.
 
@@ -19,7 +20,7 @@ tests/boot-test.sh --keep --timeout 300
 
 Run `tests/boot-test.sh --help` for all the options. It needs the tools that `tools/check-env.sh` checks for, and runs as root (it uses `sudo` when needed). A run takes about ten minutes, most of it the installation and the two boots. `--timeout` applies to each boot.
 
-It prints PASS or FAIL for twenty-one checks, under a "First boot", a "Second boot", a "Store and Firefox" and an "Anti-cheat boot mode" heading, and exits with status 0 only if all twenty-one pass.
+It prints PASS or FAIL for twenty-six checks, under a "First boot", a "Second boot", a "Store and Firefox", a "Start menu" and an "Anti-cheat boot mode" heading, and exits with status 0 only if all twenty-six pass.
 
 First boot:
 
@@ -41,20 +42,28 @@ Second boot, after finishing setup and restarting:
 13. Server defaults are off: `systemctl is-enabled bootc-fetch-apply-updates.timer sshd.service` says `disabled` for both, and there is no `kexec`, `kdumpctl` or `makedumpfile` binary. Both results are printed as INFO lines too.
 14. Kernel modules are signed by Fedora or Universal Blue: `modinfo -F signer nvidia` prints `ublue kernel`; `rpm -q kernel` matches the kernel installed in the image (read with `rpm -q kernel-core` in the container, because the base image's `ostree.linux` label still names the base kernel); and the NVIDIA driver packages (the same set that the image build checks) have exactly one version between them. `rpm -q kernel` and the driver version are printed as INFO lines. The module is not loaded in a VM without an NVIDIA GPU; `modinfo` reads the file, which is what the check needs.
 15. Universal Blue's key is trusted: `mokutil --test-key /etc/pki/akmods/certs/akmods-ublue.der` says the key is already enrolled, `/var/lib/orielos/secure-boot/state` says `key=enrolled`, the kernel log has no `Loading of module with unavailable key is rejected` line, `lsmod` lists `v4l2loopback` (signed by Universal Blue and loaded at every boot) and `systemctl is-active systemd-modules-load.service` says `active`. The VM's firmware has the key in shim's MokList from the start (see [Universal Blue's key](#universal-blues-key)). With `--no-mok` the check expects the opposite: `key=pending`, and `mokutil --list-new` showing one key, `ublue kernel`.
-16. The OrielOS taskbar is set up: after the scripted desktop login, `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, which Plasma wrote from OrielOS's layout script because the user is brand new, has exactly one panel (`plugin=org.kde.panel`), at the bottom (`location=4`). Its widgets, in the panel's `AppletOrder`, are a panel spacer, Kickoff, the icons-only task manager, a panel spacer, the system tray, the digital clock and show desktop; the task manager's `launchers` include `org.kde.dolphin.desktop`, `org.mozilla.firefox.desktop` and `org.kde.discover.desktop`; and Kickoff's `icon` is `orielos-start`, the Start button icon from `artwork/icons/orielos-start.svg`. The file is saved as `plasma-appletsrc` in the results. Look at `desktop.png` too: it should show the Start button, three blue panes over an amber bar, and the pinned apps in the centre of the taskbar, and the tray and clock at the right.
-17. The OrielOS wallpaper is set: in the same file, the desktop (the containment with an `activityId`; panels have none) has `Image=file:///usr/share/wallpapers/OrielOS/` in its `[Wallpaper][org.kde.image][General]` group, and `/usr/share/wallpapers/OrielOS/contents/images/3840x2160.jpg` exists in the VM. `desktop.png` should show Daybreak, the light image: a pale blue sky through a glass bay window above a warm sill.
-18. Windows shortcuts are set: in `orielostest`'s session, the test asks kglobalaccel over the user's D-Bus (`busctl --user -M orielostest@ call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel action i <key code>`, or `globalShortcutsByKey` if `action` gives nothing) which action each shortcut in [docs/keyboard-shortcuts.md](../docs/keyboard-shortcuts.md) runs, and expects the component and action listed in `SHORTCUT_TABLE` in the script, for example `kwin` `Overview` for Win+Tab and `org.kde.plasma-systemmonitor.desktop` `_launch` for Ctrl+Shift+Esc. `kreadconfig6 --file kwinrc --group ModifierOnlyShortcuts --key Meta`, run as the user, must be empty (Plasma's default, Start) or name Kickoff's `activateLauncherMenu`, and no shortcut may be the active one of two actions in the user's `~/.config/kglobalshortcutsrc`. The test then presses Win+E with QMP `send-key` and expects a `dolphin` process for the user within 20 s, and the menu entries of System Monitor, Spectacle and Dolphin must be named Process Manager, Screenshot and Files. The user's `~/.config/kglobalshortcutsrc` is saved as `kglobalshortcutsrc` in the results.
+16. The OrielOS taskbar is set up: after the scripted desktop login, `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, which Plasma wrote from OrielOS's layout script because the user is brand new, has exactly one panel (`plugin=org.kde.panel`), at the bottom (`location=4`). Its widgets, in the panel's `AppletOrder`, are a panel spacer, OrielOS's Start menu, the icons-only task manager, a panel spacer, the system tray, the digital clock and show desktop; and the task manager's `launchers` include `org.kde.dolphin.desktop`, `org.mozilla.firefox.desktop` and `org.kde.discover.desktop`. The file is saved as `plasma-appletsrc` in the results. Look at `desktop.png` too: it should show the Start button, three blue panes over an amber bar, and the pinned apps in the centre of the taskbar, and the tray and clock at the right.
+17. Taskbar: Start is OrielOS's Start menu: in the same file, the panel holds `org.orielos.startmenu` and none of Plasma's launchers (Kickoff, Kicker or the application dashboard), and the Start menu's `icon` is `orielos-start`, the Start button icon from `artwork/icons/orielos-start.svg`.
+18. The OrielOS wallpaper is set: in the same file, the desktop (the containment with an `activityId`; panels have none) has `Image=file:///usr/share/wallpapers/OrielOS/` in its `[Wallpaper][org.kde.image][General]` group, and `/usr/share/wallpapers/OrielOS/contents/images/3840x2160.jpg` exists in the VM. `desktop.png` should show Daybreak, the light image: a pale blue sky through a glass bay window above a warm sill.
+19. Windows shortcuts are set: in `orielostest`'s session, the test asks kglobalaccel over the user's D-Bus (`busctl --user -M orielostest@ call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel action i <key code>`, or `globalShortcutsByKey` if `action` gives nothing) which action each shortcut in [docs/keyboard-shortcuts.md](../docs/keyboard-shortcuts.md) runs, and expects the component and action listed in `SHORTCUT_TABLE` in the script, for example `kwin` `Overview` for Win+Tab and `org.kde.plasma-systemmonitor.desktop` `_launch` for Ctrl+Shift+Esc. `kreadconfig6 --file kwinrc --group ModifierOnlyShortcuts --key Meta`, run as the user, must be empty (Plasma's default, Start) or name Plasma's `activateLauncherMenu`, and no shortcut may be the active one of two actions in the user's `~/.config/kglobalshortcutsrc`. The test then presses Win+E with QMP `send-key` and expects a `dolphin` process for the user within 20 s, and the menu entries of System Monitor, Spectacle and Dolphin must be named Process Manager, Screenshot and Files. The user's `~/.config/kglobalshortcutsrc` is saved as `kglobalshortcutsrc` in the results.
 
-Checks 3 to 18 read the second boot only: before restarting, the test notes how long the serial log is, and afterwards it reads from the new kernel's first line on. Any other unit that failed to start on the second boot is reported as a WARN and does not fail the test. The times from power-on to SDDM and to Plasma Setup's wizard, the time from the restart to SDDM, the time until SSH answered, the output of `systemctl is-system-running` and the list of failed units are printed as INFO lines too.
+Checks 3 to 19 read the second boot only: before restarting, the test notes how long the serial log is, and afterwards it reads from the new kernel's first line on, up to where the Start menu checks restart the VM again. Any other unit that failed to start on the second boot is reported as a WARN and does not fail the test. The times from power-on to SDDM and to Plasma Setup's wizard, the time from the restart to SDDM, the time until SSH answered, the output of `systemctl is-system-running` and the list of failed units are printed as INFO lines too.
 
 Store and Firefox, after the second boot:
 
-19. Store is Discover with Flathub only: `flatpak remotes --system` lists only `flathub`, `/usr/share/applications/org.kde.discover.desktop` has `Name=Store`, and `/usr/lib64/qt6/plugins/discover/` holds only `flatpak-backend.so`, so Discover has no system-package, image or firmware backend.
-20. Firefox is installed on first boot: `/var/lib/orielos/flatpak-setup.done` exists (the test waits up to 10 minutes for it), `flatpak list --system --app --columns=application` contains `org.mozilla.firefox`, and `xdg-mime query default x-scheme-handler/https`, run as `orielostest` in a login shell, prints `org.mozilla.firefox.desktop`. The VM has user-mode networking with internet access through the host, so the download is real. It starts on the first boot, so the install is timed from the first power-on; the time and Firefox's version are printed as INFO lines. The test waits for it last, after the other checks, so the download runs alongside them. If the wait runs out, the last lines of the service's journal are printed.
+20. Store is Discover with Flathub only: `flatpak remotes --system` lists only `flathub`, `/usr/share/applications/org.kde.discover.desktop` has `Name=Store`, and `/usr/lib64/qt6/plugins/discover/` holds only `flatpak-backend.so`, so Discover has no system-package, image or firmware backend.
+21. Firefox is installed on first boot: `/var/lib/orielos/flatpak-setup.done` exists (the test waits up to 10 minutes for it), `flatpak list --system --app --columns=application` contains `org.mozilla.firefox`, and `xdg-mime query default x-scheme-handler/https`, run as `orielostest` in a login shell, prints `org.mozilla.firefox.desktop`. The VM has user-mode networking with internet access through the host, so the download is real. It starts on the first boot, so the install is timed from the first power-on; the time and Firefox's version are printed as INFO lines. The test waits for it last, after the other checks, so the download runs alongside them. If the wait runs out, the last lines of the service's journal are printed.
+
+Start menu, after every other second-boot check, because it restarts the VM (see [Start menu](#start-menu)):
+
+22. Start menu: typing a search runs nothing: after Win and `f`, `i`, `l`, no `dolphin` process starts for `orielostest` within 5 seconds. The menu is saved as `start-search.png`.
+23. Start menu: Enter opens the first result: Enter then starts `dolphin` for `orielostest` within 20 seconds.
+24. Start menu: pinning saves the app: after Win, `a`, `r`, `k`, the Menu key and Enter, the `favorites` key in the Start menu's `[Containments][N][Applets][M][Configuration][General]` group of `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc` contains `org.kde.ark.desktop` within 30 seconds. The file is saved as `start-appletsrc`, and the open context menu as `start-pin-menu.png`. The test presses QEMU's `compose` key, which is a PC keyboard's Menu key.
+25. Start menu: pins survive a restart: after restarting the VM and SDDM's autologin, the same key still contains `org.kde.ark.desktop`. The file is saved as `start-appletsrc-restart`, and the open menu as `start-pinned.png`, which should show Ark among the pinned apps.
 
 Anti-cheat boot mode, on the second boot (see `image/README.md`):
 
-21. The boot is anti-cheat ready: `/proc/cmdline` contains `lockdown=integrity`, `intel_iommu=on` and `iommu.passthrough=0`; `/sys/kernel/security/lockdown` shows `[integrity]`; `/proc/sys/kernel/kexec_load_disabled` is `1`; `/sys/kernel/security/lsm` includes `bpf`; logind's `CanHibernate` (`busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate`) is not `yes`; and every module in `/proc/modules` has a `modinfo -F signer` value listed in `image/module-signers.txt`, which the test reads on the host. The lockdown state, the active LSMs and the number of loaded modules checked are printed as INFO lines, and a failure names the unsigned or unexpected modules. The VM has no virtual IOMMU, so `intel_iommu=on` finds no DMAR table there, which is harmless; the check reads the argument, not the hardware.
+26. The boot is anti-cheat ready: `/proc/cmdline` contains `lockdown=integrity`, `intel_iommu=on` and `iommu.passthrough=0`; `/sys/kernel/security/lockdown` shows `[integrity]`; `/proc/sys/kernel/kexec_load_disabled` is `1`; `/sys/kernel/security/lsm` includes `bpf`; logind's `CanHibernate` (`busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate`) is not `yes`; and every module in `/proc/modules` has a `modinfo -F signer` value listed in `image/module-signers.txt`, which the test reads on the host. The lockdown state, the active LSMs and the number of loaded modules checked are printed as INFO lines, and a failure names the unsigned or unexpected modules. The VM has no virtual IOMMU, so `intel_iommu=on` finds no DMAR table there, which is harmless; the check reads the argument, not the hardware.
 
 ### Finishing setup
 
@@ -82,9 +91,21 @@ On the second boot, after the login screenshot, the test logs the user that setu
 1. It writes `/etc/sddm.conf.d/99-boot-test-autologin.conf` with an `[Autologin]` section for that user and the Plasma Wayland session, `plasma.desktop` from `/usr/share/wayland-sessions/`.
 2. It restarts SDDM, which logs the user in.
 3. It waits up to 90 seconds for the session, then 15 seconds more for the desktop to draw, and takes `desktop.png`.
-4. It copies the user's Plasma layout, `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, for checks 16 and 17.
+4. It copies the user's Plasma layout, `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, for checks 16 to 18.
 
 Restarting SDDM stops it on purpose, so check 7 reads the console only up to the restart.
+
+### Start menu
+
+After the other checks on the second boot, the test uses OrielOS's Start menu the way a person would, with keys sent over QMP `send-key`:
+
+1. It stops the `dolphin` that Win+E started (`pkill -u orielostest -x dolphin`) and waits for it to go.
+2. It presses Win alone, waits 2 seconds, types `f`, `i`, `l` about 0.3 seconds apart, waits 3 seconds and takes `start-search.png`. For check 22, no `dolphin` may start in the next 5 seconds: typing only lists results.
+3. It presses Enter, which runs the first result, Files, and waits up to 20 seconds for `dolphin` (check 23), then stops it again.
+4. It opens the menu again and types `ark`. Ark is not pinned by default. The Menu key opens the result's context menu with "Pin to Start" highlighted, so Enter pins it, and Escape closes the menu. Plasma saves widget settings a few seconds after they change, so the test reads the layout file for up to 30 seconds (check 24).
+5. It restarts the VM. The autologin written for the desktop login stays in `/etc/sddm.conf.d`, so SDDM logs `orielostest` straight back in; the test waits up to `--timeout` seconds for the session, reads the layout file again (check 25), opens the menu and takes `start-pinned.png`.
+
+If a step cannot be done, because the VM stopped, SSH did not answer or the session did not start, the remaining Start menu checks fail with the reason. The other checks keep reading the second boot: the test puts back its SSH state and its part of the serial log after the restart.
 
 ### Commands inside the VM
 
@@ -99,12 +120,15 @@ The host needs `/dev/vhost-vsock` (the test loads the `vhost_vsock` module when 
 
 Results go to `tests/results/<run id>/` (ignored by git), or to the folder given with `--results`. The run id is `<image tag>-<UTC time>`. The folder holds:
 
-- `serial.log`: the VM's console output from both boots, with colour codes removed.
+- `serial.log`: the VM's console output from every boot, with colour codes removed.
 - `install.log`: the output of the installation.
 - `first-boot.png`: Plasma Setup's wizard on the first boot.
 - `screenshot.png`: the login screen on the second boot, taken after pressing a key so the form is visible.
 - `desktop.png`: the Plasma desktop after the scripted login.
 - `plasma-appletsrc`: the test user's Plasma layout, read after the scripted login.
+- `start-search.png`: the Start menu listing the results for "fil".
+- `start-appletsrc` and `start-appletsrc-restart`: the test user's Plasma layout after pinning Ark, and again after the last restart.
+- `start-pinned.png`: the Start menu after the last restart, with Ark pinned.
 - `summary.txt`: the same lines as the test printed.
 
 The disk, the SSH key and the VM's other files live in `/var/lib/orielos/vm/<run id>` while the test runs and are deleted afterwards. With `--keep` they stay, and the test prints how to boot the disk again (setup is finished on it, so it starts at the login screen), with the same vsock device and key so SSH keeps working.

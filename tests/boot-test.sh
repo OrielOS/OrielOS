@@ -4,10 +4,12 @@
 # device it then finishes setup the way the wizard does (creates a user and marks setup done),
 # restarts the VM and checks that the second boot reaches the login screen without Plasma Setup.
 # On the second boot it checks the services, starts OrielOS's apps and logs the new user in to a
-# Plasma Wayland session inside the VM, and checks that the new user got the OrielOS taskbar,
-# the OrielOS wallpaper and the Windows keyboard shortcuts.
+# Plasma Wayland session inside the VM, and checks that the new user got the OrielOS taskbar with
+# OrielOS's Start menu, the OrielOS wallpaper and the Windows keyboard shortcuts.
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
+# Last, it drives the Start menu with the keyboard over QMP (searching runs nothing, Enter opens
+# the first result, Menu then Enter pins an app), restarts the VM and checks the pin is kept.
 # The VM's firmware has Universal Blue's driver-signing key enrolled, and the test checks that the
 # kernel trusts it. It also checks that the second boot is in the mode anti-cheat needs: kernel
 # lockdown, the IOMMU on, kexec disabled, the BPF LSM, no hibernation and only allowed module
@@ -48,8 +50,11 @@ SUMMARY=""
 # The NVIDIA driver component packages; keep in step with image/build/85-check-modules.sh.
 NVIDIA_COMPONENTS='^(nvidia-driver(-.*)?|nvidia-kmod-common|nvidia-modprobe|nvidia-persistenced|nvidia-settings|nvidia-xconfig|nvidia-libXNVCtrl|libnvidia-.*|xorg-x11-nvidia) '
 SDDM_SECONDS=""
-# The serial log holds both boots; the checks read the current boot's part, from this line on.
+# The serial log holds every boot; the checks read the current boot's part, from LOG_FROM on.
+# The Start menu checks restart the VM once more and then set LOG_UNTIL to the last line of the
+# second boot, so the other checks still read the second boot alone.
 LOG_FROM=1
+LOG_UNTIL=""
 REBOOTED=0
 # First boot: Plasma Setup.
 SETUP_USER="plasma-setup"
@@ -110,6 +115,15 @@ SHORTCUTS_OUT=""
 SHORTCUT_CLASHES=""
 TOOL_NAMES=""
 WIN_E_SECONDS=""
+# OrielOS's Start menu, driven with the keyboard over QMP last, because it restarts the VM. Each
+# step's result is empty when the step was not reached; START_WHY says why the steps stopped.
+START_WHY=""
+START_SEARCH_RAN=""
+START_ENTER_SECONDS=""
+START_PINNED=""
+START_FAVORITES=""
+START_KEPT=""
+START_KEPT_FAVORITES=""
 BT_ENABLED=""
 BT_ACTIVE=""
 SERVER_UNITS=""
@@ -141,12 +155,16 @@ ANTICHEAT_OUT=""
 ANTICHEAT_KARGS=(lockdown=integrity intel_iommu=on iommu.passthrough=0)
 
 usage() {
-    sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,31p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 # Print the current boot's part of the serial log.
 clean_log() {
-    full_log | tail -n "+$LOG_FROM"
+    if [[ -n "$LOG_UNTIL" ]]; then
+        full_log | sed -n "${LOG_FROM},${LOG_UNTIL}p"
+    else
+        full_log | tail -n "+$LOG_FROM"
+    fi
 }
 
 grep_log() {
@@ -222,13 +240,13 @@ reboot_vm() {
         if [[ -n "$line" ]]; then
             LOG_FROM=$((from + line - 1))
             REBOOTED=1
-            info "The second boot started $((SECONDS - start)) s after the restart"
+            info "The next boot started $((SECONDS - start)) s after the restart"
             return 0
         fi
         vm_running || break
         sleep 2
     done
-    info "The second boot did not start within 120 s of the restart"
+    info "The next boot did not start within 120 s of the restart"
     return 1
 }
 
@@ -477,6 +495,186 @@ PY
     done
 }
 
+# Print "running" or "stopped" for the test user's Dolphin, or nothing if SSH does not answer.
+dolphin_state() {
+    vm_ssh "if pgrep -u $TEST_USER -x dolphin >/dev/null; then echo running; else echo stopped; fi" 2>/dev/null || true
+}
+
+# Wait up to <seconds> for the test user's Dolphin to be running or stopped. Returns 1 if it is
+# not by then, or if the VM stops.
+#   wait_for_dolphin running|stopped <seconds>
+wait_for_dolphin() {
+    local want="$1" limit="$2" start=$SECONDS
+    while true; do
+        [[ "$(dolphin_state)" == "$want" ]] && return 0
+        ((SECONDS - start < limit)) && vm_running || return 1
+        sleep 1
+    done
+}
+
+# Stop the test user's Dolphin and wait up to 10 s for it to go. Returns 1 if it does not.
+stop_dolphin() {
+    vm_ssh pkill -u "$TEST_USER" -x dolphin >/dev/null 2>&1 || true
+    wait_for_dolphin stopped 10
+}
+
+# Print "favorites=<value>" for each OrielOS Start menu in a plasma-org.kde.plasma.desktop-appletsrc
+# file: the pinned apps in its [Configuration][General] group. Prints nothing if there is none.
+#   start_favorites <file>
+start_favorites() {
+    python3 -I - "$1" <<'PY'
+import re
+import sys
+
+groups = {}
+group = None
+for line in open(sys.argv[1], encoding="utf-8"):
+    line = line.strip()
+    header = re.fullmatch(r"\[(.*)\]", line)
+    if header:
+        group = tuple(header.group(1).split("]["))
+        groups.setdefault(group, {})
+    elif group and "=" in line:
+        key, value = line.split("=", 1)
+        groups[group][key] = value
+
+for g, keys in groups.items():
+    if len(g) == 4 and g[0] == "Containments" and g[2] == "Applets" and keys.get("plugin") == "org.orielos.startmenu":
+        print("favorites=" + groups.get(g + ("Configuration", "General"), {}).get("favorites", ""))
+PY
+}
+
+# Copy the test user's Plasma layout to <name> in the results and print the Start menu's pinned
+# apps. Returns 1 if the file cannot be read or has no Start menu.
+#   read_start_favorites <name>
+read_start_favorites() {
+    local out
+    vm_ssh cat "/home/$TEST_USER/.config/plasma-org.kde.plasma.desktop-appletsrc" >"$RESULTS/$1" 2>/dev/null || return 1
+    out="$(start_favorites "$RESULTS/$1")" || return 1
+    [[ -n "$out" ]] || return 1
+    sed -n '1s/^favorites=//p' <<<"$out"
+}
+
+# Read the Start menu's pinned apps into START_FAVORITES, polling for up to 30 s because Plasma
+# saves widget settings to disk a few seconds after they change. Saves start-appletsrc.
+wait_for_ark_pin() {
+    local out start=$SECONDS
+    while true; do
+        if out="$(read_start_favorites start-appletsrc)"; then START_FAVORITES="$out"; fi
+        [[ "$START_FAVORITES" == *org.kde.ark.desktop* ]] && return 0
+        ((SECONDS - start < 30)) && vm_running || return 1
+        sleep 3
+    done
+}
+
+# Drive OrielOS's Start menu with the keyboard over QMP, as someone would: search without
+# running anything, open the first result with Enter, pin Ark with the Menu key, then restart and
+# check that the pin is still there. Runs after the other second-boot checks, because it restarts
+# the VM; the second boot's SSH state and log range are put back afterwards.
+start_menu_checks() {
+    local start second_end ssh_ok=$SSH_OK log_from=$LOG_FROM
+    if ! vm_running || [[ "$SSH_OK" -ne 1 ]]; then
+        START_WHY="the VM stopped or SSH did not answer before the Start menu checks"
+        return 0
+    elif [[ -z "$SESSION_SECONDS" ]]; then
+        START_WHY="$TEST_USER's Plasma session did not start"
+        return 0
+    fi
+    info "Start menu: searching, opening and pinning with the keyboard over QMP"
+    # Win+E started Dolphin earlier, so stop it before checking what the menu starts.
+    if ! stop_dolphin; then
+        START_WHY="$TEST_USER's Dolphin did not stop within 10 s"
+        return 0
+    fi
+
+    # Typing only lists results; nothing may start until Enter.
+    if ! vm_qmp keys:meta_l wait:2 keys:f wait:0.3 keys:i wait:0.3 keys:l wait:3 "shot:$RESULTS/start-search.png"; then
+        START_WHY="could not send keys over QMP"
+        return 0
+    fi
+    if wait_for_dolphin running 5; then
+        START_SEARCH_RAN="yes"
+        stop_dolphin || true
+    elif [[ "$(dolphin_state)" == "stopped" ]]; then
+        START_SEARCH_RAN="no"
+    else
+        START_WHY="SSH stopped answering after typing in the Start menu"
+        return 0
+    fi
+
+    START_ENTER_SECONDS="none"
+    vm_qmp keys:ret || true
+    start=$SECONDS
+    if wait_for_dolphin running 20; then START_ENTER_SECONDS=$((SECONDS - start)); fi
+    if ! stop_dolphin; then
+        START_WHY="$TEST_USER's Dolphin did not stop within 10 s after Enter"
+        return 0
+    fi
+
+    # Ark is not pinned by default. The Menu key opens the result's context menu with "Pin to
+    # Start" highlighted, so Enter pins it. A PC keyboard's Menu key is QEMU's "compose" key,
+    # which Linux and Qt read as Menu; QEMU's "menu" key is a different, rarely used key.
+    START_PINNED="no"
+    if ! vm_qmp keys:meta_l wait:2 keys:a wait:0.3 keys:r wait:0.3 keys:k wait:3 \
+        keys:compose wait:1 "shot:$RESULTS/start-pin-menu.png" keys:ret wait:2 keys:esc wait:5; then
+        START_WHY="could not send keys over QMP"
+        return 0
+    fi
+    if wait_for_ark_pin; then
+        START_PINNED="yes"
+    else
+        START_WHY="pinning Ark did not save it, so the restart was skipped"
+        return 0
+    fi
+
+    # The second boot's log ends here, before the shutdown messages.
+    second_end="$(full_log | wc -l)"
+    start_menu_restart
+    SSH_OK=$ssh_ok
+    if [[ "$LOG_FROM" != "$log_from" ]]; then
+        LOG_UNTIL=$second_end
+        LOG_FROM=$log_from
+    fi
+}
+
+# Restart the VM, wait for SDDM's autologin to bring the test user's Plasma session back, read
+# the Start menu's pinned apps again into start-appletsrc-restart and take start-pinned.png.
+start_menu_restart() {
+    local out probe types procs
+    START_KEPT="no"
+    if ! reboot_vm; then
+        START_WHY="the VM did not restart"
+        return 0
+    fi
+    if ! wait_for_ssh; then
+        START_WHY="SSH did not answer after the restart"
+        return 0
+    fi
+    # The autologin written by desktop_login stays in /etc/sddm.conf.d, so SDDM logs the user
+    # straight back in.
+    info "Waiting for $TEST_USER's Plasma session after the restart"
+    probe="$(session_probe "$TEST_USER" plasmashell kwin_wayland)"
+    while true; do
+        out="$(vm_ssh "$probe" 2>/dev/null)" || true
+        types="$(sed -n 's/^types=//p' <<<"$out")"
+        procs="$(sed -n 's/^running=//p' <<<"$out" | paste -sd ' ' -)"
+        [[ " $types " == *" wayland "* && "$procs" == "plasmashell kwin_wayland" ]] && break
+        if ((SECONDS - BOOT_START >= TIMEOUT)) || ! vm_running; then
+            START_WHY="$TEST_USER's Plasma session did not start within $TIMEOUT s of the restart"
+            return 0
+        fi
+        sleep 3
+    done
+    info "The Plasma session is back $((SECONDS - BOOT_START)) s after the restart; waiting 15 s for the desktop to draw"
+    sleep 15
+    if ! START_KEPT_FAVORITES="$(read_start_favorites start-appletsrc-restart)"; then
+        START_WHY="could not read the Start menu's settings after the restart"
+        return 0
+    fi
+    if [[ "$START_KEPT_FAVORITES" == *org.kde.ark.desktop* ]]; then START_KEPT="yes"; fi
+    vm_qmp keys:meta_l wait:3 "shot:$RESULTS/start-pinned.png" keys:esc || true
+}
+
 # Copy the test user's Plasma layout to plasma-appletsrc in the results and read its panels:
 # how many there are, where the panel is, its widgets in order, the task manager's pinned apps
 # and the Start button's icon. Also read the desktop's wallpaper and check that the OrielOS
@@ -498,7 +696,8 @@ read_taskbar() {
 # Print a summary of the panels in a plasma-org.kde.plasma.desktop-appletsrc file:
 # "wallpaper=<the desktops' Image values, comma-separated>", "panels=<count>" and,
 # when there is exactly one panel, "location=<edge>" (4 is the bottom), "order=<widgets>" (plugin
-# names without org.kde.plasma.), "launchers=<pinned apps>" and "icon=<Start icon>".
+# names without org.kde.plasma. or org.orielos.), "launchers=<pinned apps>" and "icon=<the Start
+# menu's icon>".
 #   taskbar_summary <file>
 taskbar_summary() {
     python3 -I - "$1" <<'PY'
@@ -537,11 +736,11 @@ names = []
 for applet in order:
     plugin = groups[panel + ("Applets", applet)].get("plugin", "")
     general = groups.get(panel + ("Applets", applet, "Configuration", "General"), {})
-    if plugin == "org.kde.plasma.kickoff":
+    if plugin == "org.orielos.startmenu":
         print("icon=" + general.get("icon", ""))
     if plugin == "org.kde.plasma.icontasks":
         print("launchers=" + general.get("launchers", ""))
-    names.append(plugin.removeprefix("org.kde.plasma."))
+    names.append(re.sub(r"^org\.(kde\.plasma|orielos)\.", "", plugin))
 print("order=" + " ".join(names))
 PY
 }
@@ -635,7 +834,7 @@ PY
 
 run_checks() {
     local status="$1" colours="$2" cmdline btrfs after failed unit line versions rejected taskbar wallpaper shown="not reached"
-    local wrong spec key component action names meta arg
+    local wrong spec key component action names meta arg skipped
     local ac_cmdline ac_lockdown ac_kexec ac_lsm ac_hibernate ac_modules ac_bad ac_missing
     local no_ssh="SSH over vsock did not answer, so this could not be checked inside the VM"
     local ssh_hint="check that /dev/vhost-vsock exists on the host, and look for sshd or systemd-ssh-generator errors in serial.log"
@@ -839,7 +1038,7 @@ run_checks() {
         pass "Universal Blue's key is trusted (mokutil --test-key: enrolled; state: key=enrolled; v4l2loopback loaded; systemd-modules-load.service active)"
     fi
 
-    taskbar="panelspacer kickoff icontasks panelspacer systemtray digitalclock showdesktop"
+    taskbar="panelspacer startmenu icontasks panelspacer systemtray digitalclock showdesktop"
     if [[ "$SSH_OK" -ne 1 ]]; then
         fail "The OrielOS taskbar is set up: $no_ssh"
         hint "$ssh_hint"
@@ -855,10 +1054,23 @@ run_checks() {
         ",$TASKBAR_LAUNCHERS," != *",applications:org.mozilla.firefox.desktop,"* ||
         ",$TASKBAR_LAUNCHERS," != *",applications:org.kde.discover.desktop,"* ]]; then
         fail "The taskbar does not pin Files, Firefox and Store (launchers: ${TASKBAR_LAUNCHERS:-none})"
-    elif [[ "$TASKBAR_ICON" != "orielos-start" ]]; then
-        fail "The Start button does not use the OrielOS logo (kickoff icon: ${TASKBAR_ICON:-none})"
     else
-        pass "The OrielOS taskbar is set up (one panel at the bottom: $TASKBAR_ORDER; pinned: $TASKBAR_LAUNCHERS; Start icon: $TASKBAR_ICON)"
+        pass "The OrielOS taskbar is set up (one panel at the bottom: $TASKBAR_ORDER; pinned: $TASKBAR_LAUNCHERS)"
+    fi
+
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Taskbar: Start is OrielOS's Start menu: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$TASKBAR_READ" -ne 1 ]]; then
+        fail "Taskbar: Start is OrielOS's Start menu: could not read $TEST_USER's ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
+    elif [[ " $TASKBAR_ORDER " != *" startmenu "* ]]; then
+        fail "Taskbar: $TEST_USER's panel has no org.orielos.startmenu (widgets: ${TASKBAR_ORDER:-none})"
+    elif [[ " $TASKBAR_ORDER " =~ \ (kickoff|kicker|kickerdash)\  ]]; then
+        fail "Taskbar: $TEST_USER's panel still has Plasma's launcher next to the Start menu (widgets: $TASKBAR_ORDER)"
+    elif [[ "$TASKBAR_ICON" != "orielos-start" ]]; then
+        fail "Taskbar: the Start button does not use the OrielOS logo (startmenu icon: ${TASKBAR_ICON:-none})"
+    else
+        pass "Taskbar: Start is OrielOS's Start menu (org.orielos.startmenu on the panel, no Plasma launcher; icon: $TASKBAR_ICON)"
     fi
 
     wallpaper="file:///usr/share/wallpapers/OrielOS/"
@@ -931,6 +1143,40 @@ run_checks() {
     else
         pass "Firefox is installed on first boot (flatpak-setup.done written; org.mozilla.firefox installed system-wide; xdg-mime gives $FIREFOX_BROWSER for https links as $TEST_USER)"
         info "Firefox was installed $FIREFOX_SECONDS s after the first power-on (version ${FIREFOX_VERSION:-unknown})"
+    fi
+
+    info "Start menu, last, because it restarts the VM"
+    skipped="could not be checked: ${START_WHY:-the VM did not reach the desktop of $TEST_USER}"
+    if [[ -z "$START_SEARCH_RAN" ]]; then
+        fail "Start menu: typing a search runs nothing: $skipped"
+    elif [[ "$START_SEARCH_RAN" == "yes" ]]; then
+        fail "Start menu: typing \"fil\" started Dolphin before Enter was pressed (see start-search.png)"
+    else
+        pass "Start menu: typing a search runs nothing (no Dolphin within 5 s of typing \"fil\" after Win; see start-search.png)"
+    fi
+
+    if [[ -z "$START_ENTER_SECONDS" ]]; then
+        fail "Start menu: Enter opens the first result: $skipped"
+    elif [[ "$START_ENTER_SECONDS" == "none" ]]; then
+        fail "Start menu: Enter after typing \"fil\" did not start Dolphin within 20 s (see start-search.png)"
+    else
+        pass "Start menu: Enter opens the first result (Dolphin started $START_ENTER_SECONDS s after Enter)"
+    fi
+
+    if [[ -z "$START_PINNED" ]]; then
+        fail "Start menu: pinning saves the app: $skipped"
+    elif [[ "$START_PINNED" != "yes" ]]; then
+        fail "Start menu: Menu then Enter on Ark did not save org.kde.ark.desktop within 30 s (favorites: ${START_FAVORITES:-none}; see start-appletsrc)"
+    else
+        pass "Start menu: pinning saves the app (favorites: $START_FAVORITES)"
+    fi
+
+    if [[ -z "$START_KEPT" ]]; then
+        fail "Start menu: pins survive a restart: $skipped"
+    elif [[ "$START_KEPT" != "yes" ]]; then
+        fail "Start menu: pins do not survive a restart (${START_WHY:-favorites after the restart: ${START_KEPT_FAVORITES:-none}}; see start-appletsrc-restart)"
+    else
+        pass "Start menu: pins survive a restart (favorites after the restart: $START_KEPT_FAVORITES; see start-pinned.png)"
     fi
 
     info "Anti-cheat boot mode"
@@ -1091,6 +1337,8 @@ main() {
         fi
         # Last, so the download runs alongside the other checks; most of the time it is done.
         if vm_running && [[ "$SSH_OK" -eq 1 ]]; then wait_for_firefox; fi
+        # After everything else on the second boot, because it restarts the VM.
+        start_menu_checks
     fi
     stop_pid "$WORK/qemu.pid"
     full_log >"$RESULTS/serial.log"
