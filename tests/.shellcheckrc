@@ -1,0 +1,4 @@
+# The VM tests source lib/vm.sh. Follow it, so shellcheck sees the functions and variables
+# the tests share with it.
+external-sources=true
+source-path=SCRIPTDIR

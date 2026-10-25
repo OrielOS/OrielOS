@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Installs the KDE Plasma desktop listed in image/packages/desktop.txt, makes Flathub the
-# only Flatpak source, starts SDDM at boot and sets the Plymouth boot splash.
+# only Flatpak source, starts Plasma Setup on first boot and SDDM at every boot, and sets the
+# Plymouth boot splash.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -25,7 +26,9 @@ mkdir -p /usr/share/flatpak/remotes.d
 sed '/^Filter=/d' /usr/lib/fedora-third-party/conf.d/fedora-flathub.flatpakrepo \
     >/usr/share/flatpak/remotes.d/flathub.flatpakrepo
 
-systemctl enable sddm.service
+# Plasma Setup runs before SDDM until it writes /etc/plasma-setup-done, which the image must
+# not contain; 90-finalise.sh checks that.
+systemctl enable plasma-setup.service sddm.service
 systemctl set-default graphical.target
 
 # 90-finalise.sh rebuilds the initramfs with the theme in it.

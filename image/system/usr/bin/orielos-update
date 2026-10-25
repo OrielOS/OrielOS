@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+# Stages a new OrielOS build for the next restart, and goes back to the previous build.
+# Builds come as OCI archives from tools/build-image.sh. A build that was rolled back is
+# recorded as rejected and is never staged again, unless it is forgotten.
+#
+# Usage: orielos-update status
+#        orielos-update stage FILE.ociarchive
+#        orielos-update rollback
+#        orielos-update forget DIGEST
+#        orielos-update --help
+#   status     show the running build, the build staged for the next restart, the previous
+#              build and the rejected builds
+#   stage      stage the build in FILE for the next restart; the running system is untouched
+#   rollback   make the previous build start at the next restart, and reject the running one
+#   forget     remove DIGEST from the rejected builds, so it can be staged again
+# Exit status: 0 on success, 1 on errors, 2 on wrong usage, 3 if the build was rejected.
+# Runs as root.
+set -Eeuo pipefail
+
+STATE_DIR="/var/lib/orielos/update"
+REJECTED="$STATE_DIR/rejected-digests"
+BUILD_INFO="/usr/lib/orielos/build-info"
+STATUS_JSON=""
+
+die() {
+    printf 'orielos-update: %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+usage() {
+    sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+need() {
+    local cmd
+    for cmd in "$@"; do
+        command -v "$cmd" >/dev/null 2>&1 || die "$cmd is not installed"
+    done
+}
+
+# Read bootc's view of the deployments once.
+load_status() {
+    STATUS_JSON="$(bootc status --format=json)" || die "bootc status failed"
+}
+
+# Print one field of a deployment from bootc's status: field <booted|staged|rollback> <field>
+#   field: ref (transport:image), version, digest
+field() {
+    local slot="$1" name="$2"
+    case "$name" in
+        ref) jq -r --arg s "$slot" '.status[$s].image.image // empty | "\(.transport):\(.image)"' <<<"$STATUS_JSON" ;;
+        version) jq -r --arg s "$slot" '.status[$s].image.version // empty' <<<"$STATUS_JSON" ;;
+        digest) jq -r --arg s "$slot" '.status[$s].image.imageDigest // empty' <<<"$STATUS_JSON" ;;
+    esac
+}
+
+has_deployment() {
+    [[ "$(jq -r --arg s "$1" '.status[$s] != null' <<<"$STATUS_JSON")" == "true" ]]
+}
+
+# The running build's version, from bootc or else from the build-info file.
+booted_version() {
+    local version
+    version="$(field booted version)"
+    if [[ -z "$version" && -r "$BUILD_INFO" ]]; then
+        version="$(sed -n 's/^VERSION=//p' "$BUILD_INFO")"
+    fi
+    printf '%s\n' "${version:-unknown}"
+}
+
+is_rejected() {
+    [[ -r "$REJECTED" ]] && awk -v d="$1" '$1 == d {found = 1} END {exit !found}' "$REJECTED"
+}
+
+# Print a deployment's image reference, version and digest: show <title> <slot>
+show() {
+    local title="$1" slot="$2" version
+    if ! has_deployment "$slot"; then
+        printf '%s: none\n' "$title"
+        return 0
+    fi
+    version="$(field "$slot" version)"
+    if [[ "$slot" == booted ]]; then version="$(booted_version)"; fi
+    printf '%s:\n' "$title"
+    printf '  image:    %s\n' "$(field "$slot" ref)"
+    printf '  version:  %s\n' "${version:-unknown}"
+    printf '  digest:   %s\n' "$(field "$slot" digest)"
+}
+
+cmd_status() {
+    load_status
+    show "Running build" booted
+    show "Staged for the next restart" staged
+    show "Previous build" rollback
+    if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
+        printf 'The previous build starts at the next restart.\n'
+    fi
+    printf 'Rejected builds:'
+    if [[ -s "$REJECTED" ]]; then
+        printf '\n'
+        sed 's/^/  /' "$REJECTED"
+    else
+        printf ' none\n'
+    fi
+}
+
+# Print one blob of an OCI archive: archive_blob <file> <sha256:digest>
+archive_blob() {
+    tar --occurrence=1 -xOf "$1" "blobs/sha256/${2#sha256:}"
+}
+
+# Print the manifest digest and the version label of the build in an OCI archive, without
+# importing it: "<digest> <version>". The archive is a tar file with index.json at the top.
+archive_info() {
+    local file="$1" index digest config version
+    index="$(tar --occurrence=1 -xOf "$file" index.json 2>/dev/null)" || die "$file is not an OCI archive (it has no index.json)"
+    [[ "$(jq '.manifests | length' <<<"$index")" -eq 1 ]] || die "$file must hold exactly one image"
+    [[ "$(jq -r '.manifests[0].mediaType' <<<"$index")" == "application/vnd.oci.image.manifest.v1+json" ]] ||
+        die "$file does not hold a single OCI image manifest"
+    digest="$(jq -r '.manifests[0].digest' <<<"$index")"
+    [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || die "$file has no valid manifest digest"
+    config="$(archive_blob "$file" "$digest" | jq -r '.config.digest')" || die "cannot read the manifest in $file"
+    version="$(archive_blob "$file" "$config" |
+        jq -r '.config.Labels["org.opencontainers.image.version"] // "unknown"')" ||
+        die "cannot read the image configuration in $file"
+    printf '%s %s\n' "$digest" "$version"
+}
+
+cmd_stage() {
+    local file="$1" info digest version
+    [[ -f "$file" && -r "$file" ]] || die "cannot read $file"
+    file="$(realpath "$file")"
+    info="$(archive_info "$file")"
+    digest="${info%% *}"
+    version="${info#* }"
+    if is_rejected "$digest"; then
+        die "build $version ($digest) was rolled back on this computer, so it is not staged again; 'orielos-update forget $digest' allows it again" 3
+    fi
+    load_status
+    if [[ "$digest" == "$(field booted digest)" ]]; then
+        printf 'Build %s is already running; nothing to do.\n' "$version"
+        return 0
+    fi
+    if [[ "$digest" == "$(field staged digest)" ]]; then
+        printf 'Build %s is already staged; it starts at the next restart.\n' "$version"
+        return 0
+    fi
+    printf 'Staging build %s (%s) from %s\n' "$version" "$digest" "$file"
+    # Without --apply, bootc downloads the build and stages it for the next boot; the running
+    # system is left as it is.
+    bootc switch --quiet --transport oci-archive "$file" || die "bootc could not stage $file"
+    printf 'Build %s is staged. Restart to start it; build %s keeps running until then, and stays available to go back to.\n' \
+        "$version" "$(booted_version)"
+}
+
+cmd_rollback() {
+    local digest version
+    load_status
+    has_deployment rollback || die "there is no previous build to go back to"
+    if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
+        printf 'The previous build already starts at the next restart.\n'
+        return 0
+    fi
+    digest="$(field booted digest)"
+    version="$(booted_version)"
+    [[ -n "$digest" ]] || die "cannot read the running build's digest from bootc"
+    if ! is_rejected "$digest"; then
+        mkdir -p "$STATE_DIR"
+        printf '%s  # rejected %s, build %s\n' "$digest" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$version" >>"$REJECTED"
+    fi
+    bootc rollback || die "bootc could not roll back"
+    printf 'Build %s (%s) is rejected and will not be staged again.\n' "$version" "$digest"
+    printf 'The previous build, %s, starts after a restart.\n' "$(field rollback version)"
+}
+
+cmd_forget() {
+    local digest="$1" tmp
+    [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || die "a digest looks like sha256:<64 hex digits>" 2
+    if ! is_rejected "$digest"; then
+        printf '%s is not rejected; nothing to do.\n' "$digest"
+        return 0
+    fi
+    tmp="$(mktemp "$REJECTED.XXXXXX")"
+    awk -v d="$digest" '$1 != d' "$REJECTED" >"$tmp"
+    chmod 0644 "$tmp"
+    mv "$tmp" "$REJECTED"
+    printf '%s is no longer rejected.\n' "$digest"
+}
+
+main() {
+    local cmd="${1:-}"
+    case "$cmd" in
+        --help | -h)
+            usage
+            return 0
+            ;;
+        status | rollback) [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2 ;;
+        stage | forget) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
+        "")
+            usage >&2
+            exit 2
+            ;;
+        *)
+            usage >&2
+            die "unknown command: $cmd" 2
+            ;;
+    esac
+    [[ "$EUID" -eq 0 ]] || die "run orielos-update as root, for example with sudo"
+    need bootc jq tar
+    case "$cmd" in
+        status) cmd_status ;;
+        stage) cmd_stage "$2" ;;
+        rollback) cmd_rollback ;;
+        forget) cmd_forget "$2" ;;
+    esac
+}
+
+main "$@"

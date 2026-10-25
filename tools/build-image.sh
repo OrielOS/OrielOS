@@ -171,6 +171,13 @@ main() {
     local tag="$FEDORA_MAJOR.$DATE"
     preflight
 
+    # The app-builder stage is built and tagged first, as tools/test-apps.sh does. Untagged, its
+    # layers would be removed by the image prune in cleanup, so every build would rebuild the
+    # apps and every layer after them.
+    step "Building the apps ($REPO-app-builder)"
+    podman build --pull=missing -f "$ROOT/image/Containerfile" --target app-builder \
+        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" -t "$REPO-app-builder" "$ROOT"
+
     step "Building $REPO:$tag"
     podman build --pull=missing -f "$ROOT/image/Containerfile" \
         --build-arg "BASE_IMAGE=$BASE_IMAGE" \

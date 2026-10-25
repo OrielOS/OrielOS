@@ -5,13 +5,14 @@ Developer scripts. They are written in Bash, must pass shellcheck, and are meant
 Contains:
 
 - `check-env.sh`: checks that this machine can build and boot-test the image.
-- `build-image.sh`: builds the image locally from the pinned inputs and exports an archive for test VMs.
+- `build-image.sh`: builds the image locally from the pinned inputs and exports an archive for test VMs. It builds and tags the `app-builder` stage first, as `localhost/orielos-app-builder`, so removing old images doesn't throw away the apps' build cache; a rebuild of the same commit with another date then only rebuilds the last layer.
+- `make-vm-disk.sh`: installs the image to a virtual machine disk, for QEMU (`orielos-<tag>.qcow2`, compressed) and VMware (`orielos-<tag>.vmdk`, a single growable file), and prints their paths and sizes. The tag is the image's version, for example `44.20261025`. It installs with `bootc install to-disk` onto a sparse raw file, the same way the boot test does, converts it with `qemu-img` and deletes the raw file. The disks have no user account: Plasma Setup creates the first one on first boot. The defaults are `localhost/orielos:latest`, 64 GiB, both formats and `/var/lib/orielos/vm-disks`; `--archive FILE` installs an archive from `build-image.sh` instead. `--serial-console` sends the console, systemd's status lines and kernel messages to the first serial port and turns the boot splash off, for debugging and for `vmware-vm.sh boot-check`. Runs as root. See [Try OrielOS in a virtual machine](../docs/install-vm.md).
+- `vmware-vm.sh`: creates, boot-checks and deletes a VMware Workstation VM from the VMDK. It runs inside WSL2 on a Windows host with VMware Workstation installed, and drives Workstation's `vmcli.exe` and `vmrun.exe` through Windows interop.
+  - `create --vmdk FILE --dir WINDOWS_DIR [--name NAME]` copies the VMDK to `WINDOWS_DIR\NAME` and creates a VM there with UEFI and Secure Boot, 6 GB of memory, 4 CPUs, the disk on an NVMe controller, NAT networking (VMXNET3), an HD Audio sound card, USB 3 and the first serial port writing to `NAME-serial.log` next to the `.vmx` file. VMware runs VMs only from the Windows file system. There is no virtual TPM, because Workstation needs VM encryption for one, which is set up in its window.
+  - `boot-check --vmx FILE [--timeout S]` starts the VM without a window, waits up to S seconds (default 600) until the serial log shows `Finished plasma-setup.service` or `Started sddm.service` together with `Reached target graphical.target`, prints PASS or FAIL and stops the VM. It needs a disk made with `--serial-console`.
+  - `delete --vmx FILE` stops the VM if it runs and deletes it with `vmrun deleteVM`, together with its serial log and folder.
 - `update-pins.sh`: shows, and optionally applies, newer digests for the pinned inputs in `image/pins.env`.
 - `test-apps.sh`: builds and tests OrielOS's own apps the same way the image build does, without building the whole image. It builds only the `app-builder` stage of `image/Containerfile`, which compiles the apps, runs their tests and `qmllint`, and exits 1 if any of them fail. It works with rootless Podman, needs no `sudo`, and CI runs it on every pull request.
 - `lint.sh`: runs every linter (shellcheck, shfmt, hadolint, actionlint, clang-format, gitleaks) and exits 1 on any finding. `qmllint` runs in `test-apps.sh` instead, where the Qt and KDE Frameworks imports resolve. Run `tools/install-lint-tools.sh` once first; it installs the pinned tools into `.cache/tools`. The pinned versions and checksums are in `lint-tools.env` and `lint-requirements.txt`. CI runs the same two scripts.
-
-Will contain:
-
-- Launching test VMs.
 
 Licence: GPL-3.0-or-later (see `LICENSE` in the repository root).

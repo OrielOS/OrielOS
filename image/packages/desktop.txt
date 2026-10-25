@@ -5,7 +5,7 @@
 #
 # Left out on purpose: apps that Flathub provides (Kate, Okular, Gwenview, Elisa, KMail,
 # games, office apps, browsers), Discover's PackageKit and rpm-ostree backends (the OS is
-# not changed package by package), Plasma's X11 session, and Fedora's first-run and
+# not changed package by package), Plasma's X11 session, Plasma's welcome app and Fedora's
 # crash-reporting tools.
 
 # Plasma desktop and window manager (Wayland). Klipper, the clipboard history, is part of
@@ -34,6 +34,11 @@ sddm-breeze
 sddm-wayland-plasma
 sddm-kcm
 kde-settings-sddm
+
+# First boot: Plasma Setup asks for the language, keyboard, network, time zone and the
+# first user account, then hands over to SDDM. It pulls in Fedora's look-and-feel and
+# wallpapers, which the wizard uses.
+plasma-setup
 
 # Settings, power and hardware integration.
 plasma-systemsettings

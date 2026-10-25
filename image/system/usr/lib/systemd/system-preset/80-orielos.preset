@@ -1,8 +1,11 @@
-# OrielOS overrides of fedora-bootc's server defaults. Read before Fedora's 85-* and 90-*
-# presets, so these lines win.
+# OrielOS overrides of fedora-bootc's server defaults, and the first-boot wizard. Read
+# before Fedora's 85-* and 90-* presets, so these lines win.
 # Updates are staged and the user is asked before restarting, instead of rebooting by itself.
 disable bootc-fetch-apply-updates.timer
 # A desktop does not listen for SSH.
 disable sshd.service
 # Flathub is the only Flatpak source, so Fedora's own remote is not added.
 disable flatpak-add-fedora-repos.service
+# Plasma Setup runs on first boot, until it writes /etc/plasma-setup-done. Fedora's
+# 90-default.preset enables it too; listing it here keeps it on whatever Fedora changes.
+enable plasma-setup.service

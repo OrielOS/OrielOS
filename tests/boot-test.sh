@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 # Installs the OrielOS image to a disk file, boots it headless under QEMU/KVM with Secure Boot
-# and a software TPM, and checks that it reaches the login screen. Once it does, the test logs in
-# over SSH through a vsock device, checks the services, starts OrielOS's apps and logs a test user
-# in to a Plasma Wayland session inside the VM. Prints PASS/FAIL per check.
+# and a software TPM, and checks that the first boot shows Plasma Setup. Over SSH through a vsock
+# device it then finishes setup the way the wizard does (creates a user and marks setup done),
+# restarts the VM and checks that the second boot reaches the login screen without Plasma Setup.
+# On the second boot it checks the services, starts OrielOS's apps and logs the new user in to a
+# Plasma Wayland session inside the VM. Prints PASS/FAIL per check.
 #
 # Usage: tests/boot-test.sh [--image REF] [--archive FILE] [--timeout SECONDS] [--memory MIB]
 #                           [--cpus N] [--results DIR] [--keep] [--help]
 #   --image REF         image to test (default localhost/orielos:latest)
 #   --archive FILE      load this OCI archive (from tools/build-image.sh) into Podman first and
 #                       test it as localhost/orielos-archive:<file name>, unless --image is given
-#   --timeout SECONDS   time to wait for the login screen after power-on (default 600)
+#   --timeout SECONDS   time to wait for SDDM after power-on, and again after the restart
+#                       (default 600)
 #   --memory MIB        VM memory (default 6144)
 #   --cpus N            VM CPUs (default 4)
 #   --results DIR       where serial.log, install.log, the screenshots and summary.txt go
@@ -20,6 +23,8 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/vm.sh
+source "$ROOT/tests/lib/vm.sh"
 IMAGE="localhost/orielos:latest"
 IMAGE_SET=0
 ARCHIVE=""
@@ -33,20 +38,29 @@ WORK=""
 SUMMARY=""
 # The NVIDIA driver component packages; keep in step with image/build/85-check-modules.sh.
 NVIDIA_COMPONENTS='^(nvidia-driver(-.*)?|nvidia-kmod-common|nvidia-modprobe|nvidia-persistenced|nvidia-settings|nvidia-xconfig|nvidia-libXNVCtrl|libnvidia-.*|xorg-x11-nvidia) '
-BASE_ARGS=()
-OVMF_CODE=""
-OVMF_VARS=""
-BOOT_START=0
 SDDM_SECONDS=""
-SSH_PROXY=""
-GUEST_CID=""
-SSH_WAIT=60
-SSH_OK=0
+# The serial log holds both boots; the checks read the current boot's part, from this line on.
+LOG_FROM=1
+REBOOTED=0
+# First boot: Plasma Setup.
+SETUP_USER="plasma-setup"
+SETUP_SSH_OK=0
+SETUP_SDDM_SECONDS=""
+SETUP_UNIT=""
+SETUP_USERS=""
+SETUP_DONE=""
+SETUP_TYPES=""
+SETUP_PROCS=""
+SETUP_SECONDS=""
+SETUP_COLOURS=""
+# Second boot: Plasma Setup must not run again.
+AGAIN_UNIT=""
+AGAIN_USERS=""
+AGAIN_PROCS=""
 SSH_SDDM=""
 SSH_NM=""
 SELFTEST_OUT=""
 SELFTEST_RC=""
-TEST_USER="orielostest"
 SESSION_FILE="plasma.desktop"
 LOGIN_LOG_LINES=""
 SESSION_TYPES=""
@@ -62,114 +76,10 @@ KERNEL_RPMS=""
 NVIDIA_VERSIONS=""
 IMAGE_KERNEL=""
 KDUMP_BINARIES=""
-PASSED=0
-FAILED=0
 
-if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-    C_GREEN=$'\033[32m'
-    C_RED=$'\033[31m'
-    C_BLUE=$'\033[34m'
-    C_YELLOW=$'\033[33m'
-    C_OFF=$'\033[0m'
-else
-    C_GREEN=""
-    C_RED=""
-    C_BLUE=""
-    C_YELLOW=""
-    C_OFF=""
-fi
-
-die() {
-    printf 'error: %s\n' "$1" >&2
-    if [[ -n "$SUMMARY" ]]; then printf 'FAIL  %s\n' "$1" >>"$SUMMARY"; fi
-    exit 1
-}
-
-usage() {
-    sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
-}
-
-# Print one result line and add it to summary.txt: say <colour> <label> <text>
-say() {
-    printf '%s%s%s  %s\n' "$1" "$2" "$C_OFF" "$3"
-    if [[ -n "$SUMMARY" ]]; then printf '%s  %s\n' "$2" "$3" >>"$SUMMARY"; fi
-    return 0
-}
-
-pass() {
-    PASSED=$((PASSED + 1))
-    say "$C_GREEN" PASS "$1"
-}
-fail() {
-    FAILED=$((FAILED + 1))
-    say "$C_RED" FAIL "$1"
-}
-warn() { say "$C_YELLOW" WARN "$1"; }
-info() { say "$C_BLUE" INFO "$1"; }
-
-# Print an indented hint under the previous line, and add it to summary.txt.
-hint() {
-    printf '      hint: %s\n' "$1"
-    if [[ -n "$SUMMARY" ]]; then printf '      hint: %s\n' "$1" >>"$SUMMARY"; fi
-    return 0
-}
-
-# Stop a daemon whose pid is in a file.
-stop_pid() {
-    local file="$1" pid="" _
-    if [[ -r "$file" ]]; then pid="$(cat "$file")"; fi
-    if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
-        kill "$pid" 2>/dev/null || true
-        for _ in 1 2 3 4 5 6 7 8 9 10; do
-            kill -0 "$pid" 2>/dev/null || break
-            sleep 0.5
-        done
-        kill -9 "$pid" 2>/dev/null || true
-    fi
-    return 0
-}
-
-vm_running() {
-    local pid=""
-    if [[ -r "$WORK/qemu.pid" ]]; then pid="$(cat "$WORK/qemu.pid")"; fi
-    [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null
-}
-
-cleanup() {
-    local rc=$?
-    trap - EXIT
-    if [[ -n "$WORK" ]]; then
-        stop_pid "$WORK/qemu.pid"
-        stop_pid "$WORK/swtpm.pid"
-        if [[ "$KEEP" -eq 1 ]]; then
-            printf 'Kept the disk: %s\n' "$WORK/disk.raw"
-            print_boot_command
-        else
-            rm -f "$WORK/disk.raw"
-            rm -rf "$WORK"
-        fi
-    fi
-    exit "$rc"
-}
-
-# Print how to start the TPM and boot the kept disk again with a window.
-print_boot_command() {
-    if [[ "${#BASE_ARGS[@]}" -eq 0 ]]; then return 0; fi
-    printf 'To boot it again, start the TPM:\n  swtpm socket --tpm2 --tpmstate dir=%q --ctrl type=unixio,path=%q --daemon\n' \
-        "$WORK/tpm" "$WORK/swtpm.sock"
-    printf 'then run:\n '
-    printf ' %q' qemu-system-x86_64 "${BASE_ARGS[@]}" -display gtk
-    printf '\nand log in over SSH with:\n '
-    printf ' %q' ssh -i "$WORK/ssh_key" -F /dev/null -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-        -o ProxyUseFdpass=yes -o ProxyCommand="$SSH_PROXY vsock/$GUEST_CID 22" "root@vsock/$GUEST_CID"
-    printf '\n'
-}
-
-# Print the serial log without colour codes or unprintable bytes.
+# Print the current boot's part of the serial log.
 clean_log() {
-    if [[ -r "$WORK/serial.log" ]]; then
-        sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' "$WORK/serial.log" | tr -cd '\11\12\40-\176'
-    fi
+    full_log | tail -n "+$LOG_FROM"
 }
 
 grep_log() {
@@ -185,87 +95,85 @@ login_log() {
     fi
 }
 
-load_archive() {
-    local id
-    [[ -r "$ARCHIVE" ]] || die "cannot read $ARCHIVE"
-    info "Loading $ARCHIVE as $IMAGE"
-    # skopeo creates only the requested tag; podman pull also tags the archive's own name.
-    if command -v skopeo >/dev/null 2>&1; then
-        skopeo copy --quiet "oci-archive:$ARCHIVE" "containers-storage:$IMAGE" ||
-            die "could not load $ARCHIVE"
-    else
-        id="$(podman pull --quiet "oci-archive:$ARCHIVE")" || die "could not load $ARCHIVE"
-        podman tag "$id" "$IMAGE"
-    fi
+# Remote script that prints Plasma Setup's state: "unit=<state of plasma-setup.service>",
+# "users=<regular users>" and "done=yes|no" for its done marker.
+setup_probe() {
+    cat <<'SH'
+printf 'unit=%s\n' "$(systemctl show -p ActiveState -p Result -p ConditionResult plasma-setup.service | sort | paste -sd ' ' -)"
+printf 'users=%s\n' "$(awk -F: '$3 >= 1000 && $3 < 60000 {print $1}' /etc/passwd | paste -sd ' ' -)"
+if [ -e /etc/plasma-setup-done ]; then echo done=yes; else echo done=no; fi
+SH
 }
 
-find_firmware() {
-    local pairs=(
-        "/usr/share/OVMF/OVMF_CODE_4M.secboot.fd:/usr/share/OVMF/OVMF_VARS_4M.ms.fd"
-        "/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd:/usr/share/edk2/ovmf/OVMF_VARS.secboot.fd"
-    )
-    local pair code vars
-    for pair in "${pairs[@]}"; do
-        code="${pair%%:*}"
-        vars="${pair##*:}"
-        if [[ -r "$code" && -r "$vars" ]]; then
-            OVMF_CODE="$code"
-            OVMF_VARS="$vars"
-            return 0
-        fi
-    done
-    die "no Secure Boot capable OVMF firmware found (sudo apt install ovmf; Fedora: sudo dnf install edk2-ovmf)"
-}
-
-# Find systemd-ssh-proxy, make sure the host has vsock, create a key for this run and pick a
-# random guest CID. The key is handed to the VM as a systemd credential through SMBIOS.
-setup_ssh() {
-    local dir n
-    for dir in /usr/lib/systemd /usr/libexec; do
-        if [[ -x "$dir/systemd-ssh-proxy" ]]; then
-            SSH_PROXY="$dir/systemd-ssh-proxy"
+# First boot: read Plasma Setup's state, wait up to 120 s for SDDM to log the plasma-setup user
+# in and for the wizard to start in that session, then take first-boot.png.
+first_boot() {
+    local start out probe status=""
+    out="$(vm_ssh "$(setup_probe)" 2>&1)" || true
+    SETUP_UNIT="$(sed -n 's/^unit=//p' <<<"$out")"
+    SETUP_USERS="$(sed -n 's/^users=//p' <<<"$out")"
+    SETUP_DONE="$(sed -n 's/^done=//p' <<<"$out")"
+    info "plasma-setup.service: ${SETUP_UNIT:-no output}"
+    info "Waiting up to 120 s for Plasma Setup's wizard"
+    probe="$(session_probe "$SETUP_USER" kwin_wayland plasma-setup)"
+    start=$SECONDS
+    while ((SECONDS - start < 120)); do
+        out="$(vm_ssh "$probe" 2>/dev/null)" || true
+        SETUP_TYPES="$(sed -n 's/^types=//p' <<<"$out")"
+        SETUP_PROCS="$(sed -n 's/^running=//p' <<<"$out" | paste -sd ' ' -)"
+        if [[ " $SETUP_TYPES " == *" wayland "* && "$SETUP_PROCS" == "kwin_wayland plasma-setup" ]]; then
+            SETUP_SECONDS=$((SECONDS - BOOT_START))
             break
         fi
+        vm_running || return 0
+        sleep 3
     done
-    [[ -n "$SSH_PROXY" ]] ||
-        die "systemd-ssh-proxy is not installed (it comes with systemd 256 or newer; tools/check-env.sh shows what is missing)"
-    if [[ ! -e /dev/vhost-vsock ]]; then
-        modprobe vhost_vsock 2>/dev/null || true
-        [[ -e /dev/vhost-vsock ]] ||
-            die "/dev/vhost-vsock is missing and vhost_vsock could not be loaded (tools/check-env.sh shows how to fix it)"
+    if [[ -z "$SETUP_SECONDS" ]]; then
+        info "Plasma Setup's wizard did not start within 120 s"
+    else
+        info "Plasma Setup's wizard started $SETUP_SECONDS s after power-on; waiting 15 s for it to draw"
+        sleep 15
     fi
-    ssh-keygen -q -t ed25519 -N '' -C "orielos-boot-test" -f "$WORK/ssh_key"
-    n="$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')"
-    GUEST_CID=$((3 + n % 4294967292))
+    status="$(take_screenshots "$WORK/first-boot.ppm" "$RESULTS/first-boot.png" 0 | sed -n 's/^status=//p')" || true
+    if [[ "$status" == "running" && -r "$WORK/first-boot.ppm" ]]; then
+        SETUP_COLOURS="$(count_colours "$WORK/first-boot.ppm")" || true
+    fi
 }
 
-# Run a command inside the VM as root over SSH through vsock: vm_ssh <command...>
-vm_ssh() {
-    timeout 120 ssh -n -i "$WORK/ssh_key" -F /dev/null -o BatchMode=yes -o IdentitiesOnly=yes \
-        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 \
-        -o ProxyUseFdpass=yes -o ProxyCommand="$SSH_PROXY vsock/$GUEST_CID 22" "root@vsock/$GUEST_CID" "$@"
-}
-
-# Wait up to $SSH_WAIT seconds for SSH to answer. Returns 1 if it never does.
-wait_for_ssh() {
-    local start=$SECONDS
-    info "Waiting up to $SSH_WAIT s for SSH over vsock (guest CID $GUEST_CID)"
-    while ((SECONDS - start < SSH_WAIT)); do
-        if vm_ssh true >/dev/null 2>&1; then
-            SSH_OK=1
-            info "SSH answered $((SECONDS - BOOT_START)) s after power-on"
+# Restart the VM from inside, and move the start of the current boot's log to the new kernel's
+# first line. Returns 1 if the new boot does not start within 120 s.
+reboot_vm() {
+    local from line start
+    from=$(($(full_log | wc -l) + 1))
+    info "Restarting the VM"
+    vm_ssh systemctl reboot >/dev/null 2>&1 || true
+    BOOT_START=$SECONDS
+    SSH_OK=0
+    start=$SECONDS
+    while ((SECONDS - start < 120)); do
+        line="$(full_log | tail -n "+$from" | grep -n -m1 'Linux version ' | cut -d: -f1)" || true
+        if [[ -n "$line" ]]; then
+            LOG_FROM=$((from + line - 1))
+            REBOOTED=1
+            info "The second boot started $((SECONDS - start)) s after the restart"
             return 0
         fi
         vm_running || break
         sleep 2
     done
-    info "SSH did not answer within $SSH_WAIT s"
+    info "The second boot did not start within 120 s of the restart"
     return 1
 }
 
 # Check the services, start the apps and report the system state over SSH.
 collect_over_ssh() {
-    local state units
+    local state units out
+    out="$(vm_ssh "$(setup_probe)
+        pgrep -u $SETUP_USER -x plasma-setup >/dev/null && echo running=plasma-setup
+        test -e /etc/sddm.conf.d/99-plasma-setup.conf && echo running=autologin" 2>&1)" || true
+    AGAIN_UNIT="$(sed -n 's/^unit=//p' <<<"$out")"
+    AGAIN_USERS="$(sed -n 's/^users=//p' <<<"$out")"
+    AGAIN_PROCS="$(sed -n 's/^running=//p' <<<"$out" | paste -sd ' ' -)"
     SSH_SDDM="$(vm_ssh systemctl is-active sddm 2>&1)" || true
     SSH_NM="$(vm_ssh systemctl is-active NetworkManager 2>&1)" || true
     SELFTEST_RC=0
@@ -283,29 +191,32 @@ collect_over_ssh() {
     NVIDIA_VERSIONS="$(vm_ssh "rpm -qa --qf '%{NAME} %{VERSION}-%{RELEASE}\n' | grep -E '$NVIDIA_COMPONENTS' | grep -v '^nvidia-driver-selinux '" 2>&1)" || true
 }
 
-# Remote script that prints the types of the test user's sessions and which of plasmashell and
-# kwin_wayland run as that user: "types=<type ...>" and one "running=<process>" line each.
+# Remote script that prints the types of a user's sessions and which of the given processes run
+# as that user: "types=<type ...>" and one "running=<process>" line each.
+#   session_probe <user> <process...>
 session_probe() {
+    local user="$1"
+    shift
     cat <<SH
 types=""
-for s in \$(loginctl list-sessions --no-legend | awk '\$3 == "$TEST_USER" {print \$1}'); do
+for s in \$(loginctl list-sessions --no-legend | awk '\$3 == "$user" {print \$1}'); do
     types="\$types \$(loginctl show-session -p Type --value "\$s")"
 done
 printf 'types=%s\n' "\${types# }"
-for p in plasmashell kwin_wayland; do
-    if pgrep -u $TEST_USER -x "\$p" >/dev/null; then printf 'running=%s\n' "\$p"; fi
+for p in $*; do
+    if pgrep -u $user -x "\$p" >/dev/null; then printf 'running=%s\n' "\$p"; fi
 done
 SH
 }
 
-# Create a test user, log it in through SDDM's autologin to the Plasma Wayland session, wait up
-# to 90 s for the session, then take desktop.png and check the user's sound services.
+# Log the user that setup created in to the Plasma Wayland session through SDDM's autologin,
+# wait up to 90 s for the session, then take desktop.png and check the user's sound services.
 desktop_login() {
     local start out probe status=""
     LOGIN_LOG_LINES="$(clean_log | wc -l)"
     info "Logging $TEST_USER in to the Plasma Wayland session ($SESSION_FILE) through SDDM's autologin"
     if ! out="$(vm_ssh "set -e
-        useradd -m $TEST_USER
+        id $TEST_USER >/dev/null
         test -r /usr/share/wayland-sessions/$SESSION_FILE
         mkdir -p /etc/sddm.conf.d
         printf '[Autologin]\nUser=%s\nSession=%s\n' $TEST_USER $SESSION_FILE >/etc/sddm.conf.d/99-boot-test-autologin.conf
@@ -313,7 +224,7 @@ desktop_login() {
         info "Could not set up the desktop login: ${out:-no output}"
         return 0
     fi
-    probe="$(session_probe)"
+    probe="$(session_probe "$TEST_USER" plasmashell kwin_wayland)"
     start=$SECONDS
     while ((SECONDS - start < 90)); do
         out="$(vm_ssh "$probe" 2>/dev/null)" || true
@@ -339,71 +250,22 @@ desktop_login() {
     SOUND_STATE="$(vm_ssh systemctl --user -M "$TEST_USER@" is-active pipewire wireplumber 2>&1 | paste -sd ' ' -)" || true
 }
 
-install_image() {
-    local start=$SECONDS
-    info "Installing $IMAGE to a 30 GiB disk (this takes a few minutes)"
-    truncate -s 30G "$WORK/disk.raw"
-    # The image boots with "quiet" for its splash screen. The checks read systemd's status lines
-    # and kernel messages from the serial console, so turn both back on there, and turn Plymouth
-    # off: while the splash runs it takes over the console output, so systemd's status lines
-    # never reach the serial console.
-    podman run --rm --privileged --pid=host --security-opt label=disable \
-        -v /var/lib/containers:/var/lib/containers -v /dev:/dev -v "$WORK:/output" \
-        "$IMAGE" bootc install to-disk --via-loopback --generic-image --wipe \
-        --karg console=tty0 --karg console=ttyS0,115200 \
-        --karg systemd.show_status=1 --karg ignore_loglevel --karg plymouth.enable=0 \
-        /output/disk.raw >"$RESULTS/install.log" 2>&1 ||
-        die "the installation failed; see $RESULTS/install.log"
-    info "Installed in $((SECONDS - start)) s"
-}
-
-start_vm() {
-    local _
-    cp "$OVMF_VARS" "$WORK/vars.fd"
-    mkdir -p "$WORK/tpm"
-    swtpm socket --tpm2 --tpmstate "dir=$WORK/tpm" --ctrl "type=unixio,path=$WORK/swtpm.sock" \
-        --pid "file=$WORK/swtpm.pid" --daemon
-    for _ in 1 2 3 4 5 6 7 8 9 10; do
-        [[ -S "$WORK/swtpm.sock" ]] && break
-        sleep 0.5
-    done
-    [[ -S "$WORK/swtpm.sock" ]] || die "swtpm did not start"
-    BASE_ARGS=(
-        -accel kvm -machine "q35,smm=on" -cpu host -m "$MEMORY" -smp "$CPUS"
-        -global "driver=cfi.pflash01,property=secure,value=on"
-        -drive "if=pflash,format=raw,unit=0,file=$OVMF_CODE,readonly=on"
-        -drive "if=pflash,format=raw,unit=1,file=$WORK/vars.fd"
-        -chardev "socket,id=chrtpm,path=$WORK/swtpm.sock"
-        -tpmdev "emulator,id=tpm0,chardev=chrtpm" -device "tpm-crb,tpmdev=tpm0"
-        -drive "file=$WORK/disk.raw,format=raw,if=virtio"
-        -device virtio-vga
-        -audiodev "none,id=snd0" -device ich9-intel-hda -device "hda-output,audiodev=snd0"
-        -netdev "user,id=n0" -device "virtio-net-pci,netdev=n0"
-        -device "vhost-vsock-pci,guest-cid=$GUEST_CID"
-        -smbios "type=11,value=io.systemd.credential.binary:ssh.authorized_keys.root=$(base64 -w0 "$WORK/ssh_key.pub")"
-    )
-    qemu-system-x86_64 "${BASE_ARGS[@]}" -display none \
-        -serial "file:$WORK/serial.log" -qmp "unix:$WORK/qmp.sock,server=on,wait=off" \
-        -daemonize -pidfile "$WORK/qemu.pid"
-    BOOT_START=$SECONDS
-}
-
-# Wait for the login screen and record when SDDM started. Returns 1 on timeout.
-wait_for_login() {
+# Wait until the current boot has started SDDM and reached graphical.target, and record when
+# SDDM started. On the first boot SDDM logs Plasma Setup's user in; afterwards it shows the
+# login screen. Returns 1 on timeout.
+wait_for_sddm() {
     local text
-    info "Booting; waiting up to $TIMEOUT s for the login screen"
+    info "Waiting up to $TIMEOUT s for SDDM"
     while ((SECONDS - BOOT_START < TIMEOUT)); do
         text="$(clean_log)"
         if [[ -z "$SDDM_SECONDS" && "$text" == *"Started sddm.service"* ]]; then
             SDDM_SECONDS=$((SECONDS - BOOT_START))
         fi
         if [[ "$text" == *"Started sddm.service"* && "$text" == *"Reached target graphical.target"* ]]; then
-            info "Waiting 15 s for the greeter to draw"
-            sleep 15
             return 0
         fi
         if ! vm_running; then
-            info "The VM stopped before the login screen appeared"
+            info "The VM stopped before SDDM started"
             return 1
         fi
         sleep 2
@@ -479,6 +341,44 @@ run_checks() {
     local status="$1" colours="$2" cmdline btrfs after failed unit line versions shown="not reached"
     local no_ssh="SSH over vsock did not answer, so this could not be checked inside the VM"
     local ssh_hint="check that /dev/vhost-vsock exists on the host, and look for sshd or systemd-ssh-generator errors in serial.log"
+
+    info "First boot"
+    if [[ "$SETUP_SSH_OK" -ne 1 ]]; then
+        fail "Plasma Setup starts on first boot: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ " $SETUP_UNIT " != *" ConditionResult=yes "* || " $SETUP_UNIT " != *" Result=success "* ]]; then
+        fail "plasma-setup.service did not run on first boot (${SETUP_UNIT:-no output})"
+    elif [[ "$SETUP_DONE" != "no" ]]; then
+        fail "Plasma Setup's done marker /etc/plasma-setup-done existed on first boot"
+    elif [[ -n "$SETUP_USERS" ]]; then
+        fail "There were regular users before Plasma Setup ran: $SETUP_USERS"
+    elif [[ " $SETUP_TYPES " != *" wayland "* || "$SETUP_PROCS" != "kwin_wayland plasma-setup" ]]; then
+        fail "Plasma Setup's wizard did not start within 120 s (session types for $SETUP_USER: ${SETUP_TYPES:-none}; running: ${SETUP_PROCS:-neither kwin_wayland nor plasma-setup})"
+    elif [[ ! "$SETUP_COLOURS" =~ ^[0-9]+$ || "$SETUP_COLOURS" -le 1 ]]; then
+        fail "Plasma Setup's wizard started but the screen is blank (${SETUP_COLOURS:-no screenshot} distinct colours)"
+    else
+        pass "Plasma Setup starts on first boot (plasma-setup.service ran; no regular users; the wizard runs in a Wayland session for $SETUP_USER after $SETUP_SECONDS s; $SETUP_COLOURS distinct colours on screen)"
+    fi
+
+    info "Second boot, after finishing setup as $TEST_USER and restarting"
+    if [[ "$FINISH_OK" -ne 1 ]]; then
+        fail "Plasma Setup does not run again: setup could not be finished on first boot"
+    elif [[ "$REBOOTED" -ne 1 ]]; then
+        fail "Plasma Setup does not run again: the VM did not restart"
+    elif [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Plasma Setup does not run again: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ " $AGAIN_UNIT " != *" ConditionResult=no "* ]]; then
+        fail "plasma-setup.service was not skipped on the second boot (${AGAIN_UNIT:-no output})"
+    elif [[ -n "$AGAIN_PROCS" ]]; then
+        fail "Plasma Setup runs again on the second boot (found: ${AGAIN_PROCS/autologin/its SDDM autologin})"
+    elif [[ "$AGAIN_USERS" != "$TEST_USER" ]]; then
+        fail "The regular users are not just $TEST_USER after setup (${AGAIN_USERS:-none})"
+    elif [[ "$SSH_SDDM" != "active" ]]; then
+        fail "Plasma Setup was skipped, but SDDM is not active (systemctl is-active sddm: ${SSH_SDDM:-no output})"
+    else
+        pass "Plasma Setup does not run again (plasma-setup.service skipped by its condition on /etc/plasma-setup-done; no wizard or autologin; SDDM active; regular users: $AGAIN_USERS)"
+    fi
 
     if [[ -n "$(grep_log 'secureboot: Secure boot enabled')" ]]; then
         pass "Secure Boot was on"
@@ -619,12 +519,18 @@ run_checks() {
         [[ -n "$unit" && "$unit" != sddm.service && "$unit" != NetworkManager.service ]] || continue
         warn "$unit failed to start"
     done <<<"$failed"
-    if [[ -n "$SDDM_SECONDS" ]]; then shown="about $SDDM_SECONDS s"; fi
-    info "Time from power-on to SDDM: $shown"
+    if [[ -n "$SETUP_SDDM_SECONDS" ]]; then shown="about $SETUP_SDDM_SECONDS s"; fi
+    info "First boot: time from power-on to SDDM: $shown"
+    shown="not reached"
+    if [[ -n "$SETUP_SECONDS" ]]; then shown="about $SETUP_SECONDS s"; fi
+    info "First boot: time from power-on to Plasma Setup's wizard: $shown"
+    shown="not reached"
+    if [[ "$REBOOTED" -eq 1 && -n "$SDDM_SECONDS" ]]; then shown="about $SDDM_SECONDS s"; fi
+    info "Second boot: time from the restart to SDDM: $shown"
 }
 
 main() {
-    local original=("$@") run_id tag cmd status="" colours="" timed_out=0
+    local original=("$@") run_id tag status="" colours="" timed_out=0
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --image | --archive | --timeout | --memory | --cpus | --results)
@@ -664,11 +570,7 @@ main() {
         command -v sudo >/dev/null 2>&1 || die "run this script as root (sudo is not installed)"
         exec sudo "${BASH_SOURCE[0]}" "${original[@]}"
     fi
-    for cmd in podman qemu-system-x86_64 swtpm python3 ssh ssh-keygen; do
-        command -v "$cmd" >/dev/null 2>&1 || die "$cmd is not installed (tools/check-env.sh shows what is missing)"
-    done
-    [[ -r /dev/kvm && -w /dev/kvm ]] || die "/dev/kvm is not usable (tools/check-env.sh shows how to fix it)"
-    find_firmware
+    check_host
 
     # An archive gets its own tag unless --image was given, so builds keep their tags.
     if [[ -n "$ARCHIVE" && "$IMAGE_SET" -eq 0 ]]; then
@@ -694,15 +596,35 @@ main() {
     setup_ssh
     install_image
     start_vm
-    wait_for_login || timed_out=1
-    if vm_running && wait_for_ssh; then collect_over_ssh; fi
-    if vm_running; then
-        status="$(take_screenshots "$WORK/screen.ppm" "$RESULTS/screenshot.png" 1 | sed -n 's/^status=//p')" || true
-        if [[ -r "$WORK/screen.ppm" ]]; then colours="$(count_colours "$WORK/screen.ppm")" || true; fi
-        if [[ "$SSH_OK" -eq 1 && "$status" == "running" ]]; then desktop_login; fi
-        stop_pid "$WORK/qemu.pid"
+
+    info "First boot: Plasma Setup should start"
+    wait_for_sddm || timed_out=1
+    SETUP_SDDM_SECONDS="$SDDM_SECONDS"
+    if vm_running && wait_for_ssh; then
+        SETUP_SSH_OK=1
+        first_boot
+        finish_setup
+        if vm_running; then reboot_vm || timed_out=1; fi
     fi
-    clean_log >"$RESULTS/serial.log"
+
+    if [[ "$REBOOTED" -eq 1 ]]; then
+        info "Second boot: the login screen should appear"
+        SDDM_SECONDS=""
+        if wait_for_sddm; then
+            info "Waiting 15 s for the greeter to draw"
+            sleep 15
+        else
+            timed_out=1
+        fi
+        if vm_running && wait_for_ssh; then collect_over_ssh; fi
+        if vm_running; then
+            status="$(take_screenshots "$WORK/screen.ppm" "$RESULTS/screenshot.png" 1 | sed -n 's/^status=//p')" || true
+            if [[ -r "$WORK/screen.ppm" ]]; then colours="$(count_colours "$WORK/screen.ppm")" || true; fi
+            if [[ "$SSH_OK" -eq 1 && "$status" == "running" ]]; then desktop_login; fi
+        fi
+    fi
+    stop_pid "$WORK/qemu.pid"
+    full_log >"$RESULTS/serial.log"
 
     run_checks "$status" "$colours"
     if [[ "$FAILED" -eq 0 && "$timed_out" -eq 0 ]]; then

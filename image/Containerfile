@@ -26,18 +26,6 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
 
 FROM ${BASE_IMAGE}
 
-ARG IMAGE_VERSION=must-be-set
-
-LABEL org.opencontainers.image.title="OrielOS" \
-      org.opencontainers.image.version="${IMAGE_VERSION}" \
-      org.opencontainers.image.source="https://github.com/ncjsvr/OrielOS" \
-      org.opencontainers.image.licenses="GPL-3.0-or-later" \
-      org.opencontainers.image.description="Linux distribution that looks and works like Windows 11, built for gaming" \
-      containers.bootc="1"
-
-# Refuse to build an unversioned image.
-RUN [ "${IMAGE_VERSION}" != "must-be-set" ] || { echo "error: IMAGE_VERSION is not set" >&2; exit 1; }
-
 RUN --mount=type=bind,source=image/build,target=/ctx \
     --mount=type=bind,from=akmods,source=/kernel-rpms,target=/akmods/kernel-rpms \
     --mount=type=bind,from=akmods,source=/rpms,target=/akmods/rpms \
@@ -78,3 +66,22 @@ RUN --mount=type=bind,source=image,target=/image \
 # hadolint ignore=DL3059
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/90-finalise.sh
+
+# The version comes last. Every RUN after an ARG sees it, so declaring it earlier would make
+# builds of the same commit with another date tag rebuild every layer; here they differ only
+# in this last layer and the labels.
+ARG IMAGE_VERSION=must-be-set
+
+# Refuse to build an unversioned image, and record the version for orielos-update and the
+# Settings app.
+# hadolint ignore=DL3059
+RUN [ "${IMAGE_VERSION}" != "must-be-set" ] || { echo "error: IMAGE_VERSION is not set" >&2; exit 1; } && \
+    mkdir -p /usr/lib/orielos && \
+    printf 'VERSION=%s\n' "${IMAGE_VERSION}" >/usr/lib/orielos/build-info
+
+LABEL org.opencontainers.image.title="OrielOS" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
+      org.opencontainers.image.source="https://github.com/ncjsvr/OrielOS" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later" \
+      org.opencontainers.image.description="Linux distribution that looks and works like Windows 11, built for gaming" \
+      containers.bootc="1"
