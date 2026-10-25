@@ -1,0 +1,17 @@
+# OrielOS
+
+> A familiar desktop, tuned for gaming and development. Free and open source.
+
+OrielOS is a free and open-source Linux desktop for desktop PCs with NVIDIA RTX graphics, 20-series or newer, with AMD and Intel graphics to follow. It is a Fedora system image, built with bootc, with the KDE Plasma desktop and OrielOS's own centred taskbar, Start menu and look. Updates download in the background and apply when you restart, with a way back to the previous version. Apps come from the Store (Flathub), and Windows games run through Proton, with GE-Proton as the default.
+
+For where OrielOS stands and the latest download, see https://orielos.org/.
+
+## Links
+
+- [orielos.org](https://orielos.org/): what OrielOS is, where it stands and the download
+- [Source code](https://github.com/ncjsvr/OrielOS): the code, image recipe, artwork and website
+- [User documentation](https://github.com/ncjsvr/OrielOS/tree/main/docs)
+- [Discussions](https://github.com/ncjsvr/OrielOS/discussions): questions and ideas
+- [Discord](https://discord.gg/RnpZYaKbHA): the official server, for live chat and quick help
+- [Contributing guide](https://github.com/ncjsvr/OrielOS/blob/main/CONTRIBUTING.md)
+- [Security policy](https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md)

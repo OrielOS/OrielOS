@@ -9,9 +9,10 @@
 // list and the latest release, with its installer ISO, into index.html from
 // GitHub's REST API. Avatars are downloaded so visitors' browsers only contact
 // our own domain. Pre-releases are left out: GitHub's "latest" is the newest
-// full release.
+// full release. Finally it checks every page's title, description, canonical
+// link and link preview for search engines, and writes the sitemap.
 
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -21,8 +22,12 @@ const publicDir = path.join(here, "public");
 const siteDir = path.join(here, "_site");
 const artworkDir = path.join(repoRoot, "artwork");
 
+export const SITE = "https://orielos.org";
 const API = "https://api.github.com";
 const MAX_PAGES = 5;
+// Roughly what search results show before cutting the text off.
+const MAX_TITLE = 70;
+const MAX_DESCRIPTION = 160;
 const AVATAR_CONCURRENCY = 8;
 const FALLBACK_AVATAR = "favicon.svg";
 
@@ -41,6 +46,140 @@ export function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+const ENTITIES = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
+
+export function decodeEntities(value) {
+  return String(value).replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => ENTITIES[entity]);
+}
+
+// A tag's attributes, whatever their order or quoting.
+function attributesOf(tag) {
+  const attributes = {};
+  for (const match of tag.matchAll(/([a-zA-Z][\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)) {
+    attributes[match[1].toLowerCase()] = decodeEntities(match[2] ?? match[3] ?? match[4]);
+  }
+  return attributes;
+}
+
+// What search engines and link previews read from a page: its titles, the
+// meta tags by name or property (the first of each), the canonical link and
+// every script block.
+export function readHead(html) {
+  const head = /<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(html)?.[1] ?? "";
+  const titles = [...head.matchAll(/<title\b[^>]*>([\s\S]*?)<\/title>/gi)].map((match) =>
+    decodeEntities(match[1].trim()),
+  );
+  const meta = {};
+  for (const [tag] of head.matchAll(/<meta\b[^>]*>/gi)) {
+    const attributes = attributesOf(tag);
+    const key = (attributes.property ?? attributes.name ?? "").toLowerCase();
+    if (key !== "" && attributes.content !== undefined && !(key in meta)) {
+      meta[key] = attributes.content;
+    }
+  }
+  let canonical = null;
+  for (const [tag] of head.matchAll(/<link\b[^>]*>/gi)) {
+    const attributes = attributesOf(tag);
+    if ((attributes.rel ?? "").toLowerCase().split(/\s+/).includes("canonical")) {
+      canonical = attributes.href ?? "";
+    }
+  }
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].map((match) => ({
+    type: (attributesOf(match[1]).type ?? "").toLowerCase(),
+    body: match[2],
+  }));
+  return { titles, meta, canonical, scripts };
+}
+
+export function isNoindex(html) {
+  return /\bnoindex\b/i.test(readHead(html).meta.robots ?? "");
+}
+
+// The address a built file is served at: index.html files by their folder.
+export function pageUrl(relativePath) {
+  const file = relativePath.replaceAll("\\", "/");
+  if (file === "index.html") return `${SITE}/`;
+  if (file.endsWith("/index.html")) return `${SITE}/${encodeURI(file.slice(0, -"index.html".length))}`;
+  return `${SITE}/${encodeURI(file)}`;
+}
+
+// Throws one error listing every problem, so a broken page never goes live.
+// pages: [{ file, url, html }] for every page that search engines may index.
+export function checkPages(pages) {
+  const problems = [];
+  const seen = { title: new Map(), description: new Map(), "canonical link": new Map() };
+  for (const { file, url, html } of pages) {
+    const problem = (message) => problems.push(`${file}: ${message}`);
+    const { titles, meta, canonical, scripts } = readHead(html);
+
+    const title = titles[0] ?? "";
+    if (titles.length !== 1 || title === "") {
+      problem("needs exactly one <title>, with text.");
+    } else if (title.length > MAX_TITLE) {
+      problem(`the title has ${title.length} characters; keep it to ${MAX_TITLE}.`);
+    }
+    const description = meta.description ?? "";
+    if (description === "") {
+      problem('needs a <meta name="description">.');
+    } else if (description.length > MAX_DESCRIPTION) {
+      problem(`the description has ${description.length} characters; keep it to ${MAX_DESCRIPTION}.`);
+    }
+    if (canonical !== url) problem(`the canonical link should be ${url}.`);
+    for (const name of ["og:title", "og:description", "og:image", "og:image:alt"]) {
+      if (!meta[name]) problem(`needs ${name}.`);
+    }
+    if (meta["og:url"] !== url) problem(`og:url should be ${url}.`);
+    if (meta["og:image"] && !meta["og:image"].startsWith(`${SITE}/`)) {
+      problem(`og:image should be on ${SITE}.`);
+    }
+    for (const script of scripts) {
+      if (script.type !== "application/ld+json") {
+        problem("has a <script> that browsers would run; the site has no JavaScript.");
+        continue;
+      }
+      try {
+        JSON.parse(script.body);
+      } catch (error) {
+        problem(`has structured data that isn't valid JSON (${error.message}).`);
+      }
+    }
+    for (const [kind, value] of [["title", title], ["description", description], ["canonical link", canonical]]) {
+      if (!value) continue;
+      const other = seen[kind].get(value);
+      if (other) problem(`has the same ${kind} as ${other}.`);
+      else seen[kind].set(value, file);
+    }
+  }
+  if (problems.length > 0) {
+    throw new Error(`Some pages aren't ready for search engines:\n  ${problems.join("\n  ")}`);
+  }
+}
+
+export function sitemapXml(urls) {
+  const entries = [...urls].sort().map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`);
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...entries,
+    "</urlset>",
+    "",
+  ].join("\n");
+}
+
+// Every built page that search engines may index, with its address.
+async function indexablePages(dir) {
+  const files = (await readdir(dir, { recursive: true }))
+    .filter((file) => file.endsWith(".html"))
+    .map((file) => file.replaceAll("\\", "/"))
+    .sort();
+  const pages = [];
+  for (const file of files) {
+    const html = await readFile(path.join(dir, file), "utf8");
+    if (!isNoindex(html)) pages.push({ file, url: pageUrl(file), html });
+  }
+  return pages;
 }
 
 export function isHuman(entry) {
@@ -283,11 +422,16 @@ async function build({ offline }) {
   );
   await writeFile(path.join(siteDir, ".nojekyll"), "");
 
+  const pages = await indexablePages(siteDir);
+  checkPages(pages);
+  await writeFile(path.join(siteDir, "sitemap.xml"), sitemapXml(pages.map((page) => page.url)));
+
   console.log(
     `Built ${path.relative(process.cwd(), siteDir) || "."}: ` +
       `${contributors.length} contributor(s), ` +
       `${release ? `release ${release.name}` : "no release"}, ` +
-      `${release?.iso ? `installer ${release.iso.size}` : "no installer"}.`,
+      `${release?.iso ? `installer ${release.iso.size}` : "no installer"}, ` +
+      `${pages.length} page(s) in the sitemap.`,
   );
 }
 

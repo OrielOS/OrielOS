@@ -5,16 +5,20 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 The home page of orielos.org. website/build.mjs fills in the blocks marked
 with "if:" comments and the {{...}} placeholders from GitHub.
+
+connect-src 'self' lets tools that audit the page from inside it, such as
+Lighthouse, read robots.txt. No script can run here, so nothing else can use it.
 -->
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>OrielOS</title>
+<title>OrielOS: a Linux desktop tuned for gaming and development</title>
 <meta name="description" content="OrielOS is a free and open-source Linux desktop, tuned for gaming and development and familiar from the first boot. It is in early development.">
 <link rel="canonical" href="https://orielos.org/">
+<meta name="robots" content="max-image-preview:large">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#cadafb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#050a1c" media="(prefers-color-scheme: dark)">
@@ -28,14 +32,41 @@ with "if:" comments and the {{...}} placeholders from GitHub.
 <link rel="stylesheet" href="styles.css">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="OrielOS">
-<meta property="og:title" content="OrielOS">
+<meta property="og:title" content="OrielOS: a Linux desktop tuned for gaming and development">
 <meta property="og:description" content="A familiar desktop, tuned for gaming and development. Free and open source.">
 <meta property="og:url" content="https://orielos.org/">
+<meta property="og:locale" content="en_GB">
 <meta property="og:image" content="https://orielos.org/images/open-graph.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The OrielOS logo">
+<meta property="og:image:alt" content="The OrielOS logo and wordmark beside a glowing bay window of three glass panes, on deep blue">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image:alt" content="The OrielOS logo and wordmark beside a glowing bay window of three glass panes, on deep blue">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://orielos.org/#website",
+      "name": "OrielOS",
+      "alternateName": ["orielos.org"],
+      "url": "https://orielos.org/",
+      "inLanguage": "en-GB",
+      "publisher": { "@id": "https://orielos.org/#organization" }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://orielos.org/#organization",
+      "name": "OrielOS",
+      "url": "https://orielos.org/",
+      "logo": "https://orielos.org/apple-touch-icon.png",
+      "description": "A familiar desktop, tuned for gaming and development. Free and open source.",
+      "sameAs": ["https://github.com/ncjsvr/OrielOS", "https://discord.gg/RnpZYaKbHA"]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
