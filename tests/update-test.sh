@@ -7,7 +7,12 @@
 # it offers the new build as the testing channel of a local update source, checks that the stable
 # channel and a pause stage nothing and that the rolled-back build is skipped, logs the user in,
 # lets orielos-update-check.service stage the build, checks the notifier's tray icon, chooses
-# "Restart to update" in its menu and checks the new build runs. Prints PASS/FAIL per check.
+# "Restart to update" in its menu and checks the new build runs. Then it goes back to the previous
+# version through the notifier's menu, answering its question and polkit's password prompt with
+# the keyboard, and restarts into it. Last, it watches the boot menu on the serial console: hidden
+# after a boot that reached the desktop, shown after one that didn't (the display manager is
+# turned off for it), where the test chooses the other version, and shown again when Esc is
+# pressed during the hidden second. Prints PASS/FAIL per check.
 #
 # Usage: tests/update-test.sh --old IMAGE_OR_ARCHIVE --new ARCHIVE [--timeout SECONDS]
 #                             [--memory MIB] [--cpus N] [--results DIR] [--keep] [--help]
@@ -54,9 +59,15 @@ BOOTED_VERSION=""
 STAGED_DIGEST=""
 # The local update source the service steps use: an OCI directory with one tag per channel.
 SERVICE_SOURCE="/var/lib/orielos/test-source"
+# Going back asks for an administrator's password; the test user is one and gets this password.
+TEST_PASSWORD="orielos-test-pass"
+# Where this boot's output starts in the serial log, and what the boot menu showed (boot menu steps).
+SERIAL_MARK=0
+MENU_SHOWN=0
+MENU_TEXT=""
 
 usage() {
-    sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 # Print the manifest digest and the version label of the build in an OCI archive, without
@@ -347,12 +358,12 @@ step_service_channel() {
 }
 
 # A script for the VM that reads the update notifier's tray icon as the test user over the
-# session bus: prints "notifier=<pid>", "item=<bus name>", "status=<Status property>", and for
-# notifier_script restart also clicks its "Restart to update" menu item the way the tray does.
-# busctl takes explicit signatures and prints JSON, which jq reads.
+# session bus: prints "notifier=<pid>", "item=<bus name>", "status=<Status property>", and with a
+# label (notifier_script "Restart to update") also clicks the menu item whose label starts with it,
+# the way the tray does. busctl takes explicit signatures and prints JSON, which jq reads.
 notifier_script() {
     cat <<SH
-mode="${1:-read}"
+label=$(printf '%q' "${1:-}")
 bus() { busctl --user -M $TEST_USER@ --json=short "\$@" 2>/dev/null; }
 # The kernel keeps only the first 15 characters of a process's name, so match the command line.
 pid="\$(pgrep -u $TEST_USER -f '(^|/)orielos-update-notifier( |\$)' | head -n1)"
@@ -362,9 +373,10 @@ echo "notifier=\$pid"
 # notifier's is the one whose connection belongs to its process.
 item=""
 item_path=""
-for entry in \$(bus get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher     org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems | jq -r '.data[]'); do
+items="\$(bus get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems)"
+for entry in \$(printf '%s' "\$items" | jq -r '.data[]'); do
     name="\${entry%%/*}"
-    owner="\$(bus call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus         GetConnectionUnixProcessID s "\$name" | jq -r '.data[0]')"
+    owner="\$(bus call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus GetConnectionUnixProcessID s "\$name" | jq -r '.data[0]')"
     if [ "\$owner" = "\$pid" ]; then
         item="\$name"
         case "\$entry" in
@@ -376,16 +388,17 @@ done
 echo "item=\$item"
 [ -n "\$item" ] || exit 0
 echo "status=\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Status | jq -r '.data')"
-if [ "\$mode" = restart ]; then
+if [ -n "\$label" ]; then
     menu="\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Menu | jq -r '.data')"
     echo "menu=\$menu"
     # Depth 10 rather than -1 ("all"): busctl would read -1 as an option.
     layout="\$(bus call "\$item" "\$menu" com.canonical.dbusmenu GetLayout iias 0 10 0)"
-    # Labels may carry an accelerator mark (KDE adds them to menus), "_" in dbusmenu.
-    echo "labels=\$(printf '%s' "\$layout" | jq -r '[.data[1][2][] | .data[1].label.data // ""] | join("|")')"
-    id="\$(printf '%s' "\$layout" | jq -r '.data[1][2][] | .data
-        | select((.[1].label.data // "" | gsub("[_&]"; "")) == "Restart to update") | .[0]' | head -n1)"
-    echo "restart_item=\$id"
+    # Labels may carry an accelerator mark (KDE adds them to menus), "_" in dbusmenu. Hidden items
+    # are in the layout too, with visible set to false.
+    echo "labels=\$(printf '%s' "\$layout" | jq -r '[.data[1][2][] | .data[1] | select(.visible.data != false) | .label.data // ""] | join("|")')"
+    id="\$(printf '%s' "\$layout" | jq -r --arg label "\$label" '.data[1][2][] | .data | select(.[1].visible.data != false)
+        | select(.[1].label.data // "" | gsub("[_&]"; "") | startswith(\$label)) | .[0]' | head -n1)"
+    echo "menu_item=\$id"
     [ -n "\$id" ] && bus call "\$item" "\$menu" com.canonical.dbusmenu Event isvu "\$id" clicked s "" 0 >/dev/null &&
         echo clicked=yes
 fi
@@ -457,7 +470,7 @@ wait_for_new_boot() {
 step_service_restart() {
     local out state state_boot state_summary
     info "Step 11: choose Restart to update in the notifier"
-    out="$(vm_ssh "$(notifier_script restart)" 2>&1)" || true
+    out="$(vm_ssh "$(notifier_script "Restart to update")" 2>&1)" || true
     if [[ "$(service_value "$out" clicked)" != yes ]]; then
         fail "Could not choose Restart to update in the notifier's menu (${out//$'\n'/; })"
         return 1
@@ -482,6 +495,200 @@ step_service_restart() {
         fail "This boot's update state is not up to date (see state-updated.json)"
     fi
     check_keepme "after updating through the notifier"
+}
+
+step_go_back() {
+    local out start queued=""
+    info "Step 12: go back to the previous version through the notifier"
+    # Going back needs an administrator's password, so the test user gets one to type.
+    if ! vm_ssh "printf '%s:%s\n' $TEST_USER '$TEST_PASSWORD' | chpasswd" >/dev/null 2>&1; then
+        fail "Could not set $TEST_USER's password for polkit's prompt"
+        return 1
+    fi
+    out="$(vm_ssh "$(notifier_script "Go back to the previous version")" 2>&1)" || true
+    if [[ "$(service_value "$out" clicked)" != yes ]]; then
+        fail "Could not choose Go back to the previous version in the notifier's menu (${out//$'\n'/; })"
+        return 1
+    fi
+    # The question's default button is Cancel, so choose Go back by its accelerator, then answer
+    # polkit's password prompt.
+    sleep 5
+    vm_qmp "shot:$RESULTS/go-back-question.png" "keys:alt+g" "wait:5" "shot:$RESULTS/go-back-password.png" \
+        "type:$TEST_PASSWORD" "keys:ret" || true
+    start=$SECONDS
+    while ((SECONDS - start < 120)); do
+        queued="$(vm_ssh jq -r .rollbackQueued /var/lib/orielos/update/state.json 2>/dev/null)" || true
+        [[ "$queued" == true ]] && break
+        sleep 3
+    done
+    read_status go-back
+    if [[ "$queued" == true ]] && vm_ssh grep -qF "$NEW_DIGEST" /var/lib/orielos/update/rejected-digests; then
+        pass "Going back through the notifier queues $OLD_VERSION and rejects $NEW_VERSION (see go-back-question.png, go-back-password.png)"
+    else
+        fail "Going back through the notifier didn't queue the previous build (rollbackQueued ${queued:-unknown}; see go-back-question.png, go-back-password.png)"
+        return 1
+    fi
+    sleep 5
+    vm_qmp "shot:$RESULTS/go-back-ready.png" || true
+    out="$(vm_ssh "$(notifier_script "Restart to go back")" 2>&1)" || true
+    if [[ "$(service_value "$out" status)" == *Active* && "$(service_value "$out" clicked)" == yes ]]; then
+        pass "The notifier asks for attention and offers Restart to go back (see go-back-ready.png)"
+    else
+        fail "The notifier didn't offer Restart to go back (${out//$'\n'/; }; see go-back-ready.png)"
+        return 1
+    fi
+    if ! wait_for_new_boot; then
+        fail "Restart to go back did not restart the VM within 300 s"
+        return 1
+    fi
+    read_status went-back
+    if [[ "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
+        pass "Restart to go back restarts into the previous build ($OLD_VERSION)"
+    else
+        fail "After Restart to go back, the VM runs ${BOOTED_VERSION:-unknown} (${BOOTED_DIGEST:-no digest}), not $OLD_VERSION"
+    fi
+    check_keepme "after going back through the notifier"
+}
+
+# Print the boot menu's flag from the EFI system partition in the VM, "orielos_boot_ok=<0|1>", or
+# nothing while the file doesn't exist.
+boot_flag() {
+    vm_ssh "$(
+        cat <<'SH'
+esp="$(lsblk -lnpo NAME,PARTTYPE | awk 'tolower($2) == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" {print $1; exit}')"
+dir="$(mktemp -d)"
+mount -o ro "$esp" "$dir" && grub2-editenv "$dir/EFI/fedora/orielos-boot.env" list 2>/dev/null
+umount "$dir"
+rmdir "$dir"
+SH
+    )" 2>/dev/null | grep '^orielos_boot_ok=' || true
+}
+
+# Wait up to 120 s for this boot's desktop session to mark the boot as good. Returns 1 if it doesn't.
+wait_for_good_boot() {
+    local start=$SECONDS
+    while ((SECONDS - start < 120)); do
+        [[ "$(boot_flag)" == orielos_boot_ok=1 ]] && return 0
+        sleep 3
+    done
+    return 1
+}
+
+# Print what the serial console showed since serial_mark, without colour codes or unprintable bytes.
+serial_mark() {
+    SERIAL_MARK="$(stat -c %s "$WORK/serial.log" 2>/dev/null || echo 0)"
+}
+serial_since() {
+    tail -c +"$((SERIAL_MARK + 1))" "$WORK/serial.log" 2>/dev/null | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' | tr -cd '\11\12\40-\176'
+}
+
+# Restart the VM and watch the serial console, where the firmware copies GRUB's screen, for the
+# boot menu until the kernel starts: restart_watching_menu <none|choose-second|escape>
+#   none           only watch
+#   choose-second  in the menu, choose the second entry
+#   escape         press Esc while GRUB waits with the menu hidden, then start the first entry
+# Sets MENU_SHOWN to 1 if the menu appeared, keeps its text in MENU_TEXT, and waits for the new
+# boot. Returns 1 if the VM doesn't come back.
+restart_watching_menu() {
+    local action="$1" start text
+    MENU_SHOWN=0
+    MENU_TEXT=""
+    serial_mark
+    vm_ssh systemctl reboot >/dev/null 2>&1 || true
+    start=$SECONDS
+    while ((SECONDS - start < 180)); do
+        text="$(serial_since)"
+        if [[ "$text" == *"keys to select which entry is highlighted"* ]]; then
+            MENU_SHOWN=1
+            # Let GRUB finish drawing the menu before reading it.
+            sleep 1
+            MENU_TEXT="$(serial_since | grep -a -E 'ostree:|UEFI Firmware' | tr -s ' ' || true)"
+            case "$action" in
+                choose-second) vm_qmp "shot:$RESULTS/boot-menu.png" "keys:down" "keys:ret" || true ;;
+                escape) vm_qmp "shot:$RESULTS/boot-menu-esc.png" "keys:ret" || true ;;
+                *) vm_qmp "shot:$RESULTS/boot-menu-unexpected.png" || true ;;
+            esac
+            break
+        fi
+        [[ "$text" == *"Linux version"* ]] && break
+        # Once the firmware hands over to the boot loader, GRUB waits one second for Esc.
+        if [[ "$action" == escape && "$text" == *"BdsDxe: starting"* ]]; then vm_qmp "keys:esc" || true; fi
+        sleep 0.2
+    done
+    wait_for_new_boot
+}
+
+step_boot_menu() {
+    local out titles
+    info "Step 13: the boot menu stays hidden after good boots and appears after a failed one"
+    out="$(vm_ssh grep -c 'BEGIN 12_orielos-menu.cfg' /boot/grub2/grub.cfg 2>/dev/null)" || true
+    titles="$(vm_ssh "grep -h '^title ' /boot/loader/entries/*.conf | sed 's/^title //' | sort" 2>/dev/null | paste -sd ';' -)" || true
+    if [[ "$out" == 1 && "$titles" == "OrielOS $OLD_VERSION (ostree:0);OrielOS $NEW_VERSION (ostree:1)" ]]; then
+        pass "The boot loader has OrielOS's menu settings, and the entries are $titles"
+    else
+        fail "The boot loader's settings or entries are wrong (12_orielos-menu.cfg found ${out:-0} times; entries: ${titles:-none})"
+    fi
+    if wait_for_good_boot; then
+        pass "Reaching the desktop marks the boot as good ($(boot_flag) on the EFI system partition)"
+    else
+        fail "The desktop didn't mark the boot as good within 120 s (flag: $(boot_flag); see boot-success.txt)"
+        vm_ssh "journalctl -b --no-pager -u orielos-boot-success.service; journalctl -b --no-pager --user-unit orielos-mark-boot-success.service" \
+            >"$RESULTS/boot-success.txt" 2>&1 || true
+        return 1
+    fi
+
+    if ! restart_watching_menu none; then
+        fail "The VM did not come back after a restart"
+        return 1
+    fi
+    if [[ "$MENU_SHOWN" -eq 0 ]]; then
+        pass "After a boot that reached the desktop, the boot menu stays hidden"
+    else
+        fail "The boot menu appeared after a boot that reached the desktop (see boot-menu-unexpected.png)"
+    fi
+
+    # A boot that never reaches the desktop: the display manager doesn't start.
+    vm_ssh systemctl set-default multi-user.target >/dev/null 2>&1 || true
+    if ! restart_watching_menu none; then
+        fail "The VM did not come back after a restart"
+        return 1
+    fi
+    vm_ssh systemctl set-default graphical.target >/dev/null 2>&1 || true
+    sleep 30
+    if [[ "$(boot_flag)" == orielos_boot_ok=0 ]]; then
+        pass "A boot that doesn't reach the desktop leaves the boot marked as not good"
+    else
+        fail "After a boot without a desktop, the flag is $(boot_flag), not orielos_boot_ok=0"
+    fi
+
+    if ! restart_watching_menu choose-second; then
+        fail "The VM did not come back after choosing the second entry in the boot menu"
+        return 1
+    fi
+    read_status boot-menu
+    if [[ "$MENU_SHOWN" -eq 1 ]]; then
+        pass "After a boot that didn't reach the desktop, the boot menu appears (see boot-menu.png)"
+        show_output "$MENU_TEXT"
+    else
+        fail "The boot menu didn't appear after a boot that didn't reach the desktop"
+    fi
+    if [[ "$BOOTED_DIGEST" == "$NEW_DIGEST" ]]; then
+        pass "Choosing the other version in the boot menu starts it ($NEW_VERSION)"
+    else
+        fail "After choosing the second entry, the VM runs ${BOOTED_VERSION:-unknown}, not $NEW_VERSION"
+    fi
+
+    wait_for_good_boot || true
+    if ! restart_watching_menu escape; then
+        fail "The VM did not come back after pressing Esc at the boot menu"
+        return 1
+    fi
+    read_status boot-menu-esc
+    if [[ "$MENU_SHOWN" -eq 1 && "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
+        pass "Pressing Esc while the menu is hidden shows it, and the first entry still starts $OLD_VERSION (see boot-menu-esc.png)"
+    else
+        fail "Pressing Esc at boot: menu shown ${MENU_SHOWN}, then running ${BOOTED_VERSION:-unknown}, not $OLD_VERSION"
+    fi
 }
 
 step_stage_again() {
@@ -560,7 +767,7 @@ main() {
 
     if step_boot_old && step_user_data && step_copy && step_stage && step_update_boot &&
         step_rollback && step_stage_again && step_service_source && step_service_channel &&
-        step_service_notify && step_service_restart; then
+        step_service_notify && step_service_restart && step_go_back && step_boot_menu; then
         :
     else
         fail "The test stopped early; the remaining steps did not run"
