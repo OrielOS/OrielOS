@@ -119,6 +119,10 @@ SHORTCUTS_OUT=""
 SHORTCUT_CLASHES=""
 TOOL_NAMES=""
 WIN_E_SECONDS=""
+# The visual check: 1 once visual-desktop.png and visual-start.png were taken, after Firefox's
+# install, so they can be compared with the references in tests/references/.
+VISUAL_TAKEN=0
+
 # OrielOS's Start menu, driven with the keyboard over QMP last, because it restarts the VM. Each
 # step's result is empty when the step was not reached; START_WHY says why the steps stopped.
 START_WHY=""
@@ -530,6 +534,40 @@ PY
         fi
         sleep 2
     done
+}
+
+# Take the visual check's screenshots: the desktop alone, then the Start menu open on its home page.
+# Firefox is installed by then, so Recommended lists it. Win+E's Dolphin is closed first.
+visual_shots() {
+    stop_dolphin || true
+    # Let the desktop settle after the window closes and any notification fades.
+    sleep 10
+    if vm_qmp "shot:$RESULTS/visual-desktop.png" keys:meta_l wait:4 "shot:$RESULTS/visual-start.png" keys:esc wait:2; then
+        VISUAL_TAKEN=1
+    fi
+}
+
+# Compare visual-<name>.png with tests/references/<name>.png, ignoring the areas listed in
+# tests/references/<name>.mask, and report the result: visual_check <name> <what it shows>
+visual_check() {
+    local name="$1" what="$2" reference="$ROOT/tests/references/$1.png" out rc=0
+    if [[ "$VISUAL_TAKEN" -ne 1 ]]; then
+        fail "Visual check: $what could not be checked (the screenshots were not taken)"
+        return 0
+    fi
+    if [[ ! -r "$reference" ]]; then
+        fail "Visual check: $what has no reference image, $reference"
+        hint "make one with tests/update-references.sh $RESULTS"
+        return 0
+    fi
+    out="$(python3 -I "$ROOT/tests/lib/screens.py" "$reference" "$RESULTS/visual-$name.png" \
+        --mask "$ROOT/tests/references/$name.mask" --diff "$RESULTS/visual-$name-diff.png" 2>&1)" || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        pass "Visual check: $what matches its reference ($out; see visual-$name.png)"
+    else
+        fail "Visual check: $what doesn't match its reference ($out; changed pixels in red in visual-$name-diff.png)"
+        hint "if the change is intended, update the reference with tests/update-references.sh $RESULTS"
+    fi
 }
 
 # Print "running" or "stopped" for the test user's Dolphin, or nothing if SSH does not answer.
@@ -1288,6 +1326,10 @@ run_checks() {
         info "Firefox was installed $FIREFOX_SECONDS s after the first power-on (version ${FIREFOX_VERSION:-unknown})"
     fi
 
+    info "Visual check, against tests/references/"
+    visual_check desktop "the desktop"
+    visual_check start "the Start menu"
+
     info "Start menu, last, because it restarts the VM"
     skipped="could not be checked: ${START_WHY:-the VM did not reach the desktop of $TEST_USER}"
     if [[ -z "$START_SEARCH_RAN" ]]; then
@@ -1491,6 +1533,7 @@ main() {
         fi
         # Last, so the download runs alongside the other checks; most of the time it is done.
         if vm_running && [[ "$SSH_OK" -eq 1 ]]; then wait_for_firefox; fi
+        if vm_running && [[ "$SSH_OK" -eq 1 && -n "$SESSION_SECONDS" ]]; then visual_shots; fi
         # After everything else on the second boot, because it restarts the VM.
         start_menu_checks
     fi

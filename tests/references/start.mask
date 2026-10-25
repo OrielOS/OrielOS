@@ -1,0 +1,3 @@
+# Areas of visual-start.png the visual check ignores: x y width height, in pixels of the VM's
+# 1280x800 screen. Keep them as small as the changing parts allow.
+1000 748 280 52 # the system tray, the clock and Show desktop, which change with the time and state
