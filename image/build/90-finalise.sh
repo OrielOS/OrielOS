@@ -73,8 +73,8 @@ if [[ "${#secure_boot_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
-# The update check stages builds in the background and records each boot's state for the desktop's
-# notifier; both units are enabled here for the same reason as above. No update state may be in
+# The update check stages builds in the background and records each boot's state for the update
+# tray icon and the Update settings page; both units are enabled here for the same reason as above. No update state may be in
 # the image: it belongs to each computer.
 systemctl enable orielos-update-check.timer orielos-update-state.service
 update_errors=()
@@ -88,7 +88,8 @@ for cmd in skopeo pkexec busctl bootc jq; do
 done
 for f in /usr/lib/orielos/update.conf /usr/share/polkit-1/actions/org.orielos.update.policy \
     /etc/xdg/autostart/org.orielos.UpdateNotifier.desktop /usr/share/applications/org.orielos.UpdateNotifier.desktop \
-    /usr/share/knotifications6/orielos-update-notifier.notifyrc; do
+    /usr/share/knotifications6/orielos-update-notifier.notifyrc \
+    /usr/lib64/qt6/plugins/plasma/kcms/systemsettings/kcm_orielos_update.so /usr/share/applications/kcm_orielos_update.desktop; do
     [[ -r "$f" ]] || update_errors+=("$f is missing")
 done
 [[ -x /usr/bin/orielos-update-notifier ]] || update_errors+=("the update notifier, /usr/bin/orielos-update-notifier, is missing")

@@ -13,15 +13,14 @@
 class KNotification;
 class KStatusNotifierItem;
 class QAction;
-class QActionGroup;
 class QMenu;
 
 namespace UpdateNotifier {
 
 // The tray icon that tells the user about OrielOS updates. It follows the state file that
-// orielos-update writes, offers "Restart to update" when a build is staged, offers going back to
-// the previous version, and changes the pause and channel by running orielos-update through pkexec,
-// where polkit decides who may.
+// orielos-update writes, offers "Restart to update" when a build is staged or going back is queued,
+// and tells the user when an update that didn't start was undone. Everything else is on the Update
+// settings page, which clicking the icon opens.
 class Notifier : public QObject
 {
     Q_OBJECT
@@ -35,23 +34,20 @@ private:
     void showReadyNotification();
     void showGoBackNotification();
     void showUndoneNotification();
-    void showErrorNotification(const QString &title, const QString &detail);
-    void goBack();
     void restart();
-    void runUpdateCommand(const QStringList &arguments);
+    void openSettings();
     void watchStateFile();
     QMenu *buildMenu();
 
     QString m_statePath;
     QString m_bootId;
-    UpdateState m_state;
+    OrielOSUpdates::UpdateState m_state;
     // The staged build, and the previous build being gone back to, already announced in this
     // session, so "Later" isn't followed by the same notification at the next change.
     QString m_announcedDigest;
     QString m_announcedGoBackDigest;
     // Undoing an update is told once per session.
     bool m_announcedUndone = false;
-    bool m_askingToGoBack = false;
 
     KStatusNotifierItem *m_item = nullptr;
     QFileSystemWatcher m_watcher;
@@ -61,13 +57,7 @@ private:
     QPointer<KNotification> m_goBackNotification;
 
     QAction *m_restartAction = nullptr;
-    QAction *m_goBackAction = nullptr;
-    QAction *m_pausedLine = nullptr;
-    QAction *m_resumeAction = nullptr;
-    QMenu *m_pauseMenu = nullptr;
-    QActionGroup *m_channelGroup = nullptr;
-    QAction *m_stableAction = nullptr;
-    QAction *m_testingAction = nullptr;
+    QAction *m_restartSeparator = nullptr;
 };
 
 } // namespace UpdateNotifier

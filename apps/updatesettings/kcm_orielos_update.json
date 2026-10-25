@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Check for updates, pause them, choose the update channel or go back to the previous version",
+        "Icon": "system-software-update",
+        "Name": "OrielOS Update"
+    },
+    "X-KDE-Keywords": "update,updates,upgrade,check for updates,pause,resume,channel,stable,testing,go back,rollback,previous version,version",
+    "X-KDE-System-Settings-Parent-Category": "system-administration",
+    "X-KDE-Weight": 20
+}

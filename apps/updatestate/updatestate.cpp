@@ -10,7 +10,7 @@
 #include <QJsonObject>
 #include <QLocale>
 
-namespace UpdateNotifier {
+namespace OrielOSUpdates {
 
 namespace {
 
@@ -68,6 +68,7 @@ UpdateState UpdateState::fromJson(const QByteArray &json)
     const QJsonValue previous = object.value(QLatin1String("previous"));
     state.m_previous = parseBuild(previous);
     state.m_previousRejected = previous.toObject().value(QLatin1String("rejected")).toBool();
+    state.m_previousRemovedAfter = parseTime(previous.toObject().value(QLatin1String("removedAfter")));
     state.m_rollbackQueued = object.value(QLatin1String("rollbackQueued")).toBool();
     return state;
 }
@@ -102,6 +103,12 @@ bool UpdateState::goingBack(const QString &currentBootId) const
     return isForThisBoot(currentBootId) && m_rollbackQueued && m_previous;
 }
 
+bool UpdateState::canRemovePrevious(const QString &currentBootId) const
+{
+    const bool staged = m_staged && m_staged->digest != m_running.digest;
+    return isForThisBoot(currentBootId) && m_previous && !staged && !m_rollbackQueued;
+}
+
 bool UpdateState::updateUndone(const QString &currentBootId) const
 {
     return isForThisBoot(currentBootId) && m_result == QLatin1String("went-back");
@@ -123,7 +130,7 @@ QList<int> pauseChoices()
 
 QString pauseChoiceLabel(int weeks)
 {
-    return i18ncp("@action:inmenu How long to pause updates for", "Pause for %1 week", "Pause for %1 weeks", weeks);
+    return i18ncp("@item:inlistbox How long to pause updates for", "%1 week", "%1 weeks", weeks);
 }
 
 QString channelName(Channel channel)
@@ -135,17 +142,6 @@ QString channelName(Channel channel)
         break;
     }
     return QStringLiteral("stable");
-}
-
-QString channelLabel(Channel channel)
-{
-    switch (channel) {
-    case Channel::Testing:
-        return i18nc("@option:radio Update channel", "Testing: new builds sooner, less tested");
-    case Channel::Stable:
-        break;
-    }
-    return i18nc("@option:radio Update channel", "Stable (recommended)");
 }
 
 Channel channelFromName(const QString &name)
@@ -190,4 +186,4 @@ QString statusText(const UpdateState &state, const QString &currentBootId, const
     return i18nc("@info:tooltip", "Not checked for updates yet");
 }
 
-} // namespace UpdateNotifier
+} // namespace OrielOSUpdates
