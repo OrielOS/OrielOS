@@ -11,6 +11,10 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
   - When a version is ready, a notification and the OrielOS updates icon in the system tray offer "Restart to update" and "Later".
   - The tray icon's menu checks for updates, pauses them for one to five weeks or resumes them, and switches between the Stable and Testing channels. Changing channel needs an administrator.
   - Updates are skipped on metered connections, and a version you went back from isn't offered again.
+- orielos.org's footer shows OrielOS's OpenSSF Best Practices and OpenSSF Baseline badges, loaded live from bestpractices.dev so they always show the current levels.
+- orielos.org has "Share OrielOS" links for X, Bluesky, Reddit, Facebook and email, which contact those sites only when clicked, and every image on the page has alt text.
+- orielos.org tells search engines and link previews what it is: a clearer page title, the OrielOS name and logo as structured data, a sitemap, a short summary for AI tools, and a notice to search engines whenever a page changes. Every crawler is welcome, and the site still has no cookies, analytics or scripts.
+- On the OrielOS Discord server, members can react 🟢 or 🔴 on the about message to get the NVIDIA or AMD role and show which graphics card they have. Removing the reaction takes the role away.
 - OrielOS's own Start menu replaces Plasma's launcher on the taskbar.
   - Search at the top lists apps, settings, files and Store results as you type, but opens nothing until you press Enter or click.
   - Below it are your pinned apps, an All apps list, and recommendations: recently added apps and recently opened files.
@@ -42,6 +46,11 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Virtual machine disks for QEMU (qcow2) and VMware (VMDK) from one command, a tool that creates and boot-checks a VMware Workstation VM from the VMDK, and a guide to trying OrielOS in a virtual machine.
 - A command-line update tool that stages a new build for the next restart and rolls back to the previous build; rolled-back builds are not offered again.
 
+### Changed
+
+- Pull requests that don't change the apps, such as documentation or website changes, no longer wait about two minutes for the app build and tests; the `apps` check still reports and passes. The Discord bot's tests run after a merge only when the bot changed.
+
 ### Fixed
 
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.
+- The Discord bot no longer cuts an emoji in half when it shortens a long title or release note.

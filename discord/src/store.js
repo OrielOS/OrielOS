@@ -33,8 +33,18 @@ export function parseRecord(content) {
     if (Number.isInteger(value.stars) && value.stars >= 0) record.stars = value.stars;
     return record;
   }
+  // Older records written before there were several opt-in roles.
   if (value.kind === "tester" && typeof value.discord === "string" && value.discord !== "") {
-    return { kind: "tester", discord: value.discord };
+    return { kind: "optin", role: "testers", discord: value.discord };
+  }
+  if (
+    value.kind === "optin" &&
+    typeof value.role === "string" &&
+    /^[a-z]+$/.test(value.role) &&
+    typeof value.discord === "string" &&
+    value.discord !== ""
+  ) {
+    return { kind: "optin", role: value.role, discord: value.discord };
   }
   return null;
 }
@@ -47,7 +57,9 @@ export function serialiseRecord(record) {
   if (record.kind === "feed") {
     return JSON.stringify({ kind: "feed", pr: record.pr, stars: record.stars });
   }
-  if (record.kind === "tester") return JSON.stringify({ kind: "tester", discord: record.discord });
+  if (record.kind === "optin") {
+    return JSON.stringify({ kind: "optin", role: record.role, discord: record.discord });
+  }
   return JSON.stringify({ kind: "welcome", message: record.message });
 }
 
@@ -92,25 +104,27 @@ export function linksToMove(links, reactorIds, welcomeId) {
   );
 }
 
-// Who to give the Testers role (reacted, no record) and whose record to drop (reaction gone).
-export function planTesters(reactorIds, testers) {
-  const known = new Set(testers.map((tester) => tester.discord));
+// For one opt-in role and its records: who to give the role (reacted, no record) and whose
+// record to drop (reaction gone).
+export function planOptIns(reactorIds, records) {
+  const known = new Set(records.map((record) => record.discord));
   return {
     add: [...reactorIds].filter((id) => !known.has(id)),
-    remove: testers.filter((tester) => !reactorIds.has(tester.discord)),
+    remove: records.filter((record) => !reactorIds.has(record.discord)),
   };
 }
 
-// Records are given newest first. Keeps the first record for each member.
-export function dedupeTesters(testers) {
+// Records are given newest first. Keeps the first record for each role and member.
+export function dedupeOptIns(records) {
   const seen = new Set();
   const keep = [];
   const drop = [];
-  for (const tester of testers) {
-    if (seen.has(tester.discord)) drop.push(tester);
+  for (const record of records) {
+    const key = `${record.role}:${record.discord}`;
+    if (seen.has(key)) drop.push(record);
     else {
-      seen.add(tester.discord);
-      keep.push(tester);
+      seen.add(key);
+      keep.push(record);
     }
   }
   return { keep, drop };
@@ -133,15 +147,15 @@ export async function loadStore(rest, channel, botId) {
   const { keep, drop } = dedupeLinks(entries.filter((entry) => entry.kind === "link"));
   const welcomes = entries.filter((entry) => entry.kind === "welcome");
   const feeds = entries.filter((entry) => entry.kind === "feed");
-  const testers = dedupeTesters(entries.filter((entry) => entry.kind === "tester"));
-  for (const entry of [...drop, ...welcomes.slice(1), ...feeds.slice(1), ...testers.drop]) {
+  const optIns = dedupeOptIns(entries.filter((entry) => entry.kind === "optin"));
+  for (const entry of [...drop, ...welcomes.slice(1), ...feeds.slice(1), ...optIns.drop]) {
     await deleteMessage(rest, channel, entry.id);
   }
   return {
     links: keep,
     welcome: welcomes[0] ?? null,
     feed: feeds[0] ?? null,
-    testers: testers.keep,
+    optIns: optIns.keep,
   };
 }
 

@@ -39,7 +39,9 @@ All tools run inside Linux or WSL2.
 - `tools/build-image.sh` builds the image locally.
 - `tests/boot-test.sh` boot-tests the image under QEMU/KVM.
 
-CI runs the linters and checks on every pull request, and it must pass before a change is merged.
+CI runs the linters and checks on every pull request, and it must pass before a change is merged. Checks that a change can't affect pass without running, so a pull request that only changes documentation or the website doesn't wait for the app build.
+
+New functionality comes with automated tests in the same pull request: unit tests beside the app's code, a check in `tests/` for the image, or a test in the `test/` folder of the website or the Discord bot. A bug fix adds a test that fails without the fix, where that's practical. Say in the pull request how you tested the change.
 
 ### Code style
 

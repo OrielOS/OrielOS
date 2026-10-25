@@ -7,19 +7,22 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  checkPages,
   escapeHtml,
   formatSize,
   isHuman,
+  isNoindex,
   isoFrom,
   nextLink,
+  pageUrl,
+  readHead,
   releaseFrom,
   renderPage,
+  sitemapXml,
 } from "../build.mjs";
 
-const template = await readFile(
-  fileURLToPath(new URL("../public/index.html", import.meta.url)),
-  "utf8",
-);
+const readPublic = (name) => readFile(fileURLToPath(new URL(`../public/${name}`, import.meta.url)), "utf8");
+const template = await readPublic("index.html");
 
 const leftovers = /<!-- (?:if|end):|<!-- contributors -->|\{\{(?:release|iso)\./;
 
@@ -165,4 +168,173 @@ test("renderPage throws on an unknown leftover marker", () => {
     () => renderPage("<p>{{release.nme}}</p>", { contributors: [], release: null }),
     /unresolved marker/,
   );
+});
+
+// A page that passes every search check, for the tests to break one part at a time.
+function page({ url = "https://orielos.org/", title = "A page", description = "What the page is about.", head = "", body = "" } = {}) {
+  return `<!doctype html><html><head>
+<title>${title}</title>
+<meta name="description" content="${description}">
+<link rel="canonical" href="${url}">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${description}">
+<meta property="og:url" content="${url}">
+<meta property="og:image" content="https://orielos.org/images/open-graph.png">
+<meta property="og:image:alt" content="A picture">
+${head}</head><body>${body}</body></html>`;
+}
+
+const check = (...pages) =>
+  checkPages(pages.map((html, index) => ({ file: `page-${index}.html`, url: readHead(html).canonical, html })));
+
+test("the home page passes the search checks", () => {
+  const html = renderPage(template, { contributors: [], release: null });
+  assert.doesNotThrow(() => checkPages([{ file: "index.html", url: "https://orielos.org/", html }]));
+  const { scripts, titles } = readHead(html);
+  assert.equal(titles[0], "OrielOS: a Linux desktop tuned for gaming and development");
+  const data = JSON.parse(scripts.find((script) => script.type === "application/ld+json").body);
+  const site = data["@graph"].find((node) => node["@type"] === "WebSite");
+  assert.equal(site.name, "OrielOS");
+  assert.equal(site.url, "https://orielos.org/");
+  assert.equal(isNoindex(html), false);
+});
+
+test("the not-found page is kept out of search", async () => {
+  assert.equal(isNoindex(await readPublic("404.html")), true);
+});
+
+test("checkPages reports each missing or wrong part", () => {
+  assert.doesNotThrow(() => check(page()));
+  assert.throws(() => check(page().replace(/<title>.*<\/title>/, "")), /needs exactly one <title>/);
+  assert.throws(() => check(page({ title: "x".repeat(71) })), /title has 71 characters/);
+  assert.throws(() => check(page().replace(/<meta name="description"[^>]*>/, "")), /needs a <meta name="description">/);
+  assert.throws(() => check(page({ description: "x".repeat(161) })), /description has 161 characters/);
+  assert.throws(
+    () => checkPages([{ file: "a.html", url: "https://orielos.org/a.html", html: page() }]),
+    /canonical link should be https:\/\/orielos\.org\/a\.html/,
+  );
+  assert.throws(
+    () => check(page().replace('og:url" content="https://orielos.org/"', 'og:url" content="https://example.com/"')),
+    /og:url should be/,
+  );
+  assert.throws(() => check(page().replace(/<meta property="og:image:alt"[^>]*>/, "")), /needs og:image:alt/);
+  assert.throws(
+    () => check(page().replace("https://orielos.org/images", "https://example.com/images")),
+    /og:image should be on https:\/\/orielos\.org/,
+  );
+});
+
+test("checkPages wants alt text on every image", () => {
+  assert.doesNotThrow(() => check(page({ body: '<img src="a.png" alt="A diagram">' })));
+  assert.throws(() => check(page({ body: '<img src="a.png">' })), /an <img> has no alt text: a\.png/);
+  assert.throws(() => check(page({ body: '<img src="b.png" alt="">' })), /an <img> has no alt text: b\.png/);
+  assert.throws(() => check(page({ body: "<img alt=' ' src=c.png>" })), /an <img> has no alt text: c\.png/);
+});
+
+test("the home page with contributors gives every image alt text", () => {
+  const contributors = [{ login: "alice", avatar: "avatars/1.png" }];
+  const html = renderPage(template, { contributors, release: null });
+  assert.doesNotThrow(() => checkPages([{ file: "index.html", url: "https://orielos.org/", html }]));
+  assert.match(html, /<img src="avatars\/1\.png" alt="alice’s avatar"/);
+  assert.doesNotMatch(html, /alt=""/);
+});
+
+test("the footer shows the live Best Practices and Baseline badges, the only images from another site", () => {
+  const html = renderPage(template, { contributors: [], release: null });
+  for (const badge of ["badge", "baseline"]) {
+    assert.match(
+      html,
+      new RegExp(
+        `<a href="https://www\\.bestpractices\\.dev/projects/15906"><img src="https://www\\.bestpractices\\.dev/projects/15906/${badge}" alt="[^"]+"`,
+      ),
+    );
+  }
+  const csp = /http-equiv="Content-Security-Policy" content="([^"]*)"/.exec(html)[1];
+  const imgSrc = csp.split(";").map((part) => part.trim()).find((part) => part.startsWith("img-src"));
+  assert.equal(imgSrc, "img-src 'self' https://www.bestpractices.dev");
+  const outside = [...html.matchAll(/<img\b[^>]*src="(https?:[^"]*)"/g)].map((match) => match[1]);
+  assert.deepEqual(outside, [
+    "https://www.bestpractices.dev/projects/15906/badge",
+    "https://www.bestpractices.dev/projects/15906/baseline",
+  ]);
+});
+
+test("the home page has share links that only navigate", () => {
+  const html = renderPage(template, { contributors: [], release: null });
+  const links = [...html.matchAll(/<a\b[^>]*aria-label="(Share[^"]*)"[^>]*href="([^"]*)"/g)].map(([, label, href]) => ({
+    label,
+    href: href.replaceAll("&amp;", "&"),
+  }));
+  assert.deepEqual(
+    links.map((link) => link.label),
+    ["Share on X", "Share on Bluesky", "Share on Reddit", "Share on Facebook", "Share by email"],
+  );
+  for (const { href } of links) {
+    assert.match(href, /^(https:\/\/|mailto:)/);
+    assert.match(decodeURIComponent(href), /https:\/\/orielos\.org\//);
+  }
+});
+
+test("checkPages allows structured data but no scripts that run", () => {
+  assert.doesNotThrow(() => check(page({ head: '<script type="application/ld+json">{"a": 1}</script>' })));
+  assert.throws(() => check(page({ head: "<script>alert(1)</script>" })), /browsers would run/);
+  assert.throws(() => check(page({ head: '<script type="module" src="x.js"></script>' })), /browsers would run/);
+  assert.throws(() => check(page({ head: "<script>alert(1)</script >" })), /browsers would run/);
+  assert.throws(() => check(page({ head: "<SCRIPT>alert(1)</SCRIPT foo>" })), /browsers would run/);
+  assert.throws(() => check(page({ head: "<script>alert(1)" })), /browsers would run/);
+  assert.throws(() => check(page({ head: '<script type="application/ld+json">{"a": }</script>' })), /isn't valid JSON/);
+});
+
+test("checkPages finds pages that share a title, description or address", () => {
+  const news = { url: "https://orielos.org/news/" };
+  assert.throws(() => check(page(), page({ ...news, description: "Other." })), /same title as page-0\.html/);
+  assert.throws(() => check(page(), page({ ...news, title: "Other" })), /same description as page-0\.html/);
+  assert.throws(() => check(page(), page({ title: "Other", description: "Other." })), /same canonical link/);
+  assert.doesNotThrow(() => check(page(), page({ ...news, title: "Other", description: "Other." })));
+});
+
+test("checkPages lists every problem at once", () => {
+  const error = (() => {
+    try {
+      check("<html><head></head></html>");
+    } catch (caught) {
+      return caught;
+    }
+  })();
+  assert.match(error.message, /<title>/);
+  assert.match(error.message, /description/);
+  assert.match(error.message, /og:image:alt/);
+});
+
+test("readHead copes with any attribute order and quoting", () => {
+  const head = readHead(
+    "<head><title>A &amp; B</title><meta content='Hello' name=description>" +
+      '<meta content="Pic" property="og:image:alt"><link href="https://orielos.org/" rel="canonical"></head>',
+  );
+  assert.deepEqual(head.titles, ["A & B"]);
+  assert.equal(head.meta.description, "Hello");
+  assert.equal(head.meta["og:image:alt"], "Pic");
+  assert.equal(head.canonical, "https://orielos.org/");
+});
+
+test("pageUrl serves index.html files by their folder", () => {
+  assert.equal(pageUrl("index.html"), "https://orielos.org/");
+  assert.equal(pageUrl("news/index.html"), "https://orielos.org/news/");
+  assert.equal(pageUrl(String.raw`news\index.html`), "https://orielos.org/news/");
+  assert.equal(pageUrl("press.html"), "https://orielos.org/press.html");
+});
+
+test("sitemapXml sorts and escapes the addresses", () => {
+  const xml = sitemapXml(["https://orielos.org/news/", "https://orielos.org/", "https://orielos.org/?a=1&b=2"]);
+  assert.match(xml, /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
+  const locs = [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((match) => match[1]);
+  assert.deepEqual(locs, ["https://orielos.org/", "https://orielos.org/?a=1&amp;b=2", "https://orielos.org/news/"]);
+});
+
+test("robots.txt allows every crawler and names the sitemap", async () => {
+  const robots = await readPublic("robots.txt");
+  assert.match(robots, /^User-agent: \*$/m);
+  assert.match(robots, /^Allow: \/$/m);
+  assert.doesNotMatch(robots, /^Disallow:/m);
+  assert.match(robots, /^Sitemap: https:\/\/orielos\.org\/sitemap\.xml$/m);
 });

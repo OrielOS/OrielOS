@@ -1,6 +1,6 @@
 # discord
 
-The bot for [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA): it posts what happens on GitHub, gives members who link their GitHub account the Maintainer and Contributor roles, and gives the Testers role to members who ask for test build pings. It has no server and never stays connected to Discord; it runs only as short GitHub Actions jobs.
+The bot for [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA): it posts what happens on GitHub, gives members who link their GitHub account the Maintainer and Contributor roles, and gives members the Testers, NVIDIA and AMD roles when they ask for them with a reaction. It has no server and never stays connected to Discord; it runs only as short GitHub Actions jobs.
 
 ## What it does
 
@@ -9,7 +9,7 @@ The bot for [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA)
   - from the scheduled run, within about ten minutes: new pull requests, and star milestones (10, 25, 50, 100, 250 and on, each posted once).
   A full release pings @everyone; a pre-release is posted as a test build and pings the Testers role. Only releases are crossposted if the channel is an announcement channel; nothing else pings. Issue and discussion text is never posted, only the title, author, labels or category.
 - **Roles.** Every 10 minutes it gives each linked member the Maintainer and Contributor roles that match GitHub, and takes them away when that stops being true.
-- **Testers.** Members who react 🧪 on the about message get the Testers role, and lose it when they remove the reaction. The bot adds the 🧪 reaction only when a Testers role exists.
+- **Opt-in roles.** Members who react on the about message get a role, and lose it when they remove the reaction: 🧪 for Testers (pinged for test builds), 🟢 for NVIDIA and 🔴 for AMD (which graphics card they have). A member can have any of them. The bot adds each reaction only when its role exists.
 
 ## Linking
 
@@ -26,7 +26,7 @@ Only your Discord account ID, your GitHub account ID and your GitHub login are s
 - **Maintainer:** the owners of the `*` rule in `.github/CODEOWNERS`. Teams and email addresses are skipped.
 - **Contributor:** GitHub's contributors list for this repository, with bots left out. It is the same list orielos.org shows.
 
-The roles carry no permissions, and only the bot gives them.
+The roles carry no moderation powers, and only the bot gives them.
 
 ## Discord server setup
 
@@ -36,10 +36,10 @@ The roles carry no permissions, and only the bot gives them.
   - `#bot-state` (`CHANNEL_STATE`), a private channel only the bot can see, where links are stored;
   - `#mod-log` (`CHANNEL_LOG`), optional: if it exists, every link and role change is logged there.
   Each setting takes a channel name or a channel ID; IDs keep working when a channel is renamed. The workflow sets the IDs of the official server's `#about` and `#github-feed`.
-- **The link message.** Set `LINK_MESSAGE` to the ID of an existing message, such as the about message, and the bot adds its 🔗 reaction (and 🧪, when there is a Testers role) to it. Without it, the bot posts its own message in the link channel.
-- **Roles,** found by name without regard to case: `Maintainer` and `Contributor`, and optionally `Testers` (`ROLE_TESTERS`). The bot's own role sits above them.
+- **The link message.** Set `LINK_MESSAGE` to the ID of an existing message, such as the about message, and the bot adds its 🔗 reaction (and 🧪, 🟢 and 🔴 for the opt-in roles that exist) to it. Without it, the bot posts its own message in the link channel.
+- **Roles,** found by name without regard to case: `Maintainer` and `Contributor`, and optionally `Testers` (`ROLE_TESTERS`), `NVIDIA` (`ROLE_NVIDIA`) and `AMD` (`ROLE_AMD`). The bot's own role must sit above all of them, or Discord won't let it give them.
 - **The bot's permissions:** View Channels, Send Messages, Embed Links, Read Message History, Add Reactions and Manage Roles. In the link channel it also needs Manage Messages, to remove reactions. In `#github-feed` it also needs Mention @everyone, @here and All Roles, for the release and Testers pings.
-- **Members** must lack Add Reactions in the link channel, so they can only click the existing 🔗 and 🧪.
+- **Members** must lack Add Reactions in the link channel, so they can only click the existing 🔗, 🧪, 🟢 and 🔴.
 
 If the bot is in more than one server, set `DISCORD_GUILD_ID`.
 
@@ -61,4 +61,4 @@ npm ci
 npm test
 ```
 
-The tests use no network and no token.
+The tests use no network and no token. `test/properties.test.js` fuzzes the code that handles text from GitHub and Discord with [fast-check](https://fast-check.dev/), which tries 100 random inputs for each property on every run and prints the smallest one that fails.
