@@ -72,7 +72,9 @@ function releaseMessages(payload) {
   if (iso) {
     embed.fields = [{ name: "Installer", value: `[Download the ISO](${iso.url}) (${iso.size})` }];
   }
-  return [{ embeds: [embed] }];
+  // Full releases ping everyone; pre-releases and merges never ping.
+  if (release.prerelease) return [{ embeds: [embed] }];
+  return [{ content: "@everyone", embeds: [embed], mentions: { parse: ["everyone"] } }];
 }
 
 function isBotCommit(commit) {
@@ -113,8 +115,8 @@ export function messagesFor(eventName, payload, repo) {
 }
 
 export async function sendPosts(rest, feed, messages) {
-  for (const body of messages) {
-    const sent = await sendMessage(rest, feed.id, body);
+  for (const { mentions, ...body } of messages) {
+    const sent = await sendMessage(rest, feed.id, body, mentions);
     if (feed.type === 5) {
       try {
         await crosspost(rest, feed.id, sent.id);

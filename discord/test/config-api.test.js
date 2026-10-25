@@ -29,8 +29,9 @@ test("configuration has defaults", () => {
   assert.equal(config.repo, "ncjsvr/OrielOS");
   assert.equal(config.linkClientId, "");
   assert.equal(config.guildId, "");
+  assert.equal(config.linkMessage, "");
   assert.deepEqual(config.names, {
-    welcome: "welcome",
+    link: "about",
     state: "bot-state",
     log: "mod-log",
     feed: "github-feed",
@@ -61,6 +62,12 @@ test("resolveByName needs exactly one match", () => {
     /More than one role/,
   );
   assert.equal(resolveByName(items, "WELCOME", "role", { ignoreCase: true }).id, "1");
+});
+
+test("resolveByName also finds an item by its ID", () => {
+  const items = [{ id: "1563925111805845534", name: "about" }, { id: "1563925191057346662", name: "github-feed" }];
+  assert.equal(resolveByName(items, "1563925191057346662", "channel").name, "github-feed");
+  assert.throws(() => resolveByName(items, "1563925111805845535", "channel"), /does not exist/);
 });
 
 test("error helpers expose codes only", () => {
@@ -104,6 +111,26 @@ test("sendPosts sends each post with no mentions and crossposts announcements", 
   assert.equal(rest.calls.length, 2);
   assert.deepEqual(rest.calls[0].options.body.allowed_mentions, { parse: [] });
   assert.match(rest.calls[1].route, /crosspost$/);
+});
+
+test("sendPosts pings everyone for a full release only", async () => {
+  const release = {
+    name: "1.0",
+    html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1.0",
+    draft: false,
+    prerelease: false,
+  };
+  const rest = fakeRest();
+  await sendPosts(rest, { id: "10", type: 0 }, messagesFor("release", { action: "published", release }, "a/b"));
+  assert.equal(rest.calls[0].options.body.content, "@everyone");
+  assert.deepEqual(rest.calls[0].options.body.allowed_mentions, { parse: ["everyone"] });
+  assert.equal("mentions" in rest.calls[0].options.body, false);
+
+  const beta = fakeRest();
+  const prerelease = { ...release, prerelease: true };
+  await sendPosts(beta, { id: "10", type: 0 }, messagesFor("release", { action: "published", release: prerelease }, "a/b"));
+  assert.equal(beta.calls[0].options.body.content, undefined);
+  assert.deepEqual(beta.calls[0].options.body.allowed_mentions, { parse: [] });
 });
 
 test("sendPosts ignores crosspost failures", async () => {

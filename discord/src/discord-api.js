@@ -7,8 +7,8 @@ export const EMOJI = "🔗";
 
 const NO_MENTIONS = { parse: [] };
 
-export function withNoMentions(body) {
-  return { ...body, allowed_mentions: NO_MENTIONS };
+export function withNoMentions(body, allowed = NO_MENTIONS) {
+  return { ...body, allowed_mentions: allowed };
 }
 
 export function errorCode(error) {
@@ -23,10 +23,14 @@ export function describeError(error) {
   return typeof error?.message === "string" ? error.message : "an unexpected error";
 }
 
+// `name` may also be the item's ID, which survives renames.
 export function resolveByName(items, name, kind, { ignoreCase = false } = {}) {
+  const byId = /^\d{17,20}$/.test(name);
   const same = (value) =>
     ignoreCase ? value.toLowerCase() === name.toLowerCase() : value === name;
-  const matches = items.filter((item) => typeof item.name === "string" && same(item.name));
+  const matches = items.filter((item) =>
+    byId ? item.id === name : typeof item.name === "string" && same(item.name),
+  );
   if (matches.length === 0) throw new Error(`The ${kind} "${name}" does not exist.`);
   if (matches.length > 1) throw new Error(`More than one ${kind} is called "${name}".`);
   return matches[0];
@@ -63,8 +67,9 @@ export function fetchMessages(rest, channel, before) {
 export const getMessage = (rest, channel, message) =>
   rest.get(Routes.channelMessage(channel, message));
 
-export const sendMessage = (rest, channel, body) =>
-  rest.post(Routes.channelMessages(channel), { body: withNoMentions(body) });
+// Nothing the bot posts pings anyone unless a caller passes `allowed` on purpose.
+export const sendMessage = (rest, channel, body, allowed = NO_MENTIONS) =>
+  rest.post(Routes.channelMessages(channel), { body: withNoMentions(body, allowed) });
 
 export const editMessage = (rest, channel, message, body) =>
   rest.patch(Routes.channelMessage(channel, message), { body: withNoMentions(body) });

@@ -15,8 +15,9 @@ export function readConfig(env) {
     githubToken: text("GITHUB_TOKEN"),
     repo: text("GITHUB_REPOSITORY", "ncjsvr/OrielOS"),
     guildId: text("DISCORD_GUILD_ID"),
+    linkMessage: text("LINK_MESSAGE"),
     names: {
-      welcome: text("CHANNEL_WELCOME", "welcome"),
+      link: text("LINK_CHANNEL", "about"),
       state: text("CHANNEL_STATE", "bot-state"),
       log: text("CHANNEL_LOG", "mod-log"),
       feed: text("CHANNEL_FEED", "github-feed"),

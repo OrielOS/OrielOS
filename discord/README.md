@@ -1,19 +1,19 @@
 # discord
 
-The OrielOS Discord bot: it posts releases and merges, and gives members who link their GitHub account the Maintainer and Contributor roles. It has no server and never stays connected to Discord; it runs only as short GitHub Actions jobs.
+The bot for [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA): it posts releases and merges, and gives members who link their GitHub account the Maintainer and Contributor roles. It has no server and never stays connected to Discord; it runs only as short GitHub Actions jobs.
 
 ## What it does
 
-- **Posts.** When a release is published, or a change is merged into `main`, it posts to `#github-feed`. Posts never ping anyone.
+- **Posts.** When a release is published, or a change is merged into `main`, it posts to `#github-feed`. A full release pings @everyone; pre-releases and merges never ping anyone.
 - **Roles.** Every 10 minutes it gives each linked member the Maintainer and Contributor roles that match GitHub, and takes them away when that stops being true.
 
 ## Linking
 
-1. The bot keeps a message in `#welcome` with a 🔗 reaction. Click it.
+1. The about message in `#about` carries the bot's 🔗 reaction. Click it.
 2. The next run sends you a direct message with a code. Open https://github.com/login/device and enter it. Allow direct messages from server members first.
 3. The bot reads your public GitHub profile once, then forgets the token. The OAuth app asks for no scopes.
 
-Remove your 🔗 reaction, or leave the server, to unlink. The bot then removes the roles it gave you. If the 🔗 message is ever deleted, the bot posts a new one and existing links stay; react on the new message to be able to unlink there.
+Remove your 🔗 reaction, or leave the server, to unlink. The bot then removes the roles it gave you. Links remember the message they were made on, so if the link message is ever replaced, existing links stay; react on the new message to be able to unlink there.
 
 Only your Discord account ID, your GitHub account ID and your GitHub login are stored, as messages in a private `#bot-state` channel on the Discord server. Nothing personal goes into this repository.
 
@@ -26,13 +26,18 @@ The roles carry no permissions, and only the bot gives them.
 
 ## Discord server setup
 
-- Channels, found by exact name: `#welcome`, `#bot-state` (private, visible only to the bot), `#mod-log` and `#github-feed`.
-- Roles, found by name without regard to case: `Maintainer` and `Contributor`.
-- The bot's own role sits above `Maintainer` and `Contributor`.
-- The bot's permissions: View Channels, Send Messages, Embed Links, Read Message History, Add Reactions and Manage Roles. It also needs Manage Messages in `#welcome` only, to remove reactions.
-- Members must lack Add Reactions in `#welcome`, so they can only click the existing 🔗.
+- **Channels:**
+  - the link channel (`LINK_CHANNEL`, default `about`), holding the message members react to;
+  - `#github-feed` (`CHANNEL_FEED`), for releases and merges;
+  - `#bot-state` (`CHANNEL_STATE`), a private channel only the bot can see, where links are stored;
+  - `#mod-log` (`CHANNEL_LOG`), optional: if it exists, every link and role change is logged there.
+  Each setting takes a channel name or a channel ID; IDs keep working when a channel is renamed. The workflow sets the IDs of the official server's `#about` and `#github-feed`.
+- **The link message.** Set `LINK_MESSAGE` to the ID of an existing message, such as the about message, and the bot adds its 🔗 reaction to it. Without it, the bot posts its own message in the link channel.
+- **Roles,** found by name without regard to case: `Maintainer` and `Contributor`. The bot's own role sits above them.
+- **The bot's permissions:** View Channels, Send Messages, Embed Links, Read Message History, Add Reactions and Manage Roles. In the link channel it also needs Manage Messages, to remove reactions. In `#github-feed` it also needs Mention @everyone, @here and All Roles, for release pings.
+- **Members** must lack Add Reactions in the link channel, so they can only click the existing 🔗.
 
-To use other names, set `CHANNEL_WELCOME`, `CHANNEL_STATE`, `CHANNEL_LOG`, `CHANNEL_FEED`, `ROLE_MAINTAINER` and `ROLE_CONTRIBUTOR`. If the bot is in more than one server, set `DISCORD_GUILD_ID`.
+If the bot is in more than one server, set `DISCORD_GUILD_ID`.
 
 ## GitHub setup
 

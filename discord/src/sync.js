@@ -52,7 +52,7 @@ const CANNOT_DM = 50007;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const CODEOWNERS = path.resolve(here, "../../.github/CODEOWNERS");
 
-export const WELCOME_TEXT =
+export const LINK_TEXT =
   "**Link your GitHub account** to get the Maintainer or Contributor role. " +
   `React with ${EMOJI} below, and within about ten minutes the OrielOS bot will send you a code to enter on GitHub. ` +
   "Allow direct messages from server members first. Remove your reaction to unlink. " +
@@ -66,6 +66,15 @@ export function codeMessage(userCode) {
   );
 }
 
+// The moderation log is optional: without it, changes are only counted.
+function optionalChannel(channels, name) {
+  try {
+    return resolveByName(channels, name, "channel").id;
+  } catch {
+    return null;
+  }
+}
+
 async function setup(config, rest) {
   const guild = await findGuild(rest, config.guildId);
   const channels = await listChannels(rest, guild);
@@ -75,9 +84,9 @@ async function setup(config, rest) {
   return {
     guild,
     channels: {
-      welcome: resolveByName(channels, names.welcome, "channel").id,
+      link: resolveByName(channels, names.link, "channel").id,
       state: resolveByName(channels, names.state, "channel").id,
-      log: resolveByName(channels, names.log, "channel").id,
+      log: optionalChannel(channels, names.log),
     },
     roleIds: {
       maintainer: roleFor(names.maintainer).id,
@@ -87,24 +96,40 @@ async function setup(config, rest) {
   };
 }
 
-async function ensureWelcome(ctx) {
-  const { rest, channels, store } = ctx;
+// An existing message chosen with LINK_MESSAGE, or one the bot posts and keeps.
+async function ensureLinkMessage(ctx) {
+  const { rest, channels, store, config } = ctx;
+  if (config.linkMessage) {
+    let message;
+    try {
+      message = await getMessage(rest, channels.link, config.linkMessage);
+    } catch (error) {
+      if (errorCode(error) !== UNKNOWN_MESSAGE) throw error;
+      throw new Error("The LINK_MESSAGE message does not exist in the link channel.");
+    }
+    const reacted = (message.reactions ?? []).some(
+      (reaction) => reaction.emoji?.name === EMOJI && reaction.me,
+    );
+    if (!reacted) await addOwnReaction(rest, channels.link, config.linkMessage);
+    return config.linkMessage;
+  }
   if (store.welcome) {
     try {
-      await getMessage(rest, channels.welcome, store.welcome.message);
+      await getMessage(rest, channels.link, store.welcome.message);
       return store.welcome.message;
     } catch (error) {
       if (errorCode(error) !== UNKNOWN_MESSAGE) throw error;
       await deleteRecord(rest, channels.state, store.welcome);
     }
   }
-  const message = await sendMessage(rest, channels.welcome, { content: WELCOME_TEXT });
-  await addOwnReaction(rest, channels.welcome, message.id);
+  const message = await sendMessage(rest, channels.link, { content: LINK_TEXT });
+  await addOwnReaction(rest, channels.link, message.id);
   store.welcome = await saveRecord(rest, channels.state, { kind: "welcome", message: message.id });
   return message.id;
 }
 
 async function modLog(ctx, content) {
+  if (!ctx.channels.log) return;
   try {
     await sendMessage(ctx.rest, ctx.channels.log, { content });
   } catch (error) {
@@ -157,10 +182,10 @@ async function dropLink(ctx, link) {
   ctx.store.links = ctx.store.links.filter((item) => item.id !== link.id);
 }
 
-async function moveToCurrentWelcome(ctx, reactorIds) {
-  for (const link of linksToMove(ctx.store.links, reactorIds, ctx.welcomeMessage)) {
+async function moveToCurrentLinkMessage(ctx, reactorIds) {
+  for (const link of linksToMove(ctx.store.links, reactorIds, ctx.linkMessage)) {
     try {
-      await updateRecord(ctx.rest, ctx.channels.state, Object.assign(link, { on: ctx.welcomeMessage }));
+      await updateRecord(ctx.rest, ctx.channels.state, Object.assign(link, { on: ctx.linkMessage }));
     } catch (error) {
       ctx.stats.errors += 1;
       console.error(`Could not update a link: ${describeError(error)}.`);
@@ -169,7 +194,7 @@ async function moveToCurrentWelcome(ctx, reactorIds) {
 }
 
 async function unlinkMissing(ctx, reactorIds) {
-  for (const link of linksToUnlink(ctx.store.links, reactorIds, ctx.welcomeMessage)) {
+  for (const link of linksToUnlink(ctx.store.links, reactorIds, ctx.linkMessage)) {
     try {
       await removeSyncedRoles(ctx, link);
       await dropLink(ctx, link);
@@ -212,7 +237,7 @@ async function tryDm(ctx, user, content) {
 }
 
 const unreact = (ctx, user) =>
-  removeUserReaction(ctx.rest, ctx.channels.welcome, ctx.welcomeMessage, user).catch(() => {});
+  removeUserReaction(ctx.rest, ctx.channels.link, ctx.linkMessage, user).catch(() => {});
 
 async function linkMember(ctx, reactor) {
   const { config } = ctx;
@@ -228,7 +253,7 @@ async function linkMember(ctx, reactor) {
     await tryDm(
       ctx,
       reactor.id,
-      "The code expired, so your GitHub account wasn't linked. React 🔗 in #welcome to try again.",
+      "The code expired, so your GitHub account wasn't linked. React 🔗 again in the OrielOS server to try again.",
     );
     return;
   }
@@ -246,7 +271,7 @@ async function linkMember(ctx, reactor) {
     github: id,
     login,
     at: new Date().toISOString(),
-    on: ctx.welcomeMessage,
+    on: ctx.linkMessage,
   });
   ctx.store.links.push(link);
   ctx.stats.linked += 1;
@@ -294,12 +319,12 @@ async function run(env) {
     stats: { linked: 0, unlinked: 0, changes: 0, errors: 0 },
   };
 
-  ctx.welcomeMessage = await ensureWelcome(ctx);
-  const reactors = (await listReactors(rest, found.channels.welcome, ctx.welcomeMessage)).filter(
+  ctx.linkMessage = await ensureLinkMessage(ctx);
+  const reactors = (await listReactors(rest, found.channels.link, ctx.linkMessage)).filter(
     (user) => !user.bot,
   );
   const reactorIds = new Set(reactors.map((user) => user.id));
-  await moveToCurrentWelcome(ctx, reactorIds);
+  await moveToCurrentLinkMessage(ctx, reactorIds);
   await unlinkMissing(ctx, reactorIds);
 
   ctx.who = {

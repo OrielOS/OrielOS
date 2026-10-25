@@ -80,6 +80,7 @@ jobs:
         working-directory: discord
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          CHANNEL_FEED: "1563925191057346662"
         run: node src/post.js
 
   sync:
@@ -121,4 +122,6 @@ jobs:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           LINK_CLIENT_ID: ${{ vars.LINK_CLIENT_ID }}
           GITHUB_TOKEN: ${{ github.token }}
+          LINK_CHANNEL: "1563925111805845534"
+          LINK_MESSAGE: "1563926132112228403"
         run: node src/sync.js
