@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- A Sponsor button on the repository, for supporting OrielOS through GitHub Sponsors.
 - Contribution guidelines, a code of conduct, a security policy, support and governance notes, issue and pull request templates, and a GitHub Discussions form for questions.
 - OrielOS has its own logo, Start button icon and wallpapers. Daybreak (light) and Nightfall (dark) are the default on the desktop and the lock screen, and the plainer Horizon is in the wallpaper picker.
 - Every boot meets Easy Anti-Cheat's Linux requirements: kernel lockdown, IOMMU on, the BPF LSM, kexec disabled and only signed drivers. Hibernation is not offered.
