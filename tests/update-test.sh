@@ -633,9 +633,13 @@ restart_watching_menu() {
 step_boot_menu() {
     local out titles
     info "Step 13: the boot menu stays hidden after good boots and appears after a failed one"
-    out="$(vm_ssh grep -c 'BEGIN 12_orielos-menu.cfg' /boot/grub2/grub.cfg 2>/dev/null)" || true
+    out="$(vm_ssh "grep -c 'BEGIN 12_orielos-menu.cfg' /boot/grub2/grub.cfg" 2>/dev/null)" || true
     titles="$(vm_ssh "grep -h '^title ' /boot/loader/entries/*.conf | sed 's/^title //' | sort" 2>/dev/null | paste -sd ';' -)" || true
-    if [[ "$out" == 1 && "$titles" == "OrielOS $OLD_VERSION (ostree:0);OrielOS $NEW_VERSION (ostree:1)" ]]; then
+    # ostree adds "(ostree:N)" to each title; after going back, N no longer follows the boot order,
+    # so only the names are compared. The restarts below show which build starts.
+    # The VM has two deployments, so N is one digit.
+    names="${titles// (ostree:[0-9])/}"
+    if [[ "$out" == 1 && "$names" == "OrielOS $OLD_VERSION;OrielOS $NEW_VERSION" ]]; then
         pass "The boot loader has OrielOS's menu settings, and the entries are $titles"
     else
         fail "The boot loader's settings or entries are wrong (12_orielos-menu.cfg found ${out:-0} times; entries: ${titles:-none})"
@@ -653,10 +657,11 @@ step_boot_menu() {
         fail "The VM did not come back after a restart"
         return 1
     fi
-    if [[ "$MENU_SHOWN" -eq 0 ]]; then
-        pass "After a boot that reached the desktop, the boot menu stays hidden"
+    read_status boot-menu-hidden
+    if [[ "$MENU_SHOWN" -eq 0 && "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
+        pass "After a boot that reached the desktop, the boot menu stays hidden, and $OLD_VERSION, the version gone back to, starts"
     else
-        fail "The boot menu appeared after a boot that reached the desktop (see boot-menu-unexpected.png)"
+        fail "After a boot that reached the desktop: menu shown $MENU_SHOWN (see boot-menu-unexpected.png), then running ${BOOTED_VERSION:-unknown}, not $OLD_VERSION"
     fi
 
     # A boot that never reaches the desktop: the display manager doesn't start.
