@@ -175,8 +175,8 @@ Then it goes back through the notifier and checks the boot menu:
     - Within 120 s of the desktop starting, `orielos_boot_ok` must be `1` in `EFI/fedora/orielos-boot.env` on the EFI system partition.
     - After a restart, the menu must stay hidden.
     - With `multi-user.target` as the default, so the display manager never starts, the next boot must leave the flag at `0`. The test then sets `graphical.target` back.
-    - At the restart after that, the menu must appear. The test saves `boot-menu.png`, presses Down and Enter, and the new build must start.
-    - At the next restart the test presses Esc once the firmware starts GRUB. The menu must appear (`boot-menu-esc.png`), and Enter must start the old build, the first entry.
+    - At the restart after that, the menu must appear, list both builds and highlight the old one, which starts by default. The test reads the menu from the serial console (GRUB marks the highlighted entry with `*`), saves `boot-menu.png`, moves to the other build with Down or Up and presses Enter, and that build must start.
+    - At the next restart the test presses Esc once, as soon as the firmware starts GRUB. The menu must appear (`boot-menu-esc.png`), highlighting the old build, and Enter must start it. A second Esc would close the menu again and leave GRUB at a `grub>` prompt, so the test presses it only once.
 
 ```sh
 tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
@@ -200,7 +200,7 @@ Results go to `tests/results/<run id>/`, or to the folder given with `--results`
 - `update-ready.png`: the desktop once the update is staged.
 - `notifier.txt`: the test user's processes and the journal's lines about the notifier, when it didn't start.
 - `go-back-question.png`, `go-back-password.png` and `go-back-ready.png`: the question, polkit's prompt, and the desktop once going back is queued. `bootc-status-go-back.json`, `bootc-status-went-back.json` and their `status-*.txt` files are taken after the prompt and after the restart.
-- `boot-menu.png` and `boot-menu-esc.png`: the boot menu after a boot without the desktop, and after Esc. `boot-menu-unexpected.png` exists only if the menu appeared when it shouldn't have. `bootc-status-boot-menu.json` and `bootc-status-boot-menu-esc.json` show which build started.
+- `boot-menu.png` and `boot-menu-esc.png`: the boot menu after a boot without the desktop, and after Esc. `boot-menu-unexpected.png` exists only if the menu appeared when it shouldn't have. `boot-entries.txt` lists the boot entries' titles and version keys at the start of step 13 and before each of its restarts. `bootc-status-boot-menu.json` and `bootc-status-boot-menu-esc.json` show which build started.
 - `boot-success.txt`: the journal of the units that mark a boot as good, when the flag wasn't set.
 
 The work folder and `--keep` work as in the boot test.

@@ -66,6 +66,9 @@ SERIAL_MARK=0
 NOTIFIER_OUT=""
 MENU_SHOWN=0
 MENU_TEXT=""
+# The versions the boot menu listed, in order and space-separated, and the highlighted one.
+MENU_ENTRIES=""
+MENU_DEFAULT=""
 
 usage() {
     sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -595,16 +598,25 @@ serial_since() {
 }
 
 # Restart the VM and watch the serial console, where the firmware copies GRUB's screen, for the
-# boot menu until the kernel starts: restart_watching_menu <none|choose-second|escape>
-#   none           only watch
-#   choose-second  in the menu, choose the second entry
-#   escape         press Esc while GRUB waits with the menu hidden, then start the first entry
-# Sets MENU_SHOWN to 1 if the menu appeared, keeps its text in MENU_TEXT, and waits for the new
-# boot. Returns 1 if the VM doesn't come back.
+# boot menu until the kernel starts: restart_watching_menu <none|choose-other|escape>
+#   none          only watch
+#   choose-other  in the menu, choose the version that isn't highlighted
+#   escape        press Esc once while GRUB waits with the menu hidden, then start the highlighted
+#                 version
+# Sets MENU_SHOWN to 1 if the menu appeared, keeps its text in MENU_TEXT, the versions it listed in
+# MENU_ENTRIES and the highlighted one (GRUB marks it with *) in MENU_DEFAULT, and waits for the
+# new boot. Returns 1 if the VM doesn't come back.
 restart_watching_menu() {
-    local action="$1" start text
+    local action="$1" start text pressed=0 key
     MENU_SHOWN=0
     MENU_TEXT=""
+    MENU_ENTRIES=""
+    MENU_DEFAULT=""
+    # The boot entries GRUB will read, before each restart, for when the menu isn't as expected.
+    {
+        printf '== before restarting to %s, running %s\n' "$action" "${BOOTED_VERSION:-unknown}"
+        vm_ssh "ls -l --time-style=+%T /boot/loader/entries/; grep -H -E '^(title|version) ' /boot/loader/entries/*.conf" 2>&1
+    } >>"$RESULTS/boot-entries.txt" || true
     serial_mark
     vm_ssh systemctl reboot >/dev/null 2>&1 || true
     start=$SECONDS
@@ -614,25 +626,41 @@ restart_watching_menu() {
             MENU_SHOWN=1
             # Let GRUB finish drawing the menu before reading it.
             sleep 1
-            MENU_TEXT="$(serial_since | grep -a -E 'ostree:|UEFI Firmware' | tr -s ' ' || true)"
+            text="$(serial_since)"
+            MENU_TEXT="$(grep -a -E 'ostree:|UEFI Firmware' <<<"$text" | tr -s ' ' || true)"
+            MENU_ENTRIES="$(grep -a -o -E 'OrielOS [0-9][0-9.]* \(ostree:[0-9]\)' <<<"$text" |
+                sed -E 's/^OrielOS //; s/ \(ostree:[0-9]\)$//' | awk '!seen[$0]++' | paste -sd ' ' -)" || true
+            MENU_DEFAULT="$(grep -a -o -E '\*OrielOS [0-9][0-9.]*' <<<"$text" | head -n1 | sed 's/^\*OrielOS //')" || true
             case "$action" in
-                choose-second) vm_qmp "shot:$RESULTS/boot-menu.png" "keys:down" "keys:ret" || true ;;
+                choose-other)
+                    # The other version is next to the highlighted one; the last entry is the firmware's.
+                    key=down
+                    if [[ "$MENU_DEFAULT" != "${MENU_ENTRIES%% *}" ]]; then key=up; fi
+                    vm_qmp "shot:$RESULTS/boot-menu.png" "keys:$key" "keys:ret" || true
+                    ;;
                 escape) vm_qmp "shot:$RESULTS/boot-menu-esc.png" "keys:ret" || true ;;
                 *) vm_qmp "shot:$RESULTS/boot-menu-unexpected.png" || true ;;
             esac
             break
         fi
         [[ "$text" == *"Linux version"* ]] && break
-        # Once the firmware hands over to the boot loader, GRUB waits one second for Esc.
-        if [[ "$action" == escape && "$text" == *"BdsDxe: starting"* ]]; then vm_qmp "keys:esc" || true; fi
+        # Once the firmware hands over to the boot loader, press Esc once; the firmware keeps the key
+        # until GRUB reads it during its hidden second. A second Esc would close the menu again,
+        # back to the first-stage configuration on the EFI system partition, which ends at a grub>
+        # prompt.
+        if [[ "$action" == escape && "$pressed" -eq 0 && "$text" == *"BdsDxe: starting"* ]]; then
+            vm_qmp "keys:esc" || true
+            pressed=1
+        fi
         sleep 0.2
     done
     wait_for_new_boot
 }
 
 step_boot_menu() {
-    local out titles
+    local out titles names other
     info "Step 13: the boot menu stays hidden after good boots and appears after a failed one"
+    vm_ssh "ls -l /boot/loader; grep -H -E '^(title|version) ' /boot/loader/entries/*.conf" >"$RESULTS/boot-entries.txt" 2>&1 || true
     out="$(vm_ssh "grep -c 'BEGIN 12_orielos-menu.cfg' /boot/grub2/grub.cfg" 2>/dev/null)" || true
     titles="$(vm_ssh "grep -h '^title ' /boot/loader/entries/*.conf | sed 's/^title //' | sort" 2>/dev/null | paste -sd ';' -)" || true
     # ostree adds "(ostree:N)" to each title; after going back, N no longer follows the boot order,
@@ -678,21 +706,28 @@ step_boot_menu() {
         fail "After a boot without a desktop, the flag is $(boot_flag), not orielos_boot_ok=0"
     fi
 
-    if ! restart_watching_menu choose-second; then
-        fail "The VM did not come back after choosing the second entry in the boot menu"
+    if ! restart_watching_menu choose-other; then
+        fail "The VM did not come back after choosing the other version in the boot menu"
         return 1
     fi
     read_status boot-menu
-    if [[ "$MENU_SHOWN" -eq 1 ]]; then
-        pass "After a boot that didn't reach the desktop, the boot menu appears (see boot-menu.png)"
+    # The menu must list both versions and highlight the one that starts by default.
+    if [[ "$MENU_SHOWN" -eq 1 && " $MENU_ENTRIES " == *" $OLD_VERSION "* && " $MENU_ENTRIES " == *" $NEW_VERSION "* &&
+        "$MENU_DEFAULT" == "$OLD_VERSION" ]]; then
+        pass "After a boot that didn't reach the desktop, the boot menu appears, lists $MENU_ENTRIES and highlights $MENU_DEFAULT (see boot-menu.png)"
         show_output "$MENU_TEXT"
     else
-        fail "The boot menu didn't appear after a boot that didn't reach the desktop"
+        fail "After a boot that didn't reach the desktop: menu shown $MENU_SHOWN, listing ${MENU_ENTRIES:-nothing}, highlighting ${MENU_DEFAULT:-nothing}, not $OLD_VERSION (see boot-menu.png, boot-entries.txt)"
+        show_output "$MENU_TEXT"
     fi
-    if [[ "$BOOTED_DIGEST" == "$NEW_DIGEST" ]]; then
-        pass "Choosing the other version in the boot menu starts it ($NEW_VERSION)"
+    other=""
+    for out in $MENU_ENTRIES; do
+        if [[ "$out" != "$MENU_DEFAULT" ]]; then other="$out"; fi
+    done
+    if [[ -n "$other" && "$BOOTED_VERSION" == "$other" ]]; then
+        pass "Choosing the other version in the boot menu starts it ($other)"
     else
-        fail "After choosing the second entry, the VM runs ${BOOTED_VERSION:-unknown}, not $NEW_VERSION"
+        fail "After choosing the other version (${other:-none found}) in the boot menu, the VM runs ${BOOTED_VERSION:-unknown}"
     fi
 
     wait_for_good_boot || true
@@ -701,10 +736,10 @@ step_boot_menu() {
         return 1
     fi
     read_status boot-menu-esc
-    if [[ "$MENU_SHOWN" -eq 1 && "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
-        pass "Pressing Esc while the menu is hidden shows it, and the first entry still starts $OLD_VERSION (see boot-menu-esc.png)"
+    if [[ "$MENU_SHOWN" -eq 1 && "$MENU_DEFAULT" == "$OLD_VERSION" && "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
+        pass "Pressing Esc once while the menu is hidden shows it, and Enter starts the highlighted $OLD_VERSION (see boot-menu-esc.png)"
     else
-        fail "Pressing Esc at boot: menu shown ${MENU_SHOWN}, then running ${BOOTED_VERSION:-unknown}, not $OLD_VERSION"
+        fail "Pressing Esc at boot: menu shown ${MENU_SHOWN}, highlighting ${MENU_DEFAULT:-nothing}, then running ${BOOTED_VERSION:-unknown}, not $OLD_VERSION"
     fi
 }
 
