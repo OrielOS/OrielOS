@@ -349,27 +349,24 @@ step_service_channel() {
 # A script for the VM that reads the update notifier's tray icon as the test user over the
 # session bus: prints "notifier=<pid>", "item=<bus name>", "status=<Status property>", and for
 # notifier_script restart also clicks its "Restart to update" menu item the way the tray does.
+# busctl takes explicit signatures and prints JSON, which jq reads.
 notifier_script() {
     cat <<SH
 mode="${1:-read}"
-uid="\$(id -u $TEST_USER)"
-as_user() { runuser -u $TEST_USER -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\$uid/bus" "\$@"; }
+bus() { busctl --user -M $TEST_USER@ --json=short "\$@" 2>/dev/null; }
 # The kernel keeps only the first 15 characters of a process's name, so match the command line.
 pid="\$(pgrep -u $TEST_USER -f '(^|/)orielos-update-notifier( |\$)' | head -n1)"
 echo "notifier=\$pid"
 [ -n "\$pid" ] || exit 0
 # Tray icons register with Plasma's StatusNotifierWatcher as "<bus name>/<object path>"; the
 # notifier's is the one whose connection belongs to its process.
-items="\$(as_user gdbus call --session --dest org.kde.StatusNotifierWatcher --object-path /StatusNotifierWatcher \
-    --method org.freedesktop.DBus.Properties.Get org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems)"
 item=""
 item_path=""
-for entry in \$(printf '%s' "\$items" | grep -o "'[^']*'" | tr -d "'"); do
-    bus="\${entry%%/*}"
-    owner="\$(as_user gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
-        --method org.freedesktop.DBus.GetConnectionUnixProcessID "\$bus" | grep -o '[0-9][0-9]*' | tail -n1)"
+for entry in \$(bus get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher     org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems | jq -r '.data[]'); do
+    name="\${entry%%/*}"
+    owner="\$(bus call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus         GetConnectionUnixProcessID s "\$name" | jq -r '.data[0]')"
     if [ "\$owner" = "\$pid" ]; then
-        item="\$bus"
+        item="\$name"
         case "\$entry" in
             */*) item_path="/\${entry#*/}" ;;
             *) item_path=/StatusNotifierItem ;;
@@ -378,16 +375,15 @@ for entry in \$(printf '%s' "\$items" | grep -o "'[^']*'" | tr -d "'"); do
 done
 echo "item=\$item"
 [ -n "\$item" ] || exit 0
-echo "status=\$(as_user gdbus call --session --dest "\$item" --object-path "\$item_path" \
-    --method org.freedesktop.DBus.Properties.Get org.kde.StatusNotifierItem Status)"
+echo "status=\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Status | jq -r '.data')"
 if [ "\$mode" = restart ]; then
-    menu="\$(as_user gdbus call --session --dest "\$item" --object-path "\$item_path" \
-        --method org.freedesktop.DBus.Properties.Get org.kde.StatusNotifierItem Menu | grep -o "'/[^']*'" | tr -d "'")"
-    layout="\$(as_user gdbus call --session --dest "\$item" --object-path "\$menu" --method com.canonical.dbusmenu.GetLayout 0 -1 '[]')"
-    id="\$(printf '%s' "\$layout" | grep -o "([0-9]*, {[^}]*'label': <'Restart to update'>" | head -n1 | grep -o '^([0-9]*' | tr -d '(')"
+    menu="\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Menu | jq -r '.data')"
+    echo "menu=\$menu"
+    id="\$(bus call "\$item" "\$menu" com.canonical.dbusmenu GetLayout iias 0 -1 0 |
+        jq -r '.data[1][2][] | .data | select(.[1].label.data == "Restart to update") | .[0]' | head -n1)"
     echo "restart_item=\$id"
-    [ -n "\$id" ] && as_user gdbus call --session --dest "\$item" --object-path "\$menu" \
-        --method com.canonical.dbusmenu.Event "\$id" clicked '<0>' 0 >/dev/null && echo clicked=yes
+    [ -n "\$id" ] && bus call "\$item" "\$menu" com.canonical.dbusmenu Event isvu "\$id" clicked s "" 0 >/dev/null &&
+        echo clicked=yes
 fi
 SH
 }
