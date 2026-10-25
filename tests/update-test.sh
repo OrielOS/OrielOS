@@ -574,9 +574,9 @@ open_update_settings() {
 }
 
 # Close System Settings and open the same page on its own with kcmshell6, in the test user's
-# session, then save a screenshot: open_update_window <name>. The keyboard steps use this window:
-# in System Settings the sidebar's entries take mnemonics of their own in the same window, so some
-# of the page's letters may not work there. Returns 1 if the window doesn't start.
+# session, then save a screenshot: open_update_window <name>. The keyboard steps use this window,
+# where the page is alone and no other control takes the keys; in System Settings, a letter no
+# shortcut claims goes to the sidebar's search field. Returns 1 if the window doesn't start.
 open_update_window() {
     local start
     vm_ssh "pkill -u $TEST_USER -f 'systemsettings.*$SETTINGS_MODULE'; pkill -u $TEST_USER -x kcmshell6; sleep 2

@@ -145,40 +145,37 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Pause updates")
             }
 
+            // One button pauses and resumes. A button that starts hidden inside a hidden row gets no
+            // working mnemonic when the row appears, but changing a button's text takes the new one.
             RowLayout {
-                visible: !root.settings.paused
                 spacing: Kirigami.Units.smallSpacing
 
                 QQC2.ComboBox {
                     id: pauseLength
 
+                    visible: !root.settings.paused
                     model: root.settings.pauseChoices
                     enabled: !root.settings.busy
                     Accessible.name: root.l10n.i18nc("@label:listbox", "How long to pause updates for")
                 }
 
-                QQC2.Button {
-                    text: root.l10n.i18nc("@action:button", "&Pause updates")
-                    icon.name: "media-playback-pause"
-                    enabled: !root.settings.busy
-                    onClicked: root.settings.pause(root.settings.minPauseWeeks + pauseLength.currentIndex)
-                }
-            }
-
-            RowLayout {
-                visible: root.settings.paused
-                spacing: Kirigami.Units.smallSpacing
-
                 QQC2.Label {
+                    visible: root.settings.paused
                     text: root.l10n.i18nc("@info %1 is a date", "Updates are paused until %1.", root.settings.pausedUntil)
                     wrapMode: Text.Wrap
                 }
 
                 QQC2.Button {
-                    text: root.l10n.i18nc("@action:button", "&Resume updates")
-                    icon.name: "media-playback-start"
+                    text: root.settings.paused ? root.l10n.i18nc("@action:button", "&Resume updates") : root.l10n.i18nc("@action:button", "&Pause updates")
+                    icon.name: root.settings.paused ? "media-playback-start" : "media-playback-pause"
                     enabled: !root.settings.busy
-                    onClicked: root.settings.resume()
+                    onClicked: {
+                        if (root.settings.paused) {
+                            root.settings.resume();
+                        } else {
+                            root.settings.pause(root.settings.minPauseWeeks + pauseLength.currentIndex);
+                        }
+                    }
                 }
             }
 
