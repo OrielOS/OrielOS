@@ -1,0 +1,7 @@
+# The signers a kernel module in the OrielOS image may have, one per line, exactly as
+# `modinfo -F signer` prints them. image/build/85-check-modules.sh fails the build for any
+# module with another signer or none. OrielOS never builds or signs kernel modules itself.
+# Fedora's kernel key signs the kernel's own modules; Universal Blue's key signs the NVIDIA,
+# OpenRazer, v4l2loopback, xone and xpadneo modules.
+Fedora kernel signing key
+ublue kernel

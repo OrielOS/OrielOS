@@ -1,0 +1,2 @@
+# Show the Plymouth boot splash instead of kernel and service messages.
+kargs = ["rhgb", "quiet"]

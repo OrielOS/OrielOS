@@ -1,5 +1,5 @@
 # The OrielOS image: Fedora bootc with the Fedora CoreOS stable kernel, NVIDIA's open
-# kernel modules and driver, a minimal KDE Plasma desktop and OrielOS's own apps.
+# kernel modules and driver, the KDE Plasma desktop and OrielOS's own apps.
 # Build it with tools/build-image.sh, which passes the pinned inputs from image/pins.env.
 # The build context is the repository root.
 ARG BASE_IMAGE=scratch-must-be-set
@@ -44,6 +44,10 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/10-kernel.sh
 
 RUN --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/15-server-defaults.sh
+
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    --mount=type=bind,source=image/packages,target=/packages \
     /ctx/20-desktop.sh
 
 RUN --mount=type=bind,source=image/build,target=/ctx \
@@ -63,6 +67,12 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
 # not rebuild those layers.
 COPY image/system/usr/ /usr/
 COPY --from=app-builder /out/usr/ /usr/
+
+# The module and driver check runs once every package is installed. It is its own layer, so a
+# failure names the step, and it has image/ mounted to read the allowed signers.
+# hadolint ignore=DL3059
+RUN --mount=type=bind,source=image,target=/image \
+    /image/build/85-check-modules.sh
 
 # The final step is its own layer for the same reason.
 # hadolint ignore=DL3059

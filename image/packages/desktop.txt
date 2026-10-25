@@ -1,0 +1,157 @@
+# The OrielOS desktop: KDE Plasma on Wayland, the system tools that stand in for Windows'
+# built-in ones, and the services a desktop needs. Read by image/build/20-desktop.sh, which
+# installs these packages without weak dependencies, so everything the desktop relies on is
+# listed here explicitly. One package per line; text after # is a comment.
+#
+# Left out on purpose: apps that Flathub provides (Kate, Okular, Gwenview, Elisa, KMail,
+# games, office apps, browsers), Discover's PackageKit and rpm-ostree backends (the OS is
+# not changed package by package), Plasma's X11 session, and Fedora's first-run and
+# crash-reporting tools.
+
+# Plasma desktop and window manager (Wayland). Klipper, the clipboard history, is part of
+# plasma-workspace. Xwayland runs X11 apps inside the Wayland session.
+plasma-desktop
+plasma-workspace
+kwin
+xorg-x11-server-Xwayland
+kscreen
+kscreenlocker
+kglobalacceld
+kde-cli-tools
+plasma-integration
+plasma-milou
+plasma-keyboard
+kdeplasma-addons
+plasma-workspace-wallpapers
+ocean-sound-theme
+# Fedora's Plasma defaults (fonts, cursor, environment). The Noto fonts below match them.
+kde-settings
+kde-settings-plasma
+
+# Login screen: SDDM with the Breeze theme on a Wayland greeter, and its settings page.
+sddm
+sddm-breeze
+sddm-wayland-plasma
+sddm-kcm
+kde-settings-sddm
+
+# Settings, power and hardware integration.
+plasma-systemsettings
+powerdevil
+tuned-ppd
+switcheroo-control
+plasma-disks
+plasma-thunderbolt
+bolt
+kinfocenter
+plasma-systemmonitor
+ksystemstats
+polkit-kde
+pam-kwallet
+kde-gtk-config
+xdg-desktop-portal-kde
+xdg-user-dirs
+xdg-utils
+qt6-qtimageformats
+kf6-kimageformats
+glibc-langpack-en
+
+# Networking: Wi-Fi, Bluetooth tethering, mobile broadband and the common VPN types.
+# Plasma's network applet handles mobile broadband and WireGuard itself.
+plasma-nm
+plasma-nm-openvpn
+plasma-nm-openconnect
+plasma-nm-vpnc
+plasma-nm-l2tp
+NetworkManager-wifi
+NetworkManager-bluetooth
+NetworkManager-wwan
+NetworkManager-config-connectivity-fedora
+ModemManager
+wpa_supplicant
+
+# Firewall, with its Plasma settings page.
+firewalld
+plasma-firewall
+plasma-firewall-firewalld
+
+# Sound: PipeWire with PulseAudio, ALSA and JACK compatibility, and the firmware and
+# configuration most Intel and AMD laptops need for their built-in audio.
+pipewire
+pipewire-pulseaudio
+pipewire-alsa
+pipewire-jack-audio-connection-kit
+wireplumber
+plasma-pa
+kpipewire
+alsa-sof-firmware
+alsa-ucm
+
+# Bluetooth, including sending files to and from phones.
+bluez
+bluez-obexd
+bluedevil
+
+# Printing.
+cups
+cups-filters
+cups-browsed
+cups-pk-helper
+plasma-print-manager
+
+# Apps come from Flathub through Discover. fedora-flathub-remote provides Flathub's remote
+# file; 20-desktop.sh puts it where Flatpak reads it.
+flatpak
+plasma-discover
+plasma-discover-flatpak
+plasma-discover-notifier
+flatpak-kcm
+fedora-flathub-remote
+
+# The system tools that play the parts of Windows' built-in ones: File Explorer, Terminal,
+# Snipping Tool and archive support in File Explorer. Task Manager (plasma-systemmonitor),
+# System Settings, the system information page (kinfocenter) and Discover are listed above.
+dolphin
+kio-extras
+konsole
+spectacle
+ark
+
+# Look: Breeze icons, cursors and GTK theme, so GTK apps match Plasma.
+plasma-breeze
+breeze-icon-theme
+breeze-cursor-theme
+breeze-gtk-gtk3
+breeze-gtk-gtk4
+
+# Fonts: the Noto families Fedora's Plasma uses, with CJK and colour emoji.
+google-noto-sans-vf-fonts
+google-noto-serif-vf-fonts
+google-noto-sans-mono-vf-fonts
+google-noto-sans-cjk-vf-fonts
+google-noto-color-emoji-fonts
+
+# Boot splash. plymouth-system-theme brings Fedora's default theme, bgrt (the firmware's
+# logo with a spinner).
+plymouth
+plymouth-system-theme
+
+# Graphics: Mesa's OpenGL, Vulkan and VA-API drivers (VA-API is part of mesa-dri-drivers),
+# and Intel's video decoding driver.
+mesa-dri-drivers
+mesa-vulkan-drivers
+vulkan-loader
+libva
+libva-intel-media-driver
+
+# Media: the GStreamer plugins for basic playback, with FFmpeg's decoders.
+gstreamer1-plugins-base
+gstreamer1-plugins-good
+gstreamer1-plugins-bad-free
+gstreamer1-plugin-libav
+
+# Virtual machine guest support, harmless on real hardware: clipboard, display resizing and
+# clean shutdown under QEMU/KVM and VMware.
+qemu-guest-agent
+spice-vdagent
+open-vm-tools-desktop

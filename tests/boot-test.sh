@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Installs the OrielOS image to a disk file, boots it headless under QEMU/KVM with Secure Boot
 # and a software TPM, and checks that it reaches the login screen. Once it does, the test logs in
-# over SSH through a vsock device, checks the services and starts OrielOS's apps inside the VM.
-# Prints PASS/FAIL per check.
+# over SSH through a vsock device, checks the services, starts OrielOS's apps and logs a test user
+# in to a Plasma Wayland session inside the VM. Prints PASS/FAIL per check.
 #
 # Usage: tests/boot-test.sh [--image REF] [--archive FILE] [--timeout SECONDS] [--memory MIB]
 #                           [--cpus N] [--results DIR] [--keep] [--help]
@@ -12,7 +12,7 @@
 #   --timeout SECONDS   time to wait for the login screen after power-on (default 600)
 #   --memory MIB        VM memory (default 6144)
 #   --cpus N            VM CPUs (default 4)
-#   --results DIR       where serial.log, install.log, screenshot.png and summary.txt go
+#   --results DIR       where serial.log, install.log, the screenshots and summary.txt go
 #                       (default tests/results/<run id>)
 #   --keep              keep the disk and work folder, and print how to boot them again
 # The work folder is /var/lib/orielos/vm/<run id>, where the run id is <image tag>-<UTC time>.
@@ -31,6 +31,8 @@ KEEP=0
 VM_ROOT="/var/lib/orielos/vm"
 WORK=""
 SUMMARY=""
+# The NVIDIA driver component packages; keep in step with image/build/85-check-modules.sh.
+NVIDIA_COMPONENTS='^(nvidia-driver(-.*)?|nvidia-kmod-common|nvidia-modprobe|nvidia-persistenced|nvidia-settings|nvidia-xconfig|nvidia-libXNVCtrl|libnvidia-.*|xorg-x11-nvidia) '
 BASE_ARGS=()
 OVMF_CODE=""
 OVMF_VARS=""
@@ -44,6 +46,22 @@ SSH_SDDM=""
 SSH_NM=""
 SELFTEST_OUT=""
 SELFTEST_RC=""
+TEST_USER="orielostest"
+SESSION_FILE="plasma.desktop"
+LOGIN_LOG_LINES=""
+SESSION_TYPES=""
+SESSION_PROCS=""
+SESSION_SECONDS=""
+DESKTOP_COLOURS=""
+SOUND_STATE=""
+BT_ENABLED=""
+BT_ACTIVE=""
+SERVER_UNITS=""
+MODULE_SIGNER=""
+KERNEL_RPMS=""
+NVIDIA_VERSIONS=""
+IMAGE_KERNEL=""
+KDUMP_BINARIES=""
 PASSED=0
 FAILED=0
 
@@ -158,6 +176,15 @@ grep_log() {
     clean_log | grep -E "$@" || true
 }
 
+# Print the serial log up to the scripted desktop login, which restarts SDDM on purpose.
+login_log() {
+    if [[ -n "$LOGIN_LOG_LINES" ]]; then
+        clean_log | sed -n "1,${LOGIN_LOG_LINES}p"
+    else
+        clean_log
+    fi
+}
+
 load_archive() {
     local id
     [[ -r "$ARCHIVE" ]] || die "cannot read $ARCHIVE"
@@ -247,16 +274,84 @@ collect_over_ssh() {
     info "System state: ${state:-unknown}"
     units="$(vm_ssh systemctl --failed --no-legend --plain 2>&1 | awk '{print $1}' | paste -sd ' ' -)" || true
     info "Failed units: ${units:-none}"
+    BT_ENABLED="$(vm_ssh systemctl is-enabled bluetooth.service 2>&1)" || true
+    BT_ACTIVE="$(vm_ssh systemctl is-active bluetooth.service 2>&1)" || true
+    SERVER_UNITS="$(vm_ssh systemctl is-enabled bootc-fetch-apply-updates.timer sshd.service 2>&1 | paste -sd ' ' -)" || true
+    KDUMP_BINARIES="$(vm_ssh command -v kexec kdumpctl makedumpfile 2>&1 | paste -sd ' ' -)" || true
+    MODULE_SIGNER="$(vm_ssh modinfo -F signer nvidia 2>&1)" || true
+    KERNEL_RPMS="$(vm_ssh rpm -q kernel 2>&1 | paste -sd ' ' -)" || true
+    NVIDIA_VERSIONS="$(vm_ssh "rpm -qa --qf '%{NAME} %{VERSION}-%{RELEASE}\n' | grep -E '$NVIDIA_COMPONENTS' | grep -v '^nvidia-driver-selinux '" 2>&1)" || true
+}
+
+# Remote script that prints the types of the test user's sessions and which of plasmashell and
+# kwin_wayland run as that user: "types=<type ...>" and one "running=<process>" line each.
+session_probe() {
+    cat <<SH
+types=""
+for s in \$(loginctl list-sessions --no-legend | awk '\$3 == "$TEST_USER" {print \$1}'); do
+    types="\$types \$(loginctl show-session -p Type --value "\$s")"
+done
+printf 'types=%s\n' "\${types# }"
+for p in plasmashell kwin_wayland; do
+    if pgrep -u $TEST_USER -x "\$p" >/dev/null; then printf 'running=%s\n' "\$p"; fi
+done
+SH
+}
+
+# Create a test user, log it in through SDDM's autologin to the Plasma Wayland session, wait up
+# to 90 s for the session, then take desktop.png and check the user's sound services.
+desktop_login() {
+    local start out probe status=""
+    LOGIN_LOG_LINES="$(clean_log | wc -l)"
+    info "Logging $TEST_USER in to the Plasma Wayland session ($SESSION_FILE) through SDDM's autologin"
+    if ! out="$(vm_ssh "set -e
+        useradd -m $TEST_USER
+        test -r /usr/share/wayland-sessions/$SESSION_FILE
+        mkdir -p /etc/sddm.conf.d
+        printf '[Autologin]\nUser=%s\nSession=%s\n' $TEST_USER $SESSION_FILE >/etc/sddm.conf.d/99-boot-test-autologin.conf
+        systemctl restart sddm" 2>&1)"; then
+        info "Could not set up the desktop login: ${out:-no output}"
+        return 0
+    fi
+    probe="$(session_probe)"
+    start=$SECONDS
+    while ((SECONDS - start < 90)); do
+        out="$(vm_ssh "$probe" 2>/dev/null)" || true
+        SESSION_TYPES="$(sed -n 's/^types=//p' <<<"$out")"
+        SESSION_PROCS="$(sed -n 's/^running=//p' <<<"$out" | paste -sd ' ' -)"
+        if [[ " $SESSION_TYPES " == *" wayland "* && "$SESSION_PROCS" == "plasmashell kwin_wayland" ]]; then
+            SESSION_SECONDS=$((SECONDS - start))
+            break
+        fi
+        vm_running || return 0
+        sleep 3
+    done
+    if [[ -z "$SESSION_SECONDS" ]]; then
+        info "No Plasma Wayland session within 90 s"
+        return 0
+    fi
+    info "The Plasma Wayland session started $SESSION_SECONDS s after restarting SDDM; waiting 15 s for the desktop to draw"
+    sleep 15
+    status="$(take_screenshots "$WORK/desktop.ppm" "$RESULTS/desktop.png" 0 | sed -n 's/^status=//p')" || true
+    if [[ "$status" == "running" && -r "$WORK/desktop.ppm" ]]; then
+        DESKTOP_COLOURS="$(count_colours "$WORK/desktop.ppm")" || true
+    fi
+    SOUND_STATE="$(vm_ssh systemctl --user -M "$TEST_USER@" is-active pipewire wireplumber 2>&1 | paste -sd ' ' -)" || true
 }
 
 install_image() {
     local start=$SECONDS
     info "Installing $IMAGE to a 30 GiB disk (this takes a few minutes)"
     truncate -s 30G "$WORK/disk.raw"
+    # The image boots with "quiet" for its splash screen. The checks read systemd's status lines
+    # and kernel messages from the serial console, so turn both back on there, and turn Plymouth
+    # off: while the splash runs it takes over the console output, so systemd's status lines
+    # never reach the serial console.
     podman run --rm --privileged --pid=host --security-opt label=disable \
         -v /var/lib/containers:/var/lib/containers -v /dev:/dev -v "$WORK:/output" \
         "$IMAGE" bootc install to-disk --via-loopback --generic-image --wipe \
         --karg console=tty0 --karg console=ttyS0,115200 \
+        --karg systemd.show_status=1 --karg ignore_loglevel --karg plymouth.enable=0 \
         /output/disk.raw >"$RESULTS/install.log" 2>&1 ||
         die "the installation failed; see $RESULTS/install.log"
     info "Installed in $((SECONDS - start)) s"
@@ -282,6 +377,7 @@ start_vm() {
         -tpmdev "emulator,id=tpm0,chardev=chrtpm" -device "tpm-crb,tpmdev=tpm0"
         -drive "file=$WORK/disk.raw,format=raw,if=virtio"
         -device virtio-vga
+        -audiodev "none,id=snd0" -device ich9-intel-hda -device "hda-output,audiodev=snd0"
         -netdev "user,id=n0" -device "virtio-net-pci,netdev=n0"
         -device "vhost-vsock-pci,guest-cid=$GUEST_CID"
         -smbios "type=11,value=io.systemd.credential.binary:ssh.authorized_keys.root=$(base64 -w0 "$WORK/ssh_key.pub")"
@@ -316,10 +412,11 @@ wait_for_login() {
     return 1
 }
 
-# Over QMP: check the VM is running, press a key so the login form shows, take a PPM and a PNG
-# screendump, then quit QEMU. Prints "status=<run state>".
+# Over QMP: check the VM is running, press a key first if asked (so the login form shows), and
+# take a PPM and a PNG screendump. Prints "status=<run state>".
+#   take_screenshots <ppm file> <png file> <press a key: 1 or 0>
 take_screenshots() {
-    python3 -I - "$WORK/qmp.sock" "$WORK/screen.ppm" "$RESULTS/screenshot.png" <<'PY'
+    python3 -I - "$WORK/qmp.sock" "$@" <<'PY'
 import json, socket, sys, time
 
 sock = socket.socket(socket.AF_UNIX)
@@ -343,12 +440,11 @@ def cmd(name, args=None):
 f.readline()
 cmd("qmp_capabilities")
 print("status=" + str(cmd("query-status").get("return", {}).get("status")))
-cmd("send-key", {"keys": [{"type": "qcode", "data": "shift"}]})
-time.sleep(3)
+if sys.argv[4] == "1":
+    cmd("send-key", {"keys": [{"type": "qcode", "data": "shift"}]})
+    time.sleep(3)
 cmd("screendump", {"filename": sys.argv[2], "format": "ppm"})
 cmd("screendump", {"filename": sys.argv[3], "format": "png"})
-f.write(json.dumps({"execute": "quit"}) + "\n")
-f.flush()
 PY
 }
 
@@ -380,7 +476,7 @@ PY
 }
 
 run_checks() {
-    local status="$1" colours="$2" cmdline btrfs after failed unit line shown="not reached"
+    local status="$1" colours="$2" cmdline btrfs after failed unit line versions shown="not reached"
     local no_ssh="SSH over vsock did not answer, so this could not be checked inside the VM"
     local ssh_hint="check that /dev/vhost-vsock exists on the host, and look for sshd or systemd-ssh-generator errors in serial.log"
 
@@ -410,7 +506,7 @@ run_checks() {
         fail "graphical.target was not reached"
     fi
 
-    after="$(clean_log | sed -n '/Started sddm\.service/,$p' |
+    after="$(login_log | sed -n '/Started sddm\.service/,$p' |
         grep -E 'Stopp(ed|ing) sddm\.service|Failed to start sddm\.service|sddm\.service: (Failed|Main process exited)' || true)"
     if [[ -z "$(grep_log 'Started sddm\.service')" ]]; then
         fail "SDDM did not start"
@@ -453,6 +549,69 @@ run_checks() {
         while IFS= read -r line; do
             if [[ -n "$line" ]]; then say "" "    " "$line"; fi
         done <<<"$SELFTEST_OUT"
+    fi
+
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Plasma Wayland session starts: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ " $SESSION_TYPES " != *" wayland "* ]]; then
+        fail "No Wayland session for $TEST_USER within 90 s (session types: ${SESSION_TYPES:-none})"
+    elif [[ "$SESSION_PROCS" != "plasmashell kwin_wayland" ]]; then
+        fail "The Plasma session for $TEST_USER is incomplete (running: ${SESSION_PROCS:-neither plasmashell nor kwin_wayland})"
+    elif [[ ! "$DESKTOP_COLOURS" =~ ^[0-9]+$ || "$DESKTOP_COLOURS" -le 1 ]]; then
+        fail "The Plasma session started but the desktop is blank (${DESKTOP_COLOURS:-no screenshot} distinct colours)"
+    else
+        pass "Plasma Wayland session starts (type wayland, plasmashell and kwin_wayland running after $SESSION_SECONDS s; $DESKTOP_COLOURS distinct colours on screen)"
+    fi
+
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Sound services run: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$SOUND_STATE" == "active active" ]]; then
+        pass "Sound services run (pipewire and wireplumber are active for $TEST_USER)"
+    else
+        fail "Sound services do not run for $TEST_USER (pipewire, wireplumber: ${SOUND_STATE:-no output})"
+    fi
+
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Bluetooth service is enabled: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$BT_ENABLED" == "enabled" ]]; then
+        pass "Bluetooth service is enabled (systemctl is-enabled bluetooth.service: enabled)"
+        info "bluetooth.service is ${BT_ACTIVE:-unknown}; the VM has no Bluetooth adapter, so the service's condition skips it"
+    else
+        fail "Bluetooth service is not enabled (systemctl is-enabled bluetooth.service: ${BT_ENABLED:-no output})"
+    fi
+
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Server defaults are off: $no_ssh"
+        hint "$ssh_hint"
+    else
+        info "bootc-fetch-apply-updates.timer, sshd.service: ${SERVER_UNITS:-no output}"
+        info "kexec and kdump binaries: ${KDUMP_BINARIES:-none}"
+        if [[ "$SERVER_UNITS" == "disabled disabled" && -z "$KDUMP_BINARIES" ]]; then
+            pass "Server defaults are off (automatic update reboots and sshd.service disabled; no kexec or kdump)"
+        else
+            fail "Server defaults are not all off (units: ${SERVER_UNITS:-no output}; kexec and kdump binaries: ${KDUMP_BINARIES:-none})"
+        fi
+    fi
+
+    versions="$(awk '{print $2}' <<<"$NVIDIA_VERSIONS" | sort -u)"
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Kernel modules are signed by Fedora or Universal Blue: $no_ssh"
+        hint "$ssh_hint"
+    else
+        info "rpm -q kernel: ${KERNEL_RPMS:-no output}"
+        info "NVIDIA driver version: ${versions//$'\n'/ }"
+        if [[ "$MODULE_SIGNER" != "ublue kernel" ]]; then
+            fail "The NVIDIA kernel module is not signed by Universal Blue (modinfo -F signer nvidia: ${MODULE_SIGNER:-no output})"
+        elif [[ -z "$IMAGE_KERNEL" || "$KERNEL_RPMS" != "kernel-$IMAGE_KERNEL" ]]; then
+            fail "The installed kernel is not the image's kernel (rpm -q kernel: ${KERNEL_RPMS:-no output}; image: ${IMAGE_KERNEL:-unknown})"
+        elif [[ -z "$versions" || "$(wc -l <<<"$versions")" -ne 1 ]]; then
+            fail "The NVIDIA packages are not one version (${versions//$'\n'/ })"
+        else
+            pass "Kernel modules are signed by Fedora or Universal Blue (nvidia signer: $MODULE_SIGNER; kernel $IMAGE_KERNEL; NVIDIA $versions everywhere)"
+        fi
     fi
 
     failed="$(grep_log 'FAILED' | sed -n 's/.*Failed to start \([^ ]*\).*/\1/p' | sort -u)"
@@ -529,6 +688,8 @@ main() {
     info "Run $run_id; results in $RESULTS"
     if [[ -n "$ARCHIVE" ]]; then load_archive; fi
     podman image exists "$IMAGE" || die "image $IMAGE does not exist (build it with tools/build-image.sh)"
+    # The ostree.linux label comes from the base image, so ask the image itself which kernel it has.
+    IMAGE_KERNEL="$(podman run --rm "$IMAGE" rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}' kernel-core)" || die "could not read the kernel version from $IMAGE"
 
     setup_ssh
     install_image
@@ -536,8 +697,9 @@ main() {
     wait_for_login || timed_out=1
     if vm_running && wait_for_ssh; then collect_over_ssh; fi
     if vm_running; then
-        status="$(take_screenshots | sed -n 's/^status=//p')" || true
+        status="$(take_screenshots "$WORK/screen.ppm" "$RESULTS/screenshot.png" 1 | sed -n 's/^status=//p')" || true
         if [[ -r "$WORK/screen.ppm" ]]; then colours="$(count_colours "$WORK/screen.ppm")" || true; fi
+        if [[ "$SSH_OK" -eq 1 && "$status" == "running" ]]; then desktop_login; fi
         stop_pid "$WORK/qemu.pid"
     fi
     clean_log >"$RESULTS/serial.log"

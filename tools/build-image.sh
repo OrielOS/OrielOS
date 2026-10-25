@@ -22,6 +22,9 @@ ARCHIVE=1
 KEEP=3
 CLEAN_ONLY=0
 REPO="localhost/orielos"
+# The kernel the akmods images carry, set by preflight. It replaces the ostree.linux label the
+# image would otherwise inherit from the base image, whose kernel is swapped out.
+KERNEL=""
 
 die() {
     printf 'error: %s\n' "$1" >&2
@@ -55,6 +58,7 @@ preflight() {
         die "kernel/NVIDIA version mismatch: akmods has $akmods_kernel, akmods-nvidia-open was built for $nvidia_kernel"
     fi
     step "Kernel $akmods_kernel matches the NVIDIA modules"
+    KERNEL="$akmods_kernel"
 }
 
 report() {
@@ -66,6 +70,9 @@ report() {
         printf "kmod-nvidia:    %s\n" "$(rpm -q --qf "%{VERSION}-%{RELEASE}" kmod-nvidia)"
         printf "nvidia-driver:  %s\n" "$(rpm -q --qf "%{VERSION}-%{RELEASE}" nvidia-driver)"
         printf "module signer:  %s\n" "$(modinfo -k "$kver" -F signer nvidia)"
+        printf "modules by signer:\n"
+        find "/usr/lib/modules/$kver" -type f \( -name "*.ko" -o -name "*.ko.xz" -o -name "*.ko.zst" \) -print0 |
+            xargs -0 modinfo -F signer | sort | uniq -c | sed "s/^/  /"
     '
     size="$(podman image inspect --format '{{.Size}}' "$REPO:$tag")"
     printf 'size:           %s\n' "$(numfmt --to=iec --suffix=B "$size")"
@@ -171,6 +178,7 @@ main() {
         --build-arg "AKMODS_NVIDIA_IMAGE=$AKMODS_NVIDIA_IMAGE" \
         --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" \
         --build-arg "IMAGE_VERSION=$tag" \
+        --label "ostree.linux=$KERNEL" \
         -t "$REPO:$tag" "$ROOT"
     podman tag "$REPO:$tag" "$REPO:latest"
 

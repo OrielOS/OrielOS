@@ -11,3 +11,4 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Licence files: GPL-3.0-or-later for code and configuration, and CC BY-SA 4.0 for documentation and artwork.
 - Editor settings, ignore rules and secret-scanning configuration.
 - OS image recipe based on Fedora 44 bootc with the Fedora CoreOS stable kernel, NVIDIA's open kernel modules and driver, and a minimal KDE Plasma desktop, with a local build script that pins every upstream input by digest.
+- The complete KDE Plasma desktop on Wayland, with Discover for apps from Flathub, sound, Bluetooth, printing and a boot splash, and with the server features that a desktop doesn't need switched off: automatic update reboots, the SSH server, crash dumps and cloud tools.

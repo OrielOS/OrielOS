@@ -14,7 +14,7 @@ if [[ "${#build_tools[@]}" -gt 0 ]]; then
 fi
 
 kver="$(ls /usr/lib/modules)"
-dracut --no-hostonly --kver "$kver" --reproducible --zstd --add ostree -f "/usr/lib/modules/$kver/initramfs.img"
+dracut --no-hostonly --kver "$kver" --reproducible --zstd --add "ostree plymouth" -f "/usr/lib/modules/$kver/initramfs.img"
 
 dnf clean all
 rm -rf /var/cache/* /var/log/* /var/lib/dnf /tmp/* /run/dnf /run/sddm

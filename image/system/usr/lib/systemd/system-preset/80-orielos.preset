@@ -1,0 +1,8 @@
+# OrielOS overrides of fedora-bootc's server defaults. Read before Fedora's 85-* and 90-*
+# presets, so these lines win.
+# Updates are staged and the user is asked before restarting, instead of rebooting by itself.
+disable bootc-fetch-apply-updates.timer
+# A desktop does not listen for SSH.
+disable sshd.service
+# Flathub is the only Flatpak source, so Fedora's own remote is not added.
+disable flatpak-add-fedora-repos.service
