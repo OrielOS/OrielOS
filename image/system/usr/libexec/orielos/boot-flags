@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# Keeps the flags the boot menu reads, in EFI/fedora/orielos-boot.env on the EFI system partition,
+# next to GRUB: GRUB can't write to /boot, which is on the Btrfs root, but it can write to the
+# partition's FAT file system. GRUB's 12_orielos-menu.cfg reads them at every start:
+#   orielos_boot_ok  1 once a start reached the desktop; GRUB sets 0 at every start
+#   orielos_trial    1 while a newly installed version hasn't reached the desktop yet;
+#                    fallback once GRUB started the previous version because the new one failed
+#                    to reach the desktop twice; kept once OrielOS kept that previous version;
+#                    0 otherwise
+#   orielos_fails    1 once the version on trial failed to reach the desktop
+# A start that fails while the flags say fallback or kept shows the boot menu.
+#
+# Usage: boot-flags good|trial|clear|kept|status
+#   good    this start reached the desktop (orielos-boot-success.service): orielos_boot_ok=1. A
+#           version on trial or kept has proven itself, so orielos_trial=0 and orielos_fails=0. If
+#           the previous version was started in place of a failed update but not kept yet, it
+#           runs orielos-update undo-update first.
+#   trial   a newly installed version starts next (orielos-update, after staging it)
+#   clear   no version is on trial (orielos-update, after going back)
+#   kept    OrielOS kept the previous version after a failed update (orielos-update undo-update)
+#   status  print the flags, one name=value per line
+# It finds the partition on the disk that holds the root file system, and mounts it in its own
+# mount namespace for as long as it runs. Tests set ORIELOS_BOOT_FLAGS_FILE to use a file instead.
+# Runs as root.
+set -Eeuo pipefail
+
+ESP_TYPE="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+ENV_PATH="EFI/fedora/orielos-boot.env"
+UPDATE_TOOL="${ORIELOS_UPDATE_TOOL:-/usr/bin/orielos-update}"
+MOUNT_DIR=""
+FILE=""
+
+log() {
+    printf 'orielos-boot-flags: %s\n' "$1" >&2
+}
+
+usage() {
+    sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+cleanup() {
+    if [[ -n "$MOUNT_DIR" ]]; then
+        if mountpoint -q "$MOUNT_DIR"; then umount "$MOUNT_DIR" || true; fi
+        rmdir "$MOUNT_DIR" 2>/dev/null || true
+    fi
+}
+
+# The disk under the root file system, through any encryption or volume layers.
+root_disk() {
+    local source
+    source="$(findmnt -no SOURCE /sysroot 2>/dev/null || findmnt -no SOURCE /)"
+    # Btrfs subvolumes are shown as /dev/vda3[/root].
+    source="${source%%\[*}"
+    # -l lists the devices plainly; without it, -s draws a tree in front of the names.
+    lsblk -lsnpo NAME,TYPE "$source" | awk '$2 == "disk" {print $1; exit}'
+}
+
+# Mount the EFI system partition with GRUB on the root file system's disk and set FILE to the flag
+# file's path there. Returns 1 if there is none.
+find_file() {
+    local disk partition target
+    disk="$(root_disk)"
+    [[ -n "$disk" ]] || return 1
+    while read -r partition; do
+        target="$(findmnt -no TARGET --source "$partition" 2>/dev/null | head -n1)" || true
+        if [[ -z "$target" ]]; then
+            MOUNT_DIR="$(mktemp -d /run/orielos-esp.XXXXXX)"
+            mount -t vfat -o rw,nosuid,nodev,noexec,umask=0077 "$partition" "$MOUNT_DIR"
+            target="$MOUNT_DIR"
+        fi
+        if [[ -f "$target/EFI/fedora/grub.cfg" ]]; then
+            FILE="$target/$ENV_PATH"
+            return 0
+        fi
+        cleanup
+        MOUNT_DIR=""
+    done < <(lsblk -lnpo NAME,PARTTYPE "$disk" | awk -v t="$ESP_TYPE" 'tolower($2) == t {print $1}')
+    return 1
+}
+
+# Print one flag's value, or nothing: flag <name>
+flag() {
+    [[ -f "$FILE" ]] || return 0
+    grub2-editenv "$FILE" list | sed -n "s/^$1=//p"
+}
+
+# Set flags, creating the file if it's missing: set_flags <name=value...>
+set_flags() {
+    if [[ ! -f "$FILE" ]]; then grub2-editenv "$FILE" create; fi
+    grub2-editenv "$FILE" set "$@"
+    sync -f "$FILE"
+}
+
+main() {
+    local cmd="${1:-}" trial
+    case "$cmd" in
+        good | trial | clear | kept | status) [[ $# -eq 1 ]] || {
+            usage >&2
+            exit 2
+        } ;;
+        --help | -h)
+            usage
+            return 0
+            ;;
+        *)
+            usage >&2
+            exit 2
+            ;;
+    esac
+
+    if [[ -n "${ORIELOS_BOOT_FLAGS_FILE:-}" ]]; then
+        FILE="$ORIELOS_BOOT_FLAGS_FILE"
+    else
+        # Mount the partition where no one else sees it, and only while this runs. Two runs at once
+        # would mount the same FAT file system twice, so they take turns.
+        if [[ -z "${ORIELOS_BOOT_FLAGS_UNSHARED:-}" ]]; then
+            ORIELOS_BOOT_FLAGS_UNSHARED=1 exec unshare --mount --propagation private "${BASH_SOURCE[0]}" "$@"
+        fi
+        exec 9>/run/orielos-boot-flags.lock
+        flock 9
+        trap cleanup EXIT
+        if ! find_file; then
+            log "found no EFI system partition with GRUB on the root file system's disk; the boot menu can't follow how starts went"
+            exit 1
+        fi
+    fi
+
+    case "$cmd" in
+        status)
+            printf 'orielos_boot_ok=%s\norielos_trial=%s\norielos_fails=%s\n' "$(flag orielos_boot_ok)" "$(flag orielos_trial)" "$(flag orielos_fails)"
+            ;;
+        good)
+            trial="$(flag orielos_trial)"
+            if [[ "$trial" == fallback ]]; then
+                # The previous version reached the desktop in place of a failed update: keep it.
+                # orielos-update sets the flags through this script again, on the file mounted here.
+                if ! ORIELOS_BOOT_FLAGS_FILE="$FILE" "$UPDATE_TOOL" undo-update >&2; then
+                    log "couldn't keep the previous version; the boot menu appears if the update fails again"
+                    set_flags orielos_boot_ok=1
+                    exit 1
+                fi
+            fi
+            set_flags orielos_boot_ok=1 orielos_trial=0 orielos_fails=0
+            log "marked this start as good"
+            ;;
+        trial) set_flags orielos_trial=1 orielos_fails=0 ;;
+        clear) set_flags orielos_trial=0 orielos_fails=0 ;;
+        kept) set_flags orielos_trial=kept orielos_fails=0 ;;
+    esac
+}
+
+main "$@"

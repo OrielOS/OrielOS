@@ -7,7 +7,17 @@ Name=Update ready
 Comment=An OrielOS update is ready and starts at the next restart
 Action=Popup
 
+[Event/goBackReady]
+Name=Ready to go back
+Comment=The previous OrielOS version starts at the next restart
+Action=Popup
+
+[Event/updateUndone]
+Name=Update undone
+Comment=An update didn't reach the desktop, so OrielOS went back to the previous version
+Action=Popup
+
 [Event/settingsFailed]
 Name=Update settings not changed
-Comment=Pausing updates, resuming them, checking for them or changing channel didn't work
+Comment=Pausing updates, resuming them, checking for them, changing channel or going back didn't work
 Action=Popup

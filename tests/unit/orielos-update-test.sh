@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Unit tests for orielos-update's check, pause and channel logic, and the state file it writes for
-# the desktop. Runs the real script against a scratch directory (ORIELOS_UPDATE_ROOT) with
-# stand-ins for bootc, skopeo, busctl and systemctl first on PATH, so it needs no root, VM or
-# network. Prints PASS/FAIL per case and exits 1 if any case fails.
+# Unit tests for orielos-update's check, pause, channel and going-back logic, undoing an update that
+# didn't start, removing the previous build, and the state file it writes for the desktop. Runs the
+# real script against a scratch directory (ORIELOS_UPDATE_ROOT) with stand-ins for bootc, skopeo,
+# busctl, systemctl, ostree and the boot menu's flag helper, so it needs no root, VM or network.
+# Prints PASS/FAIL per case and exits 1 if any case fails.
 #
 # Usage: tests/unit/orielos-update-test.sh
 set -Eeuo pipefail
@@ -48,12 +49,24 @@ iso() {
 bootc_status() {
     jq -n --arg bd "$1" --arg bv "$2" --arg sd "${3:-}" --arg sv "${4:-}" '{
         status: {
-            booted: {image: {image: {image: "example.test/orielos:stable", transport: "registry"}, version: $bv, imageDigest: $bd}},
+            booted: {image: {image: {image: "example.test/orielos:stable", transport: "registry"}, version: $bv, imageDigest: $bd},
+                ostree: {checksum: "aaaa", deploySerial: 0, stateroot: "default"}},
             staged: (if $sd == "" then null else {image: {image: {image: "example.test/orielos", transport: "registry"}, version: $sv, imageDigest: $sd}} end),
             rollback: null,
             rollbackQueued: false
         }
     }'
+}
+
+# Give a bootc status file a previous build, which going back would start, and say whether going
+# back is queued: with_previous <file> <digest> <version> [true|false]
+with_previous() {
+    local status
+    status="$(jq --arg d "$2" --arg v "$3" --argjson q "${4:-false}" '
+        .status.rollback = {image: {image: {image: "example.test/orielos", transport: "registry"}, version: $v, imageDigest: $d},
+            ostree: {checksum: "bbbb", deploySerial: 0, stateroot: "default"}}
+        | .status.rollbackQueued = $q' "$1")"
+    printf '%s\n' "$status" >"$1"
 }
 
 # skopeo inspect's JSON: skopeo_info <digest> <version>
@@ -88,6 +101,11 @@ case "$1" in
             cp "$ORIELOS_TEST_STUB/status-after-switch.json" "$ORIELOS_TEST_STUB/bootc-status.json"
         fi
         ;;
+    rollback)
+        if [[ -e "$ORIELOS_TEST_STUB/status-after-rollback.json" ]]; then
+            cp "$ORIELOS_TEST_STUB/status-after-rollback.json" "$ORIELOS_TEST_STUB/bootc-status.json"
+        fi
+        ;;
 esac
 SH
     cat >"$WORK/bin/skopeo" <<'SH'
@@ -108,7 +126,23 @@ SH
 #!/usr/bin/env bash
 printf 'systemctl %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
 SH
-    chmod +x "$WORK/bin/"*
+    # ostree lists the booted deployment, then the previous one.
+    cat >"$WORK/bin/ostree" <<'SH'
+#!/usr/bin/env bash
+printf 'ostree %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
+if [[ "$1 $2" == "admin status" ]]; then
+    printf '* default aaaa.0\n    origin: <unknown origin type>\n  default bbbb.0 (rollback)\n    origin: <unknown origin type>\n'
+fi
+SH
+    # The boot menu's flag helper, inside the scratch root: it logs its command, and status prints
+    # the flags in $ORIELOS_TEST_STUB/flags.
+    mkdir -p "$WORK/root/usr/libexec/orielos"
+    cat >"$WORK/root/usr/libexec/orielos/boot-flags" <<'SH'
+#!/usr/bin/env bash
+printf 'boot-flags %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
+if [[ "$1" == status && -r "$ORIELOS_TEST_STUB/flags" ]]; then cat "$ORIELOS_TEST_STUB/flags"; fi
+SH
+    chmod +x "$WORK/bin/"* "$WORK/root/usr/libexec/orielos/boot-flags"
 }
 
 # Run orielos-update at time <now>, keeping its output in OUT and its exit status in RC.
@@ -285,7 +319,9 @@ matches_contract() {
         .bootId == "boot-1" and .channel == "stable" and .pausedUntil == null and .checkedAt == $t
         and .result == "up-to-date" and (.message | type) == "string"
         and .running == {version: "44.1", digest: $d} and .staged == null
-        and (keys | sort) == ["bootId", "channel", "checkedAt", "message", "pausedUntil", "result", "running", "staged"]
+        and .previous == null and .rollbackQueued == false
+        and (keys | sort) == ["bootId", "channel", "checkedAt", "message", "pausedUntil", "previous", "result",
+            "rollbackQueued", "running", "staged"]
     ' "$WORK/root/var/lib/orielos/update/state.json" >/dev/null
 }
 
@@ -313,6 +349,170 @@ check "refresh records the new boot" test "$(state .bootId)" == boot-2
 setup
 run refresh
 check "refresh before any check reports never-checked" test "$(state .result)" == never-checked -a "$(state .checkedAt)" == null
+#END
+
+#BEGIN Going back
+REJECTED_FILE="$WORK/root/var/lib/orielos/update/rejected-digests"
+
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+run refresh
+check "state.json names the previous build" \
+    test "$(state .previous.version)" == 44.0 -a "$(state .previous.digest)" == "$OTHER" -a "$(state .previous.rejected)" == false
+check "state.json says going back isn't queued" test "$(state .rollbackQueued)" == false
+
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+mkdir -p "$WORK/root/var/lib/orielos/update"
+printf '%s  # rejected
+' "$OTHER" >"$REJECTED_FILE"
+run refresh
+check "a previous build that was rolled back is marked rejected" test "$(state .previous.rejected)" == true
+
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+cp "$WORK/stub/bootc-status.json" "$WORK/stub/status-after-rollback.json"
+with_previous "$WORK/stub/status-after-rollback.json" "$OTHER" 44.0 true
+run rollback
+check "rollback exits 0 and goes back with bootc" test "$RC" -eq 0 -a -n "$(grep -F 'bootc rollback' "$WORK/stub/calls")"
+check "rollback rejects the running build" grep -qF "$RUNNING" "$REJECTED_FILE"
+check "after rollback, state.json says the previous build starts next" \
+    test "$(state .rollbackQueued)" == true -a "$(state .previous.version)" == 44.0
+
+setup
+run rollback
+check "rollback without a previous build fails with exit 1" test "$RC" -eq 1
+check "rollback without a previous build leaves bootc alone" not_called "bootc rollback"
+
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0 true
+skopeo_info "$NEWER" 44.2 >"$WORK/stub/skopeo.json"
+run check
+check "a check while going back is queued reports rollback-queued" \
+    test "$RC" -eq 0 -a "$(state .result)" == rollback-queued
+check "the rollback-queued message names the previous version" \
+    test "$(state .message)" == "OrielOS 44.0 starts at the next restart; updates continue after it."
+check "a check while going back is queued reads no channel" not_called "skopeo inspect"
+check "a check while going back is queued stages nothing" not_called "bootc switch"
+# After the restart, the previous build is running and nothing is queued.
+bootc_status "$OTHER" 44.0 >"$WORK/stub/bootc-status.json"
+with_previous "$WORK/stub/bootc-status.json" "$RUNNING" 44.1
+printf 'boot-2\n' >"$WORK/root/proc/sys/kernel/random/boot_id"
+run refresh
+check "refresh after going back reports up to date" \
+    test "$(state .result)" == up-to-date -a "$(state .rollbackQueued)" == false -a "$(state .running.version)" == 44.0
+
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+cp "$WORK/stub/bootc-status.json" "$WORK/stub/status-after-rollback.json"
+with_previous "$WORK/stub/status-after-rollback.json" "$OTHER" 44.0 true
+run rollback
+check "going back takes the previous build off trial" called "boot-flags clear"
+#END
+
+#BEGIN Undoing an update that didn't start
+setup
+skopeo_info "$NEWER" 44.2 >"$WORK/stub/skopeo.json"
+bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/status-after-switch.json"
+run check
+check "a newly staged build is put on trial" called "boot-flags trial"
+
+setup
+run check
+check "an up-to-date check puts nothing on trial" not_called "boot-flags trial"
+
+# The boot loader started the previous build, 44.0, in place of 44.2, which failed twice: 44.2 is
+# still set to start next.
+fallback() {
+    setup
+    bootc_status "$OTHER" 44.0 >"$WORK/stub/bootc-status.json"
+    with_previous "$WORK/stub/bootc-status.json" "$NEWER" 44.2 true
+    bootc_status "$OTHER" 44.0 >"$WORK/stub/status-after-rollback.json"
+    with_previous "$WORK/stub/status-after-rollback.json" "$NEWER" 44.2
+    printf 'orielos_boot_ok=0\norielos_trial=fallback\norielos_fails=1\n' >"$WORK/stub/flags"
+}
+
+fallback
+run refresh
+check "refresh after the boot loader fell back keeps the running build" \
+    test "$RC" -eq 0 -a -n "$(grep -F 'bootc rollback' "$WORK/stub/calls")"
+check "the failed update is rejected" grep -qF "$NEWER" "$WORK/root/var/lib/orielos/update/rejected-digests"
+check "the flags say the previous build was kept" called "boot-flags kept"
+check "state.json says the update was undone" \
+    test "$(state .result)" == went-back -a "$(state .message)" == "OrielOS 44.2 didn't start properly, so OrielOS went back to 44.0. It won't be offered again; a newer version will be."
+
+fallback
+printf 'orielos_boot_ok=0\norielos_trial=1\norielos_fails=1\n' >"$WORK/stub/flags"
+run refresh
+check "refresh keeps nothing when the boot loader didn't fall back" not_called "bootc rollback"
+
+fallback
+run undo-update
+check "undo-update keeps the running build" test "$RC" -eq 0 -a "$(state .result)" == went-back
+
+setup
+run undo-update
+check "undo-update without another build fails with exit 1" test "$RC" -eq 1
+
+fallback
+run refresh
+printf 'boot-2\n' >"$WORK/root/proc/sys/kernel/random/boot_id"
+run refresh
+check "at the next boot the undone update is no longer the news" test "$(state .result)" == up-to-date
+#END
+
+#BEGIN Removing the previous build
+DAY=$((24 * 60 * 60))
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+run refresh
+check "refresh records when the running build first started" \
+    test "$(sed -n 's/^since=//p' "$WORK/root/var/lib/orielos/update/running")" == "$(iso "$NOW")"
+check "state.json says when the previous build is removed" test "$(state .previous.removedAfter)" == "$(iso $((NOW + 14 * DAY)))"
+at $((NOW + 13 * DAY)) check
+check "the previous build is kept for 14 days" not_called "ostree admin undeploy"
+check "a later refresh keeps the first start's time" \
+    test "$(sed -n 's/^since=//p' "$WORK/root/var/lib/orielos/update/running")" == "$(iso "$NOW")"
+at $((NOW + 14 * DAY)) refresh
+check "refresh at boot never removes it, so the login screen isn't delayed" not_called "ostree admin undeploy"
+at $((NOW + 14 * DAY)) check
+check "after 14 days the check removes the previous build" called "ostree admin undeploy 1"
+check "removing it also prunes the image data no deployment uses" called "ostree container image prune-images --sysroot / --full"
+
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+run refresh
+run pause 2
+at $((NOW + 15 * DAY)) check
+check "the check removes a previous build that's due even while updates are paused" called "ostree admin undeploy 1"
+
+setup
+bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+run refresh
+at $((NOW + 15 * DAY)) check
+check "a previous build isn't removed while an update is staged" not_called "ostree admin undeploy"
+
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0 true
+run refresh
+at $((NOW + 15 * DAY)) check
+check "a previous build isn't removed while going back to it is queued" not_called "ostree admin undeploy"
+
+setup
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+run remove-previous
+check "remove-previous removes the previous build now" test "$RC" -eq 0 -a -n "$(grep -F 'ostree admin undeploy 1' "$WORK/stub/calls")"
+
+setup
+run remove-previous
+check "remove-previous without a previous build fails with exit 1" test "$RC" -eq 1 -a -z "$(grep -F 'ostree admin undeploy' "$WORK/stub/calls")"
+
+setup
+bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+run remove-previous
+check "remove-previous refuses while an update is staged" test "$RC" -eq 1
 #END
 
 printf '%d passed, %d failed\n' "$PASSED" "$FAILED"

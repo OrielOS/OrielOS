@@ -4,7 +4,7 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 
 ## What is in the recipe
 
-- `Containerfile`: the recipe. Its build context is the repository root, so it can build the apps from `apps/` and `plasma/` with the artwork they install from `artwork/`; `.containerignore` in the root keeps the context small. It runs one small script per feature from `build/`, bind-mounted from the build context so the scripts do not end up in the image. The version tag (`IMAGE_VERSION`) comes last: the final layer refuses an unversioned build, writes the version to `/usr/lib/orielos/build-info` (`VERSION=<tag>`) for `orielos-update` and the Settings app, and the labels follow it. Two builds of the same commit with different date tags therefore share every layer but that one.
+- `Containerfile`: the recipe. Its build context is the repository root, so it can build the apps from `apps/` and `plasma/` with the artwork they install from `artwork/`; `.containerignore` in the root keeps the context small. It runs one small script per feature from `build/`, bind-mounted from the build context so the scripts do not end up in the image. The version tag (`IMAGE_VERSION`) comes last: the final layer refuses an unversioned build, writes the version to `/usr/lib/orielos/build-info` (`VERSION=<tag>`) for `orielos-update` and the Settings app, runs `build/95-version.sh` to name OrielOS and the version in os-release and add the `orielos.build=<version>` kernel argument (see [The boot menu](#the-boot-menu)), and the labels follow it. Two builds of the same commit with different date tags therefore share every layer but that one.
 - The `app-builder` stage: builds OrielOS's own apps on the pinned Fedora image (`BUILDER_IMAGE`), using `build/apps-builder.sh`. It copies in only `CMakeLists.txt`, `VERSION`, `apps/`, `plasma/` and `artwork/`, then configures, builds, runs the tests with `ctest`, runs `qmllint` over every QML module and installs to `/out`. A failing test or a `qmllint` warning fails the build. The final image copies in `/out/usr`, so no compiler, header or build tool reaches it. `tools/test-apps.sh` builds only this stage.
 - `build/10-kernel.sh`: replaces the base kernel with the Fedora CoreOS stable kernel, locks its version, and adds the signed xone, xpadneo, OpenRazer and v4l2loopback drivers.
 - `build/15-server-defaults.sh`: removes the parts of fedora-bootc that only make sense on servers and switches off its server behaviour (see [Server defaults](#server-defaults)). It installs nothing.
@@ -34,9 +34,10 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 
   On success it prints the kernel, its default LSM list and the kernel arguments.
 - `module-signers.txt`: the allowed module signers, one per line: `Fedora kernel signing key` and `ublue kernel` (Universal Blue's). OrielOS never builds or signs kernel modules itself and never ships one signed by another key, which keeps it eligible for anti-cheat systems that check the module signing chain.
-- `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists) and `orielos-secure-boot-key.service` (and fails if its parts are missing; see [Secure Boot](#secure-boot)), fails if new users would not get the taskbar or the wallpapers (see [The taskbar](#the-taskbar)), enables `orielos-update-check.timer` and `orielos-update-state.service` (and fails if `orielos-update`'s tools, source or polkit policy are missing, or update state is in the image; see [Updates](#updates)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
+- `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists) and `orielos-secure-boot-key.service` (and fails if its parts are missing; see [Secure Boot](#secure-boot)), fails if new users would not get the taskbar or the wallpapers (see [The taskbar](#the-taskbar)), enables `orielos-update-check.timer` and `orielos-update-state.service` (and fails if `orielos-update`'s tools, source or polkit policy are missing, or update state is in the image; see [Updates](#updates)), enables `orielos-mark-boot-success.service` for every user (and fails if the boot menu's GRUB snippet, its units, polkit rule or tools are missing, or `grub2-script-check` rejects the snippet; see [The boot menu](#the-boot-menu)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
 - `system/`: files copied into the image as they are, laid out like the filesystem. It holds:
   - `usr/bin/orielos-update`, `usr/lib/orielos/update.conf`, `usr/lib/systemd/system/orielos-update-check.service`, `orielos-update-check.timer`, `orielos-update-state.service` and `usr/share/polkit-1/actions/org.orielos.update.policy`: the update command, its source, the background check, the per-boot state for the desktop and who may change the settings (see [Updates](#updates)).
+  - `usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg`, `usr/libexec/orielos/boot-flags`, `usr/lib/systemd/system/orielos-boot-success.service`, `usr/lib/systemd/user/orielos-mark-boot-success.service` and `usr/share/polkit-1/rules.d/50-orielos-boot-success.rules`: the boot menu, and undoing an update that doesn't start (see [The boot menu](#the-boot-menu)).
   - `usr/libexec/orielos/flatpak-setup` and `usr/lib/systemd/system/orielos-flatpak-setup.service`: the first-boot install of Firefox from Flathub (see [The Store](#the-store)).
   - `usr/libexec/orielos/secure-boot-key`, `usr/lib/systemd/system/orielos-secure-boot-key.service`, `usr/libexec/orielos/secure-boot-notify` and `etc/xdg/autostart/orielos-secure-boot-notify.desktop`: the Secure Boot key step (see [Secure Boot](#secure-boot)). The Containerfile copies `system/etc/` to `/etc`, which bootc keeps as the default configuration.
   - `etc/skel/.config/kglobalshortcutsrc`: the KWin shortcuts every new user starts with (see [Keyboard shortcuts](#keyboard-shortcuts)).
@@ -207,13 +208,15 @@ Updates are whole images from one source, set by `source=` in `system/usr/lib/or
 - `orielos-update status`: the running build, the build staged for the next restart and the rollback build, each with its image reference, version and digest, read from `bootc status --format=json` (`status.booted`, `status.staged` and `status.rollback`; in each, `image.image.transport` and `image.image.image`, `image.version`, which bootc takes from the `org.opencontainers.image.version` label, and `image.imageDigest`). It falls back to `/usr/lib/orielos/build-info` for the running build's version. It also says when a rollback is queued (`status.rollbackQueued`) and lists the rejected builds.
 - `orielos-update stage FILE.ociarchive`: reads the build's manifest digest and version label from the archive's `index.json`, manifest and configuration with `tar` and `jq`, without importing it. It refuses a rejected build with exit status 3, does nothing if the build is already running or already staged, and otherwise runs `bootc switch --transport oci-archive FILE`, which imports the build and stages it for the next boot. Without `--apply`, bootc does not restart.
 - `orielos-update rollback`: refuses if there is no rollback build. Otherwise it adds the running build's digest to the rejected builds and runs `bootc rollback`, which makes the previous build start at the next restart. Running it again while that rollback is queued changes nothing.
+- `orielos-update remove-previous`: removes the previous build now, and `orielos-update undo-update` keeps the running build when the boot loader started it in place of a failed update (see [The boot menu](#the-boot-menu)).
 - `orielos-update forget DIGEST`: removes a digest from the rejected builds, for testers.
 - `orielos-update check`: the background check, which `orielos-update-check.timer` starts 10 minutes after boot and then about every 6 hours (with up to 30 minutes' random delay; missed checks run at the next boot), through `orielos-update-check.service` at low CPU and I/O priority. In order:
   1. It stops if updates are paused.
-  2. For a registry source, it stops if NetworkManager's `Metered` property is yes or guess-yes.
-  3. It reads the channel tag's manifest digest and version label with `skopeo inspect`. An unreadable source is reported as `unreachable` and exits 0, so the unit doesn't fail while nothing is published.
-  4. It does nothing more when that build is running, already staged, or rejected.
-  5. Otherwise it stages the build. A registry build is pinned to the digest it read (`bootc switch <repository>@<digest>`), so a tag that moves meanwhile can't swap in another build. An OCI directory build is staged by tag, and the staged digest is checked afterwards.
+  2. It stops while going back to the previous build is queued, so it can't replace the version someone chose to go back to. (Before any of this, it removes the previous build if it's due; see [The boot menu](#the-boot-menu).)
+  3. For a registry source, it stops if NetworkManager's `Metered` property is yes or guess-yes.
+  4. It reads the channel tag's manifest digest and version label with `skopeo inspect`. An unreadable source is reported as `unreachable` and exits 0, so the unit doesn't fail while nothing is published.
+  5. It does nothing more when that build is running, already staged, or rejected.
+  6. Otherwise it stages the build. A registry build is pinned to the digest it read (`bootc switch <repository>@<digest>`), so a tag that moves meanwhile can't swap in another build. An OCI directory build is staged by tag, and the staged digest is checked afterwards.
 
   It never restarts the computer.
 - `orielos-update check-now`: starts the check unit without waiting.
@@ -225,12 +228,55 @@ The rejected builds are kept in `/var/lib/orielos/update/rejected-digests`, one 
 **The desktop's view.** `orielos-update` writes `/var/lib/orielos/update/state.json` (readable by everyone, replaced in one step) after every command that changes something. It holds:
 - the boot ID it describes;
 - the channel and the pause;
-- the last check's time, result (`never-checked`, `up-to-date`, `staged`, `paused`, `metered`, `rejected`, `unreachable` or `error`) and message;
-- the running and staged builds.
+- the last check's time, result (`never-checked`, `up-to-date`, `staged`, `paused`, `rollback-queued`, `went-back`, `metered`, `rejected`, `unreachable` or `error`) and message;
+- the running and staged builds;
+- the previous build, the one going back would start, with `rejected` true when it was rolled back before, and `removedAfter`, when it's removed;
+- `rollbackQueued`, true while going back waits for a restart.
 
-The update notifier in `apps/updatenotifier/` follows it. It changes the settings by running `pkexec /usr/bin/orielos-update pause|resume|check-now|channel`, and `system/usr/share/polkit-1/actions/org.orielos.update.policy` decides who may: the person at the computer may pause, resume and check without a password, and changing the channel needs an administrator.
+The update notifier in `apps/updatenotifier/` follows it. It changes the settings and goes back by running `pkexec /usr/bin/orielos-update pause|resume|check-now|channel|rollback`, and `system/usr/share/polkit-1/actions/org.orielos.update.policy` decides who may: the person at the computer may pause, resume and check without a password, and changing the channel or going back needs an administrator.
 
-`tests/unit/orielos-update-test.sh` tests the check, pause and channel logic and the state file with stand-in commands (`tools/lint.sh` runs it); `tests/update-test.sh` tests the whole cycle in a VM, and [docs/updates.md](../docs/updates.md) explains it for users.
+`tests/unit/orielos-update-test.sh` tests the check, pause, channel and going-back logic and the state file with stand-in commands (`tools/lint.sh` runs it); `tests/update-test.sh` tests the whole cycle in a VM, and [docs/updates.md](../docs/updates.md) explains it for users.
+
+## The boot menu
+
+GRUB's menu stays hidden; Esc, or Shift held, during the hidden second shows it at any start. An update that fails to reach the desktop twice is undone without asking, and the menu appears by itself only if the previous build then fails too. bootupd builds the installed GRUB configuration from `/usr/lib/bootupd/grub2-static/` when OrielOS is installed, adding each file in `configs.d/` in order, so `12_orielos-menu.cfg` comes after Fedora's defaults (`timeout_style=menu`, `timeout=1`) and before `14_menu_show_once.cfg`, which still wins when set.
+
+**The flags** are in `EFI/fedora/orielos-boot.env` on the EFI system partition, next to GRUB. They can't go in `/boot/grub2/grubenv`: `/boot` is on the Btrfs root, where GRUB can't write (small files are stored inline and compressed), and userspace mounts it read-only. GRUB's `${cmdpath}` is empty under shim, so the snippet takes the disk from `${root}` and looks for the file on its partitions.
+- `orielos_boot_ok`: GRUB writes `0` at every start, and the desktop sets `1`.
+- `orielos_trial`: `1` while a newly staged build hasn't reached the desktop, `fallback` once GRUB started the previous build in its place, `kept` once OrielOS kept that one, and `0` otherwise.
+- `orielos_fails`: `1` once the build on trial failed to reach the desktop.
+
+**At every start, GRUB reads the flags.** When the last start failed (`orielos_boot_ok=0`):
+- With a build on trial, the first failure is counted. The second sets `default=1`, the previous build, and `orielos_trial=fallback`.
+- With `fallback` or `kept`, the previous build failed too, so the menu shows for 30 seconds.
+- A failed start with nothing on trial changes nothing.
+
+Until the file exists, after a new installation, nothing changes either.
+
+**`/usr/libexec/orielos/boot-flags`** keeps the flags. It mounts the partition in its own mount namespace, holds a lock so two runs never mount it at once, and edits the file with `grub2-editenv`. It takes these commands:
+- `trial`: `orielos-update` runs it after staging a build;
+- `clear`: run after going back;
+- `kept`: run by `orielos-update undo-update`;
+- `good`: run by `orielos-boot-success.service`;
+- `status`: prints the flags.
+
+**Marking a start good.** In every Plasma session, `orielos-mark-boot-success.service` (a user unit in `plasma-workspace.target`, after `plasma-plasmashell.service`) starts `orielos-boot-success.service`. The polkit rule `50-orielos-boot-success.rules` lets the person at the computer start that unit and no other. That unit runs `boot-flags good`.
+
+**Undoing the update.** At boot, before the sign-in screen, `orielos-update refresh` (`orielos-update-state.service`) sees `orielos_trial=fallback` while the failed build is still set to start next. It runs `undo-update`, which:
+- rejects the failed build;
+- runs `bootc rollback`, which makes the running build the default again;
+- sets `kept`;
+- writes `went-back` to the state file, so the notifier tells the user.
+
+If that didn't happen at boot, `boot-flags good` does it at the desktop.
+
+**Removing the previous build.** `orielos-update` records when the running build first started, in `/var/lib/orielos/update/running`, and the state file says when the previous build goes (`previous.removedAfter`). Once 14 days have passed, the background check removes it, unless an update is staged or going back is queued. It finds the deployment's index in `ostree admin status`, then runs `ostree admin undeploy` and `ostree container image prune-images --sysroot / --full`. `orielos-update remove-previous` does the same at once. The removal never runs at boot, so it can't delay the sign-in screen.
+
+The entries are named from each build's os-release: GRUB shows `PRETTY_NAME` and ostree adds the deployment's index, as in `OrielOS 44.20261026 (ostree:0)`. `build/95-version.sh` sets `NAME="OrielOS"`, `VERSION` and `IMAGE_VERSION` to the build's version, `PRETTY_NAME="OrielOS <version>"`, `IMAGE_ID=orielos`, `DEFAULT_HOSTNAME` and OrielOS's links, and drops Fedora's Bugzilla fields. It keeps `ID=fedora`, `VERSION_ID` and `CPE_NAME`, which tools use to find the Fedora release the packages come from.
+
+It also writes `/usr/lib/bootc/kargs.d/90-orielos-build.toml`, which adds `orielos.build=<version>` to the kernel command line. Builds often share a kernel and initramfs, and ostree treats two deployments with the same kernel, initramfs, kernel arguments and commit version (container deployments have none) as having the same boot entries. When going back then changes their order, ostree only repoints its boot links and leaves the titles as they were, so each entry would show the other build's name. The argument differs between builds, so ostree writes the entries again.
+
+`tests/update-test.sh` checks all of this in a VM, reading GRUB's screen from the serial console.
 
 ## Boot splash
 

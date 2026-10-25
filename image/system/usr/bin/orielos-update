@@ -2,7 +2,9 @@
 # Finds, stages and rolls back OrielOS builds. Updates are whole images: each channel is a tag of
 # one image, and a check stages the channel's build for the next restart without touching the
 # running system. A build that was rolled back is recorded as rejected and is never staged
-# again, unless it is forgotten.
+# again, unless it is forgotten. A newly staged build is on trial until it reaches the desktop: if
+# it fails to twice, the boot loader starts the previous build, and undo-update keeps that one. The
+# previous build is removed 14 days after the running one first started.
 #
 # Usage: orielos-update status
 #        orielos-update check
@@ -13,19 +15,28 @@
 #        orielos-update refresh
 #        orielos-update stage FILE.ociarchive
 #        orielos-update rollback
+#        orielos-update remove-previous
+#        orielos-update undo-update
 #        orielos-update forget DIGEST
 #        orielos-update --help
 #   status     show the channel, the pause, the last check, the running build, the build staged
 #              for the next restart, the previous build and the rejected builds
 #   check      stage the channel's newest build for the next restart, unless updates are paused,
-#              the connection is metered, or that build is running, staged or rejected
+#              going back to the previous build is queued, the connection is metered, or that
+#              build is running, staged or rejected; first, remove the previous build if it's due
 #   check-now  start orielos-update-check.service, which runs check, without waiting for it
 #   pause      stop checking for WEEKS weeks (1 to 5) from now
 #   resume     end a pause
 #   channel    get builds from the stable or the testing channel, from the next check on
-#   refresh    write this boot's state for the desktop, without checking for updates
+#   refresh    write this boot's state for the desktop without checking for updates; also keeps
+#              the previous build if the boot loader started it in place of a failed update
 #   stage      stage the build in FILE for the next restart; the running system is untouched
 #   rollback   make the previous build start at the next restart, and reject the running one
+#   remove-previous
+#              remove the previous build now, so going back is no longer possible
+#   undo-update
+#              keep the running build, which the boot loader started in place of an update that
+#              failed to reach the desktop, and reject that update
 #   forget     remove DIGEST from the rejected builds, so it can be staged again
 # The update source is set in /usr/lib/orielos/update.conf and can be overridden in
 # /etc/orielos/update.conf. The state for the desktop is in /var/lib/orielos/update/state.json.
@@ -41,6 +52,10 @@ STATE_DIR="$PREFIX/var/lib/orielos/update"
 REJECTED="$STATE_DIR/rejected-digests"
 SETTINGS="$STATE_DIR/settings"
 STATE_FILE="$STATE_DIR/state.json"
+# The running build's digest and when it first started, for removing the previous build on time.
+RUNNING="$STATE_DIR/running"
+BOOT_FLAGS="$PREFIX/usr/libexec/orielos/boot-flags"
+KEEP_DAYS=14
 BUILD_INFO="$PREFIX/usr/lib/orielos/build-info"
 VENDOR_CONF="$PREFIX/usr/lib/orielos/update.conf"
 ADMIN_CONF="$PREFIX/etc/orielos/update.conf"
@@ -54,7 +69,7 @@ die() {
 }
 
 usage() {
-    sed -n '2,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 need() {
@@ -154,6 +169,11 @@ has_deployment() {
     [[ "$(jq -r --arg s "$1" '.status[$s] != null' <<<"$STATUS_JSON")" == "true" ]]
 }
 
+# Succeed if the previous build starts at the next restart, because someone chose to go back.
+rollback_queued() {
+    [[ "$(jq -r '.status.rollbackQueued == true' <<<"$STATUS_JSON")" == "true" ]]
+}
+
 # The running build's version, from bootc or else from the build-info file.
 booted_version() {
     local version
@@ -167,6 +187,58 @@ booted_version() {
 is_rejected() {
     [[ -r "$REJECTED" ]] && awk -v d="$1" '$1 == d {found = 1} END {exit !found}' "$REJECTED"
 }
+
+# Record a build as rejected, so it's never staged again: reject <digest> <version> <why>
+reject() {
+    if is_rejected "$1"; then return 0; fi
+    mkdir -p "$STATE_DIR"
+    printf '%s  # rejected %s, build %s, %s\n' "$1" "$(iso_time "$(now)")" "$2" "$3" >>"$REJECTED"
+}
+
+# Record the running build and when it first started, if it's a different build from last time.
+note_running() {
+    local digest tmp
+    digest="$(field booted digest)"
+    if [[ -z "$digest" || "$(value_of "$RUNNING" digest)" == "$digest" ]]; then return 0; fi
+    mkdir -p "$STATE_DIR"
+    tmp="$(mktemp "$RUNNING.XXXXXX")"
+    printf 'digest=%s\nsince=%s\n' "$digest" "$(iso_time "$(now)")" >"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$RUNNING"
+}
+
+# When the previous build is removed, KEEP_DAYS after the running build first started, as UTC ISO
+# 8601; nothing when there's no previous build or no recorded start for the running one.
+previous_removal_time() {
+    local epoch
+    has_deployment rollback || return 0
+    [[ "$(value_of "$RUNNING" digest)" == "$(field booted digest)" ]] || return 0
+    epoch="$(epoch_of "$(value_of "$RUNNING" since)")"
+    if [[ -n "$epoch" ]]; then iso_time $((epoch + KEEP_DAYS * 24 * 60 * 60)); fi
+}
+
+# Remove the previous build's deployment, then the image data no deployment uses any more.
+remove_rollback_deployment() {
+    local id index
+    id="$(jq -r '.status.rollback.ostree | "\(.checksum).\(.deploySerial)"' <<<"$STATUS_JSON")"
+    # ostree admin status lists the deployments in order, the booted one marked with "*".
+    index="$(ostree admin status | awk -v id="$id" '
+        /^[* ] [^ ]+ [0-9a-f]+\.[0-9]+/ {
+            d = ($1 == "*") ? $3 : $2
+            if (d == id) { print n; exit }
+            n++
+        }')"
+    [[ "$index" =~ ^[1-9][0-9]*$ ]] || die "couldn't find the previous build's deployment, $id, in ostree admin status"
+    ostree admin undeploy "$index" >/dev/null || die "ostree couldn't remove the previous build"
+    ostree container image prune-images --sysroot / --full >/dev/null 2>&1 || true
+}
+
+# Run the boot menu's flag helper: boot_flags <command>. A scratch test root without the helper
+# skips it, and a failure is reported without stopping the command.
+boot_flags() {
+    if [[ ! -x "$BOOT_FLAGS" ]]; then return 0; fi
+    "$BOOT_FLAGS" "$@" || printf 'orielos-update: the boot menu flags were not updated (%s)\n' "$1" >&2
+}
 #END
 
 #BEGIN The state file for the desktop
@@ -174,11 +246,22 @@ is_rejected() {
 # describes this boot only: readers compare its bootId with their own.
 #   write_state <result> <message> <checked at or "">
 write_state() {
-    local result="$1" message="$2" checked="$3" boot_id="" staged="null" tmp
+    local result="$1" message="$2" checked="$3" boot_id="" staged="null" previous="null" rejected=false queued=false tmp
+    local removal
     if [[ -r "$BOOT_ID_FILE" ]]; then boot_id="$(tr -d '\n' <"$BOOT_ID_FILE")"; fi
+    if rollback_queued; then queued=true; fi
     if has_deployment staged; then
         staged="$(jq -n --arg v "$(field staged version)" --arg d "$(field staged digest)" \
             '{version: (if $v == "" then "unknown" else $v end), digest: $d}')"
+    fi
+    # The previous build is the one going back would start; a rejected one is never offered.
+    if has_deployment rollback; then
+        if is_rejected "$(field rollback digest)"; then rejected=true; fi
+        removal="$(previous_removal_time)"
+        previous="$(jq -n --arg v "$(field rollback version)" --arg d "$(field rollback digest)" --argjson r "$rejected" \
+            --arg removal "$removal" \
+            '{version: (if $v == "" then "unknown" else $v end), digest: $d, rejected: $r,
+              removedAfter: (if $removal == "" then null else $removal end)}')"
     fi
     mkdir -p "$STATE_DIR"
     tmp="$(mktemp "$STATE_FILE.XXXXXX")"
@@ -192,6 +275,8 @@ write_state() {
         --arg runningVersion "$(booted_version)" \
         --arg runningDigest "$(field booted digest)" \
         --argjson staged "$staged" \
+        --argjson previous "$previous" \
+        --argjson rollbackQueued "$queued" \
         '{
             bootId: $bootId,
             channel: $channel,
@@ -200,7 +285,9 @@ write_state() {
             result: $result,
             message: $message,
             running: {version: $runningVersion, digest: $runningDigest},
-            staged: $staged
+            staged: $staged,
+            previous: $previous,
+            rollbackQueued: $rollbackQueued
         }' >"$tmp"
     chmod 0644 "$tmp"
     mv -f "$tmp" "$STATE_FILE"
@@ -215,8 +302,9 @@ last_check() {
     fi
 }
 
-# Rewrite state.json from bootc's current view, keeping the last check's result. A build that was
-# staged and is now running (after a restart) is reported as up to date.
+# Rewrite state.json from bootc's current view, keeping the last check's result. After a restart,
+# a build that was staged is running, or the previous build that was chosen is, so either is
+# reported as up to date.
 refresh_state() {
     local checked result message
     {
@@ -228,6 +316,13 @@ refresh_state() {
         result="never-checked"
         message="OrielOS hasn't checked for updates yet."
     elif [[ "$result" == "staged" ]] && ! has_deployment staged; then
+        result="up-to-date"
+        message="OrielOS $(booted_version) is running."
+    elif [[ "$result" == "rollback-queued" ]] && ! rollback_queued; then
+        result="up-to-date"
+        message="OrielOS $(booted_version) is running."
+    elif [[ "$result" == "went-back" && "$(jq -r '.bootId // ""' "$STATE_FILE" 2>/dev/null)" != "$(tr -d '\n' <"$BOOT_ID_FILE" 2>/dev/null)" ]]; then
+        # The undone update was told at the desktop of the boot it happened in.
         result="up-to-date"
         message="OrielOS $(booted_version) is running."
     fi
@@ -256,7 +351,7 @@ cmd_status() {
     show "Running build" booted
     show "Staged for the next restart" staged
     show "Previous build" rollback
-    if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
+    if rollback_queued; then
         printf 'The previous build starts at the next restart.\n'
     fi
     printf 'Rejected builds:'
@@ -306,10 +401,15 @@ cmd_check() {
     need bootc jq skopeo
     clear_ended_pause
     load_status
+    remove_previous_if_due
     channel="$(channel_setting)"
     until="$(paused_until_setting)"
     if [[ -n "$until" ]]; then
         finish 0 paused "Updates are paused until $until."
+    fi
+    # Staging a build now would replace the version someone chose to go back to.
+    if rollback_queued; then
+        finish 0 rollback-queued "OrielOS $(field rollback version) starts at the next restart; updates continue after it."
     fi
 
     source="$(conf_value source)"
@@ -368,6 +468,8 @@ cmd_check() {
     if [[ "$(field staged digest)" != "$digest" ]]; then
         finish 1 error "The $channel channel changed while OrielOS $version was being staged; the next check tries again."
     fi
+    # On trial until it reaches the desktop; the boot loader starts the previous build if it can't.
+    boot_flags trial
     finish 0 staged "OrielOS $version is ready and starts at the next restart."
 }
 
@@ -411,7 +513,67 @@ cmd_refresh() {
     need bootc jq
     clear_ended_pause
     load_status
+    note_running
+    # The boot loader started the previous build because an update failed to reach the desktop
+    # twice: keep it, before the desktop starts and reads the state.
+    if rollback_queued && [[ "$(boot_flags status | sed -n 's/^orielos_trial=//p')" == fallback ]]; then
+        undo_update
+        return 0
+    fi
     refresh_state
+}
+
+# Remove the previous build once KEEP_DAYS have passed since the running one first started, unless
+# a build is staged or going back is queued.
+remove_previous_if_due() {
+    local due epoch
+    due="$(previous_removal_time)"
+    epoch="$(epoch_of "$due")"
+    [[ -n "$epoch" ]] || return 0
+    if has_deployment staged || rollback_queued || (($(now) < epoch)); then return 0; fi
+    printf 'Removing the previous build, %s, %s days after %s started\n' "$(field rollback version)" "$KEEP_DAYS" "$(booted_version)"
+    remove_rollback_deployment
+    load_status
+}
+
+# Keep the running build, which the boot loader started in place of an update that failed to reach
+# the desktop: reject that update and make the running build start by default again.
+undo_update() {
+    local digest version
+    digest="$(field rollback digest)"
+    version="$(field rollback version)"
+    [[ -n "$digest" ]] || die "cannot read the failed update's digest from bootc"
+    reject "$digest" "${version:-unknown}" "it didn't start"
+    # With the other build set to start next, bootc rollback makes the running one the default.
+    bootc rollback >/dev/null || die "bootc couldn't keep the running build"
+    load_status
+    boot_flags kept
+    write_state went-back "OrielOS ${version:-unknown} didn't start properly, so OrielOS went back to $(booted_version). It won't be offered again; a newer version will be." "$(last_check | head -n1)"
+    printf 'OrielOS %s did not start properly; kept %s and rejected %s.\n' "${version:-unknown}" "$(booted_version)" "$digest"
+}
+
+cmd_undo_update() {
+    need bootc jq
+    load_status
+    has_deployment rollback || die "there is no other build"
+    if ! rollback_queued; then
+        printf 'OrielOS %s already starts by default; nothing to undo.\n' "$(booted_version)"
+        return 0
+    fi
+    undo_update
+}
+
+cmd_remove_previous() {
+    need bootc jq ostree
+    load_status
+    has_deployment rollback || die "there is no previous build to remove"
+    has_deployment staged && die "an update is staged; restart first"
+    rollback_queued && die "going back to the previous build is queued; restart first"
+    printf 'Removing the previous build, %s\n' "$(field rollback version)"
+    remove_rollback_deployment
+    load_status
+    refresh_state
+    printf 'The previous build is removed. Going back is no longer possible.\n'
 }
 
 # Print one blob of an OCI archive: archive_blob <file> <sha256:digest>
@@ -461,6 +623,7 @@ cmd_stage() {
     # system is left as it is.
     bootc switch --quiet --transport oci-archive "$file" || die "bootc could not stage $file"
     load_status
+    boot_flags trial
     write_state staged "OrielOS $version is ready and starts at the next restart." "$(last_check | head -n1)"
     printf 'Build %s is staged. Restart to start it; build %s keeps running until then, and stays available to go back to.\n' \
         "$version" "$(booted_version)"
@@ -471,18 +634,17 @@ cmd_rollback() {
     need bootc jq
     load_status
     has_deployment rollback || die "there is no previous build to go back to"
-    if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
+    if rollback_queued; then
         printf 'The previous build already starts at the next restart.\n'
         return 0
     fi
     digest="$(field booted digest)"
     version="$(booted_version)"
     [[ -n "$digest" ]] || die "cannot read the running build's digest from bootc"
-    if ! is_rejected "$digest"; then
-        mkdir -p "$STATE_DIR"
-        printf '%s  # rejected %s, build %s\n' "$digest" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$version" >>"$REJECTED"
-    fi
+    reject "$digest" "$version" "rolled back"
     bootc rollback || die "bootc could not roll back"
+    # The previous build is known to work, so it isn't on trial.
+    boot_flags clear
     printf 'Build %s (%s) is rejected and will not be staged again.\n' "$version" "$digest"
     printf 'The previous build, %s, starts after a restart.\n' "$(field rollback version)"
     load_status
@@ -511,7 +673,9 @@ main() {
             usage
             return 0
             ;;
-        status | check | check-now | resume | refresh | rollback) [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2 ;;
+        status | check | check-now | resume | refresh | rollback | remove-previous | undo-update)
+            [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2
+            ;;
         pause | channel | stage | forget) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
         "")
             usage >&2
@@ -538,6 +702,8 @@ main() {
         refresh) cmd_refresh ;;
         stage) cmd_stage "$2" ;;
         rollback) cmd_rollback ;;
+        remove-previous) cmd_remove_previous ;;
+        undo-update) cmd_undo_update ;;
         forget) cmd_forget "$2" ;;
     esac
 }
