@@ -379,8 +379,11 @@ echo "status=\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierIt
 if [ "\$mode" = restart ]; then
     menu="\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Menu | jq -r '.data')"
     echo "menu=\$menu"
-    id="\$(bus call "\$item" "\$menu" com.canonical.dbusmenu GetLayout iias 0 -1 0 |
-        jq -r '.data[1][2][] | .data | select(.[1].label.data == "Restart to update") | .[0]' | head -n1)"
+    layout="\$(bus call "\$item" "\$menu" com.canonical.dbusmenu GetLayout iias 0 -1 0)"
+    # Labels may carry an accelerator mark (KDE adds them to menus), "_" in dbusmenu.
+    echo "labels=\$(printf '%s' "\$layout" | jq -r '[.data[1][2][] | .data[1].label.data // ""] | join("|")')"
+    id="\$(printf '%s' "\$layout" | jq -r '.data[1][2][] | .data
+        | select((.[1].label.data // "" | gsub("[_&]"; "")) == "Restart to update") | .[0]' | head -n1)"
     echo "restart_item=\$id"
     [ -n "\$id" ] && bus call "\$item" "\$menu" com.canonical.dbusmenu Event isvu "\$id" clicked s "" 0 >/dev/null &&
         echo clicked=yes
