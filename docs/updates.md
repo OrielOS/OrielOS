@@ -8,9 +8,9 @@ OrielOS isn't publishing versions for download yet, so for now your computer fin
 
 Each OrielOS version is a complete, read-only copy of the system: Fedora, the drivers, the desktop and OrielOS's own apps, all tested together. Updating swaps one copy for another at restart, so an update never leaves the system half-installed.
 
-Your files, your accounts and your settings are kept, whichever version you start. They live in `/var` (your home folder is `/var/home/<your name>`), which updates and going back never touch. Apps from the Store aren't part of the system copy: they update on their own through the Store, and going back leaves them as they are.
+Your files and your own settings are kept, whichever version you start. They live in `/var` (your home folder is `/var/home/<your name>`), which updates and going back never touch. System settings, such as saved Wi-Fi networks and user accounts, are carried into each new version; going back is the one time they can change (see [What going back keeps](#what-going-back-keeps)). Apps from the Store aren't part of the system copy: they update on their own through the Store, and going back leaves them as they are.
 
-OrielOS keeps two versions: the one you are running and the one before it. You can go back to the previous one from the tray icon, or pick it from the boot menu when the computer starts.
+OrielOS keeps two versions: the one you are running and the one before it, for 14 days after an update. You can go back to the previous one from the tray icon, and if an update doesn't start, OrielOS goes back by itself.
 
 ## How updates arrive
 
@@ -25,7 +25,7 @@ The **OrielOS updates** icon in the system tray, at the right of the taskbar, sh
 
 - **Restart to update**, while a new version is ready.
 - **Check for updates**, to check straight away.
-- **Go back to the previous version…**, while there is one to go back to (see [Going back](#going-back)).
+- **Go back to the previous version…**, while there is one to go back to (see [Going back yourself](#going-back-yourself)).
 - **Pause updates**, for 1 to 5 weeks. While updates are paused, OrielOS doesn't check for or download new versions, and the menu shows the date they resume. **Resume updates** ends the pause early.
 - **Update channel**:
   - **Stable**, the default, gets versions that have also passed checks on real hardware.
@@ -35,9 +35,13 @@ The **OrielOS updates** icon in the system tray, at the right of the taskbar, sh
 
 OrielOS doesn't download updates over a metered connection, such as a phone hotspot that NetworkManager knows is metered.
 
-## Going back
+## If an update doesn't start
 
-If the new version doesn't work well for you, right-click the **OrielOS updates** icon and choose **Go back to the previous version…**. OrielOS asks first, then asks for an administrator's password. After that, the icon and a notification offer **Restart to go back**. When you restart, the previous version starts again, with your files and settings as you left them.
+You don't need to do anything. If a new version fails to reach the desktop twice in a row, for example because it stops partway through starting or the screen stays black, the next start uses the previous version instead. Once its desktop is up, OrielOS keeps that version, tells you in a notification that the update was undone, and doesn't offer the version that failed again until a newer one is published. There's no question to answer at startup.
+
+## Going back yourself
+
+If a new version starts but doesn't work well for you, right-click the **OrielOS updates** icon and choose **Go back to the previous version…**. OrielOS asks first, then asks for an administrator's password. After that, the icon and a notification offer **Restart to go back**. When you restart, the previous version starts again.
 
 OrielOS remembers the version you went back from and won't prepare it again until a newer version is published. While going back is waiting for a restart, OrielOS doesn't prepare any update.
 
@@ -49,13 +53,29 @@ sudo orielos-update forget sha256:<digest>
 
 allows it again.
 
+## What going back keeps
+
+Your files and your own settings stay as they are, whichever version you start: your home folder, your desktop and app settings, and the apps you installed from the Store.
+
+System settings are part of each version, though. Anything you changed at system level since the update goes back to how it was before it: a Wi-Fi network you saved, a printer you added, a new user account or a changed password. Set those again after going back if you need them.
+
+## How long the previous version is kept
+
+OrielOS keeps the previous version for 14 days after an update, so you can go back to it. After that it's removed, and going back is no longer offered until the next update. To remove it sooner, run:
+
+```sh
+sudo orielos-update remove-previous
+```
+
+The two versions share every file that didn't change between them, so the previous version usually takes up much less space than a whole copy of the system.
+
 ## The boot menu
 
-When the computer starts, the boot menu normally stays out of sight. It appears by itself, for 10 seconds, when the last start didn't reach the desktop, for example because the new version stopped partway or the screen stayed black. It lists the versions on the computer by name, such as **OrielOS 44.20261026**, with the one that normally starts at the top. Use the arrow keys to choose the previous version and press Enter. The highlighted version starts by itself when the 10 seconds are up.
+When the computer starts, the boot menu stays out of sight. To open it, press Esc once, or hold Shift, just after the computer's own start-up screen. It lists the versions on the computer by name, such as **OrielOS 44.20261026**, with the one that normally starts at the top. Use the arrow keys to choose one and press Enter. Pressing Esc again while the menu is showing closes it and leaves a `grub>` prompt instead; type `reboot` and press Enter to start again.
 
-To open the boot menu at any start, press Esc once, or hold Shift, just after the computer's own start-up screen. Pressing Esc again while the menu is showing closes it and leaves a `grub>` prompt instead; type `reboot` and press Enter to start again.
+Choosing a version in the boot menu starts it this once.
 
-Choosing a version in the boot menu starts it this once. To keep it, go back to it from the tray icon once you're at the desktop.
+The menu appears by itself only if both versions fail to start: after an update was undone, the previous version didn't reach the desktop either. It waits 30 seconds, then starts the highlighted version.
 
 ## In a terminal
 
@@ -68,6 +88,7 @@ sudo orielos-update pause 2         # pause updates for 2 weeks (1 to 5)
 sudo orielos-update resume          # end a pause
 sudo orielos-update channel testing # or stable
 sudo orielos-update rollback        # go back to the previous version at the next restart
+sudo orielos-update remove-previous # remove the previous version now
 ```
 
 ## Preparing a version yourself

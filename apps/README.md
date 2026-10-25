@@ -54,11 +54,11 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 
 - **What it reads.** It follows `/var/lib/orielos/update/state.json`, which `orielos-update` writes (see `image/README.md`). It watches the file and its folder, and also rereads them every five minutes. The file describes one boot, so the notifier trusts it only when its `bootId` matches `/proc/sys/kernel/random/boot_id`.
 - **The tray icon** (`KStatusNotifierItem`, "OrielOS updates") stays in the tray's hidden area until a build is staged for the next restart, or going back is queued, then turns Active. Its tooltip says what the last check found, until when updates are paused, or which version a restart goes back to.
-- **The notifications.** It shows the KNotification event `updateReady`, from `orielos-update-notifier.notifyrc`, once per staged build per session, with "Restart to update" and "Later", and `goBackReady` once going back is queued, with "Restart to go back" and "Later".
+- **The notifications.** It shows the KNotification event `updateReady`, from `orielos-update-notifier.notifyrc`, once per staged build per session, with "Restart to update" and "Later", `goBackReady` once going back is queued, with "Restart to go back" and "Later", and `updateUndone` once per session after an update that didn't reach the desktop was undone, with orielos-update's message.
 - **Restarting.** Both restart actions call `org.kde.Shutdown.logoutAndReboot`, so Plasma signs out cleanly before restarting.
 - **The menu.** It checks for updates, pauses for 1 to 5 weeks, resumes, and switches between the stable and testing channels by running `pkexec /usr/bin/orielos-update ...`. polkit allows the first three without a password and asks for an administrator to change channel. A failure other than a cancelled password prompt shows the `settingsFailed` event.
 - **Going back.** "Go back to the previous version…" is shown while the state names a previous build that wasn't rejected and going back isn't queued yet. It asks first with `KMessageBox`, Cancel being the default, then runs `pkexec /usr/bin/orielos-update rollback`, for which polkit asks for an administrator.
-- **Testing.** `--state FILE` and `--boot-id-file FILE` point it at other files. `autotests/updatestatetest.cpp` covers reading the state, when an update counts as waiting, pauses, the pause choices, the channels, going back and the tooltip texts.
+- **Testing.** `--state FILE` and `--boot-id-file FILE` point it at other files. `autotests/updatestatetest.cpp` covers reading the state, when an update counts as waiting, pauses, the pause choices, the channels, going back, an undone update and the tooltip texts.
 
 ## The placeholder app
 
