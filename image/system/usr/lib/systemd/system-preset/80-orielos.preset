@@ -8,6 +8,8 @@ enable orielos-update-check.timer
 enable orielos-update-state.service
 # A desktop does not listen for SSH.
 disable sshd.service
+# No package-count reporting to Fedora (countme).
+disable rpm-ostree-countme.timer
 # Flathub is the only Flatpak source, so Fedora's own remote is not added.
 disable flatpak-add-fedora-repos.service
 # Plasma Setup runs on first boot, until it writes /etc/plasma-setup-done. Fedora's
