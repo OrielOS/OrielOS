@@ -91,6 +91,8 @@ jobs:
               number=$((number + 1))
               tag="${FEDORA_MAJOR}.${date}.${number}"
           done
+          # pins.env comes from the change being built, so its value is checked before it's used.
+          [[ "${tag}" =~ ^[0-9]+\.[0-9]{8}(\.[0-9]+)?$ ]] || { echo "::error::FEDORA_MAJOR in image/pins.env isn't a number"; exit 1; }
           {
               echo "date=${date}"
               echo "number=${number}"
