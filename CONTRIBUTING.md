@@ -41,6 +41,8 @@ All tools run inside Linux or WSL2.
 
 CI runs the linters and checks on every pull request, and it must pass before a change is merged.
 
+New functionality comes with automated tests in the same pull request: unit tests beside the app's code, a check in `tests/` for the image, or a test in the `test/` folder of the website or the Discord bot. A bug fix adds a test that fails without the fix, where that's practical. Say in the pull request how you tested the change.
+
 ### Code style
 
 - `.editorconfig` and `.clang-format` define the formatting; use an editor that honours them.
