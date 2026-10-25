@@ -29,7 +29,10 @@ target_link_libraries(orielos-update-notifier PRIVATE
 )
 
 install(TARGETS orielos-update-notifier ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+# The same entry starts it at login and, in the applications folder, names it for the desktop
+# portal and the notifications; NoDisplay keeps it out of Start.
 install(FILES org.orielos.UpdateNotifier.desktop DESTINATION ${KDE_INSTALL_AUTOSTARTDIR})
+install(FILES org.orielos.UpdateNotifier.desktop DESTINATION ${KDE_INSTALL_APPDIR})
 install(FILES orielos-update-notifier.notifyrc DESTINATION ${KDE_INSTALL_KNOTIFYRCDIR})
 
 if(BUILD_TESTING)

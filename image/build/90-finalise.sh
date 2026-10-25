@@ -87,7 +87,8 @@ for cmd in skopeo pkexec busctl bootc jq; do
     command -v "$cmd" >/dev/null || update_errors+=("$cmd, which orielos-update needs, is not installed")
 done
 for f in /usr/lib/orielos/update.conf /usr/share/polkit-1/actions/org.orielos.update.policy \
-    /etc/xdg/autostart/org.orielos.UpdateNotifier.desktop /usr/share/knotifications6/orielos-update-notifier.notifyrc; do
+    /etc/xdg/autostart/org.orielos.UpdateNotifier.desktop /usr/share/applications/org.orielos.UpdateNotifier.desktop \
+    /usr/share/knotifications6/orielos-update-notifier.notifyrc; do
     [[ -r "$f" ]] || update_errors+=("$f is missing")
 done
 [[ -x /usr/bin/orielos-update-notifier ]] || update_errors+=("the update notifier, /usr/bin/orielos-update-notifier, is missing")

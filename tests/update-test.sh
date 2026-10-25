@@ -358,17 +358,35 @@ as_user() { runuser -u $TEST_USER -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/ru
 pid="\$(pgrep -u $TEST_USER -f '(^|/)orielos-update-notifier( |\$)' | head -n1)"
 echo "notifier=\$pid"
 [ -n "\$pid" ] || exit 0
-item="\$(as_user gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
-    --method org.freedesktop.DBus.ListNames | grep -o "org.kde.StatusNotifierItem-\$pid-[0-9]*" | head -n1)"
+# Tray icons register with Plasma's StatusNotifierWatcher as "<bus name>/<object path>"; the
+# notifier's is the one whose connection belongs to its process.
+items="\$(as_user gdbus call --session --dest org.kde.StatusNotifierWatcher --object-path /StatusNotifierWatcher \
+    --method org.freedesktop.DBus.Properties.Get org.kde.StatusNotifierWatcher RegisteredStatusNotifierItems)"
+item=""
+item_path=""
+for entry in \$(printf '%s' "\$items" | grep -o "'[^']*'" | tr -d "'"); do
+    bus="\${entry%%/*}"
+    owner="\$(as_user gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+        --method org.freedesktop.DBus.GetConnectionUnixProcessID "\$bus" | grep -o '[0-9][0-9]*' | tail -n1)"
+    if [ "\$owner" = "\$pid" ]; then
+        item="\$bus"
+        case "\$entry" in
+            */*) item_path="/\${entry#*/}" ;;
+            *) item_path=/StatusNotifierItem ;;
+        esac
+    fi
+done
 echo "item=\$item"
 [ -n "\$item" ] || exit 0
-echo "status=\$(as_user gdbus call --session --dest "\$item" --object-path /StatusNotifierItem \
+echo "status=\$(as_user gdbus call --session --dest "\$item" --object-path "\$item_path" \
     --method org.freedesktop.DBus.Properties.Get org.kde.StatusNotifierItem Status)"
 if [ "\$mode" = restart ]; then
-    layout="\$(as_user gdbus call --session --dest "\$item" --object-path /MenuBar --method com.canonical.dbusmenu.GetLayout 0 -1 '[]')"
+    menu="\$(as_user gdbus call --session --dest "\$item" --object-path "\$item_path" \
+        --method org.freedesktop.DBus.Properties.Get org.kde.StatusNotifierItem Menu | grep -o "'/[^']*'" | tr -d "'")"
+    layout="\$(as_user gdbus call --session --dest "\$item" --object-path "\$menu" --method com.canonical.dbusmenu.GetLayout 0 -1 '[]')"
     id="\$(printf '%s' "\$layout" | grep -o "([0-9]*, {[^}]*'label': <'Restart to update'>" | head -n1 | grep -o '^([0-9]*' | tr -d '(')"
     echo "restart_item=\$id"
-    [ -n "\$id" ] && as_user gdbus call --session --dest "\$item" --object-path /MenuBar \
+    [ -n "\$id" ] && as_user gdbus call --session --dest "\$item" --object-path "\$menu" \
         --method com.canonical.dbusmenu.Event "\$id" clicked '<0>' 0 >/dev/null && echo clicked=yes
 fi
 SH
