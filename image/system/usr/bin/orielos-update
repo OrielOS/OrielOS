@@ -1,25 +1,51 @@
 #!/usr/bin/env bash
-# Stages a new OrielOS build for the next restart, and goes back to the previous build.
-# Builds come as OCI archives from tools/build-image.sh. A build that was rolled back is
-# recorded as rejected and is never staged again, unless it is forgotten.
+# Finds, stages and rolls back OrielOS builds. Updates are whole images: each channel is a tag of
+# one image, and a check stages the channel's build for the next restart without touching the
+# running system. A build that was rolled back is recorded as rejected and is never staged
+# again, unless it is forgotten.
 #
 # Usage: orielos-update status
+#        orielos-update check
+#        orielos-update check-now
+#        orielos-update pause WEEKS
+#        orielos-update resume
+#        orielos-update channel stable|testing
+#        orielos-update refresh
 #        orielos-update stage FILE.ociarchive
 #        orielos-update rollback
 #        orielos-update forget DIGEST
 #        orielos-update --help
-#   status     show the running build, the build staged for the next restart, the previous
-#              build and the rejected builds
+#   status     show the channel, the pause, the last check, the running build, the build staged
+#              for the next restart, the previous build and the rejected builds
+#   check      stage the channel's newest build for the next restart, unless updates are paused,
+#              the connection is metered, or that build is running, staged or rejected
+#   check-now  start orielos-update-check.service, which runs check, without waiting for it
+#   pause      stop checking for WEEKS weeks (1 to 5) from now
+#   resume     end a pause
+#   channel    get builds from the stable or the testing channel, from the next check on
+#   refresh    write this boot's state for the desktop, without checking for updates
 #   stage      stage the build in FILE for the next restart; the running system is untouched
 #   rollback   make the previous build start at the next restart, and reject the running one
 #   forget     remove DIGEST from the rejected builds, so it can be staged again
+# The update source is set in /usr/lib/orielos/update.conf and can be overridden in
+# /etc/orielos/update.conf. The state for the desktop is in /var/lib/orielos/update/state.json.
 # Exit status: 0 on success, 1 on errors, 2 on wrong usage, 3 if the build was rejected.
 # Runs as root.
 set -Eeuo pipefail
 
-STATE_DIR="/var/lib/orielos/update"
+# Tests set ORIELOS_UPDATE_ROOT to run against a scratch directory without root, and may set
+# ORIELOS_UPDATE_NOW (seconds since the epoch) to fix the clock. pkexec and systemd never pass
+# these variables, so they can't redirect a real run.
+PREFIX="${ORIELOS_UPDATE_ROOT:-}"
+STATE_DIR="$PREFIX/var/lib/orielos/update"
 REJECTED="$STATE_DIR/rejected-digests"
-BUILD_INFO="/usr/lib/orielos/build-info"
+SETTINGS="$STATE_DIR/settings"
+STATE_FILE="$STATE_DIR/state.json"
+BUILD_INFO="$PREFIX/usr/lib/orielos/build-info"
+VENDOR_CONF="$PREFIX/usr/lib/orielos/update.conf"
+ADMIN_CONF="$PREFIX/etc/orielos/update.conf"
+BOOT_ID_FILE="$PREFIX/proc/sys/kernel/random/boot_id"
+CHECK_UNIT="orielos-update-check.service"
 STATUS_JSON=""
 
 die() {
@@ -28,7 +54,7 @@ die() {
 }
 
 usage() {
-    sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 need() {
@@ -38,6 +64,76 @@ need() {
     done
 }
 
+#BEGIN Time, settings and configuration
+now() {
+    if [[ -n "$PREFIX" && -n "${ORIELOS_UPDATE_NOW:-}" ]]; then
+        printf '%s\n' "$ORIELOS_UPDATE_NOW"
+    else
+        date +%s
+    fi
+}
+
+# UTC ISO 8601 for seconds since the epoch: iso_time <seconds>
+iso_time() {
+    date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ
+}
+
+# Seconds since the epoch for a UTC ISO 8601 time, or nothing if it isn't one: epoch_of <time>
+epoch_of() {
+    [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || return 0
+    date -u -d "$1" +%s 2>/dev/null || true
+}
+
+# The value of a key in a key=value file, or nothing: value_of <file> <key>
+value_of() {
+    if [[ -r "$1" ]]; then sed -n "s/^$2=//p" "$1" | tail -n1; fi
+}
+
+# A setting from /etc/orielos/update.conf, or else from /usr/lib/orielos/update.conf.
+conf_value() {
+    local value
+    value="$(value_of "$ADMIN_CONF" "$1")"
+    if [[ -z "$value" ]]; then value="$(value_of "$VENDOR_CONF" "$1")"; fi
+    printf '%s\n' "$value"
+}
+
+channel_setting() {
+    local channel
+    channel="$(value_of "$SETTINGS" channel)"
+    case "$channel" in
+        stable | testing) printf '%s\n' "$channel" ;;
+        *) printf 'stable\n' ;;
+    esac
+}
+
+# The end of the pause as a UTC time, or nothing when updates aren't paused.
+paused_until_setting() {
+    local until
+    until="$(value_of "$SETTINGS" paused_until)"
+    if [[ -n "$(epoch_of "$until")" ]]; then printf '%s\n' "$until"; fi
+}
+
+# Write the settings file whole and atomically: save_settings <channel> <paused until or "">
+save_settings() {
+    local tmp
+    mkdir -p "$STATE_DIR"
+    tmp="$(mktemp "$SETTINGS.XXXXXX")"
+    printf 'channel=%s\npaused_until=%s\n' "$1" "$2" >"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$SETTINGS"
+}
+
+# A pause that has ended is cleared, so status and the desktop stop showing it.
+clear_ended_pause() {
+    local until epoch
+    until="$(paused_until_setting)"
+    [[ -n "$until" ]] || return 0
+    epoch="$(epoch_of "$until")"
+    if ((epoch <= $(now))); then save_settings "$(channel_setting)" ""; fi
+}
+#END
+
+#BEGIN bootc
 # Read bootc's view of the deployments once.
 load_status() {
     STATUS_JSON="$(bootc status --format=json)" || die "bootc status failed"
@@ -71,6 +167,106 @@ booted_version() {
 is_rejected() {
     [[ -r "$REJECTED" ]] && awk -v d="$1" '$1 == d {found = 1} END {exit !found}' "$REJECTED"
 }
+#END
+
+#BEGIN The state file for the desktop
+# Write state.json, the desktop's view of updates, atomically and readable by everyone. It
+# describes this boot only: readers compare its bootId with their own.
+#   write_state <result> <message> <checked at or "">
+write_state() {
+    local result="$1" message="$2" checked="$3" boot_id="" staged="null" tmp
+    if [[ -r "$BOOT_ID_FILE" ]]; then boot_id="$(tr -d '\n' <"$BOOT_ID_FILE")"; fi
+    if has_deployment staged; then
+        staged="$(jq -n --arg v "$(field staged version)" --arg d "$(field staged digest)" \
+            '{version: (if $v == "" then "unknown" else $v end), digest: $d}')"
+    fi
+    mkdir -p "$STATE_DIR"
+    tmp="$(mktemp "$STATE_FILE.XXXXXX")"
+    jq -n \
+        --arg bootId "$boot_id" \
+        --arg channel "$(channel_setting)" \
+        --arg pausedUntil "$(paused_until_setting)" \
+        --arg checkedAt "$checked" \
+        --arg result "$result" \
+        --arg message "$message" \
+        --arg runningVersion "$(booted_version)" \
+        --arg runningDigest "$(field booted digest)" \
+        --argjson staged "$staged" \
+        '{
+            bootId: $bootId,
+            channel: $channel,
+            pausedUntil: (if $pausedUntil == "" then null else $pausedUntil end),
+            checkedAt: (if $checkedAt == "" then null else $checkedAt end),
+            result: $result,
+            message: $message,
+            running: {version: $runningVersion, digest: $runningDigest},
+            staged: $staged
+        }' >"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$STATE_FILE"
+}
+
+# The last check's time, result and message from state.json, one per line.
+last_check() {
+    if [[ -r "$STATE_FILE" ]] && jq -e . "$STATE_FILE" >/dev/null 2>&1; then
+        jq -r '.checkedAt // "", .result // "", .message // ""' "$STATE_FILE"
+    else
+        printf '\n\n\n'
+    fi
+}
+
+# Rewrite state.json from bootc's current view, keeping the last check's result. A build that was
+# staged and is now running (after a restart) is reported as up to date.
+refresh_state() {
+    local checked result message
+    {
+        IFS= read -r checked
+        IFS= read -r result
+        IFS= read -r message
+    } < <(last_check)
+    if [[ -z "$result" ]]; then
+        result="never-checked"
+        message="OrielOS hasn't checked for updates yet."
+    elif [[ "$result" == "staged" ]] && ! has_deployment staged; then
+        result="up-to-date"
+        message="OrielOS $(booted_version) is running."
+    fi
+    write_state "$result" "$message" "$checked"
+}
+#END
+
+#BEGIN Commands
+cmd_status() {
+    local until checked result message
+    clear_ended_pause
+    load_status
+    printf 'Channel: %s\n' "$(channel_setting)"
+    until="$(paused_until_setting)"
+    if [[ -n "$until" ]]; then printf 'Updates: paused until %s\n' "$until"; else printf 'Updates: not paused\n'; fi
+    {
+        IFS= read -r checked
+        IFS= read -r result
+        IFS= read -r message
+    } < <(last_check)
+    if [[ -n "$checked" ]]; then
+        printf 'Last check: %s, %s: %s\n' "$checked" "$result" "$message"
+    else
+        printf 'Last check: never\n'
+    fi
+    show "Running build" booted
+    show "Staged for the next restart" staged
+    show "Previous build" rollback
+    if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
+        printf 'The previous build starts at the next restart.\n'
+    fi
+    printf 'Rejected builds:'
+    if [[ -s "$REJECTED" ]]; then
+        printf '\n'
+        sed 's/^/  /' "$REJECTED"
+    else
+        printf ' none\n'
+    fi
+}
 
 # Print a deployment's image reference, version and digest: show <title> <slot>
 show() {
@@ -87,21 +283,135 @@ show() {
     printf '  digest:   %s\n' "$(field "$slot" digest)"
 }
 
-cmd_status() {
+# Succeed if NetworkManager says the connection is metered (yes or guess-yes). Without
+# NetworkManager, the connection counts as unmetered.
+metered() {
+    local out
+    command -v busctl >/dev/null 2>&1 || return 1
+    out="$(busctl get-property org.freedesktop.NetworkManager /org/freedesktop/NetworkManager \
+        org.freedesktop.NetworkManager Metered 2>/dev/null)" || return 1
+    [[ "$out" == "u 1" || "$out" == "u 3" ]]
+}
+
+# Ends a check: writes the state, prints the message and exits with <status>.
+#   finish <status> <result> <message>
+finish() {
+    write_state "$2" "$3" "$(iso_time "$(now)")"
+    printf '%s\n' "$3"
+    exit "$1"
+}
+
+cmd_check() {
+    local channel source transport location ref info digest version until out
+    need bootc jq skopeo
+    clear_ended_pause
     load_status
-    show "Running build" booted
-    show "Staged for the next restart" staged
-    show "Previous build" rollback
-    if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
-        printf 'The previous build starts at the next restart.\n'
+    channel="$(channel_setting)"
+    until="$(paused_until_setting)"
+    if [[ -n "$until" ]]; then
+        finish 0 paused "Updates are paused until $until."
     fi
-    printf 'Rejected builds:'
-    if [[ -s "$REJECTED" ]]; then
-        printf '\n'
-        sed 's/^/  /' "$REJECTED"
+
+    source="$(conf_value source)"
+    case "$source" in
+        docker://*)
+            transport=docker
+            location="${source#docker://}"
+            [[ "$location" =~ ^[A-Za-z0-9][A-Za-z0-9._/:-]*$ ]] || die "the update source $source is not a valid image name"
+            ref="docker://$location:$channel"
+            ;;
+        oci:/*)
+            transport=oci
+            location="${source#oci:}"
+            [[ "$location" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "the update source $source is not a valid directory"
+            ref="oci:$location:$channel"
+            ;;
+        "") die "no update source is set in $VENDOR_CONF or $ADMIN_CONF" ;;
+        *) die "unsupported update source: $source (expected docker://<image> or oci:<directory>)" ;;
+    esac
+
+    if [[ "$transport" == docker ]] && metered; then
+        finish 0 metered "Updates are skipped on a metered connection."
+    fi
+
+    if ! info="$(skopeo inspect "$ref" 2>&1)"; then
+        finish 0 unreachable "Couldn't read the $channel channel: $(head -n1 <<<"$info")"
+    fi
+    digest="$(jq -r '.Digest // empty' <<<"$info" 2>/dev/null)" || true
+    version="$(jq -r '.Labels["org.opencontainers.image.version"] // "unknown"' <<<"$info" 2>/dev/null)" || true
+    if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+        finish 0 unreachable "Couldn't read the $channel channel: it gave no image digest."
+    fi
+
+    if [[ "$digest" == "$(field booted digest)" ]]; then
+        finish 0 up-to-date "OrielOS $version is the newest build on the $channel channel."
+    fi
+    if [[ "$digest" == "$(field staged digest)" ]]; then
+        finish 0 staged "OrielOS $version is ready and starts at the next restart."
+    fi
+    if is_rejected "$digest"; then
+        finish 0 rejected "The $channel build, $version, was rolled back on this computer; a newer build will be offered when it's published."
+    fi
+
+    printf 'Staging OrielOS %s (%s) from the %s channel\n' "$version" "$digest" "$channel"
+    # Without --apply, bootc downloads the build and stages it for the next boot; the running
+    # system is left as it is. A registry build is pinned to the digest just read, so a tag that
+    # moves meanwhile can't swap in a different build.
+    if [[ "$transport" == docker ]]; then
+        out="$(bootc switch --quiet "$location@$digest" 2>&1)" ||
+            finish 1 error "Couldn't stage OrielOS $version: $(tail -n1 <<<"$out")"
     else
-        printf ' none\n'
+        out="$(bootc switch --quiet --transport oci "$location:$channel" 2>&1)" ||
+            finish 1 error "Couldn't stage OrielOS $version: $(tail -n1 <<<"$out")"
     fi
+    load_status
+    if [[ "$(field staged digest)" != "$digest" ]]; then
+        finish 1 error "The $channel channel changed while OrielOS $version was being staged; the next check tries again."
+    fi
+    finish 0 staged "OrielOS $version is ready and starts at the next restart."
+}
+
+cmd_check_now() {
+    need systemctl
+    systemctl start --no-block "$CHECK_UNIT" || die "couldn't start $CHECK_UNIT"
+    printf 'Checking for updates in the background.\n'
+}
+
+cmd_pause() {
+    local weeks="$1" until
+    [[ "$weeks" =~ ^[1-5]$ ]] || die "pause takes a number of weeks from 1 to 5" 2
+    need bootc jq
+    until="$(iso_time $(($(now) + weeks * 7 * 24 * 60 * 60)))"
+    save_settings "$(channel_setting)" "$until"
+    load_status
+    refresh_state
+    printf 'Updates are paused until %s.\n' "$until"
+}
+
+cmd_resume() {
+    need bootc jq
+    save_settings "$(channel_setting)" ""
+    load_status
+    refresh_state
+    printf 'Updates are no longer paused.\n'
+}
+
+cmd_channel() {
+    local channel="$1"
+    [[ "$channel" == stable || "$channel" == testing ]] || die "the channel is stable or testing" 2
+    need bootc jq
+    clear_ended_pause
+    save_settings "$channel" "$(paused_until_setting)"
+    load_status
+    refresh_state
+    printf 'This computer gets builds from the %s channel from the next check on.\n' "$channel"
+}
+
+cmd_refresh() {
+    need bootc jq
+    clear_ended_pause
+    load_status
+    refresh_state
 }
 
 # Print one blob of an OCI archive: archive_blob <file> <sha256:digest>
@@ -128,6 +438,7 @@ archive_info() {
 
 cmd_stage() {
     local file="$1" info digest version
+    need bootc jq tar
     [[ -f "$file" && -r "$file" ]] || die "cannot read $file"
     file="$(realpath "$file")"
     info="$(archive_info "$file")"
@@ -149,12 +460,15 @@ cmd_stage() {
     # Without --apply, bootc downloads the build and stages it for the next boot; the running
     # system is left as it is.
     bootc switch --quiet --transport oci-archive "$file" || die "bootc could not stage $file"
+    load_status
+    write_state staged "OrielOS $version is ready and starts at the next restart." "$(last_check | head -n1)"
     printf 'Build %s is staged. Restart to start it; build %s keeps running until then, and stays available to go back to.\n' \
         "$version" "$(booted_version)"
 }
 
 cmd_rollback() {
     local digest version
+    need bootc jq
     load_status
     has_deployment rollback || die "there is no previous build to go back to"
     if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
@@ -171,6 +485,8 @@ cmd_rollback() {
     bootc rollback || die "bootc could not roll back"
     printf 'Build %s (%s) is rejected and will not be staged again.\n' "$version" "$digest"
     printf 'The previous build, %s, starts after a restart.\n' "$(field rollback version)"
+    load_status
+    refresh_state
 }
 
 cmd_forget() {
@@ -186,6 +502,7 @@ cmd_forget() {
     mv "$tmp" "$REJECTED"
     printf '%s is no longer rejected.\n' "$digest"
 }
+#END
 
 main() {
     local cmd="${1:-}"
@@ -194,8 +511,8 @@ main() {
             usage
             return 0
             ;;
-        status | rollback) [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2 ;;
-        stage | forget) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
+        status | check | check-now | resume | refresh | rollback) [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2 ;;
+        pause | channel | stage | forget) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
         "")
             usage >&2
             exit 2
@@ -205,10 +522,20 @@ main() {
             die "unknown command: $cmd" 2
             ;;
     esac
-    [[ "$EUID" -eq 0 ]] || die "run orielos-update as root, for example with sudo"
-    need bootc jq tar
+    if [[ -z "$PREFIX" ]]; then
+        [[ "$EUID" -eq 0 ]] || die "run orielos-update as root, for example with sudo"
+    fi
     case "$cmd" in
-        status) cmd_status ;;
+        status)
+            need bootc jq
+            cmd_status
+            ;;
+        check) cmd_check ;;
+        check-now) cmd_check_now ;;
+        pause) cmd_pause "$2" ;;
+        resume) cmd_resume ;;
+        channel) cmd_channel "$2" ;;
+        refresh) cmd_refresh ;;
         stage) cmd_stage "$2" ;;
         rollback) cmd_rollback ;;
         forget) cmd_forget "$2" ;;

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=OrielOS updates
+Comment=Tells you when an OrielOS update is ready, and lets you pause updates or change channel
+Icon=system-software-update
+Exec=orielos-update-notifier
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2

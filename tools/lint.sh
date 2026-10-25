@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs every linter over the repository: shellcheck, shfmt, hadolint,
-# actionlint, clang-format and gitleaks (qmllint runs in tools/test-apps.sh).
+# actionlint, clang-format and gitleaks (qmllint runs in tools/test-apps.sh),
+# then the shell unit tests in tests/unit/.
 # Prints PASS/FAIL/SKIP per check with the linter's own output on failure, and
 # exits 1 on any failure.
 # Tracked files and new files that are not ignored are both linted.
@@ -144,6 +145,26 @@ check_gitleaks() {
     if [[ "$rc" -eq 0 ]]; then pass "gitleaks (uncommitted)"; else fail "gitleaks (uncommitted)" "" "$out" "$hint"; fi
 }
 
+# The shell unit tests in tests/unit/ run here too: they are quick, need no root, VM or network,
+# and keep the shell tools' logic checked on every pull request. Each script prints its own cases.
+check_unit_tests() {
+    local test out rc
+    for test in tests/unit/*-test.sh; do
+        [[ -e "$test" ]] || continue
+        rc=0
+        if ! command -v jq >/dev/null 2>&1; then
+            fail "${test##*/}" "(jq is missing)" "" "install jq"
+            continue
+        fi
+        out="$(bash "$test" 2>&1)" || rc=$?
+        if [[ "$rc" -eq 0 ]]; then
+            pass "${test##*/}" "($(tail -n1 <<<"$out"))"
+        else
+            fail "${test##*/}" "" "$(grep -A3 '^FAIL' <<<"$out" || tail -n20 <<<"$out")" "run $test to see every case"
+        fi
+    done
+}
+
 main() {
     local arg root tools_dir f install="run tools/install-lint-tools.sh"
     for arg in "$@"; do
@@ -184,6 +205,7 @@ main() {
         clang-format --dry-run --Werror
     check_qmllint
     check_gitleaks
+    check_unit_tests
 
     printf '%d passed, %d failed, %d skipped\n' "$PASSED" "$FAILED" "$SKIPPED"
     [[ "$FAILED" -eq 0 ]]

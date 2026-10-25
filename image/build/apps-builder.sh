@@ -16,7 +16,8 @@ deps() {
         cmake ninja-build gcc-c++ extra-cmake-modules \
         qt6-qtbase-devel qt6-qtdeclarative-devel \
         kf6-kirigami-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
-        libplasma-devel kf6-kconfig-devel
+        libplasma-devel kf6-kconfig-devel \
+        kf6-kstatusnotifieritem-devel kf6-knotifications-devel kf6-kdbusaddons-devel
     # The QML modules the Start menu imports, so qmllint can check it: Plasma's private menu
     # models come with plasma-workspace.
     dnf -y install --setopt=install_weak_deps=False \

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Checks that no build tools are installed, that the first boot will run Plasma Setup, install
 # Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
-# users get the taskbar and the wallpapers, refreshes the icon cache,
-# rebuilds the initramfs for the installed kernel, removes build
-# leftovers and lints the image.
+# users get the taskbar and the wallpapers, enables the background update check, refreshes the
+# icon cache, rebuilds the initramfs for the installed kernel, removes build leftovers and lints
+# the image.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -70,6 +70,30 @@ if [[ -e /var/lib/orielos/secure-boot ]]; then
 fi
 if [[ "${#secure_boot_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${secure_boot_errors[@]}" >&2
+    exit 1
+fi
+
+# The update check stages builds in the background and records each boot's state for the desktop's
+# notifier; both units are enabled here for the same reason as above. No update state may be in
+# the image: it belongs to each computer.
+systemctl enable orielos-update-check.timer orielos-update-state.service
+update_errors=()
+for unit in orielos-update-check.timer orielos-update-state.service; do
+    if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
+        update_errors+=("$unit is not enabled")
+    fi
+done
+for cmd in skopeo pkexec busctl bootc jq; do
+    command -v "$cmd" >/dev/null || update_errors+=("$cmd, which orielos-update needs, is not installed")
+done
+for f in /usr/lib/orielos/update.conf /usr/share/polkit-1/actions/org.orielos.update.policy; do
+    [[ -r "$f" ]] || update_errors+=("$f is missing")
+done
+if [[ -e /var/lib/orielos/update ]]; then
+    update_errors+=("/var/lib/orielos/update exists in the image")
+fi
+if [[ "${#update_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${update_errors[@]}" >&2
     exit 1
 fi
 

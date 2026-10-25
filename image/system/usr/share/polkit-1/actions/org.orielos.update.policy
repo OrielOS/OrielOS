@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+What the desktop may ask orielos-update to do through pkexec. Anyone using the computer may pause,
+resume and check for updates without a password; changing which builds the computer gets needs an
+administrator. pkexec picks the action by the program and its first argument.
+-->
+<policyconfig>
+  <vendor>OrielOS</vendor>
+  <vendor_url>https://github.com/ncjsvr/OrielOS</vendor_url>
+  <icon_name>system-software-update</icon_name>
+
+  <action id="org.orielos.update.pause">
+    <description>Pause OrielOS updates</description>
+    <message>Authentication is needed to pause OrielOS updates</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">pause</annotate>
+  </action>
+
+  <action id="org.orielos.update.resume">
+    <description>Resume OrielOS updates</description>
+    <message>Authentication is needed to resume OrielOS updates</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">resume</annotate>
+  </action>
+
+  <action id="org.orielos.update.check">
+    <description>Check for OrielOS updates</description>
+    <message>Authentication is needed to check for OrielOS updates</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">check-now</annotate>
+  </action>
+
+  <action id="org.orielos.update.channel">
+    <description>Change which OrielOS builds this computer gets</description>
+    <message>Authentication is needed to change which OrielOS builds this computer gets</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">channel</annotate>
+  </action>
+</policyconfig>

@@ -1,0 +1,12 @@
+[Unit]
+Description=Record this boot's OrielOS update state for the desktop
+Documentation=https://github.com/ncjsvr/OrielOS
+# The desktop's update notifier reads the state at login, so it has to describe this boot by then.
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/orielos-update refresh
+
+[Install]
+WantedBy=multi-user.target
