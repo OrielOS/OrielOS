@@ -5,7 +5,9 @@
 # restarts the VM and checks that the second boot reaches the login screen without Plasma Setup.
 # On the second boot it checks the services, starts OrielOS's apps and logs the new user in to a
 # Plasma Wayland session inside the VM, and checks that the new user got the OrielOS taskbar with
-# OrielOS's Start menu, the OrielOS wallpaper and the Windows keyboard shortcuts.
+# OrielOS's Start menu, the OrielOS wallpaper and the Windows keyboard shortcuts. It checks the
+# gaming defaults (ntsync, the sysctl settings, zram swap, GameMode, umu-launcher, the controller
+# and peripheral udev rules and drivers) and that Fedora's countme reporting is off.
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
 # Last, it drives the Start menu with the keyboard over QMP (searching runs nothing, Enter opens
@@ -127,6 +129,7 @@ START_KEPT_FAVORITES=""
 BT_ENABLED=""
 BT_ACTIVE=""
 SERVER_UNITS=""
+GAMING_OUT=""
 MODULE_SIGNER=""
 KERNEL_RPMS=""
 NVIDIA_VERSIONS=""
@@ -155,7 +158,7 @@ ANTICHEAT_OUT=""
 ANTICHEAT_KARGS=(lockdown=integrity intel_iommu=on iommu.passthrough=0)
 
 usage() {
-    sed -n '2,31p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 # Print the current boot's part of the serial log.
@@ -271,6 +274,7 @@ collect_over_ssh() {
     BT_ACTIVE="$(vm_ssh systemctl is-active bluetooth.service 2>&1)" || true
     SERVER_UNITS="$(vm_ssh systemctl is-enabled bootc-fetch-apply-updates.timer sshd.service 2>&1 | paste -sd ' ' -)" || true
     KDUMP_BINARIES="$(vm_ssh command -v kexec kdumpctl makedumpfile 2>&1 | paste -sd ' ' -)" || true
+    GAMING_OUT="$(vm_ssh "$(gaming_probe)" 2>&1)" || true
     MODULE_SIGNER="$(vm_ssh modinfo -F signer nvidia 2>&1)" || true
     KERNEL_RPMS="$(vm_ssh rpm -q kernel 2>&1 | paste -sd ' ' -)" || true
     STORE_REMOTES="$(vm_ssh flatpak remotes --system --columns=name 2>&1 | paste -sd ' ' -)" || true
@@ -283,6 +287,32 @@ collect_over_ssh() {
     V4L2_LOADED="$(vm_ssh "lsmod | awk '\$1 == \"v4l2loopback\" {print \"loaded\"}'" 2>&1)" || true
     MODULES_LOAD="$(vm_ssh systemctl is-active systemd-modules-load.service 2>&1)" || true
     ANTICHEAT_OUT="$(vm_ssh "$(anticheat_probe)" 2>&1)" || true
+}
+
+# Print a shell script that reports the gaming defaults, one key=value per line: whether ntsync is
+# loaded, the two sysctl settings, transparent hugepages, zram swap, the gaming and peripheral
+# packages, umu-launcher, the extra drivers and their signer, the PlayStation touchpad rule, and
+# Fedora's countme reporting.
+gaming_probe() {
+    cat <<'EOF'
+echo "ntsync=$(lsmod | awk '$1 == "ntsync" {print "loaded"}')$(test -c /dev/ntsync && echo ',/dev/ntsync')"
+echo "map_count=$(sysctl -n vm.max_map_count 2>&1)"
+echo "split_lock=$(sysctl -n kernel.split_lock_mitigate 2>&1)"
+echo "thp=$(cat /sys/kernel/mm/transparent_hugepage/enabled 2>&1)"
+echo "zram=$(swapon --show=NAME --noheadings 2>&1 | grep zram | paste -sd ' ' -)"
+echo "ananicy=$(rpm -q ananicy-cpp >/dev/null 2>&1 && echo installed)"
+echo "missing=$(for p in gamemode umu-launcher steam-devices solaar-udev libratbag-ratbagd openrgb-udev-rules zram-generator-defaults; do rpm -q "$p" >/dev/null 2>&1 || printf '%s ' "$p"; done)"
+echo "umu=$(command -v umu-run)"
+echo "signers=$(for m in xone_gip hid_xpadneo hid_playstation ntsync; do printf '%s:%s ' "$m" "$(modinfo -F signer "$m" 2>/dev/null | head -n1)"; done)"
+echo "touchpad_rule=$(test -f /usr/lib/udev/rules.d/70-orielos-playstation-touchpad.rules && echo present)"
+echo "countme_files=$(grep -l '^countme=1' /etc/yum.repos.d/*.repo 2>/dev/null | paste -sd ' ' -)"
+echo "countme_timer=$(systemctl is-enabled rpm-ostree-countme.timer 2>&1)"
+EOF
+}
+
+# Print one value from gaming_probe's output: gaming_value <key>
+gaming_value() {
+    sed -n "s/^$1=//p" <<<"$GAMING_OUT" | head -n1
 }
 
 # Print a shell script that reports the kernel command line, lockdown, kexec, the active LSMs,
@@ -990,6 +1020,44 @@ run_checks() {
             pass "Server defaults are off (automatic update reboots and sshd.service disabled; no kexec or kdump)"
         else
             fail "Server defaults are not all off (units: ${SERVER_UNITS:-no output}; kexec and kdump binaries: ${KDUMP_BINARIES:-none})"
+        fi
+    fi
+
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Gaming defaults are set: $no_ssh"
+        fail "Gaming system pieces are installed: $no_ssh"
+        fail "Fedora's countme reporting is off: $no_ssh"
+        hint "$ssh_hint"
+    else
+        local ntsync map split thp zram ananicy missing umu signers rule
+        ntsync="$(gaming_value ntsync)"
+        map="$(gaming_value map_count)"
+        split="$(gaming_value split_lock)"
+        thp="$(gaming_value thp)"
+        zram="$(gaming_value zram)"
+        ananicy="$(gaming_value ananicy)"
+        if [[ "$ntsync" == "loaded,/dev/ntsync" && "$map" == 1048576 && "$split" == 0 && "$thp" == *"[madvise]"* &&
+            -n "$zram" && -z "$ananicy" ]]; then
+            pass "Gaming defaults are set (ntsync loaded with /dev/ntsync; vm.max_map_count $map; kernel.split_lock_mitigate $split; transparent hugepages $thp; zram swap on $zram; no ananicy-cpp)"
+        else
+            fail "Gaming defaults are not all set (ntsync: ${ntsync:-not loaded}; vm.max_map_count: $map; kernel.split_lock_mitigate: $split; transparent hugepages: $thp; zram swap: ${zram:-none}; ananicy-cpp: ${ananicy:-not installed})"
+        fi
+        missing="$(gaming_value missing)"
+        umu="$(gaming_value umu)"
+        signers="$(gaming_value signers)"
+        rule="$(gaming_value touchpad_rule)"
+        # The extra drivers are signed by Universal Blue, the kernel's own ones by Fedora.
+        if [[ -z "${missing// /}" && -n "$umu" && "$signers" == *"xone_gip:ublue kernel "* &&
+            "$signers" == *"hid_xpadneo:ublue kernel "* && "$signers" =~ hid_playstation:[^\ ]+ &&
+            "$rule" == present ]]; then
+            pass "Gaming system pieces are installed (GameMode, umu-launcher at $umu, steam-devices and the peripheral udev rules; signers: ${signers% }; PlayStation touchpad rule present)"
+        else
+            fail "Gaming system pieces are missing (packages: ${missing:-none missing}; umu-run: ${umu:-missing}; signers: ${signers:-none}; PlayStation touchpad rule: ${rule:-missing})"
+        fi
+        if [[ -z "$(gaming_value countme_files)" && "$(gaming_value countme_timer)" == disabled ]]; then
+            pass "Fedora's countme reporting is off (no repository sets countme=1; rpm-ostree-countme.timer disabled)"
+        else
+            fail "Fedora's countme reporting is still on (countme=1 in: $(gaming_value countme_files); rpm-ostree-countme.timer: $(gaming_value countme_timer))"
         fi
     fi
 
