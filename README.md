@@ -53,6 +53,7 @@ tests/     Boot, update and rollback tests, benchmarks
 tools/     Developer scripts
 docs/      User documentation
 website/   The orielos.org website and its build
+discord/   The Discord bot that posts releases and merges and gives linked members their GitHub roles
 ```
 
 Each folder has a short README describing what belongs there.

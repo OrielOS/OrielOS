@@ -1,0 +1,124 @@
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Discord
+
+on:
+  schedule:
+    - cron: "4-59/10 * * * *"
+  workflow_dispatch:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "discord/**"
+      - ".github/workflows/discord.yml"
+
+permissions: {}
+
+jobs:
+  test:
+    name: test
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Install the bot's dependencies
+        working-directory: discord
+        run: npm ci --ignore-scripts
+
+      - name: Test the bot
+        working-directory: discord
+        run: npm test
+
+  post:
+    name: post
+    if: >-
+      github.repository == 'ncjsvr/OrielOS' &&
+      (github.event_name == 'release' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    environment:
+      name: discord
+      deployment: false
+    concurrency:
+      group: discord-post
+      cancel-in-progress: false
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Install the bot's dependencies
+        working-directory: discord
+        run: npm ci --ignore-scripts
+
+      - name: Post to Discord
+        working-directory: discord
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+        run: node src/post.js
+
+  sync:
+    name: sync
+    if: >-
+      github.repository == 'ncjsvr/OrielOS' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    environment:
+      name: discord
+      deployment: false
+    concurrency:
+      group: discord-sync
+      cancel-in-progress: false
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Install the bot's dependencies
+        working-directory: discord
+        run: npm ci --ignore-scripts
+
+      - name: Sync Discord roles
+        working-directory: discord
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          LINK_CLIENT_ID: ${{ vars.LINK_CLIENT_ID }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node src/sync.js

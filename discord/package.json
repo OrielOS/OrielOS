@@ -1,0 +1,17 @@
+{
+  "name": "orielos-discord",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "sync": "node src/sync.js",
+    "post": "node src/post.js"
+  },
+  "dependencies": {
+    "discord.js": "14.27.0"
+  }
+}
