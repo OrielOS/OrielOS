@@ -222,7 +222,8 @@ void Notifier::showGoBackNotification()
 void Notifier::showUndoneNotification()
 {
     m_announcedUndone = true;
-    auto *notification = new KNotification(QStringLiteral("updateUndone"));
+    // It stays until it's dismissed: the undo happened at startup, perhaps with nobody watching.
+    auto *notification = new KNotification(QStringLiteral("updateUndone"), KNotification::Persistent);
     notification->setComponentName(QStringLiteral("orielos-update-notifier"));
     notification->setIconName(QLatin1String(iconName));
     notification->setTitle(i18nc("@title", "The update was undone"));
