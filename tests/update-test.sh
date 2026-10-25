@@ -565,18 +565,28 @@ step_go_back() {
     check_keepme "after going back through the notifier"
 }
 
-# Print the boot menu's flag from the EFI system partition in the VM, "orielos_boot_ok=<0|1>", or
+# Print the boot menu's flags from the EFI system partition in the VM, one name=value per line, or
 # nothing while the file doesn't exist.
+boot_flags() {
+    vm_ssh /usr/libexec/orielos/boot-flags status 2>/dev/null | grep -v '=$' || true
+}
+
+# Print the boot menu's start flag, "orielos_boot_ok=<0|1>", or nothing.
 boot_flag() {
+    boot_flags | grep '^orielos_boot_ok=' || true
+}
+
+# Set boot menu flags in the VM, as earlier starts would have left them: set_boot_flags <name=value...>
+set_boot_flags() {
     vm_ssh "$(
-        cat <<'SH'
-esp="$(lsblk -lnpo NAME,PARTTYPE | awk 'tolower($2) == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" {print $1; exit}')"
-dir="$(mktemp -d)"
-mount -o ro "$esp" "$dir" && grub2-editenv "$dir/EFI/fedora/orielos-boot.env" list 2>/dev/null
-umount "$dir"
-rmdir "$dir"
+        cat <<SH
+esp="\$(lsblk -lnpo NAME,PARTTYPE | awk 'tolower(\$2) == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" {print \$1; exit}')"
+dir="\$(mktemp -d)"
+mount "\$esp" "\$dir" && grub2-editenv "\$dir/EFI/fedora/orielos-boot.env" set $*
+umount "\$dir"
+rmdir "\$dir"
 SH
-    )" 2>/dev/null | grep '^orielos_boot_ok=' || true
+    )" >/dev/null 2>&1
 }
 
 # Wait up to 120 s for this boot's desktop session to mark the boot as good. Returns 1 if it doesn't.
@@ -598,16 +608,16 @@ serial_since() {
 }
 
 # Restart the VM and watch the serial console, where the firmware copies GRUB's screen, for the
-# boot menu until the kernel starts: restart_watching_menu <none|choose-other|escape>
+# boot menu until the kernel starts: restart_watching_menu <none|enter|escape>
 #   none          only watch
-#   choose-other  in the menu, choose the version that isn't highlighted
+#   enter         in the menu, start the highlighted version
 #   escape        press Esc once while GRUB waits with the menu hidden, then start the highlighted
 #                 version
 # Sets MENU_SHOWN to 1 if the menu appeared, keeps its text in MENU_TEXT, the versions it listed in
 # MENU_ENTRIES and the highlighted one (GRUB marks it with *) in MENU_DEFAULT, and waits for the
 # new boot. Returns 1 if the VM doesn't come back.
 restart_watching_menu() {
-    local action="$1" start text pressed=0 key
+    local action="$1" start text pressed=0
     MENU_SHOWN=0
     MENU_TEXT=""
     MENU_ENTRIES=""
@@ -632,12 +642,7 @@ restart_watching_menu() {
                 sed -E 's/^OrielOS //; s/ \(ostree:[0-9]\)$//' | awk '!seen[$0]++' | paste -sd ' ' -)" || true
             MENU_DEFAULT="$(grep -a -o -E '\*OrielOS [0-9][0-9.]*' <<<"$text" | head -n1 | sed 's/^\*OrielOS //')" || true
             case "$action" in
-                choose-other)
-                    # The other version is next to the highlighted one; the last entry is the firmware's.
-                    key=down
-                    if [[ "$MENU_DEFAULT" != "${MENU_ENTRIES%% *}" ]]; then key=up; fi
-                    vm_qmp "shot:$RESULTS/boot-menu.png" "keys:$key" "keys:ret" || true
-                    ;;
+                enter) vm_qmp "shot:$RESULTS/boot-menu-last-resort.png" "keys:ret" || true ;;
                 escape) vm_qmp "shot:$RESULTS/boot-menu-esc.png" "keys:ret" || true ;;
                 *) vm_qmp "shot:$RESULTS/boot-menu-unexpected.png" || true ;;
             esac
@@ -658,7 +663,7 @@ restart_watching_menu() {
 }
 
 step_boot_menu() {
-    local out titles names other
+    local out titles names
     info "Step 13: the boot menu stays hidden after good boots and appears after a failed one"
     vm_ssh "ls -l /boot/loader; grep -H -E '^(title|version) ' /boot/loader/entries/*.conf" >"$RESULTS/boot-entries.txt" 2>&1 || true
     out="$(vm_ssh "grep -c 'BEGIN 12_orielos-menu.cfg' /boot/grub2/grub.cfg" 2>/dev/null)" || true
@@ -692,7 +697,8 @@ step_boot_menu() {
         fail "After a boot that reached the desktop: menu shown $MENU_SHOWN (see boot-menu-unexpected.png), then running ${BOOTED_VERSION:-unknown}, not $OLD_VERSION"
     fi
 
-    # A boot that never reaches the desktop: the display manager doesn't start.
+    # A start that never reaches the desktop, of a version that isn't new: the display manager
+    # doesn't start. There's nothing to undo, so the next start is as usual, with no menu.
     vm_ssh systemctl set-default multi-user.target >/dev/null 2>&1 || true
     if ! restart_watching_menu none; then
         fail "The VM did not come back after a restart"
@@ -701,34 +707,24 @@ step_boot_menu() {
     vm_ssh systemctl set-default graphical.target >/dev/null 2>&1 || true
     sleep 30
     if [[ "$(boot_flag)" == orielos_boot_ok=0 ]]; then
-        pass "A boot that doesn't reach the desktop leaves the boot marked as not good"
+        pass "A start that doesn't reach the desktop leaves the start marked as not good"
     else
-        fail "After a boot without a desktop, the flag is $(boot_flag), not orielos_boot_ok=0"
+        fail "After a start without a desktop, the flag is $(boot_flag), not orielos_boot_ok=0"
     fi
-
-    if ! restart_watching_menu choose-other; then
-        fail "The VM did not come back after choosing the other version in the boot menu"
+    if ! restart_watching_menu none; then
+        fail "The VM did not come back after a restart"
         return 1
     fi
-    read_status boot-menu
-    # The menu must list both versions and highlight the one that starts by default.
-    if [[ "$MENU_SHOWN" -eq 1 && " $MENU_ENTRIES " == *" $OLD_VERSION "* && " $MENU_ENTRIES " == *" $NEW_VERSION "* &&
-        "$MENU_DEFAULT" == "$OLD_VERSION" ]]; then
-        pass "After a boot that didn't reach the desktop, the boot menu appears, lists $MENU_ENTRIES and highlights $MENU_DEFAULT (see boot-menu.png)"
-        show_output "$MENU_TEXT"
+    read_status boot-no-prompt
+    if [[ "$MENU_SHOWN" -eq 0 && "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
+        pass "After a failed start of a version that isn't new, there's no menu or prompt, and $OLD_VERSION starts as usual"
     else
-        fail "After a boot that didn't reach the desktop: menu shown $MENU_SHOWN, listing ${MENU_ENTRIES:-nothing}, highlighting ${MENU_DEFAULT:-nothing}, not $OLD_VERSION (see boot-menu.png, boot-entries.txt)"
-        show_output "$MENU_TEXT"
+        fail "After a failed start of a version that isn't new: menu shown $MENU_SHOWN (see boot-menu-unexpected.png), then running ${BOOTED_VERSION:-unknown}"
     fi
-    other=""
-    for out in $MENU_ENTRIES; do
-        if [[ "$out" != "$MENU_DEFAULT" ]]; then other="$out"; fi
-    done
-    if [[ -n "$other" && "$BOOTED_VERSION" == "$other" ]]; then
-        pass "Choosing the other version in the boot menu starts it ($other)"
-    else
-        fail "After choosing the other version (${other:-none found}) in the boot menu, the VM runs ${BOOTED_VERSION:-unknown}"
-    fi
+    {
+        printf '== after a failed start of a version that is not new, the boot menu showed:\n'
+        printf '%s\n' "${MENU_TEXT:-nothing}"
+    } >>"$RESULTS/boot-entries.txt"
 
     wait_for_good_boot || true
     if ! restart_watching_menu escape; then
@@ -740,6 +736,119 @@ step_boot_menu() {
         pass "Pressing Esc once while the menu is hidden shows it, and Enter starts the highlighted $OLD_VERSION (see boot-menu-esc.png)"
     else
         fail "Pressing Esc at boot: menu shown ${MENU_SHOWN}, highlighting ${MENU_DEFAULT:-nothing}, then running ${BOOTED_VERSION:-unknown}, not $OLD_VERSION"
+    fi
+}
+
+step_undo_update() {
+    local out flags deploy
+    info "Step 14: an update that fails to reach the desktop twice is undone without asking"
+    # Offer the new build again. With multi-user.target as the old build's default when the new one
+    # is staged, the new build's /etc, merged from the old one's at the restart, has it too, so the
+    # new build never reaches the desktop. The old build's own default goes back once the new one
+    # is running.
+    vm_ssh orielos-update forget "$NEW_DIGEST" >>"$RESULTS/service.txt" 2>&1 || true
+    wait_for_good_boot || true
+    out="$(service_run check)"
+    read_status undo-staged
+    flags="$(boot_flags | paste -sd ' ' -)"
+    if [[ "$STAGED_DIGEST" == "$NEW_DIGEST" && "$flags" == *orielos_trial=1* ]]; then
+        pass "Staging $NEW_VERSION again puts it on trial ($flags)"
+    else
+        fail "Staging $NEW_VERSION again: staged ${STAGED_DIGEST:-nothing}, flags ${flags:-none} (check result $(service_value "$out" result))"
+        return 1
+    fi
+    vm_ssh systemctl set-default multi-user.target >/dev/null 2>&1 || true
+
+    if ! restart_watching_menu none; then
+        fail "The VM did not come back after restarting into $NEW_VERSION"
+        return 1
+    fi
+    read_status undo-first
+    deploy="$(vm_ssh "bootc status --format=json | jq -r '.status.rollback.ostree | \"/sysroot/ostree/deploy/\\(.stateroot)/deploy/\\(.checksum).\\(.deploySerial)\"'" 2>/dev/null)" || true
+    if [[ "$BOOTED_DIGEST" != "$NEW_DIGEST" || "$deploy" != /sysroot/ostree/deploy/* ]] ||
+        ! vm_ssh "mount -o remount,rw /sysroot && ln -sfn /usr/lib/systemd/system/graphical.target $deploy/etc/systemd/system/default.target" >/dev/null 2>&1; then
+        fail "Could not set up the failing update: running ${BOOTED_VERSION:-unknown}, previous deployment ${deploy:-unknown}"
+        return 1
+    fi
+
+    if ! restart_watching_menu none; then
+        fail "The VM did not come back after the update's first failed start"
+        return 1
+    fi
+    read_status undo-second
+    flags="$(boot_flags | paste -sd ' ' -)"
+    if [[ "$MENU_SHOWN" -eq 0 && "$BOOTED_DIGEST" == "$NEW_DIGEST" && "$flags" == *orielos_fails=1* ]]; then
+        pass "After the update's first failed start, it starts once more, with no menu ($flags)"
+    else
+        fail "After the update's first failed start: menu shown $MENU_SHOWN, running ${BOOTED_VERSION:-unknown}, flags ${flags:-none}"
+        return 1
+    fi
+
+    if ! restart_watching_menu none; then
+        fail "The VM did not come back after the update's second failed start"
+        return 1
+    fi
+    read_status undone
+    if [[ "$MENU_SHOWN" -eq 0 && "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
+        pass "After the update's second failed start, $OLD_VERSION starts by itself, with no menu or prompt"
+    else
+        fail "After the update's second failed start: menu shown $MENU_SHOWN, running ${BOOTED_VERSION:-unknown}, not $OLD_VERSION (see boot-entries.txt)"
+        return 1
+    fi
+    out="$(vm_ssh "jq -r '.result + \" \" + (.rollbackQueued | tostring)' /var/lib/orielos/update/state.json; grep -c '$NEW_DIGEST' /var/lib/orielos/update/rejected-digests" 2>/dev/null | paste -sd ' ' -)" || true
+    if [[ "$out" == "went-back false 1" ]]; then
+        pass "OrielOS keeps $OLD_VERSION as the default and rejects $NEW_VERSION (state: $out)"
+    else
+        fail "After undoing the update, the state, queue and rejection are '$out', not 'went-back false 1'"
+    fi
+    if wait_for_notifier && wait_for_good_boot; then
+        sleep 5
+        vm_qmp "shot:$RESULTS/update-undone.png" || true
+        pass "The desktop starts and the notifier tells the user the update was undone (see update-undone.png); flags $(boot_flags | paste -sd ' ' -)"
+    else
+        fail "After undoing the update, the desktop or the notifier didn't start (see notifier.txt)"
+    fi
+    if ! restart_watching_menu none; then
+        fail "The VM did not come back after a restart"
+        return 1
+    fi
+    read_status undone-next
+    if [[ "$MENU_SHOWN" -eq 0 && "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
+        pass "$OLD_VERSION stays the version that starts, with no menu"
+    else
+        fail "After undoing the update, the next start ran ${BOOTED_VERSION:-unknown} (menu shown $MENU_SHOWN)"
+    fi
+}
+
+step_last_resort_and_removal() {
+    local out entries
+    info "Step 15: the boot menu as the last resort, and removing the previous build"
+    # The flags as they are when the build OrielOS kept also fails to reach the desktop.
+    wait_for_good_boot || true
+    set_boot_flags orielos_boot_ok=0 orielos_trial=kept orielos_fails=0
+    if ! restart_watching_menu enter; then
+        fail "The VM did not come back after the last-resort boot menu"
+        return 1
+    fi
+    read_status last-resort
+    if [[ "$MENU_SHOWN" -eq 1 && "$MENU_DEFAULT" == "$OLD_VERSION" && "$BOOTED_DIGEST" == "$OLD_DIGEST" &&
+        " $MENU_ENTRIES " == *" $NEW_VERSION "* ]]; then
+        pass "When the kept version fails to start too, the boot menu appears, lists $MENU_ENTRIES and highlights $OLD_VERSION (see boot-menu-last-resort.png)"
+        show_output "$MENU_TEXT"
+    else
+        fail "The last-resort boot menu: shown $MENU_SHOWN, listing ${MENU_ENTRIES:-nothing}, highlighting ${MENU_DEFAULT:-nothing}, then running ${BOOTED_VERSION:-unknown}"
+    fi
+
+    # 15 days after the running build first started, the check removes the previous one.
+    vm_ssh "sed -i \"s/^since=.*/since=\$(date -u -d '15 days ago' +%Y-%m-%dT%H:%M:%SZ)/\" /var/lib/orielos/update/running" >/dev/null 2>&1 || true
+    out="$(service_run check)"
+    read_status removed
+    entries="$(vm_ssh "ls /boot/loader/entries/ | wc -l" 2>/dev/null)" || true
+    if [[ "$(status_field rollback imageDigest)" == "" && "$entries" == 1 ]] &&
+        [[ "$(vm_ssh "jq -r '.previous' /var/lib/orielos/update/state.json" 2>/dev/null)" == null ]]; then
+        pass "15 days after $OLD_VERSION first started, the check removes the previous build (one boot entry left; going back no longer offered)"
+    else
+        fail "Removing the previous build after 15 days: rollback $(status_field rollback version), $entries boot entries (check result $(service_value "$out" result))"
     fi
 }
 
@@ -819,7 +928,8 @@ main() {
 
     if step_boot_old && step_user_data && step_copy && step_stage && step_update_boot &&
         step_rollback && step_stage_again && step_service_source && step_service_channel &&
-        step_service_notify && step_service_restart && step_go_back && step_boot_menu; then
+        step_service_notify && step_service_restart && step_go_back && step_boot_menu && step_undo_update &&
+        step_last_resort_and_removal; then
         :
     else
         fail "The test stopped early; the remaining steps did not run"
