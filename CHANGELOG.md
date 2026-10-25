@@ -6,6 +6,12 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- OrielOS builds are published when changes merge.
+  - Each change that affects the system is built on GitHub, started in a VM to check it reaches the sign-in screen in the mode anti-cheat needs with only signed drivers, signed, and published to ghcr.io as the new testing build.
+  - A build is published only if Flathub has the NVIDIA driver extension that Store apps need for it.
+  - Stable moves to a tested build by hand, without rebuilding it, with a release on GitHub.
+  - Once OrielOS's signing key is in place, computers check the signature of every update before preparing it.
+  - The pinned Fedora and driver images are refreshed every week, which is how Fedora's updates reach OrielOS.
 - The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
   - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
   - GameMode, umu-launcher and Fedora's compressed memory swap (zram) are included.

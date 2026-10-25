@@ -288,11 +288,26 @@ Plymouth shows a splash screen while the system starts, with Fedora's `bgrt` the
 tools/build-image.sh
 ```
 
-This checks that the kernel and NVIDIA inputs match, builds `localhost/orielos:<release>.<date>`, prints the kernel and driver versions, and exports a compressed OCI archive to `/var/lib/orielos/builds`. Run `tools/build-image.sh --help` for the options. The build needs rootful Podman; `tools/check-env.sh` checks the machine.
+This checks that the kernel and NVIDIA inputs match, builds `localhost/orielos:<release>.<date>`, prints the kernel and driver versions, and exports a compressed OCI archive to `/var/lib/orielos/builds`. `--number N` tags a day's later builds `<release>.<date>.<N>`, as CI does. Run `tools/build-image.sh --help` for the options. The build needs rootful Podman; `tools/check-env.sh` checks the machine.
+
+## Publishing
+
+Changes are built, booted and update-tested locally before they merge (see `tests/README.md`). GitHub Actions then builds what is published:
+
+- **When.** `.github/workflows/image.yml` runs when a change that affects the image merges into `main` (apps, artwork, `image/`, `plasma/`, the build script, the smoke test), or by hand. There is no schedule. Pull requests that change the workflow or its scripts build and smoke-test too, but never publish.
+- **Tags.** The first build of a UTC day is `<Fedora release>.<date>` (`44.20261026`); later ones that day get a number (`44.20261026.2`), after the tags already in the registry. Builds of `main` run one at a time.
+- **Checks before publishing.** The build job removes the runner's preinstalled toolchains and keeps Podman's storage, temporary files and the test VM on the larger `/mnt` disk. After building, it checks that Flathub has `org.freedesktop.Platform.GL.nvidia-<driver version>` for the image's NVIDIA driver, so Flatpak apps keep GPU acceleration after the update, and runs `tests/smoke-test.sh` in a VM with KVM. Either failing stops the build.
+- **Publishing and signing.** The publish job runs only for `main`, in the `publish` environment. It pushes the archive to `ghcr.io/ncjsvr/orielos:<build tag>`, signs that digest with `cosign sign --key env://COSIGN_PRIVATE_KEY`, checks the signature against `keys/orielos-cosign.pub` when it's there, and only then moves `testing` to the same digest. It refuses to publish without the `COSIGN_PRIVATE_KEY` secret.
+- **Stable.** `.github/workflows/promote.yml`, run by hand with a build tag and a version (`v0.1.0`), checks the build's signature, moves `stable` to the same digest without rebuilding it, creates the GitHub Release with the CHANGELOG's Unreleased section as its notes, and opens a pull request that gives that section the version's heading. The pull request is opened with the workflow's token, so its checks don't start by themselves; push to it or close and reopen it to run them.
+- **Checking signatures on installed computers.** Once `keys/orielos-cosign.pub` exists, `build/88-signing.sh` installs it as `/etc/pki/containers/orielos.pub`, makes `/etc/containers/policy.json` require a sigstore signature made with it for `ghcr.io/ncjsvr/orielos`, and adds `/etc/containers/registries.d/orielos.yaml` so the signatures attached in the registry are found. `orielos-update` then stages registry builds with `bootc switch --enforce-container-sigpolicy`. Until the key is there, the build prints a note and updates aren't signature-checked.
+
+To set up signing, the maintainer runs `cosign generate-key-pair`, adds the private key and its password as the `COSIGN_PRIVATE_KEY` and `COSIGN_PASSWORD` secrets of the `publish` environment, and commits the public key as `image/keys/orielos-cosign.pub`. The package `ghcr.io/ncjsvr/orielos` must be public for computers to update from it.
 
 ## Pins
 
 `pins.env` holds the base image, the kernel image, the NVIDIA image and the Fedora image the apps are built on, each by digest, so two builds from the same commit use the same inputs. To update them, run `tools/update-pins.sh` to see what has changed, `tools/update-pins.sh --write` to apply it, review the kernel and NVIDIA versions it prints, build, boot-test and commit.
+
+Fedora's updates, security fixes included, reach installed computers only through a new build, so the digests are refreshed every week: Renovate (`renovate.json` in the repository root) opens one pull request on Monday mornings with every new digest for the same tags, signed off for the DCO check. It never moves a tag, such as to the next Fedora release. The pull request is built and tested locally like any other before it merges.
 
 It also holds `UMU_LAUNCHER_RPM`, the umu-launcher RPM's download URL with the SHA-256 GitHub shows for that release asset (`<url>@sha256:<digest>`). `tools/update-pins.sh` leaves it alone: to update it, change the version in the URL, and the Fedora release (`fcNN`) when the base moves to a new one, then the digest.
 

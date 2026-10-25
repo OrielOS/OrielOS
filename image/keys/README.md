@@ -11,3 +11,7 @@ Signs the NVIDIA driver packages from negativo17. `image/build/30-nvidia.sh` imp
 - Fingerprint: `0C5D 0F47 0484 AE2F C40A  9B65 97F3 0089 93E8 909B` (Simone Caronni, negativo17.org; RSA 4096, expires 2029-08-31).
 
 Check it with `gpg --show-keys --with-fingerprint image/keys/RPM-GPG-KEY-negativo17`.
+
+## orielos-cosign.pub
+
+The public half of the key that CI signs published OrielOS builds with (see "Publishing" in `image/README.md`). When it's here, `image/build/88-signing.sh` installs it in the image and requires its signature on every update from `ghcr.io/ncjsvr/orielos`. The private half lives only in the `publish` environment's secrets. The maintainer creates the pair with `cosign generate-key-pair` and adds this file.

@@ -255,9 +255,26 @@ It needs the same tools as the boot test and runs as root. A run takes about eig
 tests/screenshot-tour.sh
 ```
 
+## Smoke test
+
+`smoke-test.sh` is the short check that CI runs on each build before it's signed and published (see `image/README.md`); the boot test and the update test run locally before a change merges. It installs the image like the boot test, finishes setup over SSH on the first boot (so Plasma Setup's wizard is skipped), restarts, and checks:
+
+1. The first boot answers over SSH.
+2. The second boot reaches the sign-in screen: SDDM started and `graphical.target` was reached, read from the serial console (`signin.png`).
+3. The boot is anti-cheat ready: the same kernel arguments, lockdown, kexec, BPF LSM and hibernation checks as the boot test.
+4. Every loaded module has an allowed signer from `image/module-signers.txt`.
+5. Universal Blue's key is trusted (`mokutil --test-key`).
+6. No systemd unit failed.
+
+```sh
+tests/smoke-test.sh --image localhost/orielos:44.20261026
+```
+
+It uses 4 GiB of memory by default and takes about ten minutes. `probe.txt` in the results holds what the VM reported. `--image`, `--archive`, `--results` and `--keep` work as in the boot test.
+
 ## Shared VM code
 
-`lib/vm.sh` holds what the VM scripts need: the PASS, FAIL, WARN and INFO lines, installing the image, starting the VM with its firmware, TPM and vsock device, SSH into the VM, pressing keys, clicking and taking screenshots over QMP, finishing setup and cleaning up. They all source it. `.shellcheckrc` lets shellcheck follow it.
+`lib/vm.sh` holds what the VM scripts need: the PASS, FAIL, WARN and INFO lines, installing the image, starting the VM with its firmware, TPM and vsock device, SSH into the VM, pressing keys, clicking and taking screenshots over QMP, finishing setup and cleaning up. They all source it. `.shellcheckrc` lets shellcheck follow it. SSH goes through `systemd-ssh-proxy`, or through `socat`'s `VSOCK-CONNECT` where systemd is older than 256, as on GitHub's Ubuntu 24.04 runners.
 
 ## Still to come
 
