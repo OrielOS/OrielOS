@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme-banner-dark.png">
+  <img alt="OrielOS" src=".github/assets/readme-banner.png">
+</picture>
+
 # OrielOS
 
 OrielOS is a Linux distribution that looks and works like Windows 11 and is tuned for gaming on desktop PCs, starting with NVIDIA RTX graphics. The aim is simple: everything you do on Windows, done the same way, without Windows.

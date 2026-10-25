@@ -31,13 +31,14 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 
   On success it prints the kernel, its default LSM list and the kernel arguments.
 - `module-signers.txt`: the allowed module signers, one per line: `Fedora kernel signing key` and `ublue kernel` (Universal Blue's). OrielOS never builds or signs kernel modules itself and never ships one signed by another key, which keeps it eligible for anti-cheat systems that check the module signing chain.
-- `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists) and `orielos-secure-boot-key.service` (and fails if its parts are missing; see [Secure Boot](#secure-boot)), fails if new users would not get the taskbar (see [The taskbar](#the-taskbar)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
+- `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists) and `orielos-secure-boot-key.service` (and fails if its parts are missing; see [Secure Boot](#secure-boot)), fails if new users would not get the taskbar or the wallpapers (see [The taskbar](#the-taskbar)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
 - `system/`: files copied into the image as they are, laid out like the filesystem. It holds:
   - `usr/bin/orielos-update`: the update command (see [Updates](#updates)).
   - `usr/libexec/orielos/flatpak-setup` and `usr/lib/systemd/system/orielos-flatpak-setup.service`: the first-boot install of Firefox from Flathub (see [The Store](#the-store)).
   - `usr/libexec/orielos/secure-boot-key`, `usr/lib/systemd/system/orielos-secure-boot-key.service`, `usr/libexec/orielos/secure-boot-notify` and `etc/xdg/autostart/orielos-secure-boot-notify.desktop`: the Secure Boot key step (see [Secure Boot](#secure-boot)). The Containerfile copies `system/etc/` to `/etc`, which bootc keeps as the default configuration.
   - `etc/skel/.config/kglobalshortcutsrc`: the KWin shortcuts every new user starts with (see [Keyboard shortcuts](#keyboard-shortcuts)).
   - `etc/xdg/dolphinrc`: Files (Dolphin) opens a fresh window on the Home folder instead of restoring the last session's tabs.
+  - `etc/xdg/kscreenlockerrc`: the lock screen shows the OrielOS wallpaper instead of Fedora's (see [The taskbar](#the-taskbar)).
   - `usr/lib/bootc/install/00-orielos.toml`: the install configuration, which makes every installation use a Btrfs root filesystem with zstd compression.
   - `usr/lib/bootc/kargs.d/10-orielos-splash.toml`: the kernel arguments for the boot splash, `rhgb quiet`.
   - `usr/lib/bootc/kargs.d/20-orielos-anticheat.toml`, `usr/lib/sysctl.d/60-orielos-kexec.conf` and `usr/lib/systemd/sleep.conf.d/50-orielos.conf`: the anti-cheat boot mode (see [Anti-cheat boot mode](#anti-cheat-boot-mode)).
@@ -66,15 +67,15 @@ Apps that Flathub provides are not preinstalled: no text editor, document or ima
 
 ## The taskbar
 
-New users get a Windows 11-style taskbar: the Start button and pinned apps (Files, Firefox and Store) in the centre of a panel along the bottom of the screen, and the system tray, the clock with the date and the show-desktop sliver at the right. Notifications appear at the bottom right, next to the tray. It comes from OrielOS's look-and-feel package, built from `plasma/` with the apps; [plasma/README.md](../plasma/README.md) describes the package, its layout script and the update scripts for existing users.
+New users get a Windows 11-style taskbar: the Start button, with the OrielOS Start icon from `artwork/icons/orielos-start.svg`, and pinned apps (Files, Firefox and Store) in the centre of a panel along the bottom of the screen, and the system tray, the clock with the date and the show-desktop sliver at the right. Notifications appear at the bottom right, next to the tray. The desktop and the lock screen show the OrielOS wallpaper: Daybreak with a light colour scheme and Nightfall with a dark one, with OrielOS Horizon offered in the wallpaper picker. They come from OrielOS's look-and-feel package and the wallpapers, built from `plasma/` and `artwork/` with the apps; [plasma/README.md](../plasma/README.md) describes the package, its layout script, the wallpapers and the update scripts for existing users.
 
 - `build/20-desktop.sh` sets `LookAndFeelPackage=org.orielos.desktop` in the `[KDE]` group of `/etc/xdg/kdeglobals`. `/etc/xdg` comes before Fedora's `kde-settings` profile (`/usr/share/kde-settings/kde-profile/default/xdg`) on `XDG_CONFIG_DIRS`, which still sets Fedora's look-and-feel there, so OrielOS's wins without changing Fedora's files. `build/25-store.sh` adds the default browser to the same file.
 - Plasma runs the package's layout script when a user logs in for the first time, so it applies to every account created after installation, including the first one from Plasma Setup.
-- Plasma Setup's Dark Theme switch applies Fedora's dark look-and-feel, which the wizard passes on to the new account. That account's first desktop then starts from Fedora's layout, and OrielOS's update script `orielos-taskbar-1.js` moves its panel into the taskbar order straight away, with the OrielOS Start icon, but the panel keeps Fedora's floating style, the pager and the default pinned apps. An OrielOS dark look-and-feel will replace this.
-- SDDM's login screen keeps Fedora's Breeze theme, and the lock screen is Breeze's, until OrielOS has its own.
-- The image's files all have the same timestamp, so icon loaders would trust Fedora's `hicolor` icon cache and miss the Start button's icon; `build/90-finalise.sh` rebuilds the cache with `gtk-update-icon-cache`, and fails the build if the setting, the package or the icon is missing.
+- Plasma Setup's Dark Theme switch applies Fedora's dark look-and-feel, which the wizard passes on to the new account. That account's first desktop then starts from Fedora's layout, and OrielOS's update script `orielos-taskbar-1.js` moves its panel into the taskbar order straight away, with the OrielOS Start icon, but the panel keeps Fedora's floating style, the pager and the default pinned apps, and the desktop keeps Fedora's wallpaper. An OrielOS dark look-and-feel will replace this.
+- SDDM's login screen keeps Fedora's Breeze theme, and the lock screen is Breeze's with the OrielOS wallpaper, from `system/etc/xdg/kscreenlockerrc`, until OrielOS has its own.
+- The image's files all have the same timestamp, so icon loaders would trust Fedora's `hicolor` icon cache and miss the Start button's icon; `build/90-finalise.sh` rebuilds the cache with `gtk-update-icon-cache`, and fails the build if the setting, the package, the icon, either wallpaper package or the lock screen's wallpaper setting is missing.
 
-`tests/boot-test.sh` checks the new user's taskbar.
+`tests/boot-test.sh` checks the new user's taskbar and wallpaper.
 
 ## Keyboard shortcuts
 

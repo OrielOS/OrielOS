@@ -1,0 +1,12 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Id": "OrielOS-Horizon",
+        "License": "CC-BY-SA-4.0",
+        "Name": "OrielOS Horizon"
+    }
+}

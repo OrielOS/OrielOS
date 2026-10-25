@@ -1,19 +1,29 @@
 # artwork
 
-OrielOS's visual and audio identity.
-
-Will contain:
-
-- The logo.
-- Wallpapers.
-- Sounds.
-- The boot splash.
-- The login theme.
+The artwork that OrielOS itself uses: the logo, the Start button icon, the boot splash logo and the wallpapers. [CREDITS.md](CREDITS.md) records where every file comes from.
 
 Contents:
 
-- `logo/orielos-logo-placeholder.svg`: a placeholder for the OrielOS logo, a stylised oriel (bay) window in one colour, by the OrielOS contributors. It is installed as the `orielos-start` icon and used on the Start button until the real logo is ready.
+- `logo/`: the mark, the wordmark and the horizontal and stacked logos, as SVG. Each comes in colour, for dark grounds (`-dark`), in one colour (`-mono`) and in white (`-white`). They are for the OS's own screens, such as About, sign-in and setup.
+- `icons/orielos-start.svg`: the Start button on the taskbar, installed as the `orielos-start` icon. It is the mark drawn with wider gaps between the panes, so it stays clear at 16 to 32 px.
+- `splash/`: the stacked logo in one colour, as SVG and PNG, for the boot splash.
+- `wallpapers/`: two Plasma wallpaper packages, each with a light and a dark image that Plasma switches with the colour scheme.
+  - `OrielOS` is the default: Daybreak (light) and Nightfall (dark), a glass bay window standing on a sill of daylight.
+  - `OrielOS-Horizon` is the same sky without the window.
+  - Their SVG sources are in `wallpapers/src/`.
+
+Using the logo:
+
+- Keep clear space around the logo at least as wide as one side pane of the mark.
+- Don't recolour, stretch, rotate or outline it, or add effects to it.
+- Use the `-dark` or `-white` files on dark grounds.
+
+Will contain:
+
+- Sounds.
+- The boot splash theme.
+- The login and lock screen theme.
 
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder), not the GPL.
 
-Contributions must be original or under a compatible licence, with the attribution recorded. Nothing owned by Microsoft may be added: no Windows logos, Segoe fonts, Microsoft icons, sounds or wallpapers.
+Contributions must be original or under a compatible licence, with the attribution recorded in `CREDITS.md`. Nothing owned by Microsoft may be added: no Windows logos, Segoe fonts, Microsoft icons, sounds or wallpapers.

@@ -6,10 +6,13 @@
 // plasma-org.kde.plasma.desktop-appletsrc yet. Keep the widget order in step with
 // plasma/updates/, which moves existing users' panels to it.
 
-// The desktop, as in Breeze's layout.
+// The desktop, as in Breeze's layout, with the OrielOS wallpaper: Daybreak with a light colour
+// scheme and Nightfall with a dark one.
 var desktopsArray = desktopsForActivity(currentActivity());
 for (var j = 0; j < desktopsArray.length; j++) {
     desktopsArray[j].wallpaperPlugin = "org.kde.image";
+    desktopsArray[j].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
+    desktopsArray[j].writeConfig("Image", "file:///usr/share/wallpapers/OrielOS/");
 }
 
 var panel = new Panel;

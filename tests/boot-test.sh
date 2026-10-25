@@ -4,8 +4,8 @@
 # device it then finishes setup the way the wizard does (creates a user and marks setup done),
 # restarts the VM and checks that the second boot reaches the login screen without Plasma Setup.
 # On the second boot it checks the services, starts OrielOS's apps and logs the new user in to a
-# Plasma Wayland session inside the VM, and checks that the new user got the Windows-style taskbar
-# and the Windows keyboard shortcuts.
+# Plasma Wayland session inside the VM, and checks that the new user got the Windows-style taskbar,
+# the OrielOS wallpaper and the Windows keyboard shortcuts.
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
 # The VM's firmware has Universal Blue's driver-signing key enrolled, and the test checks that the
@@ -84,6 +84,9 @@ TASKBAR_LOCATION=""
 TASKBAR_ORDER=""
 TASKBAR_LAUNCHERS=""
 TASKBAR_ICON=""
+# The new user's desktop wallpaper, from the same file, and whether its light image is installed.
+WALLPAPER_IMAGE=""
+WALLPAPER_FILE=""
 # The Windows shortcuts: "<shortcut>|<Qt key code>|<component>|<action>". The component may be
 # empty when only the action name is fixed. Keep in step with docs/keyboard-shortcuts.md.
 SHORTCUT_TABLE=(
@@ -476,7 +479,8 @@ PY
 
 # Copy the test user's Plasma layout to plasma-appletsrc in the results and read its panels:
 # how many there are, where the panel is, its widgets in order, the task manager's pinned apps
-# and the Start button's icon.
+# and the Start button's icon. Also read the desktop's wallpaper and check that the OrielOS
+# wallpaper's light image is installed.
 read_taskbar() {
     local out
     vm_ssh cat "/home/$TEST_USER/.config/plasma-org.kde.plasma.desktop-appletsrc" >"$RESULTS/plasma-appletsrc" 2>/dev/null || return 0
@@ -487,11 +491,14 @@ read_taskbar() {
     TASKBAR_ORDER="$(sed -n 's/^order=//p' <<<"$out")"
     TASKBAR_LAUNCHERS="$(sed -n 's/^launchers=//p' <<<"$out")"
     TASKBAR_ICON="$(sed -n 's/^icon=//p' <<<"$out")"
+    WALLPAPER_IMAGE="$(sed -n 's/^wallpaper=//p' <<<"$out")"
+    WALLPAPER_FILE="$(vm_ssh "test -f /usr/share/wallpapers/OrielOS/contents/images/3840x2160.jpg && echo present || echo missing" 2>&1)" || true
 }
 
-# Print a summary of the panels in a plasma-org.kde.plasma.desktop-appletsrc file: "panels=<count>"
-# and, when there is exactly one panel, "location=<edge>" (4 is the bottom), "order=<widgets>"
-# (plugin names without org.kde.plasma.), "launchers=<pinned apps>" and "icon=<Start icon>".
+# Print a summary of the panels in a plasma-org.kde.plasma.desktop-appletsrc file:
+# "wallpaper=<the desktops' Image values, comma-separated>", "panels=<count>" and,
+# when there is exactly one panel, "location=<edge>" (4 is the bottom), "order=<widgets>" (plugin
+# names without org.kde.plasma.), "launchers=<pinned apps>" and "icon=<Start icon>".
 #   taskbar_summary <file>
 taskbar_summary() {
     python3 -I - "$1" <<'PY'
@@ -510,6 +517,11 @@ for line in open(sys.argv[1], encoding="utf-8"):
         key, value = line.split("=", 1)
         groups[group][key] = value
 
+# Desktops belong to an activity; panels and the system tray do not.
+desktops = [g for g, keys in groups.items()
+            if len(g) == 2 and g[0] == "Containments" and keys.get("activityId")]
+images = sorted({groups.get(d + ("Wallpaper", "org.kde.image", "General"), {}).get("Image", "") for d in desktops})
+print("wallpaper=" + ",".join(images))
 panels = [g[1] for g, keys in groups.items()
           if len(g) == 2 and g[0] == "Containments" and keys.get("plugin") == "org.kde.panel"]
 print(f"panels={len(panels)}")
@@ -622,7 +634,7 @@ PY
 }
 
 run_checks() {
-    local status="$1" colours="$2" cmdline btrfs after failed unit line versions rejected taskbar shown="not reached"
+    local status="$1" colours="$2" cmdline btrfs after failed unit line versions rejected taskbar wallpaper shown="not reached"
     local wrong spec key component action names meta arg
     local ac_cmdline ac_lockdown ac_kexec ac_lsm ac_hibernate ac_modules ac_bad ac_missing
     local no_ssh="SSH over vsock did not answer, so this could not be checked inside the VM"
@@ -847,6 +859,20 @@ run_checks() {
         fail "The Start button does not use the OrielOS logo (kickoff icon: ${TASKBAR_ICON:-none})"
     else
         pass "The Windows-style taskbar is set up (one panel at the bottom: $TASKBAR_ORDER; pinned: $TASKBAR_LAUNCHERS; Start icon: $TASKBAR_ICON)"
+    fi
+
+    wallpaper="file:///usr/share/wallpapers/OrielOS/"
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "The OrielOS wallpaper is set: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$TASKBAR_READ" -ne 1 ]]; then
+        fail "The OrielOS wallpaper is set: could not read $TEST_USER's ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
+    elif [[ "$WALLPAPER_IMAGE" != "$wallpaper" ]]; then
+        fail "$TEST_USER's desktop does not use the OrielOS wallpaper (Image: ${WALLPAPER_IMAGE:-none}; expected: $wallpaper)"
+    elif [[ "$WALLPAPER_FILE" != "present" ]]; then
+        fail "The OrielOS wallpaper's light image is not installed (/usr/share/wallpapers/OrielOS/contents/images/3840x2160.jpg: ${WALLPAPER_FILE:-no output})"
+    else
+        pass "The OrielOS wallpaper is set (desktop Image: $WALLPAPER_IMAGE; /usr/share/wallpapers/OrielOS/contents/images/3840x2160.jpg is installed)"
     fi
 
     wrong=""

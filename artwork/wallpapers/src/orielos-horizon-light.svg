@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+OrielOS Horizon, light wallpaper: the OrielOS sky and its glows, without the window.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 3840 2160"><title>OrielOS Horizon, light</title><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="2160" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#CADAFB"/><stop offset="0.55" stop-color="#E6EDFB"/><stop offset="1" stop-color="#F7F1EA"/></linearGradient><radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#6D97FA" stop-opacity="0.45"/><stop offset="1" stop-color="#6D97FA" stop-opacity="0"/></radialGradient><radialGradient id="warm" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFB547" stop-opacity="0.32"/><stop offset="1" stop-color="#FFB547" stop-opacity="0"/></radialGradient></defs><rect x="-10" y="-10" width="3860" height="2180" fill="url(#sky)"/><ellipse cx="1920" cy="920" rx="1562.5" ry="1187.5" fill="url(#glow)"/><ellipse cx="1920" cy="1670.0" rx="1687.5" ry="525.0" fill="url(#warm)"/></svg>

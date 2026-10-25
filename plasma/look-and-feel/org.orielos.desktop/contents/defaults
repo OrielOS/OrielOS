@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # The settings that applying this look-and-feel writes: Breeze colours, Plasma theme, icons,
-# cursors and window decorations for now, until OrielOS has its own.
+# cursors and window decorations for now, until OrielOS has its own, and the OrielOS wallpaper.
+# Plasma also shows this wallpaper on any desktop that has none set.
 
 [kdeglobals][KDE]
 widgetStyle=Breeze
@@ -17,7 +18,7 @@ Theme=breeze
 name=default
 
 [Wallpaper]
-Image=Next
+Image=OrielOS
 
 [kcminputrc][Mouse]
 cursorTheme=breeze_cursors

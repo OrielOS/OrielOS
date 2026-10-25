@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Checks that no build tools are installed, that the first boot will run Plasma Setup, install
 # Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
-# users get the taskbar, refreshes the icon cache,
+# users get the taskbar and the wallpapers, refreshes the icon cache,
 # rebuilds the initramfs for the installed kernel, removes build
 # leftovers and lints the image.
 set -Eeuo pipefail
@@ -85,6 +85,16 @@ if [[ ! -f "/usr/share/plasma/look-and-feel/$lnf/contents/layouts/org.kde.plasma
 fi
 if [[ ! -f /usr/share/icons/hicolor/scalable/apps/orielos-start.svg ]]; then
     taskbar_errors+=("the Start button's icon, orielos-start.svg, is not installed")
+fi
+# The wallpapers come from the app-builder stage too. The look-and-feel package, its layout script
+# and /etc/xdg/kscreenlockerrc make OrielOS the desktop and lock screen wallpaper.
+for f in OrielOS/metadata.json OrielOS/contents/images/3840x2160.jpg OrielOS/contents/images_dark/3840x2160.jpg \
+    OrielOS-Horizon/metadata.json OrielOS-Horizon/contents/images/3840x2160.jpg OrielOS-Horizon/contents/images_dark/3840x2160.jpg; do
+    [[ -f "/usr/share/wallpapers/$f" ]] || taskbar_errors+=("the wallpaper file /usr/share/wallpapers/$f is not installed")
+done
+if [[ "$(kreadconfig6 --file /etc/xdg/kscreenlockerrc --group Greeter --group Wallpaper --group org.kde.image \
+    --group General --key Image)" != "file:///usr/share/wallpapers/OrielOS/" ]]; then
+    taskbar_errors+=("/etc/xdg/kscreenlockerrc does not make OrielOS the lock screen wallpaper")
 fi
 if [[ "${#taskbar_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${taskbar_errors[@]}" >&2

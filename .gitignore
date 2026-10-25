@@ -47,3 +47,6 @@ desktop.ini
 
 # Local tool downloads
 .cache/
+
+# Python bytecode from the artwork tools
+__pycache__/
