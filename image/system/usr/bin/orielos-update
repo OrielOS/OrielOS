@@ -40,6 +40,8 @@
 #   forget     remove DIGEST from the rejected builds, so it can be staged again
 # The update source is set in /usr/lib/orielos/update.conf and can be overridden in
 # /etc/orielos/update.conf. The state for the desktop is in /var/lib/orielos/update/state.json.
+# Once the image carries OrielOS's signing key (/etc/pki/containers/orielos.pub), a registry build
+# is staged only if its signature checks out under /etc/containers/policy.json.
 # Exit status: 0 on success, 1 on errors, 2 on wrong usage, 3 if the build was rejected.
 # Runs as root.
 set -Eeuo pipefail
@@ -59,6 +61,7 @@ KEEP_DAYS=14
 BUILD_INFO="$PREFIX/usr/lib/orielos/build-info"
 VENDOR_CONF="$PREFIX/usr/lib/orielos/update.conf"
 ADMIN_CONF="$PREFIX/etc/orielos/update.conf"
+SIGNING_KEY="$PREFIX/etc/pki/containers/orielos.pub"
 BOOT_ID_FILE="$PREFIX/proc/sys/kernel/random/boot_id"
 CHECK_UNIT="orielos-update-check.service"
 STATUS_JSON=""
@@ -69,7 +72,7 @@ die() {
 }
 
 usage() {
-    sed -n '2,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,46p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 need() {
@@ -397,7 +400,7 @@ finish() {
 }
 
 cmd_check() {
-    local channel source transport location ref info digest version until out
+    local channel source transport location ref info digest version until out verify
     need bootc jq skopeo
     clear_ended_pause
     load_status
@@ -456,9 +459,12 @@ cmd_check() {
     printf 'Staging OrielOS %s (%s) from the %s channel\n' "$version" "$digest" "$channel"
     # Without --apply, bootc downloads the build and stages it for the next boot; the running
     # system is left as it is. A registry build is pinned to the digest just read, so a tag that
-    # moves meanwhile can't swap in a different build.
+    # moves meanwhile can't swap in a different build, and its signature must check out once the
+    # image carries the signing key.
     if [[ "$transport" == docker ]]; then
-        out="$(bootc switch --quiet "$location@$digest" 2>&1)" ||
+        verify=()
+        if [[ -r "$SIGNING_KEY" ]]; then verify=(--enforce-container-sigpolicy); fi
+        out="$(bootc switch --quiet "${verify[@]}" "$location@$digest" 2>&1)" ||
             finish 1 error "Couldn't stage OrielOS $version: $(tail -n1 <<<"$out")"
     else
         out="$(bootc switch --quiet --transport oci "$location:$channel" 2>&1)" ||

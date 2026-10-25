@@ -248,6 +248,16 @@ check "a newer build is staged" test "$RC" -eq 0 -a "$(state .result)" == staged
 check "a registry build is staged pinned to its digest" called "bootc switch --quiet example.test/orielos@$NEWER"
 check "state.json names the staged version" test "$(state .staged.version)" == 44.2
 
+# With OrielOS's signing key in the image, bootc checks the build's signature against the policy.
+setup
+mkdir -p "$WORK/root/etc/pki/containers"
+printf 'key\n' >"$WORK/root/etc/pki/containers/orielos.pub"
+skopeo_info "$NEWER" 44.2 >"$WORK/stub/skopeo.json"
+bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/status-after-switch.json"
+run check
+check "with the signing key, a registry build is staged only if its signature checks out" \
+    called "bootc switch --quiet --enforce-container-sigpolicy example.test/orielos@$NEWER"
+
 setup
 skopeo_info "$NEWER" 44.2 >"$WORK/stub/skopeo.json"
 bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"

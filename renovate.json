@@ -1,0 +1,37 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Weekly refresh of the digests pinned in image/pins.env, which is how Fedora's updates reach OrielOS builds. GitHub Actions and the Discord bot's packages are left to Dependabot.",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["custom.regex"],
+  "timezone": "Europe/London",
+  "schedule": ["before 6am on monday"],
+  "commitBody": "Signed-off-by: {{{gitAuthor}}}",
+  "semanticCommits": "enabled",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Container images in image/pins.env, pinned as name:tag@sha256:digest",
+      "managerFilePatterns": ["/^image/pins\\.env$/"],
+      "matchStrings": [
+        "\"(?<depName>[a-z0-9][a-z0-9.\\-]*(?:/[a-z0-9._\\-]+)+):(?<currentValue>[A-Za-z0-9._\\-]+)@(?<currentDigest>sha256:[a-f0-9]{64})\""
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Refresh the digests together, in one pull request a week: the two akmods images must match the same kernel.",
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["digest"],
+      "groupName": "OS image inputs",
+      "semanticCommitType": "build",
+      "semanticCommitScope": null
+    },
+    {
+      "description": "A new Fedora release changes the tags; that move is planned separately, not proposed here.",
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "enabled": false
+    }
+  ]
+}

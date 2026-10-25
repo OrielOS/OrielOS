@@ -200,9 +200,11 @@ check_vsock() {
     done
     if [[ -n "$proxy" ]]; then
         pass "systemd-ssh-proxy is installed ($proxy)"
+    elif command -v socat >/dev/null 2>&1; then
+        pass "socat is installed, and stands in for systemd-ssh-proxy (systemd 256 or newer)"
     else
-        fail "systemd-ssh-proxy is not installed" \
-            "it comes with systemd 256 or newer (Ubuntu 24.10 or newer, Fedora 41 or newer)"
+        fail "neither systemd-ssh-proxy nor socat is installed" \
+            "systemd-ssh-proxy comes with systemd 256 or newer (Ubuntu 24.10 or newer, Fedora 41 or newer); otherwise sudo apt install socat"
     fi
 }
 
