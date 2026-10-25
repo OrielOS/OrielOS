@@ -328,6 +328,21 @@ QtObject {
         return event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier) !== 0);
     }
 
+    // Plasma names its pinning actions after its own widgets: the taskbar's app list is the "Task
+    // Manager" there, which OrielOS users know as the process tool. Start names the three places an
+    // app can be pinned instead: Start, the taskbar and the desktop.
+    function actionLabel(actionId: string, plasmaText: string): string {
+        switch (actionId) {
+        case "addToTaskManager":
+        case "addToPanel":
+            return KI18n.i18nc("@action:inmenu Pin an app to the taskbar", "Pin to taskbar");
+        case "addToDesktop":
+            return KI18n.i18nc("@action:inmenu Put an app's icon on the desktop", "Pin to desktop");
+        default:
+            return plasmaText;
+        }
+    }
+
     // Opens the context menu for an entry of model. findRow() gives the entry's row when an
     // action runs, or -1 if it's gone. favoriteId may be empty; pinnedIndex is the tile's index
     // when the menu is for a pinned tile, otherwise -1.
@@ -363,7 +378,7 @@ QtObject {
                 const actionId = action.actionId ?? "";
                 const argument = action.actionArgument;
                 actions.push({
-                    text: action.text ?? "",
+                    text: state.actionLabel(actionId, String(action.text ?? "")),
                     icon: typeof action.icon === "string" ? action.icon : "",
                     enabled: action.enabled ?? true,
                     handler: () => {

@@ -13,6 +13,7 @@ Your pinned apps fill the top of Start. To change them, right-click an app anywh
 - **Pin to Start** adds it to the end of your pinned apps.
 - **Unpin from Start** removes it.
 - **Move to front** moves a pinned app to the first place.
+- **Pin to taskbar** adds it to the apps in the middle of the taskbar, and **Pin to desktop** puts its icon on the desktop.
 
 Your pinned apps are saved with your account, so they stay the same after a restart or an update. An app you pinned that isn't installed yet appears as soon as it is.
 
