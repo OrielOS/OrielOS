@@ -41,14 +41,16 @@ test("a published release becomes one embed", () => {
   ]);
 });
 
-test("a pre-release is labelled", () => {
+test("a pre-release is a test build that asks for the Testers ping", () => {
   const [message] = messagesFor(
     "release",
     { action: "published", release: { ...release, prerelease: true, assets: [] } },
     repo,
   );
-  assert.equal(message.embeds[0].title, "Pre-release: 1.0");
+  assert.equal(message.embeds[0].title, "Test build 1.0 is ready");
   assert.equal(message.embeds[0].fields, undefined);
+  assert.equal(message.pingTesters, true);
+  assert.equal(message.mentions, undefined);
 });
 
 test("drafts and other release actions are skipped", () => {

@@ -29,7 +29,12 @@ export function parseRecord(content) {
     return { kind: "welcome", message: value.message };
   }
   if (value.kind === "feed" && Number.isInteger(value.pr) && value.pr >= 0) {
-    return { kind: "feed", pr: value.pr };
+    const record = { kind: "feed", pr: value.pr };
+    if (Number.isInteger(value.stars) && value.stars >= 0) record.stars = value.stars;
+    return record;
+  }
+  if (value.kind === "tester" && typeof value.discord === "string" && value.discord !== "") {
+    return { kind: "tester", discord: value.discord };
   }
   return null;
 }
@@ -39,7 +44,10 @@ export function serialiseRecord(record) {
     const { kind, discord, github, login, at, on } = record;
     return JSON.stringify({ kind, discord, github, login, at, on });
   }
-  if (record.kind === "feed") return JSON.stringify({ kind: "feed", pr: record.pr });
+  if (record.kind === "feed") {
+    return JSON.stringify({ kind: "feed", pr: record.pr, stars: record.stars });
+  }
+  if (record.kind === "tester") return JSON.stringify({ kind: "tester", discord: record.discord });
   return JSON.stringify({ kind: "welcome", message: record.message });
 }
 
@@ -84,6 +92,30 @@ export function linksToMove(links, reactorIds, welcomeId) {
   );
 }
 
+// Who to give the Testers role (reacted, no record) and whose record to drop (reaction gone).
+export function planTesters(reactorIds, testers) {
+  const known = new Set(testers.map((tester) => tester.discord));
+  return {
+    add: [...reactorIds].filter((id) => !known.has(id)),
+    remove: testers.filter((tester) => !reactorIds.has(tester.discord)),
+  };
+}
+
+// Records are given newest first. Keeps the first record for each member.
+export function dedupeTesters(testers) {
+  const seen = new Set();
+  const keep = [];
+  const drop = [];
+  for (const tester of testers) {
+    if (seen.has(tester.discord)) drop.push(tester);
+    else {
+      seen.add(tester.discord);
+      keep.push(tester);
+    }
+  }
+  return { keep, drop };
+}
+
 export async function loadStore(rest, channel, botId) {
   const entries = [];
   let before;
@@ -101,10 +133,16 @@ export async function loadStore(rest, channel, botId) {
   const { keep, drop } = dedupeLinks(entries.filter((entry) => entry.kind === "link"));
   const welcomes = entries.filter((entry) => entry.kind === "welcome");
   const feeds = entries.filter((entry) => entry.kind === "feed");
-  for (const entry of [...drop, ...welcomes.slice(1), ...feeds.slice(1)]) {
+  const testers = dedupeTesters(entries.filter((entry) => entry.kind === "tester"));
+  for (const entry of [...drop, ...welcomes.slice(1), ...feeds.slice(1), ...testers.drop]) {
     await deleteMessage(rest, channel, entry.id);
   }
-  return { links: keep, welcome: welcomes[0] ?? null, feed: feeds[0] ?? null };
+  return {
+    links: keep,
+    welcome: welcomes[0] ?? null,
+    feed: feeds[0] ?? null,
+    testers: testers.keep,
+  };
 }
 
 export async function saveRecord(rest, channel, record) {

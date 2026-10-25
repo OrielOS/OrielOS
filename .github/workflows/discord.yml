@@ -12,9 +12,9 @@ on:
   push:
     branches: [main]
   issues:
-    types: [opened]
+    types: [opened, labeled]
   discussion:
-    types: [created]
+    types: [created, answered]
   pull_request:
     paths:
       - "discord/**"
@@ -85,6 +85,7 @@ jobs:
         working-directory: discord
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           CHANNEL_FEED: "1563925191057346662"
         run: node src/post.js
 

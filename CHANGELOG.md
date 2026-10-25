@@ -6,7 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
-- The OrielOS Discord bot also posts new issues, discussions and pull requests to the Discord server's feed channel.
+- The OrielOS Discord bot also posts new issues, discussions and pull requests, good first issues, answered questions, first contributions and star milestones to the Discord server's feed channel. Test builds ping members who react 🧪 for the Testers role.
 - Pull requests from anyone but the maintainer that change the project's workflows, code owners, Discord bot, image signing keys and pins, licences or policy documents are closed automatically, as the contributing guide explains.
 - orielos.org has "Join the discussion on GitHub" and "Join Discord" buttons in GitHub's and Discord's own colours, at the top of the page and under "Made in the open".
 - The official OrielOS Discord server, https://discord.gg/RnpZYaKbHA, for live chat and quick help, linked from the README, the support and contributing guides, the user documentation and orielos.org. It's the only official OrielOS Discord server.

@@ -37,6 +37,7 @@ test("configuration has defaults", () => {
     feed: "github-feed",
     maintainer: "Maintainer",
     contributor: "Contributor",
+    testers: "Testers",
   });
 });
 
