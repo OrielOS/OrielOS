@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# Names OrielOS and the build's version in os-release, which the boot menu's entries, the Settings
-# app and system tools read. The boot menu shows PRETTY_NAME, so it carries the version. Fedora's
-# ID, VERSION_ID and CPE_NAME stay, so tools that look for the Fedora release the packages come
-# from still find it.
-# Usage: 95-os-release.sh VERSION
+# Records the build's version where the system shows it, in the image's last layer:
+# - os-release names OrielOS and the version. The boot menu's entries, the Settings app and system
+#   tools read it; the boot menu shows PRETTY_NAME, so it carries the version. Fedora's ID,
+#   VERSION_ID and CPE_NAME stay, so tools that look for the Fedora release the packages come from
+#   still find it.
+# - A kernel argument, orielos.build=<version>. Builds often share a kernel and initramfs, and ostree
+#   treats deployments with the same kernel, initramfs and arguments as having the same boot
+#   entries: when going back changes their order it only repoints them, and each entry keeps the
+#   other build's name. With an argument that differs, it writes the entries again.
+# Usage: 95-version.sh VERSION
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -13,7 +18,7 @@ die() {
 }
 
 version="${1:-}"
-[[ "$version" =~ ^[0-9A-Za-z._-]+$ ]] || die "usage: 95-os-release.sh VERSION (letters, digits and . _ - only)"
+[[ "$version" =~ ^[0-9A-Za-z._-]+$ ]] || die "usage: 95-version.sh VERSION (letters, digits and . _ - only)"
 
 file=/usr/lib/os-release
 [[ -f "$file" && ! -L "$file" ]] || die "$file is missing or a link"
@@ -45,3 +50,12 @@ done
 # shellcheck source=/dev/null
 (. "$file" && [[ "$PRETTY_NAME" == "OrielOS $version" && "$IMAGE_VERSION" == "$version" && "$ID" == fedora ]]) ||
     die "$file does not name OrielOS $version"
+
+kargs=/usr/lib/bootc/kargs.d/90-orielos-build.toml
+mkdir -p "${kargs%/*}"
+cat >"$kargs" <<EOF
+# The build's version, so two builds never have the same boot entries (see image/build/95-version.sh).
+kargs = ["orielos.build=$version"]
+EOF
+chmod 0644 "$kargs"
+grep -q "^kargs = \[\"orielos.build=$version\"\]$" "$kargs" || die "$kargs does not set orielos.build=$version"

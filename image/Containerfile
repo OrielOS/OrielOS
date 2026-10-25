@@ -94,14 +94,14 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
 ARG IMAGE_VERSION=must-be-set
 
 # Refuse to build an unversioned image, record the version for orielos-update and the Settings
-# app, and name OrielOS and the version in os-release, which the boot menu's entries are named
-# from.
+# app, and put it in os-release, which the boot menu's entries are named from, and in a kernel
+# argument that keeps each build's boot entries apart.
 # hadolint ignore=DL3059
 RUN --mount=type=bind,source=image/build,target=/ctx \
     [ "${IMAGE_VERSION}" != "must-be-set" ] || { echo "error: IMAGE_VERSION is not set" >&2; exit 1; } && \
     mkdir -p /usr/lib/orielos && \
     printf 'VERSION=%s\n' "${IMAGE_VERSION}" >/usr/lib/orielos/build-info && \
-    /ctx/95-os-release.sh "${IMAGE_VERSION}"
+    /ctx/95-version.sh "${IMAGE_VERSION}"
 
 LABEL org.opencontainers.image.title="OrielOS" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
