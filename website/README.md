@@ -60,7 +60,9 @@ The build then writes `sitemap.xml` with every checked page. It has no `lastmod`
 
 Before each deploy, `node website/indexnow.mjs changed` compares the built pages with the live site and lists the new, changed and removed ones. After the deploy, `node website/indexnow.mjs submit` sends that list to [IndexNow](https://www.indexnow.org/), which shares it with the search engines that take part, so they crawl the pages soon. The key in the key file is public by design: search engines fetch it to check that the list comes from orielos.org. Network problems in either step only print a warning, so they never stop a deploy.
 
-GitHub Pages can't set response headers, so the page sets its Content-Security-Policy and referrer policy in `<meta>` tags. The policy allows nothing from other sites. Its `connect-src 'self'` lets tools that audit the page from inside it, such as Lighthouse, read `robots.txt`; no script can run on the page, so nothing else can use it. The other security headers and HSTS come from Cloudflare, which sits in front of orielos.org.
+GitHub Pages can't set response headers, so the page sets its Content-Security-Policy and referrer policy in `<meta>` tags. GitHub Pages enforces HTTPS, and the site sends no other security headers.
+
+The policy allows one thing from another site: images from `https://www.bestpractices.dev`, for the OpenSSF Best Practices and Baseline badges in the footer. The badges are loaded live, so they always show the project's current levels, and that site sets no cookies. Everything else comes from orielos.org. The policy's `connect-src 'self'` lets tools that audit the page from inside it, such as Lighthouse, read `robots.txt`; no script can run on the page, so nothing else can use it.
 
 ## Writing and design
 

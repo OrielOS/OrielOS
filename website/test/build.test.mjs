@@ -239,6 +239,26 @@ test("the home page with contributors gives every image alt text", () => {
   assert.doesNotMatch(html, /alt=""/);
 });
 
+test("the footer shows the live Best Practices and Baseline badges, the only images from another site", () => {
+  const html = renderPage(template, { contributors: [], release: null });
+  for (const badge of ["badge", "baseline"]) {
+    assert.match(
+      html,
+      new RegExp(
+        `<a href="https://www\\.bestpractices\\.dev/projects/15906"><img src="https://www\\.bestpractices\\.dev/projects/15906/${badge}" alt="[^"]+"`,
+      ),
+    );
+  }
+  const csp = /http-equiv="Content-Security-Policy" content="([^"]*)"/.exec(html)[1];
+  const imgSrc = csp.split(";").map((part) => part.trim()).find((part) => part.startsWith("img-src"));
+  assert.equal(imgSrc, "img-src 'self' https://www.bestpractices.dev");
+  const outside = [...html.matchAll(/<img\b[^>]*src="(https?:[^"]*)"/g)].map((match) => match[1]);
+  assert.deepEqual(outside, [
+    "https://www.bestpractices.dev/projects/15906/badge",
+    "https://www.bestpractices.dev/projects/15906/baseline",
+  ]);
+});
+
 test("the home page has share links that only navigate", () => {
   const html = renderPage(template, { contributors: [], release: null });
   const links = [...html.matchAll(/<a\b[^>]*aria-label="(Share[^"]*)"[^>]*href="([^"]*)"/g)].map(([, label, href]) => ({
