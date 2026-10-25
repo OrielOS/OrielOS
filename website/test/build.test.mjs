@@ -228,6 +228,9 @@ test("checkPages allows structured data but no scripts that run", () => {
   assert.doesNotThrow(() => check(page({ head: '<script type="application/ld+json">{"a": 1}</script>' })));
   assert.throws(() => check(page({ head: "<script>alert(1)</script>" })), /browsers would run/);
   assert.throws(() => check(page({ head: '<script type="module" src="x.js"></script>' })), /browsers would run/);
+  assert.throws(() => check(page({ head: "<script>alert(1)</script >" })), /browsers would run/);
+  assert.throws(() => check(page({ head: "<SCRIPT>alert(1)</SCRIPT foo>" })), /browsers would run/);
+  assert.throws(() => check(page({ head: "<script>alert(1)" })), /browsers would run/);
   assert.throws(() => check(page({ head: '<script type="application/ld+json">{"a": }</script>' })), /isn't valid JSON/);
 });
 

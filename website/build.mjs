@@ -86,10 +86,14 @@ export function readHead(html) {
       canonical = attributes.href ?? "";
     }
   }
-  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].map((match) => ({
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi)].map((match) => ({
     type: (attributesOf(match[1]).type ?? "").toLowerCase(),
     body: match[2],
   }));
+  // A script tag that is never closed still counts, so it can't slip past the checks.
+  if ((html.match(/<script\b/gi)?.length ?? 0) > scripts.length) {
+    scripts.push({ type: "unclosed", body: "" });
+  }
   return { titles, meta, canonical, scripts };
 }
 
