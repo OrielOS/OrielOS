@@ -1,0 +1,25 @@
+[Unit]
+Description=Install the apps OrielOS ships from Flathub
+Documentation=https://github.com/ncjsvr/OrielOS
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/orielos/flatpak-setup.done
+# Retrying never stops on its own, so a long outage cannot make systemd give up.
+StartLimitIntervalSec=0
+
+[Service]
+# Type=simple, not oneshot: a oneshot unit holds up multi-user.target, and with it the login
+# screen, until the download ends, and offline that is never. A simple unit starts in the
+# background and boot carries on.
+Type=simple
+ExecStart=/usr/libexec/orielos/flatpak-setup
+# The first boot often has no network yet, and a download can fail half-way. Restart=on-failure
+# retries by itself every five minutes for as long as it takes, without a second unit. The stamp
+# file ends it, and every later boot skips the unit. Flatpak resumes where it stopped, and
+# RuntimeMaxSec turns a stalled download into a failure that is retried too.
+Restart=on-failure
+RestartSec=5min
+RuntimeMaxSec=1h
+
+[Install]
+WantedBy=multi-user.target

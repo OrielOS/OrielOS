@@ -19,7 +19,7 @@ tests/boot-test.sh --keep --timeout 300
 
 Run `tests/boot-test.sh --help` for all the options. It needs the tools that `tools/check-env.sh` checks for, and runs as root (it uses `sudo` when needed). A run takes about ten minutes, most of it the installation and the two boots. `--timeout` applies to each boot.
 
-It prints PASS or FAIL for fourteen checks, under a "First boot" and a "Second boot" heading, and exits with status 0 only if all fourteen pass.
+It prints PASS or FAIL for seventeen checks, under a "First boot", a "Second boot" and a "Store and Firefox" heading, and exits with status 0 only if all seventeen pass.
 
 First boot:
 
@@ -40,8 +40,14 @@ Second boot, after finishing setup and restarting:
 12. The Bluetooth service is enabled: `systemctl is-enabled bluetooth.service` says `enabled`. The VM has no Bluetooth adapter, so the service is skipped by its condition; its state is printed as an INFO line.
 13. Server defaults are off: `systemctl is-enabled bootc-fetch-apply-updates.timer sshd.service` says `disabled` for both, and there is no `kexec`, `kdumpctl` or `makedumpfile` binary. Both results are printed as INFO lines too.
 14. Kernel modules are signed by Fedora or Universal Blue: `modinfo -F signer nvidia` prints `ublue kernel`; `rpm -q kernel` matches the kernel installed in the image (read with `rpm -q kernel-core` in the container, because the base image's `ostree.linux` label still names the base kernel); and the NVIDIA driver packages (the same set that the image build checks) have exactly one version between them. `rpm -q kernel` and the driver version are printed as INFO lines. The module is not loaded in a VM without an NVIDIA GPU; `modinfo` reads the file, which is what the check needs.
+15. The Windows-style taskbar is set up: after the scripted desktop login, `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, which Plasma wrote from OrielOS's layout script because the user is brand new, has exactly one panel (`plugin=org.kde.panel`), at the bottom (`location=4`). Its widgets, in the panel's `AppletOrder`, are a panel spacer, Kickoff, the icons-only task manager, a panel spacer, the system tray, the digital clock and show desktop; the task manager's `launchers` include `org.kde.dolphin.desktop`, `org.mozilla.firefox.desktop` and `org.kde.discover.desktop`; and Kickoff's `icon` is `orielos-start`, the OrielOS logo placeholder. The file is saved as `plasma-appletsrc` in the results. Look at `desktop.png` too: it should show the Start button and pinned apps in the centre of the taskbar, and the tray and clock at the right.
 
-Checks 3 to 14 read the second boot only: before restarting, the test notes how long the serial log is, and afterwards it reads from the new kernel's first line on. Any other unit that failed to start on the second boot is reported as a WARN and does not fail the test. The times from power-on to SDDM and to Plasma Setup's wizard, the time from the restart to SDDM, the time until SSH answered, the output of `systemctl is-system-running` and the list of failed units are printed as INFO lines too.
+Checks 3 to 15 read the second boot only: before restarting, the test notes how long the serial log is, and afterwards it reads from the new kernel's first line on. Any other unit that failed to start on the second boot is reported as a WARN and does not fail the test. The times from power-on to SDDM and to Plasma Setup's wizard, the time from the restart to SDDM, the time until SSH answered, the output of `systemctl is-system-running` and the list of failed units are printed as INFO lines too.
+
+Store and Firefox, after the second boot:
+
+16. Store is Discover with Flathub only: `flatpak remotes --system` lists only `flathub`, `/usr/share/applications/org.kde.discover.desktop` has `Name=Store`, and `/usr/lib64/qt6/plugins/discover/` holds only `flatpak-backend.so`, so Discover has no system-package, image or firmware backend.
+17. Firefox is installed on first boot: `/var/lib/orielos/flatpak-setup.done` exists (the test waits up to 10 minutes for it), `flatpak list --system --app --columns=application` contains `org.mozilla.firefox`, and `xdg-mime query default x-scheme-handler/https`, run as `orielostest` in a login shell, prints `org.mozilla.firefox.desktop`. The VM has user-mode networking with internet access through the host, so the download is real. It starts on the first boot, so the install is timed from the first power-on; the time and Firefox's version are printed as INFO lines. The test waits for it last, after the other checks, so the download runs alongside them. If the wait runs out, the last lines of the service's journal are printed.
 
 ### Finishing setup
 
@@ -65,6 +71,7 @@ On the second boot, after the login screenshot, the test logs the user that setu
 1. It writes `/etc/sddm.conf.d/99-boot-test-autologin.conf` with an `[Autologin]` section for that user and the Plasma Wayland session, `plasma.desktop` from `/usr/share/wayland-sessions/`.
 2. It restarts SDDM, which logs the user in.
 3. It waits up to 90 seconds for the session, then 15 seconds more for the desktop to draw, and takes `desktop.png`.
+4. It copies the user's Plasma layout, `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, for check 15.
 
 Restarting SDDM stops it on purpose, so check 7 reads the console only up to the restart.
 
@@ -86,6 +93,7 @@ Results go to `tests/results/<run id>/` (ignored by git), or to the folder given
 - `first-boot.png`: Plasma Setup's wizard on the first boot.
 - `screenshot.png`: the login screen on the second boot, taken after pressing a key so the form is visible.
 - `desktop.png`: the Plasma desktop after the scripted login.
+- `plasma-appletsrc`: the test user's Plasma layout, read after the scripted login.
 - `summary.txt`: the same lines as the test printed.
 
 The disk, the SSH key and the VM's other files live in `/var/lib/orielos/vm/<run id>` while the test runs and are deleted afterwards. With `--keep` they stay, and the test prints how to boot the disk again (setup is finished on it, so it starts at the login screen), with the same vsock device and key so SSH keeps working.

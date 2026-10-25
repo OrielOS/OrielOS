@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Checks that no build tools are installed and that the first boot will run Plasma Setup,
-# rebuilds the initramfs for the installed kernel, removes build leftovers and lints the image.
+# Checks that no build tools are installed, that the first boot will run Plasma Setup and install
+# Firefox (and enables the latter) and that new users get the taskbar, refreshes the icon cache,
+# rebuilds the initramfs for the installed kernel, removes build
+# leftovers and lints the image.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -30,6 +32,39 @@ if [[ "${#first_boot_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${first_boot_errors[@]}" >&2
     exit 1
 fi
+
+# The preset file is not applied while the image builds, and the unit is copied in after the
+# package layers, so enable it here. The stamp file that ends it must not be in the image.
+systemctl enable orielos-flatpak-setup.service
+if [[ "$(systemctl is-enabled orielos-flatpak-setup.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-flatpak-setup.service is not enabled\n' >&2
+    exit 1
+fi
+if [[ -e /var/lib/orielos/flatpak-setup.done ]]; then
+    printf 'error: /var/lib/orielos/flatpak-setup.done exists, so Firefox would never be installed\n' >&2
+    exit 1
+fi
+
+# New users get the taskbar from OrielOS's look-and-feel package, which 20-desktop.sh makes the
+# default; the package and the Start button's icon come from the app-builder stage.
+lnf=org.orielos.desktop
+taskbar_errors=()
+if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage)" != "$lnf" ]]; then
+    taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf the default look-and-feel")
+fi
+if [[ ! -f "/usr/share/plasma/look-and-feel/$lnf/contents/layouts/org.kde.plasma.desktop-layout.js" ]]; then
+    taskbar_errors+=("the $lnf look-and-feel package or its layout script is not installed")
+fi
+if [[ ! -f /usr/share/icons/hicolor/scalable/apps/orielos-start.svg ]]; then
+    taskbar_errors+=("the Start button's icon, orielos-start.svg, is not installed")
+fi
+if [[ "${#taskbar_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${taskbar_errors[@]}" >&2
+    exit 1
+fi
+# The image's files all have the same timestamp, so icon loaders would trust the old icon cache
+# and never find icons added after it was made, such as the Start button's.
+gtk-update-icon-cache --force --quiet /usr/share/icons/hicolor
 
 kver="$(ls /usr/lib/modules)"
 dracut --no-hostonly --kver "$kver" --reproducible --zstd --add "ostree plymouth" -f "/usr/lib/modules/$kver/initramfs.img"

@@ -4,7 +4,10 @@
 # device it then finishes setup the way the wizard does (creates a user and marks setup done),
 # restarts the VM and checks that the second boot reaches the login screen without Plasma Setup.
 # On the second boot it checks the services, starts OrielOS's apps and logs the new user in to a
-# Plasma Wayland session inside the VM. Prints PASS/FAIL per check.
+# Plasma Wayland session inside the VM, and checks that the new user got the Windows-style taskbar.
+# It also checks that the Store shows Flathub only and that
+# Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
+# Prints PASS/FAIL per check.
 #
 # Usage: tests/boot-test.sh [--image REF] [--archive FILE] [--timeout SECONDS] [--memory MIB]
 #                           [--cpus N] [--results DIR] [--keep] [--help]
@@ -68,6 +71,13 @@ SESSION_PROCS=""
 SESSION_SECONDS=""
 DESKTOP_COLOURS=""
 SOUND_STATE=""
+# The new user's taskbar, read from their Plasma layout after the desktop login.
+TASKBAR_READ=0
+TASKBAR_PANELS=""
+TASKBAR_LOCATION=""
+TASKBAR_ORDER=""
+TASKBAR_LAUNCHERS=""
+TASKBAR_ICON=""
 BT_ENABLED=""
 BT_ACTIVE=""
 SERVER_UNITS=""
@@ -76,6 +86,18 @@ KERNEL_RPMS=""
 NVIDIA_VERSIONS=""
 IMAGE_KERNEL=""
 KDUMP_BINARIES=""
+# The Store and Firefox. Firefox's install starts on the first boot, so it is timed from the
+# first power-on.
+FIRST_POWER_ON=0
+FIREFOX_WAIT=600
+FIREFOX_SECONDS=""
+STORE_REMOTES=""
+STORE_NAME=""
+STORE_BACKENDS=""
+FIREFOX_APPS=""
+FIREFOX_BROWSER=""
+FIREFOX_VERSION=""
+FIREFOX_JOURNAL=""
 
 # Print the current boot's part of the serial log.
 clean_log() {
@@ -188,7 +210,35 @@ collect_over_ssh() {
     KDUMP_BINARIES="$(vm_ssh command -v kexec kdumpctl makedumpfile 2>&1 | paste -sd ' ' -)" || true
     MODULE_SIGNER="$(vm_ssh modinfo -F signer nvidia 2>&1)" || true
     KERNEL_RPMS="$(vm_ssh rpm -q kernel 2>&1 | paste -sd ' ' -)" || true
+    STORE_REMOTES="$(vm_ssh flatpak remotes --system --columns=name 2>&1 | paste -sd ' ' -)" || true
+    STORE_NAME="$(vm_ssh grep -m1 '^Name=' /usr/share/applications/org.kde.discover.desktop 2>&1)" || true
+    STORE_BACKENDS="$(vm_ssh ls /usr/lib64/qt6/plugins/discover 2>&1 | paste -sd ' ' -)" || true
     NVIDIA_VERSIONS="$(vm_ssh "rpm -qa --qf '%{NAME} %{VERSION}-%{RELEASE}\n' | grep -E '$NVIDIA_COMPONENTS' | grep -v '^nvidia-driver-selinux '" 2>&1)" || true
+}
+
+# Succeed if the first-boot Flatpak service has finished; record when, counted from the first
+# power-on, the first time it has.
+firefox_stamp_seen() {
+    vm_ssh test -e /var/lib/orielos/flatpak-setup.done >/dev/null 2>&1 || return 1
+    if [[ -z "$FIREFOX_SECONDS" ]]; then FIREFOX_SECONDS=$((SECONDS - FIRST_POWER_ON)); fi
+    return 0
+}
+
+# Wait up to $FIREFOX_WAIT s for orielos-flatpak-setup.service to finish installing Firefox
+# (it started on the first boot), then read what the checks need: the system-wide apps, the
+# default browser for https links as the test user, Firefox's version and the service's journal.
+wait_for_firefox() {
+    local start=$SECONDS
+    info "Waiting up to $FIREFOX_WAIT s for Firefox to be installed from Flathub"
+    while ((SECONDS - start < FIREFOX_WAIT)); do
+        firefox_stamp_seen && break
+        vm_running || return 0
+        sleep 5
+    done
+    FIREFOX_APPS="$(vm_ssh flatpak list --system --app --columns=application 2>&1 | paste -sd ' ' -)" || true
+    FIREFOX_BROWSER="$(vm_ssh runuser -l "$TEST_USER" -c "'xdg-mime query default x-scheme-handler/https'" 2>&1)" || true
+    FIREFOX_VERSION="$(vm_ssh "flatpak info --system org.mozilla.firefox | sed -n 's/^ *Version: *//p'" 2>&1)" || true
+    FIREFOX_JOURNAL="$(vm_ssh journalctl -u orielos-flatpak-setup -b 0 -n 5 --no-pager -o cat 2>&1)" || true
 }
 
 # Remote script that prints the types of a user's sessions and which of the given processes run
@@ -210,7 +260,8 @@ SH
 }
 
 # Log the user that setup created in to the Plasma Wayland session through SDDM's autologin,
-# wait up to 90 s for the session, then take desktop.png and check the user's sound services.
+# wait up to 90 s for the session, then take desktop.png, check the user's sound services and read
+# the user's taskbar.
 desktop_login() {
     local start out probe status=""
     LOGIN_LOG_LINES="$(clean_log | wc -l)"
@@ -248,6 +299,67 @@ desktop_login() {
         DESKTOP_COLOURS="$(count_colours "$WORK/desktop.ppm")" || true
     fi
     SOUND_STATE="$(vm_ssh systemctl --user -M "$TEST_USER@" is-active pipewire wireplumber 2>&1 | paste -sd ' ' -)" || true
+    read_taskbar
+}
+
+# Copy the test user's Plasma layout to plasma-appletsrc in the results and read its panels:
+# how many there are, where the panel is, its widgets in order, the task manager's pinned apps
+# and the Start button's icon.
+read_taskbar() {
+    local out
+    vm_ssh cat "/home/$TEST_USER/.config/plasma-org.kde.plasma.desktop-appletsrc" >"$RESULTS/plasma-appletsrc" 2>/dev/null || return 0
+    out="$(taskbar_summary "$RESULTS/plasma-appletsrc")" || return 0
+    TASKBAR_READ=1
+    TASKBAR_PANELS="$(sed -n 's/^panels=//p' <<<"$out")"
+    TASKBAR_LOCATION="$(sed -n 's/^location=//p' <<<"$out")"
+    TASKBAR_ORDER="$(sed -n 's/^order=//p' <<<"$out")"
+    TASKBAR_LAUNCHERS="$(sed -n 's/^launchers=//p' <<<"$out")"
+    TASKBAR_ICON="$(sed -n 's/^icon=//p' <<<"$out")"
+}
+
+# Print a summary of the panels in a plasma-org.kde.plasma.desktop-appletsrc file: "panels=<count>"
+# and, when there is exactly one panel, "location=<edge>" (4 is the bottom), "order=<widgets>"
+# (plugin names without org.kde.plasma.), "launchers=<pinned apps>" and "icon=<Start icon>".
+#   taskbar_summary <file>
+taskbar_summary() {
+    python3 -I - "$1" <<'PY'
+import re
+import sys
+
+groups = {}
+group = None
+for line in open(sys.argv[1], encoding="utf-8"):
+    line = line.strip()
+    header = re.fullmatch(r"\[(.*)\]", line)
+    if header:
+        group = tuple(header.group(1).split("]["))
+        groups.setdefault(group, {})
+    elif group and "=" in line:
+        key, value = line.split("=", 1)
+        groups[group][key] = value
+
+panels = [g[1] for g, keys in groups.items()
+          if len(g) == 2 and g[0] == "Containments" and keys.get("plugin") == "org.kde.panel"]
+print(f"panels={len(panels)}")
+if len(panels) != 1:
+    sys.exit()
+panel = ("Containments", panels[0])
+print("location=" + groups[panel].get("location", ""))
+applets = [g[3] for g in groups if len(g) == 4 and g[:3] == panel + ("Applets",)]
+saved = groups.get(panel + ("General",), {}).get("AppletOrder", "").split(";")
+order = [a for a in saved if a in applets]
+order += sorted((a for a in applets if a not in order), key=int)
+names = []
+for applet in order:
+    plugin = groups[panel + ("Applets", applet)].get("plugin", "")
+    general = groups.get(panel + ("Applets", applet, "Configuration", "General"), {})
+    if plugin == "org.kde.plasma.kickoff":
+        print("icon=" + general.get("icon", ""))
+    if plugin == "org.kde.plasma.icontasks":
+        print("launchers=" + general.get("launchers", ""))
+    names.append(plugin.removeprefix("org.kde.plasma."))
+print("order=" + " ".join(names))
+PY
 }
 
 # Wait until the current boot has started SDDM and reached graphical.target, and record when
@@ -338,7 +450,7 @@ PY
 }
 
 run_checks() {
-    local status="$1" colours="$2" cmdline btrfs after failed unit line versions shown="not reached"
+    local status="$1" colours="$2" cmdline btrfs after failed unit line versions taskbar shown="not reached"
     local no_ssh="SSH over vsock did not answer, so this could not be checked inside the VM"
     local ssh_hint="check that /dev/vhost-vsock exists on the host, and look for sshd or systemd-ssh-generator errors in serial.log"
 
@@ -514,6 +626,59 @@ run_checks() {
         fi
     fi
 
+    taskbar="panelspacer kickoff icontasks panelspacer systemtray digitalclock showdesktop"
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "The Windows-style taskbar is set up: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$TASKBAR_READ" -ne 1 ]]; then
+        fail "The Windows-style taskbar is set up: could not read $TEST_USER's ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
+    elif [[ "$TASKBAR_PANELS" != "1" ]]; then
+        fail "$TEST_USER does not have exactly one panel (${TASKBAR_PANELS:-no} panels; see plasma-appletsrc in the results)"
+    elif [[ "$TASKBAR_LOCATION" != "4" ]]; then
+        fail "$TEST_USER's panel is not at the bottom (location=${TASKBAR_LOCATION:-none}; 4 is the bottom)"
+    elif [[ "$TASKBAR_ORDER" != "$taskbar" ]]; then
+        fail "$TEST_USER's taskbar widgets are not in the Windows-style order (found: ${TASKBAR_ORDER:-none}; expected: $taskbar)"
+    elif [[ ",$TASKBAR_LAUNCHERS," != *",applications:org.kde.dolphin.desktop,"* ||
+        ",$TASKBAR_LAUNCHERS," != *",applications:org.mozilla.firefox.desktop,"* ||
+        ",$TASKBAR_LAUNCHERS," != *",applications:org.kde.discover.desktop,"* ]]; then
+        fail "The taskbar does not pin Files, Firefox and Store (launchers: ${TASKBAR_LAUNCHERS:-none})"
+    elif [[ "$TASKBAR_ICON" != "orielos-start" ]]; then
+        fail "The Start button does not use the OrielOS logo (kickoff icon: ${TASKBAR_ICON:-none})"
+    else
+        pass "The Windows-style taskbar is set up (one panel at the bottom: $TASKBAR_ORDER; pinned: $TASKBAR_LAUNCHERS; Start icon: $TASKBAR_ICON)"
+    fi
+
+    info "Store and Firefox"
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Store is Discover with Flathub only: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$STORE_REMOTES" != "flathub" ]]; then
+        fail "The system Flatpak remotes are not just flathub (flatpak remotes --system: ${STORE_REMOTES:-no output})"
+    elif [[ "$STORE_NAME" != "Name=Store" ]]; then
+        fail "Discover's desktop entry is not named Store (${STORE_NAME:-no output})"
+    elif [[ "$STORE_BACKENDS" != "flatpak-backend.so" ]]; then
+        fail "Discover has backends other than Flatpak (plugins: ${STORE_BACKENDS:-none})"
+    else
+        pass "Store is Discover with Flathub only (remotes: flathub; org.kde.discover.desktop has Name=Store; backend plugins: $STORE_BACKENDS)"
+    fi
+
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Firefox is installed on first boot: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ -z "$FIREFOX_SECONDS" ]]; then
+        fail "Firefox was not installed within $FIREFOX_WAIT s (no /var/lib/orielos/flatpak-setup.done)"
+        while IFS= read -r line; do
+            if [[ -n "$line" ]]; then say "" "    " "$line"; fi
+        done <<<"$FIREFOX_JOURNAL"
+    elif [[ " $FIREFOX_APPS " != *" org.mozilla.firefox "* ]]; then
+        fail "org.mozilla.firefox is not in flatpak list --system (${FIREFOX_APPS:-no output})"
+    elif [[ "$FIREFOX_BROWSER" != "org.mozilla.firefox.desktop" ]]; then
+        fail "The default browser for https links is not Firefox (xdg-mime query default x-scheme-handler/https: ${FIREFOX_BROWSER:-no output})"
+    else
+        pass "Firefox is installed on first boot (flatpak-setup.done written; org.mozilla.firefox installed system-wide; xdg-mime gives $FIREFOX_BROWSER for https links as $TEST_USER)"
+        info "Firefox was installed $FIREFOX_SECONDS s after the first power-on (version ${FIREFOX_VERSION:-unknown})"
+    fi
+
     failed="$(grep_log 'FAILED' | sed -n 's/.*Failed to start \([^ ]*\).*/\1/p' | sort -u)"
     while IFS= read -r unit; do
         [[ -n "$unit" && "$unit" != sddm.service && "$unit" != NetworkManager.service ]] || continue
@@ -596,6 +761,7 @@ main() {
     setup_ssh
     install_image
     start_vm
+    FIRST_POWER_ON=$BOOT_START
 
     info "First boot: Plasma Setup should start"
     wait_for_sddm || timed_out=1
@@ -604,6 +770,7 @@ main() {
         SETUP_SSH_OK=1
         first_boot
         finish_setup
+        firefox_stamp_seen || true
         if vm_running; then reboot_vm || timed_out=1; fi
     fi
 
@@ -622,6 +789,8 @@ main() {
             if [[ -r "$WORK/screen.ppm" ]]; then colours="$(count_colours "$WORK/screen.ppm")" || true; fi
             if [[ "$SSH_OK" -eq 1 && "$status" == "running" ]]; then desktop_login; fi
         fi
+        # Last, so the download runs alongside the other checks; most of the time it is done.
+        if vm_running && [[ "$SSH_OK" -eq 1 ]]; then wait_for_firefox; fi
     fi
     stop_pid "$WORK/qemu.pid"
     full_log >"$RESULTS/serial.log"

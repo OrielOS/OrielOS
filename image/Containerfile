@@ -20,6 +20,7 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
 COPY CMakeLists.txt VERSION /src/
 COPY apps/ /src/apps/
 COPY plasma/ /src/plasma/
+COPY artwork/ /src/artwork/
 
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/apps-builder.sh build
@@ -37,6 +38,9 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
 RUN --mount=type=bind,source=image/build,target=/ctx \
     --mount=type=bind,source=image/packages,target=/packages \
     /ctx/20-desktop.sh
+
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/25-store.sh
 
 RUN --mount=type=bind,source=image/build,target=/ctx \
     --mount=type=bind,source=image/keys,target=/keys \

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Installs the apps OrielOS ships from Flathub: makes sure the Flathub remote exists, then
+# installs Firefox system-wide. Run by orielos-flatpak-setup.service on first boot; it writes
+# the stamp file only once everything is installed, and exits non-zero otherwise (for example
+# while offline) so that the service retries.
+# Runs as root.
+set -Eeuo pipefail
+
+STAMP="/var/lib/orielos/flatpak-setup.done"
+FLATHUB_URL="https://dl.flathub.org/repo/flathub.flatpakrepo"
+APPS=(org.mozilla.firefox)
+
+log() {
+    printf 'orielos-flatpak-setup: %s\n' "$1"
+}
+
+# The remote normally comes from /usr/share/flatpak/remotes.d; this repairs a broken set-up.
+log "making sure the flathub remote exists"
+flatpak remote-add --if-not-exists --system flathub "$FLATHUB_URL"
+
+for app in "${APPS[@]}"; do
+    if flatpak info --system "$app" >/dev/null 2>&1; then
+        log "$app is already installed"
+        continue
+    fi
+    log "installing $app from flathub"
+    flatpak install --system --noninteractive --assumeyes flathub "$app"
+done
+
+mkdir -p "$(dirname "$STAMP")"
+date -u +%Y-%m-%dT%H:%M:%SZ >"$STAMP"
+log "done"

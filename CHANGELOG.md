@@ -6,6 +6,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- A Windows 11-style taskbar for new users: Start button and pinned apps in the centre, system tray, clock and notifications at the right.
+- Discover appears as Store, with Flathub as its only source of apps. Firefox is installed from Flathub on first boot, retrying until it succeeds, and is the default web browser.
 - README describing what OrielOS is, its goals, how it will be built and its known limitations.
 - Repository layout, with a README in each folder describing what belongs there.
 - Licence files: GPL-3.0-or-later for code and configuration, and CC BY-SA 4.0 for documentation and artwork.

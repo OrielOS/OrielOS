@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs the KDE Plasma desktop listed in image/packages/desktop.txt, makes Flathub the
-# only Flatpak source, starts Plasma Setup on first boot and SDDM at every boot, and sets the
-# Plymouth boot splash.
+# only Flatpak source, starts Plasma Setup on first boot and SDDM at every boot, makes OrielOS's
+# look-and-feel the default and sets the Plymouth boot splash.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -30,6 +30,12 @@ sed '/^Filter=/d' /usr/lib/fedora-third-party/conf.d/fedora-flathub.flatpakrepo 
 # not contain; 90-finalise.sh checks that.
 systemctl enable plasma-setup.service sddm.service
 systemctl set-default graphical.target
+
+# OrielOS's look-and-feel package (installed from plasma/ with the apps) is the default for every
+# user; its layout script sets up the taskbar for each new user. /etc/xdg comes before Fedora's
+# kde-settings profile on XDG_CONFIG_DIRS, so this overrides Fedora's look-and-feel.
+# 90-finalise.sh checks that the package is installed.
+kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage org.orielos.desktop
 
 # 90-finalise.sh rebuilds the initramfs with the theme in it.
 plymouth-set-default-theme bgrt
