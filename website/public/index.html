@@ -8,12 +8,14 @@ with "if:" comments and the {{...}} placeholders from GitHub.
 
 connect-src 'self' lets tools that audit the page from inside it, such as
 Lighthouse, read robots.txt. No script can run here, so nothing else can use it.
+img-src allows bestpractices.dev for the OpenSSF Best Practices and Baseline
+badges in the footer, loaded live so they always show the current levels.
 -->
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src 'self'; style-src 'self'; img-src 'self' https://www.bestpractices.dev; font-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>OrielOS: a Linux desktop tuned for gaming and development</title>
 <meta name="description" content="OrielOS is a free and open-source Linux desktop, tuned for gaming and development and familiar from the first boot. It is in early development.">
@@ -295,6 +297,10 @@ Lighthouse, read robots.txt. No script can run here, so nothing else can use it.
       <li><a href="https://github.com/ncjsvr/OrielOS/tree/main/website">Improve this site</a></li>
       <li><a href="mailto:hello@orielos.org">hello@orielos.org</a></li>
     </ul>
+    <p class="badges">
+      <a href="https://www.bestpractices.dev/projects/15906"><img src="https://www.bestpractices.dev/projects/15906/badge" alt="OpenSSF Best Practices badge" width="184" height="20"></a>
+      <a href="https://www.bestpractices.dev/projects/15906"><img src="https://www.bestpractices.dev/projects/15906/baseline" alt="OpenSSF Baseline badge" width="213" height="20"></a>
+    </p>
     <p>Built on <a href="https://fedoraproject.org/">Fedora</a>, <a href="https://github.com/bootc-dev/bootc">bootc</a>, <a href="https://kde.org/plasma-desktop/">KDE Plasma</a>, <a href="https://universal-blue.org/">Universal Blue</a>, <a href="https://github.com/ValveSoftware/Proton">Proton</a>, <a href="https://github.com/GloriousEggroll/proton-ge-custom">GE-Proton</a>, <a href="https://www.winehq.org/">Wine</a>, <a href="https://github.com/doitsujin/dxvk">DXVK</a>, <a href="https://github.com/HansKristian-Work/vkd3d-proton">VKD3D-Proton</a> and <a href="https://flathub.org/">Flathub</a>.</p>
     <p>Code is licensed under GPL-3.0-or-later, and documentation and artwork under CC BY-SA 4.0. This site uses the Noto Sans fonts, under the SIL Open Font License. OrielOS is not affiliated with Microsoft. Windows is a trademark of Microsoft Corporation.</p>
   </div>
