@@ -10,7 +10,7 @@ Each OrielOS version is a complete, read-only copy of the system: Fedora, the dr
 
 Your files and your own settings are kept, whichever version you start. They live in `/var` (your home folder is `/var/home/<your name>`), which updates and going back never touch. System settings, such as saved Wi-Fi networks and user accounts, are carried into each new version; going back is the one time they can change (see [What going back keeps](#what-going-back-keeps)). Apps from the Store aren't part of the system copy: they update on their own through the Store, and going back leaves them as they are.
 
-OrielOS keeps two versions: the one you are running and the one before it, for 14 days after an update. You can go back to the previous one from the tray icon, and if an update doesn't start, OrielOS goes back by itself.
+OrielOS keeps two versions: the one you are running and the one before it, for 14 days after an update. You can go back to the previous one in the update settings, and if an update doesn't start, OrielOS goes back by itself.
 
 ## How updates arrive
 
@@ -21,19 +21,25 @@ When a new version is ready, a notification says **Restart to update**:
 - **Restart to update** signs you out and restarts the computer into the new version. Save your work first.
 - **Later** closes the notification. The new version still starts the next time you restart, whenever that is.
 
-The **OrielOS updates** icon in the system tray, at the right of the taskbar, shows the same. It's in the tray's hidden icons (the arrow) until an update is ready. Right-click it for these options:
-
-- **Restart to update**, while a new version is ready.
-- **Check for updates**, to check straight away.
-- **Go back to the previous version…**, while there is one to go back to (see [Going back yourself](#going-back-yourself)).
-- **Pause updates**, for 1 to 5 weeks. While updates are paused, OrielOS doesn't check for or download new versions, and the menu shows the date they resume. **Resume updates** ends the pause early.
-- **Update channel**:
-  - **Stable**, the default, gets versions that have also passed checks on real hardware.
-  - **Testing** gets new versions sooner, as soon as they pass OrielOS's automatic tests.
-
-  Changing the channel asks for an administrator's password, and takes effect at the next check.
+The **OrielOS updates** icon in the system tray, at the right of the taskbar, shows the same. It's in the tray's hidden icons (the arrow) until an update is ready; hover over it to see what the last check found. Click it to open the update settings. Right-clicking it offers **Restart to update** while a new version is ready, and **Open update settings**.
 
 OrielOS doesn't download updates over a metered connection, such as a phone hotspot that NetworkManager knows is metered.
+
+## The update settings
+
+**OrielOS Update** in System Settings, under System, holds everything about updates. Open it by clicking the **OrielOS updates** tray icon, or search Start for "OrielOS Update". It shows the version you are running and when OrielOS last checked for updates, and offers:
+
+- **Check for updates**, to check straight away. The page says what the check found when it's done.
+- **Restart now**, while a new version is ready, or while going back is waiting for a restart.
+- **Pause updates**, for 1 to 5 weeks. While updates are paused, OrielOS doesn't check for or download new versions, and the page shows the date they resume. **Resume updates** ends the pause early.
+- **Update channel**:
+  - **Stable**, the default, gets versions that people have already used on the testing channel and that have passed checks on real hardware.
+  - **Testing** gets new versions sooner, as soon as they pass OrielOS's automatic tests. Something may break now and then; you can always go back.
+
+  Changing the channel asks for an administrator's password, and takes effect at the next check.
+- **Previous version**, while the computer keeps one: the date it's kept until, **Go back to the previous version…** (see [Going back yourself](#going-back-yourself)) and **Remove the previous version…** (see [How long the previous version is kept](#how-long-the-previous-version-is-kept)). Both ask for an administrator's password.
+
+Every option can be used from the keyboard: hold Alt to see each one's underlined letter.
 
 ## If an update doesn't start
 
@@ -41,7 +47,9 @@ You don't need to do anything. If a new version fails to reach the desktop twice
 
 ## Going back yourself
 
-If a new version starts but doesn't work well for you, right-click the **OrielOS updates** icon and choose **Go back to the previous version…**. OrielOS asks first, then asks for an administrator's password. After that, the icon and a notification offer **Restart to go back**. When you restart, the previous version starts again.
+If a new version starts but doesn't work well for you, open the update settings and choose **Go back to the previous version…**. OrielOS asks first, then asks for an administrator's password. After that, the page offers **Restart now**, and the tray icon and a notification offer **Restart to go back**. When you restart, the previous version starts again.
+
+Going back is offered for 14 days after an update, until the previous version is removed. It isn't offered for a version you already went back from, or for one that didn't start.
 
 OrielOS remembers the version you went back from and won't prepare it again until a newer version is published. While going back is waiting for a restart, OrielOS doesn't prepare any update.
 
@@ -61,7 +69,7 @@ System settings are part of each version, though. Anything you changed at system
 
 ## How long the previous version is kept
 
-OrielOS keeps the previous version for 14 days after an update, so you can go back to it. After that it's removed, and going back is no longer offered until the next update. To remove it sooner, run:
+OrielOS keeps the previous version for 14 days after an update, so you can go back to it; the update settings show the date. After that it's removed, and going back is no longer offered until the next update. To remove it sooner, choose **Remove the previous version…** in the update settings. It asks first, then asks for an administrator's password, and can't be undone. While an update or going back is waiting for a restart, restart first. In a terminal, run:
 
 ```sh
 sudo orielos-update remove-previous
@@ -79,7 +87,7 @@ The menu appears by itself only if both versions fail to start: after an update 
 
 ## In a terminal
 
-`orielos-update` does everything the tray icon does, and more. It runs as administrator:
+`orielos-update` does everything the update settings do, and more. It runs as administrator:
 
 ```sh
 sudo orielos-update status          # versions, channel, pause and the last check
