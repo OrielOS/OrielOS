@@ -17,8 +17,7 @@ QtObject {
     enum FocusTarget {
         Search,
         Pinned,
-        Recommended,
-        AllAppsList
+        Recommended
     }
 
     required property PlasmoidItem plasmoidItem
@@ -39,6 +38,8 @@ QtObject {
     signal focusRequested(int target)
     // A runner rewrote the search query.
     signal queryUpdateRequested(string newQuery)
+    // Tab or Shift+Tab was pressed on one of the page's parts.
+    signal focusCycleRequested(bool forward)
 
     //BEGIN Models
     readonly property Kicker.RootModel rootModel: Kicker.RootModel {
@@ -75,18 +76,20 @@ QtObject {
     onPinnedIdsChanged: state.syncFavorites()
 
     // Apps installed in the last few days, as RootModel records them.
+    readonly property int newlyInstalledRole: allAppsModel ? allAppsModel.KItemModels.KRoleNames.role("isNewlyInstalled") : -1
     readonly property KItemModels.KSortFilterProxyModel newAppsModel: KItemModels.KSortFilterProxyModel {
         sourceModel: state.allAppsModel
         filterRowCallback: (sourceRow, sourceParent) => {
             const source = state.allAppsModel;
-            if (!source) {
+            if (!source || state.newlyInstalledRole < 0) {
                 return false;
             }
-            const role = source.KItemModels.KRoleNames.role("isNewlyInstalled");
-            return source.data(source.index(sourceRow, 0, sourceParent), role) === true;
+            return source.data(source.index(sourceRow, 0, sourceParent), state.newlyInstalledRole) === true;
         }
         onRowCountChanged: state.rebuildRecommended()
     }
+    // Set while the new-apps filter runs again, which changes its row count.
+    property bool filteringNewApps: false
 
     readonly property Kicker.RecentUsageModel recentDocsModel: Kicker.RecentUsageModel {
         shownItems: Kicker.RecentUsageModel.OnlyDocs
@@ -95,7 +98,8 @@ QtObject {
     }
 
     // The recommended list: newly installed apps first, then recent files. Each entry is
-    // { app: bool, row: int, display, decoration, subtitle }, with row in its source model.
+    // { app: bool, id, display, decoration, subtitle }, where id is an app's favoriteId or a
+    // file's URL. Rows move as apps and files come and go, so they're looked up when needed.
     property var recommendedItems: []
 
     readonly property Kicker.RunnerModel runnerModel: Kicker.RunnerModel {
@@ -206,14 +210,57 @@ QtObject {
         return model.data(model.index(row, 0), model.KItemModels.KRoleNames.role(roleName));
     }
 
+    // The row of the recent file with this URL, or -1.
+    function recentDocsRow(url: string): int {
+        const model = state.recentDocsModel;
+        const role = model.KItemModels.KRoleNames.role("url");
+        for (let row = 0; row < model.count; ++row) {
+            if (String(model.data(model.index(row, 0), role) ?? "") === url) {
+                return row;
+            }
+        }
+        return -1;
+    }
+
+    // The row of the search result that is this match, or -1. Slower runners add and reorder
+    // results while a menu is open, so a row number alone may point at another match by then.
+    function resultRow(match): int {
+        const model = state.resultsModel;
+        if (!model) {
+            return -1;
+        }
+        const roles = model.KItemModels.KRoleNames;
+        const idRole = roles.role("favoriteId");
+        const displayRole = roles.role("display");
+        const urlRole = roles.role("url");
+        for (let row = 0; row < model.count; ++row) {
+            const index = model.index(row, 0);
+            if (String(model.data(index, idRole) ?? "") === match.favoriteId
+                    && String(model.data(index, displayRole) ?? "") === match.display
+                    && String(model.data(index, urlRole) ?? "") === match.url) {
+                return row;
+            }
+        }
+        return -1;
+    }
+
     function rebuildRecommended() {
+        if (state.filteringNewApps) {
+            return;
+        }
+        // An app stops counting as newly installed once it's launched, which the proxy doesn't
+        // notice by itself.
+        state.filteringNewApps = true;
+        state.newAppsModel.invalidateFilter();
+        state.filteringNewApps = false;
+
         const items = [];
         const newApps = state.newAppsModel;
         for (let i = 0; i < newApps.count && items.length < state.recommendedLimit; ++i) {
             const sourceRow = newApps.mapToSource(newApps.index(i, 0)).row;
             items.push({
                 app: true,
-                row: sourceRow,
+                id: String(state.allAppsData(sourceRow, "favoriteId") ?? ""),
                 display: String(state.allAppsData(sourceRow, "display") ?? ""),
                 decoration: state.allAppsData(sourceRow, "decoration") ?? "",
                 subtitle: KI18n.i18nc("@info:status An app installed in the last few days", "Recently added"),
@@ -222,7 +269,7 @@ QtObject {
         for (let row = 0; row < state.recentDocsModel.count && items.length < state.recommendedLimit; ++row) {
             items.push({
                 app: false,
-                row: row,
+                id: String(state.recentDocsData(row, "url") ?? ""),
                 display: String(state.recentDocsData(row, "display") ?? ""),
                 decoration: state.recentDocsData(row, "decoration") ?? "",
                 subtitle: String(state.recentDocsData(row, "description") ?? ""),
@@ -255,8 +302,14 @@ QtObject {
             return;
         }
         if (item.app) {
-            state.launchApp(item.row);
-        } else if (state.recentDocsModel.trigger(item.row, "", null)) {
+            const row = state.allAppsRow(item.id);
+            if (row >= 0) {
+                state.launchApp(row);
+            }
+            return;
+        }
+        const row = state.recentDocsRow(item.id);
+        if (row >= 0 && state.recentDocsModel.trigger(row, "", null)) {
             state.close();
         }
     }
@@ -275,9 +328,10 @@ QtObject {
         return event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier) !== 0);
     }
 
-    // Opens the context menu for row of model. favoriteId may be empty; pinnedIndex is the tile's
-    // index when the menu is for a pinned tile, otherwise -1.
-    function openContextMenu(model, row: int, favoriteId: string, actionList, pinnedIndex: int, item: Item, x: real, y: real, fromKeyboard: bool) {
+    // Opens the context menu for an entry of model. findRow() gives the entry's row when an
+    // action runs, or -1 if it's gone. favoriteId may be empty; pinnedIndex is the tile's index
+    // when the menu is for a pinned tile, otherwise -1.
+    function openContextMenu(model, findRow, favoriteId: string, actionList, pinnedIndex: int, item: Item, x: real, y: real, fromKeyboard: bool) {
         const entries = [];
         const appId = isAppId(favoriteId) ? normaliseId(favoriteId) : "";
         if (appId.length > 0) {
@@ -313,7 +367,8 @@ QtObject {
                     icon: typeof action.icon === "string" ? action.icon : "",
                     enabled: action.enabled ?? true,
                     handler: () => {
-                        if (model.trigger(row, actionId, argument)) {
+                        const row = findRow();
+                        if (row >= 0 && model.trigger(row, actionId, argument)) {
                             state.close();
                         }
                     },
@@ -335,14 +390,14 @@ QtObject {
         // the desktop or the taskbar.
         const row = state.allAppsRow(appId);
         if (row >= 0) {
-            state.openContextMenu(state.allAppsModel, row, appId, state.allAppsData(row, "actionList"), index, item, x, y, fromKeyboard);
+            state.openContextMenu(state.allAppsModel, () => row, appId, state.allAppsData(row, "actionList"), index, item, x, y, fromKeyboard);
         } else {
-            state.openContextMenu(state.favoritesModel, index, appId, state.favoritesData(index, "actionList"), index, item, x, y, fromKeyboard);
+            state.openContextMenu(state.favoritesModel, () => index, appId, state.favoritesData(index, "actionList"), index, item, x, y, fromKeyboard);
         }
     }
 
     function openAppMenu(row: int, item: Item, x: real, y: real, fromKeyboard: bool) {
-        state.openContextMenu(state.allAppsModel, row, String(state.allAppsData(row, "favoriteId") ?? ""), state.allAppsData(row, "actionList"), -1, item, x, y, fromKeyboard);
+        state.openContextMenu(state.allAppsModel, () => row, String(state.allAppsData(row, "favoriteId") ?? ""), state.allAppsData(row, "actionList"), -1, item, x, y, fromKeyboard);
     }
 
     function openRecommendedMenu(entry, item: Item, x: real, y: real, fromKeyboard: bool) {
@@ -350,14 +405,32 @@ QtObject {
             return;
         }
         if (entry.app) {
-            state.openAppMenu(entry.row, item, x, y, fromKeyboard);
-        } else {
-            state.openContextMenu(state.recentDocsModel, entry.row, "", state.recentDocsData(entry.row, "actionList"), -1, item, x, y, fromKeyboard);
+            const row = state.allAppsRow(entry.id);
+            if (row >= 0) {
+                state.openAppMenu(row, item, x, y, fromKeyboard);
+            }
+            return;
+        }
+        const url = String(entry.id);
+        const row = state.recentDocsRow(url);
+        if (row >= 0) {
+            state.openContextMenu(state.recentDocsModel, () => state.recentDocsRow(url), "", state.recentDocsData(row, "actionList"), -1, item, x, y, fromKeyboard);
         }
     }
 
-    function openResultMenu(row: int, favoriteId: string, actionList, item: Item, x: real, y: real, fromKeyboard: bool) {
-        state.openContextMenu(state.resultsModel, row, favoriteId, actionList, -1, item, x, y, fromKeyboard);
+    function openResultMenu(row: int, item: Item, x: real, y: real, fromKeyboard: bool) {
+        const model = state.resultsModel;
+        if (!model || row < 0 || row >= model.count) {
+            return;
+        }
+        const roles = model.KItemModels.KRoleNames;
+        const roleData = roleName => model.data(model.index(row, 0), roles.role(roleName));
+        const match = {
+            favoriteId: String(roleData("favoriteId") ?? ""),
+            display: String(roleData("display") ?? ""),
+            url: String(roleData("url") ?? ""),
+        };
+        state.openContextMenu(model, () => model === state.resultsModel ? state.resultRow(match) : -1, match.favoriteId, roleData("actionList"), -1, item, x, y, fromKeyboard);
     }
     //END
 
@@ -382,8 +455,8 @@ QtObject {
         state.focusRequested(MenuState.Recommended);
     }
 
-    function focusAllAppsList() {
-        state.focusRequested(MenuState.AllAppsList);
+    function cycleFocus(forward: bool) {
+        state.focusCycleRequested(forward);
     }
     //END
 }

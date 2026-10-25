@@ -57,6 +57,8 @@ ColumnLayout {
             onClicked: home.menu.showAllApps()
             Keys.onReturnPressed: clicked()
             Keys.onEnterPressed: clicked()
+            Keys.onTabPressed: home.menu.cycleFocus(true)
+            Keys.onBacktabPressed: home.menu.cycleFocus(false)
         }
     }
 

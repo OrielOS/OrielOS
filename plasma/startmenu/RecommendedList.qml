@@ -56,6 +56,8 @@ Item {
             onContextMenuRequested: (x, y) => recommended.menu.openRecommendedMenu(row.modelData, row, x, y, false)
         }
 
+        Keys.onTabPressed: recommended.menu.cycleFocus(true)
+        Keys.onBacktabPressed: recommended.menu.cycleFocus(false)
         Keys.onPressed: event => {
             if (recommended.menu.isContextMenuKey(event)) {
                 grid.openMenuForCurrent();

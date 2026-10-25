@@ -69,6 +69,11 @@ PlasmaExtras.PlasmoidHeading {
         accountMenu.showAbove(entries.concat(session), accountButton, fromKeyboard);
     }
 
+    function closeMenus() {
+        accountMenu.close();
+        powerMenu.close();
+    }
+
     function openPowerMenu(fromKeyboard: bool) {
         const entries = footer.sessionEntries([
             { id: "suspend", text: KI18n.i18nc("@action:inmenu Suspend to RAM", "Sleep") },
@@ -87,6 +92,9 @@ PlasmaExtras.PlasmoidHeading {
             id: accountButton
 
             readonly property string name: footer.user.fullName.length > 0 ? footer.user.fullName : footer.user.loginName
+            // Clicking the button while its menu is open closes the menu, so remember the state at
+            // the press: the press itself closes the menu before the click.
+            property bool menuWasOpen: false
 
             Layout.maximumWidth: footer.width / 2
             text: name
@@ -111,10 +119,17 @@ PlasmaExtras.PlasmoidHeading {
                 }
             }
 
-            onClicked: footer.openAccountMenu(false)
+            onPressed: accountButton.menuWasOpen = accountMenu.visible || accountMenu.justClosed
+            onClicked: {
+                if (!accountButton.menuWasOpen) {
+                    footer.openAccountMenu(false);
+                }
+            }
             Keys.onReturnPressed: footer.openAccountMenu(true)
             Keys.onEnterPressed: footer.openAccountMenu(true)
             Keys.onSpacePressed: footer.openAccountMenu(true)
+            Keys.onTabPressed: footer.menu.cycleFocus(true)
+            Keys.onBacktabPressed: footer.menu.cycleFocus(false)
         }
 
         Item {
@@ -123,6 +138,9 @@ PlasmaExtras.PlasmoidHeading {
 
         PC3.ToolButton {
             id: powerButton
+
+            // As for the account button.
+            property bool menuWasOpen: false
 
             text: KI18n.i18nc("@action:button", "Power")
             icon.name: "system-shutdown"
@@ -135,18 +153,29 @@ PlasmaExtras.PlasmoidHeading {
             PC3.ToolTip.delay: Kirigami.Units.toolTipDelay
             PC3.ToolTip.visible: hovered && !powerMenu.opened
 
-            onClicked: footer.openPowerMenu(false)
+            onPressed: powerButton.menuWasOpen = powerMenu.visible || powerMenu.justClosed
+            onClicked: {
+                if (!powerButton.menuWasOpen) {
+                    footer.openPowerMenu(false);
+                }
+            }
             Keys.onReturnPressed: footer.openPowerMenu(true)
             Keys.onEnterPressed: footer.openPowerMenu(true)
             Keys.onSpacePressed: footer.openPowerMenu(true)
+            Keys.onTabPressed: footer.menu.cycleFocus(true)
+            Keys.onBacktabPressed: footer.menu.cycleFocus(false)
         }
     }
 
     PopupMenu {
         id: accountMenu
+
+        onFocusOwnerLost: footer.menu.focusSearch()
     }
 
     PopupMenu {
         id: powerMenu
+
+        onFocusOwnerLost: footer.menu.focusSearch()
     }
 }

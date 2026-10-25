@@ -17,8 +17,9 @@ Item {
     required property MenuState menu
 
     readonly property ListView view: list
-    // Whether the highlight was moved by hand. Until it is, it stays on the first result while
-    // more results arrive.
+    // Whether the highlight was moved with Up or Down. Until it is, it stays on the first result
+    // while more results arrive. The pointer never moves it: it often rests over the menu, and
+    // Enter would then run whatever happens to be under it.
     property bool moved: false
 
     function resetCurrent() {
@@ -42,10 +43,9 @@ Item {
     }
 
     function openCurrentMenu() {
-        const current = list.currentItem as ListRow;
-        if (current && current.entry) {
-            results.menu.openResultMenu(list.currentIndex, String(current.entry.favoriteId ?? ""), current.entry.actionList,
-                                        current, current.width / 2, current.height / 2, true);
+        const current = list.currentItem;
+        if (current && list.currentIndex >= 0) {
+            results.menu.openResultMenu(list.currentIndex, current, current.width / 2, current.height / 2, true);
         }
     }
 
@@ -70,6 +70,11 @@ Item {
                     list.currentIndex = list.count > 0 ? 0 : -1;
                 }
             }
+            onModelChanged: {
+                if (!results.moved) {
+                    list.currentIndex = list.count > 0 ? 0 : -1;
+                }
+            }
 
             section.property: "group"
             section.delegate: PlasmaExtras.ListSectionHeader {
@@ -89,19 +94,14 @@ Item {
                 label: String(row.model.display ?? "")
                 iconSource: row.model.decoration ?? ""
                 subtitle: String(row.model.description ?? "")
-                entry: row.model
                 current: ListView.isCurrentItem
 
-                onHoveredChanged: {
-                    if (row.hovered) {
-                        results.moved = true;
-                        list.currentIndex = row.index;
-                    }
-                }
                 onClicked: results.menu.launchResult(row.index)
-                onContextMenuRequested: (x, y) => results.menu.openResultMenu(row.index, String(row.model.favoriteId ?? ""), row.model.actionList, row, x, y, false)
+                onContextMenuRequested: (x, y) => results.menu.openResultMenu(row.index, row, x, y, false)
             }
 
+            Keys.onTabPressed: results.menu.cycleFocus(true)
+            Keys.onBacktabPressed: results.menu.cycleFocus(false)
             Keys.onPressed: event => {
                 if (results.menu.isContextMenuKey(event)) {
                     results.openCurrentMenu();

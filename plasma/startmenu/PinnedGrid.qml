@@ -58,6 +58,8 @@ PC3.ScrollView {
             onContextMenuRequested: (x, y) => pinned.menu.openPinnedMenu(tile.index, tile, x, y, false)
         }
 
+        Keys.onTabPressed: pinned.menu.cycleFocus(true)
+        Keys.onBacktabPressed: pinned.menu.cycleFocus(false)
         Keys.onPressed: event => {
             if (pinned.menu.isContextMenuKey(event)) {
                 grid.openMenuForCurrent();

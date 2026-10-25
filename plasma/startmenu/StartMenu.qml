@@ -35,15 +35,24 @@ FocusScope {
             case MenuState.Recommended:
                 root.focusRecommended();
                 break;
-            case MenuState.AllAppsList:
-                root.focusAllAppsList();
-                break;
             }
         }
+        onFocusCycleRequested: forward => root.moveFocus(forward)
         onShowingAllAppsChanged: {
             if (root.menu.showingAllApps) {
                 allAppsPage.view.currentIndex = 0;
                 allAppsPage.view.positionViewAtBeginning();
+                // The page shows once the stack has laid itself out again.
+                Qt.callLater(root.focusAfterPageSwitch);
+            } else {
+                root.focusAfterPageSwitch();
+            }
+        }
+        // Only the search field starts and ends a search, and it stays where the focus belongs
+        // when the page under it changes.
+        onSearchingChanged: {
+            if (!searchField.activeFocus) {
+                searchField.forceActiveFocus(Qt.OtherFocusReason);
             }
         }
     }
@@ -80,12 +89,26 @@ FocusScope {
     function focusAllAppsList() {
         const list = allAppsPage.view;
         if (list.count === 0) {
+            allAppsPage.backButton.forceActiveFocus(Qt.TabFocusReason);
             return;
         }
         if (list.currentIndex < 0) {
             list.currentIndex = 0;
         }
         list.forceActiveFocus(Qt.TabFocusReason);
+    }
+
+    // The focus never stays on the page that was hidden: the all apps page starts in its list,
+    // and the home page in the search field.
+    function focusAfterPageSwitch() {
+        if (root.menu.searching) {
+            return;
+        }
+        if (root.menu.showingAllApps) {
+            root.focusAllAppsList();
+        } else {
+            searchField.forceActiveFocus(Qt.OtherFocusReason);
+        }
     }
 
     // The Tab order of the page that's showing.
@@ -154,6 +177,7 @@ FocusScope {
                 root.prepare();
             } else {
                 contextMenu.close();
+                footer.closeMenus();
             }
         }
     }
@@ -209,6 +233,9 @@ FocusScope {
 
             onTextChanged: searchPage.resetCurrent()
 
+            // The field takes Tab itself, so the root's handler never sees it.
+            Keys.onTabPressed: root.moveFocus(true)
+            Keys.onBacktabPressed: root.moveFocus(false)
             Keys.onPressed: event => {
                 if (root.menu.isContextMenuKey(event)) {
                     if (root.menu.searching) {
@@ -233,13 +260,6 @@ FocusScope {
                         root.focusPinned();
                     }
                     event.accepted = true;
-                    break;
-                case Qt.Key_Tab:
-                    // From an empty search field, Tab goes straight into the pinned apps.
-                    if (!root.menu.searching && !root.menu.showingAllApps && !(event.modifiers & Qt.ShiftModifier)) {
-                        root.focusPinned();
-                        event.accepted = true;
-                    }
                     break;
                 case Qt.Key_Return:
                 case Qt.Key_Enter:
@@ -282,5 +302,7 @@ FocusScope {
 
     PopupMenu {
         id: contextMenu
+
+        onFocusOwnerLost: searchField.forceActiveFocus(Qt.PopupFocusReason)
     }
 }

@@ -17,8 +17,6 @@ PC3.ItemDelegate {
     property string subtitle: ""
     // Whether the row is the keyboard's current item.
     property bool current: false
-    // The row's model data, for views that read more roles when they need them.
-    property var entry: null
 
     // Right-click, at (x, y) in the row's coordinates.
     signal contextMenuRequested(real x, real y)

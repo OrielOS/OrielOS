@@ -43,6 +43,8 @@ ColumnLayout {
             onClicked: allApps.menu.showHome()
             Keys.onReturnPressed: clicked()
             Keys.onEnterPressed: clicked()
+            Keys.onTabPressed: allApps.menu.cycleFocus(true)
+            Keys.onBacktabPressed: allApps.menu.cycleFocus(false)
         }
     }
 
@@ -63,7 +65,9 @@ ColumnLayout {
             Accessible.name: KI18n.i18nc("@title Every app", "All apps")
             Accessible.role: Accessible.List
 
-            section.property: "display"
+            // The model's group is the name's first letter in upper case, transliterated where the
+            // language needs it, or "#" for a digit and "&" for a symbol, as in Kickoff.
+            section.property: "group"
             section.criteria: ViewSection.FirstCharacter
             section.delegate: PlasmaExtras.ListSectionHeader {
                 required property string section
@@ -95,6 +99,8 @@ ColumnLayout {
                 onContextMenuRequested: (x, y) => allApps.menu.openAppMenu(row.index, row, x, y, false)
             }
 
+            Keys.onTabPressed: allApps.menu.cycleFocus(true)
+            Keys.onBacktabPressed: allApps.menu.cycleFocus(false)
             Keys.onPressed: event => {
                 if (allApps.menu.isContextMenuKey(event)) {
                     list.openMenuForCurrent();
