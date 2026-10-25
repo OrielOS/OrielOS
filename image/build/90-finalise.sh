@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Checks that no build tools are installed, that the first boot will run Plasma Setup, install
 # Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
-# users get the taskbar and the wallpapers, enables the background update check, refreshes the
-# icon cache, rebuilds the initramfs for the installed kernel, removes build leftovers and lints
-# the image.
+# users get the taskbar and the wallpapers, enables the background update check and the unit that
+# keeps the boot menu hidden after good boots, refreshes the icon cache, rebuilds the initramfs for
+# the installed kernel, removes build leftovers and lints the image.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -97,6 +97,33 @@ if [[ -e /var/lib/orielos/update ]]; then
 fi
 if [[ "${#update_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${update_errors[@]}" >&2
+    exit 1
+fi
+
+# The boot menu stays hidden while the last boot reached the desktop. bootupd adds OrielOS's GRUB
+# snippet to the boot loader's configuration when OrielOS is installed. Each desktop session then
+# asks orielos-boot-success.service to mark the boot as good, through a user unit enabled for
+# every user here and a polkit rule that allows only that.
+systemctl --global enable orielos-mark-boot-success.service
+boot_menu_errors=()
+menu_snippet=/usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg
+if [[ ! -r "$menu_snippet" ]]; then
+    boot_menu_errors+=("the boot menu's GRUB snippet, $menu_snippet, is missing")
+elif ! grub2-script-check "$menu_snippet"; then
+    boot_menu_errors+=("grub2-script-check found errors in $menu_snippet")
+fi
+if [[ "$(systemctl --global is-enabled orielos-mark-boot-success.service 2>/dev/null)" != "enabled" ]]; then
+    boot_menu_errors+=("orielos-mark-boot-success.service is not enabled for users")
+fi
+for f in /usr/lib/systemd/system/orielos-boot-success.service /usr/share/polkit-1/rules.d/50-orielos-boot-success.rules; do
+    [[ -r "$f" ]] || boot_menu_errors+=("$f is missing")
+done
+[[ -x /usr/libexec/orielos/boot-success ]] || boot_menu_errors+=("/usr/libexec/orielos/boot-success is not executable")
+for cmd in grub2-editenv lsblk findmnt mountpoint; do
+    command -v "$cmd" >/dev/null || boot_menu_errors+=("$cmd, which marks a boot as good, is not installed")
+done
+if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${boot_menu_errors[@]}" >&2
     exit 1
 fi
 

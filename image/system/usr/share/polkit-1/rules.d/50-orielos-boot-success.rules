@@ -1,0 +1,15 @@
+// SPDX-FileCopyrightText: 2026 OrielOS contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Lets the person at the computer start orielos-boot-success.service, which marks the boot as
+// good once their desktop is up so the boot menu stays hidden at the next boot. It allows that one
+// unit and the start verb only.
+polkit.addRule(function (action, subject) {
+    if (action.id === "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") === "orielos-boot-success.service" &&
+        action.lookup("verb") === "start" &&
+        subject.local && subject.active) {
+        return polkit.Result.YES;
+    }
+    return polkit.Result.NOT_HANDLED;
+});

@@ -1,0 +1,12 @@
+[Unit]
+Description=Mark this boot as good, so the boot menu stays hidden at the next one
+Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/updates.md
+# Started by each desktop session once Plasma is up (orielos-mark-boot-success.service, a user
+# unit); polkit lets the person at the computer start this unit and nothing else.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/orielos/boot-success
+# The EFI system partition is mounted only inside this service, and only while it runs.
+PrivateMounts=yes
+ProtectHome=yes
