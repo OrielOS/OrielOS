@@ -379,7 +379,8 @@ echo "status=\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierIt
 if [ "\$mode" = restart ]; then
     menu="\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Menu | jq -r '.data')"
     echo "menu=\$menu"
-    layout="\$(bus call "\$item" "\$menu" com.canonical.dbusmenu GetLayout iias 0 -1 0)"
+    # Depth 10 rather than -1 ("all"): busctl would read -1 as an option.
+    layout="\$(bus call "\$item" "\$menu" com.canonical.dbusmenu GetLayout iias 0 10 0)"
     # Labels may carry an accelerator mark (KDE adds them to menus), "_" in dbusmenu.
     echo "labels=\$(printf '%s' "\$layout" | jq -r '[.data[1][2][] | .data[1].label.data // ""] | join("|")')"
     id="\$(printf '%s' "\$layout" | jq -r '.data[1][2][] | .data
