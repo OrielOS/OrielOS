@@ -22,7 +22,41 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 2
           persist-credentials: false
 
+      # apps is a required check, so the job always runs and reports, and only the build is
+      # skipped when nothing it reads has changed. A pull request's checkout is the pull request
+      # merged into its base branch, so HEAD^1 is the base. A push of more than one commit, or a
+      # comparison that fails, counts as a change.
+      - name: Check whether the change affects the apps
+        id: changes
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          rc=0
+          if [ "${EVENT}" = "push" ] && [ "$(git rev-parse HEAD^1 2>/dev/null)" != "${BEFORE}" ]; then
+              rc=2
+          else
+              git diff --quiet HEAD^1 HEAD -- \
+                  apps plasma artwork CMakeLists.txt VERSION \
+                  image/Containerfile image/build/apps-builder.sh image/pins.env \
+                  .containerignore .gitattributes tools/test-apps.sh .github/workflows/apps.yml || rc=$?
+          fi
+          case "${rc}" in
+              0)
+                  changed=false
+                  echo "::notice::No file the app build reads has changed, so the apps were not built."
+                  ;;
+              1) changed=true ;;
+              *)
+                  changed=true
+                  echo "::warning::Couldn't compare with the previous commit, so the apps are built."
+                  ;;
+          esac
+          echo "changed=${changed}" >>"${GITHUB_OUTPUT}"
+
       - name: Build and test the apps
+        if: steps.changes.outputs.changed == 'true'
         run: tools/test-apps.sh

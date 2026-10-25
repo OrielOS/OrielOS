@@ -41,6 +41,10 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Virtual machine disks for QEMU (qcow2) and VMware (VMDK) from one command, a tool that creates and boot-checks a VMware Workstation VM from the VMDK, and a guide to trying OrielOS in a virtual machine.
 - A command-line update tool that stages a new build for the next restart and rolls back to the previous build; rolled-back builds are not offered again.
 
+### Changed
+
+- Pull requests that don't change the apps, such as documentation or website changes, no longer wait about two minutes for the app build and tests; the `apps` check still reports and passes. The Discord bot's tests run after a merge only when the bot changed.
+
 ### Fixed
 
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.
