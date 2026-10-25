@@ -521,6 +521,12 @@ code {
   font-size: var(--step-lead);
 }
 
+.section-note {
+  max-width: 40rem;
+  margin-top: var(--space-6);
+  color: var(--text-muted);
+}
+
 .goals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));

@@ -18,4 +18,6 @@ Will contain:
 - Guides for installing.
 - Guides for gaming and for running Windows programs.
 
+Need help? Ask in the [Q&A](https://github.com/ncjsvr/OrielOS/discussions/categories/q-a) category of GitHub Discussions, or chat on [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA).
+
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder), not the GPL.
