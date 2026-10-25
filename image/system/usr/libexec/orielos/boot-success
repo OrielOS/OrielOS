@@ -31,7 +31,8 @@ root_disk() {
     source="$(findmnt -no SOURCE /sysroot 2>/dev/null || findmnt -no SOURCE /)"
     # Btrfs subvolumes are shown as /dev/vda3[/root].
     source="${source%%\[*}"
-    lsblk -snpo NAME,TYPE "$source" | awk '$2 == "disk" {print $1; exit}'
+    # -l lists the devices plainly; without it, -s draws a tree in front of the names.
+    lsblk -lsnpo NAME,TYPE "$source" | awk '$2 == "disk" {print $1; exit}'
 }
 
 # Set the flag in the boot loader folder under <mount point>; returns 1 if GRUB isn't there.
