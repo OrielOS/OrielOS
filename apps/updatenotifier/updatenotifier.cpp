@@ -102,6 +102,8 @@ void Notifier::reload()
         }
     } else if (m_state.updateWaiting(m_bootId) && m_state.staged()->digest != m_announcedDigest) {
         showReadyNotification();
+    } else if (m_state.updateUndone(m_bootId) && !m_announcedUndone) {
+        showUndoneNotification();
     }
 }
 
@@ -214,6 +216,18 @@ void Notifier::showGoBackNotification()
     KNotificationAction *later = notification->addAction(i18nc("@action:button", "Later"));
     connect(later, &KNotificationAction::activated, notification, &KNotification::close);
     m_goBackNotification = notification;
+    notification->sendEvent();
+}
+
+void Notifier::showUndoneNotification()
+{
+    m_announcedUndone = true;
+    auto *notification = new KNotification(QStringLiteral("updateUndone"));
+    notification->setComponentName(QStringLiteral("orielos-update-notifier"));
+    notification->setIconName(QLatin1String(iconName));
+    notification->setTitle(i18nc("@title", "The update was undone"));
+    // orielos-update's message names the version that didn't start and the one running now.
+    notification->setText(m_state.message());
     notification->sendEvent();
 }
 

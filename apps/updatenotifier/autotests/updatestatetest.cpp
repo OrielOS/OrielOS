@@ -208,6 +208,17 @@ private Q_SLOTS:
         QVERIFY(!UpdateState::fromJson(json).goingBack(bootId));
     }
 
+    void tellsWhenAnUpdateWasUndone()
+    {
+        QByteArray json = withPrevious(stateJson());
+        json.replace("\"up-to-date\"", "\"went-back\"");
+        const UpdateState state = UpdateState::fromJson(json);
+        QVERIFY(state.updateUndone(bootId));
+        QVERIFY(!state.updateUndone(QStringLiteral("boot-2")));
+        QVERIFY(!UpdateState::fromJson(stateJson()).updateUndone(bootId));
+        QCOMPARE(statusText(state, bootId, now), QStringLiteral("The last update didn't start, so OrielOS went back to the previous version"));
+    }
+
     void describesTheState()
     {
         QCOMPARE(statusText(UpdateState::fromJson(stateJson(newer)), bootId, now), QStringLiteral("Restart to finish updating to OrielOS 44.2"));

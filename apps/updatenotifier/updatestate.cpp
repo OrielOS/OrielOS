@@ -102,6 +102,11 @@ bool UpdateState::goingBack(const QString &currentBootId) const
     return isForThisBoot(currentBootId) && m_rollbackQueued && m_previous;
 }
 
+bool UpdateState::updateUndone(const QString &currentBootId) const
+{
+    return isForThisBoot(currentBootId) && m_result == QLatin1String("went-back");
+}
+
 bool UpdateState::isPaused(const QDateTime &now) const
 {
     return m_valid && m_pausedUntil.isValid() && m_pausedUntil > now;
@@ -172,6 +177,9 @@ QString statusText(const UpdateState &state, const QString &currentBootId, const
     if (result == QLatin1String("up-to-date") || result == QLatin1String("rejected") || result == QLatin1String("staged")
         || result == QLatin1String("rollback-queued")) {
         return i18nc("@info:tooltip", "OrielOS is up to date");
+    }
+    if (result == QLatin1String("went-back")) {
+        return i18nc("@info:tooltip", "The last update didn't start, so OrielOS went back to the previous version");
     }
     if (result == QLatin1String("metered")) {
         return i18nc("@info:tooltip", "Updates are skipped on a metered connection");

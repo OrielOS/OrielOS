@@ -63,6 +63,9 @@ public:
     bool canGoBack(const QString &currentBootId) const;
     // Going back is queued: the previous build starts at the next restart.
     bool goingBack(const QString &currentBootId) const;
+    // This start undid an update that failed to reach the desktop: the boot loader started the
+    // previous build, which OrielOS kept. The message says which versions.
+    bool updateUndone(const QString &currentBootId) const;
     bool isPaused(const QDateTime &now) const;
 
 private:

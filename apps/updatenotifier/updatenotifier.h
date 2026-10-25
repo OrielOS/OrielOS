@@ -34,6 +34,7 @@ private:
     void updateItem();
     void showReadyNotification();
     void showGoBackNotification();
+    void showUndoneNotification();
     void showErrorNotification(const QString &title, const QString &detail);
     void goBack();
     void restart();
@@ -48,6 +49,8 @@ private:
     // session, so "Later" isn't followed by the same notification at the next change.
     QString m_announcedDigest;
     QString m_announcedGoBackDigest;
+    // Undoing an update is told once per session.
+    bool m_announcedUndone = false;
     bool m_askingToGoBack = false;
 
     KStatusNotifierItem *m_item = nullptr;
