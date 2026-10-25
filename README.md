@@ -5,7 +5,8 @@
 
 # OrielOS
 
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15906/badge)](https://www.bestpractices.dev/projects/15906)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15906/badge)](https://www.bestpractices.dev/projects/15906)\
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/15906/baseline)](https://www.bestpractices.dev/projects/15906)
 
 OrielOS is a free and open-source Linux desktop, tuned for gaming and development, that feels familiar from the first boot. It runs on desktop PCs, starting with NVIDIA RTX graphics. If you're coming from Windows, the taskbar, Start menu, keyboard shortcuts and Settings are where you expect them, and Windows games and programs run through Proton.
 
