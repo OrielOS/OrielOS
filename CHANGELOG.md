@@ -29,3 +29,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Plasma Setup on first boot: a new installation has no user account, and KDE's setup wizard asks for the language, keyboard layout, network, time zone and the first account, then opens the login screen. It doesn't run again once setup is finished, and the boot test checks both.
 - Virtual machine disks for QEMU (qcow2) and VMware (VMDK) from one command, a tool that creates and boot-checks a VMware Workstation VM from the VMDK, and a guide to trying OrielOS in a virtual machine.
 - A command-line update tool that stages a new build for the next restart and rolls back to the previous build; rolled-back builds are not offered again.
+
+### Fixed
+
+- The credits line on orielos.org names only the upstream projects OrielOS builds on.
