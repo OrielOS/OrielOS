@@ -40,7 +40,7 @@ usage() {
 check_pin() {
     local name="$1" ref="${!1:-}"
     [[ -n "$ref" ]] || die "$name is not set in $PINS"
-    [[ "$ref" =~ @sha256:[0-9a-f]{64}$ ]] || die "$name in $PINS is not pinned by digest (expected name:tag@sha256:<64 hex digits>)"
+    [[ "$ref" =~ @sha256:[0-9a-f]{64}$ ]] || die "$name in $PINS is not pinned by digest (expected <name:tag or URL>@sha256:<64 hex digits>)"
 }
 
 kernel_of() {
@@ -162,6 +162,7 @@ main() {
     check_pin AKMODS_IMAGE
     check_pin AKMODS_NVIDIA_IMAGE
     check_pin BUILDER_IMAGE
+    check_pin UMU_LAUNCHER_RPM
 
     if [[ "$CLEAN_ONLY" -eq 1 ]]; then
         cleanup "$FEDORA_MAJOR"
@@ -184,6 +185,7 @@ main() {
         --build-arg "AKMODS_IMAGE=$AKMODS_IMAGE" \
         --build-arg "AKMODS_NVIDIA_IMAGE=$AKMODS_NVIDIA_IMAGE" \
         --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" \
+        --build-arg "UMU_LAUNCHER_RPM=$UMU_LAUNCHER_RPM" \
         --build-arg "IMAGE_VERSION=$tag" \
         --label "ostree.linux=$KERNEL" \
         -t "$REPO:$tag" "$ROOT"

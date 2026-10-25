@@ -1,0 +1,8 @@
+# The touchpad on PlayStation 4 and 5 controllers (DualShock 4, DualSense, DualSense Edge) doesn't
+# move the desktop's pointer, so resting a thumb on it during a game does nothing outside the game.
+# Games still read it: Steam Input and SDL use the controller's raw HID device, not this input
+# device, and Steam can map the touchpad to the mouse itself. Matches the touchpad input device
+# hid-playstation creates, over a cable ("Sony Interactive Entertainment ... Touchpad") and over
+# Bluetooth ("... Wireless Controller Touchpad").
+ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", ATTRS{id/vendor}=="054c", \
+    ATTRS{name}=="*Wireless Controller Touchpad", ENV{LIBINPUT_IGNORE_DEVICE}="1"

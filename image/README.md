@@ -17,7 +17,8 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 - `lockscreen/`: `LockScreenUi.qml`, Plasma's lock screen layout from plasma-desktop 6.7.5 with one change: the time and date sit under the sill of the OrielOS wallpaper while the screen is idle, in ink on Daybreak and white on Nightfall, and fade out while the user unlocks.
 - `build/30-nvidia.sh`: NVIDIA's open kernel modules and the matching driver. It checks that the modules were built for the installed kernel and that the driver packages carry negativo17's signature.
 - `build/40-apps.sh`: the runtime libraries the apps need (Qt Quick, Kirigami, KI18n, KCoreAddons, and KStatusNotifierItem, KNotifications and KDBusAddons for the update notifier). Plasma already pulls them in; listing them keeps the dependency explicit. It also installs what `orielos-update` uses: `tar`, `jq`, `skopeo` and polkit's `pkexec`.
-- `build/80-repos.sh`: disables every repository that is not Fedora's own.
+- `build/45-gaming.sh`: the system pieces games and gaming peripherals need (see [Gaming](#gaming)). It takes the umu-launcher RPM's pin from `pins.env` as its argument.
+- `build/80-repos.sh`: disables every repository that is not Fedora's own, and switches off Fedora's countme reporting (see [Gaming](#gaming)).
 - `build/85-check-modules.sh`: runs after every package is installed and fails the build unless:
   - every kernel module (`*.ko`, `*.ko.xz`, `*.ko.zst`) has a signer listed in `module-signers.txt`; the failure lists the offending modules and their signers, which may be none;
   - exactly one kernel is installed, and the NVIDIA modules were built for it;
@@ -42,6 +43,7 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
   - `etc/skel/.config/kglobalshortcutsrc`: the KWin shortcuts every new user starts with (see [Keyboard shortcuts](#keyboard-shortcuts)).
   - `etc/xdg/dolphinrc`: Files (Dolphin) opens a fresh window on the Home folder instead of restoring the last session's tabs.
   - `etc/xdg/kscreenlockerrc`: the lock screen shows the OrielOS wallpaper instead of Fedora's (see [The taskbar](#the-taskbar)).
+  - `usr/lib/modules-load.d/orielos-ntsync.conf`, `usr/lib/sysctl.d/60-orielos-gaming.conf` and `usr/lib/udev/rules.d/70-orielos-playstation-touchpad.rules`: the gaming defaults (see [Gaming](#gaming)).
   - `usr/lib/bootc/install/00-orielos.toml`: the install configuration, which makes every installation use a Btrfs root filesystem with zstd compression.
   - `usr/lib/bootc/kargs.d/10-orielos-splash.toml`: the kernel arguments for the boot splash, `rhgb quiet`.
   - `usr/lib/bootc/kargs.d/20-orielos-anticheat.toml`, `usr/lib/sysctl.d/60-orielos-kexec.conf` and `usr/lib/systemd/sleep.conf.d/50-orielos.conf`: the anti-cheat boot mode (see [Anti-cheat boot mode](#anti-cheat-boot-mode)).
@@ -174,6 +176,27 @@ fedora-bootc is set up for servers. `build/15-server-defaults.sh` changes that:
 
 Both services are also disabled in `system/usr/lib/systemd/system-preset/80-orielos.preset`, together with `flatpak-add-fedora-repos.service`, so they stay off when systemd applies its presets.
 
+## Gaming
+
+Games and their launchers come from the Store; the image carries only the system pieces they rely on.
+
+- **Tuning.** It uses only settings with evidence behind them:
+  - `system/usr/lib/modules-load.d/orielos-ntsync.conf` loads `ntsync` at boot, so Wine and Proton find `/dev/ntsync`.
+  - `system/usr/lib/sysctl.d/60-orielos-gaming.conf` sets `vm.max_map_count = 1048576` (Fedora's own `10-map-count.conf` sets the same) and `kernel.split_lock_mitigate = 0`.
+  - `zram-generator-defaults` gives Fedora's default zram swap.
+  - Transparent hugepages stay at the kernel's `madvise`, and CPU mitigations stay on. The kernel's own scheduler is used, and there is no ananicy-cpp.
+- **Packages.** `build/45-gaming.sh` installs:
+  - GameMode;
+  - `steam-devices`, the udev rules that let Steam from the Store reach controllers;
+  - the udev rules and services for the Store's peripheral apps: `solaar-udev` for Solaar, `libratbag-ratbagd` for Piper and `openrgb-udev-rules` for OpenRGB;
+  - umu-launcher, which the Windows programs dialog uses. Fedora doesn't package it, so the script downloads the Fedora RPM its project publishes from the URL in `pins.env` and refuses it unless its SHA-256 matches the pin there.
+
+  The script then checks that the installed kernel has the `ntsync` and `hid-playstation` modules and that `umu-run` is on the path.
+- **Controllers.** Xbox controllers use Universal Blue's signed xone and xpadneo drivers (see `build/10-kernel.sh`); PlayStation 4 and 5 controllers use the kernel's own `hid-playstation`. `system/usr/lib/udev/rules.d/70-orielos-playstation-touchpad.rules` keeps their touchpad from moving the desktop's pointer: it sets `LIBINPUT_IGNORE_DEVICE` on the touchpad input device. Games still read it, because Steam Input and SDL use the controller's raw HID device. BlueZ's defaults already accept their pairing.
+- **No countme.** Fedora's repositories set `countme=1`, which adds a weekly anonymous count to metadata requests, and rpm-ostree has its own weekly count timer. `build/80-repos.sh` changes the repository files to `countme=0`, disables `rpm-ostree-countme.timer`, and fails the build if either is still on. The preset file keeps the timer off too.
+
+`tests/boot-test.sh` checks all of these in the booted VM.
+
 ## Updates
 
 OrielOS updates with bootc. A new build is staged for the next boot while the running system stays as it is; at the restart the staged build starts, and the build that was running becomes the rollback build, also listed in the boot menu. `/var`, which holds home folders and system state, is kept across updates and rollbacks.
@@ -270,5 +293,7 @@ This checks that the kernel and NVIDIA inputs match, builds `localhost/orielos:<
 ## Pins
 
 `pins.env` holds the base image, the kernel image, the NVIDIA image and the Fedora image the apps are built on, each by digest, so two builds from the same commit use the same inputs. To update them, run `tools/update-pins.sh` to see what has changed, `tools/update-pins.sh --write` to apply it, review the kernel and NVIDIA versions it prints, build, boot-test and commit.
+
+It also holds `UMU_LAUNCHER_RPM`, the umu-launcher RPM's download URL with the SHA-256 GitHub shows for that release asset (`<url>@sha256:<digest>`). `tools/update-pins.sh` leaves it alone: to update it, change the version in the URL, and the Fedora release (`fcNN`) when the base moves to a new one, then the digest.
 
 Licence: GPL-3.0-or-later (see `LICENSE` in the repository root).
