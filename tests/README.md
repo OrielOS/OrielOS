@@ -163,6 +163,21 @@ Then it tests the background update service, which normally gets builds from a r
     - The VM must restart into the new build, and this boot's `state.json` must say `up-to-date` with nothing staged.
     - `keepme.txt` must be unchanged.
 
+Then it goes back through the notifier and checks the boot menu:
+
+12. **Go back to the previous version.**
+    - `orielostest` gets a known password, because going back needs an administrator and polkit asks for theirs.
+    - The notifier's "Go back to the previous version…" item is clicked over the session bus. The question's default is Cancel, so the test presses Alt+G for "Go back", then types the password into polkit's prompt and presses Enter, all over QMP. `go-back-question.png` and `go-back-password.png` show both.
+    - `state.json` must then say `rollbackQueued`, and the new build must be in `rejected-digests`.
+    - The tray icon must be Active and offer "Restart to go back" (`go-back-ready.png`), which the test clicks. The VM must restart into the old build, with `keepme.txt` unchanged.
+13. **The boot menu.** The firmware copies GRUB's screen to the serial console, so the test reads it there. For each restart it watches the serial log from `systemctl reboot` until the kernel prints `Linux version`.
+    - `/boot/grub2/grub.cfg` must include `12_orielos-menu.cfg`, and the boot entries must be `OrielOS <old version> (ostree:0)` and `OrielOS <new version> (ostree:1)`.
+    - Within 120 s of the desktop starting, `orielos_boot_ok` must be `1` in `EFI/fedora/orielos-boot.env` on the EFI system partition.
+    - After a restart, the menu must stay hidden.
+    - With `multi-user.target` as the default, so the display manager never starts, the next boot must leave the flag at `0`. The test then sets `graphical.target` back.
+    - At the restart after that, the menu must appear. The test saves `boot-menu.png`, presses Down and Enter, and the new build must start.
+    - At the next restart the test presses Esc once the firmware starts GRUB. The menu must appear (`boot-menu-esc.png`), and Enter must start the old build, the first entry.
+
 ```sh
 tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
 tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
@@ -172,7 +187,7 @@ tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
 
 Each restart is started with `systemctl reboot` over SSH; the VM restarts in place. The test waits for SSH to go away and answer again, then checks that `/proc/sys/kernel/random/boot_id` changed. `--timeout` is how long it waits for SSH after power-on and after each restart.
 
-It prints PASS or FAIL for twenty-one checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
+It prints PASS or FAIL for thirty-two checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
 
 Results go to `tests/results/<run id>/`, or to the folder given with `--results`. The run id is `update-<new build's tag>-<UTC time>`. The folder holds:
 
@@ -184,6 +199,9 @@ Results go to `tests/results/<run id>/`, or to the folder given with `--results`
 - `state-staged.json` and `state-updated.json`: `/var/lib/orielos/update/state.json` once the check service has staged the build, and after the restart.
 - `update-ready.png`: the desktop once the update is staged.
 - `notifier.txt`: the test user's processes and the journal's lines about the notifier, when it didn't start.
+- `go-back-question.png`, `go-back-password.png` and `go-back-ready.png`: the question, polkit's prompt, and the desktop once going back is queued. `bootc-status-go-back.json`, `bootc-status-went-back.json` and their `status-*.txt` files are taken after the prompt and after the restart.
+- `boot-menu.png` and `boot-menu-esc.png`: the boot menu after a boot without the desktop, and after Esc. `boot-menu-unexpected.png` exists only if the menu appeared when it shouldn't have. `bootc-status-boot-menu.json` and `bootc-status-boot-menu-esc.json` show which build started.
+- `boot-success.txt`: the journal of the units that mark a boot as good, when the flag wasn't set.
 
 The work folder and `--keep` work as in the boot test.
 
@@ -196,7 +214,8 @@ The work folder and `--keep` work as in the boot test.
   - the default channel, switching channel, keeping a pause when switching, and refusing unknown channels;
   - up-to-date, newer, already staged and rejected builds, an unreachable source, and metered connections;
   - a failed stage, the registry and OCI directory sources, a channel that moves while staging, an unsupported source, and `check-now`;
-  - the state file's fields, types and permissions, and `refresh` before any check, after a check and after restarting into an update.
+  - the state file's fields, types and permissions, and `refresh` before any check, after a check and after restarting into an update;
+  - the previous build and whether it was rejected, `rollback` with and without a previous build, a check while going back is queued, and `refresh` after restarting into the previous build.
 
 ## Secure Boot key test
 

@@ -6,6 +6,10 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Going back to the previous version, and a boot menu that appears when it's needed.
+  - The OrielOS updates icon's menu offers "Go back to the previous version…". After you confirm and enter an administrator's password, "Restart to go back" starts the previous version, and the version you left isn't offered again.
+  - The boot menu stays hidden while the computer starts normally. It appears by itself after a start that didn't reach the desktop, so you can choose the previous version, and Esc or Shift opens it at any start.
+  - Boot menu entries are named after OrielOS versions, such as "OrielOS 44.20261026", and the system now calls itself OrielOS, with links to OrielOS's website, discussions and issue tracker.
 - Updates now arrive by themselves.
   - OrielOS checks for a new version a while after start-up and then about every six hours, downloads it in the background and prepares it for the next restart. It never restarts on its own.
   - When a version is ready, a notification and the OrielOS updates icon in the system tray offer "Restart to update" and "Later".
