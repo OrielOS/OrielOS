@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- On the OrielOS Discord server, members can react 🟢 or 🔴 on the about message to get the NVIDIA or AMD role and show which graphics card they have. Removing the reaction takes the role away.
 - OrielOS's own Start menu replaces Plasma's launcher on the taskbar.
   - Search at the top lists apps, settings, files and Store results as you type, but opens nothing until you press Enter or click.
   - Below it are your pinned apps, an All apps list, and recommendations: recently added apps and recently opened files.

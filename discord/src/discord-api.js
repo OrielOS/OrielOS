@@ -5,6 +5,8 @@ import { REST, Routes } from "discord.js";
 
 export const EMOJI = "🔗";
 export const TESTER_EMOJI = "🧪";
+export const NVIDIA_EMOJI = "🟢";
+export const AMD_EMOJI = "🔴";
 
 const NO_MENTIONS = { parse: [] };
 

@@ -7,7 +7,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { NOT_RUNNING_NOTICE, isEnabled, readConfig } from "./config.js";
 import {
   EMOJI,
-  TESTER_EMOJI,
   addOwnReaction,
   addRole,
   botUserId,
@@ -36,21 +35,20 @@ import {
   waitForToken,
 } from "./github.js";
 import { planPullPosts, planStarPost, sendPosts } from "./posts.js";
-import { desiredRoles, roleChanges } from "./roles.js";
+import { OPT_IN_ROLES, desiredRoles, roleChanges } from "./roles.js";
 import {
   deleteRecord,
   linksToMove,
   linksToUnlink,
   loadStore,
   planLink,
-  planTesters,
+  planOptIns,
   saveRecord,
   updateRecord,
 } from "./store.js";
 
 const MAX_NEW_LINKS = 10;
 const REASON = "Synced from GitHub";
-const TESTER_REASON = "Asked for test build pings";
 const UNKNOWN_MEMBER = 10007;
 const UNKNOWN_MESSAGE = 10008;
 const CANNOT_DM = 50007;
@@ -105,6 +103,8 @@ async function setup(config, rest) {
       maintainer: roleFor(names.maintainer).id,
       contributor: roleFor(names.contributor).id,
       testers: optionalRole(names.testers),
+      nvidia: optionalRole(names.nvidia),
+      amd: optionalRole(names.amd),
     },
     roleNames: { maintainer: names.maintainer, contributor: names.contributor },
   };
@@ -137,15 +137,17 @@ async function ensureLinkMessage(ctx) {
   return message.id;
 }
 
-// The bot's own 🔗, and 🧪 when there is a Testers role, so members can click them.
+// The bot's own 🔗, and the emoji of each opt-in role that exists, so members can click them.
 async function ensureReactions(ctx) {
   const { rest, channels, roleIds } = ctx;
   const message = await getMessage(rest, channels.link, ctx.linkMessage);
   const has = (emoji) =>
     (message.reactions ?? []).some((reaction) => reaction.emoji?.name === emoji && reaction.me);
   if (!has(EMOJI)) await addOwnReaction(rest, channels.link, ctx.linkMessage);
-  if (roleIds.testers && !has(TESTER_EMOJI)) {
-    await addOwnReaction(rest, channels.link, ctx.linkMessage, TESTER_EMOJI);
+  for (const { key, emoji } of OPT_IN_ROLES) {
+    if (roleIds[key] && !has(emoji)) {
+      await addOwnReaction(rest, channels.link, ctx.linkMessage, emoji);
+    }
   }
 }
 
@@ -361,51 +363,59 @@ async function postFeed(ctx) {
   }
 }
 
-// Members who react 🧪 get the Testers role; removing the reaction takes it away.
-async function syncTesters(ctx) {
-  const { rest, guild, channels, roleIds, store } = ctx;
-  if (!roleIds.testers) {
-    console.log("There is no Testers role, so test build pings are off.");
+// Members who react with an opt-in role's emoji get the role; removing the reaction takes it away.
+async function syncOptIn(ctx, { key, emoji, label, reason, off }) {
+  const { rest, guild, channels, store } = ctx;
+  const roleId = ctx.roleIds[key];
+  if (!roleId) {
+    console.log(`There is no ${label} role, so ${off}.`);
     return;
   }
   let added = 0;
   let removed = 0;
   try {
-    const reactors = (
-      await listReactors(rest, channels.link, ctx.linkMessage, TESTER_EMOJI)
-    ).filter((user) => !user.bot);
-    const plan = planTesters(new Set(reactors.map((user) => user.id)), store.testers);
+    const reactors = (await listReactors(rest, channels.link, ctx.linkMessage, emoji)).filter(
+      (user) => !user.bot,
+    );
+    const records = store.optIns.filter((record) => record.role === key);
+    const plan = planOptIns(new Set(reactors.map((user) => user.id)), records);
     for (const id of plan.add) {
       try {
-        await addRole(rest, guild, id, roleIds.testers, TESTER_REASON);
+        await addRole(rest, guild, id, roleId, reason);
       } catch (error) {
         if (errorCode(error) === UNKNOWN_MEMBER) continue;
         ctx.stats.errors += 1;
-        console.error(`Could not give the Testers role: ${describeError(error)}.`);
+        console.error(`Could not give the ${label} role: ${describeError(error)}.`);
         continue;
       }
-      store.testers.push(await saveRecord(rest, channels.state, { kind: "tester", discord: id }));
+      store.optIns.push(
+        await saveRecord(rest, channels.state, { kind: "optin", role: key, discord: id }),
+      );
       added += 1;
     }
     for (const record of plan.remove) {
       try {
-        await removeRole(rest, guild, record.discord, roleIds.testers, TESTER_REASON);
+        await removeRole(rest, guild, record.discord, roleId, reason);
       } catch (error) {
         if (errorCode(error) !== UNKNOWN_MEMBER) {
           ctx.stats.errors += 1;
-          console.error(`Could not remove the Testers role: ${describeError(error)}.`);
+          console.error(`Could not remove the ${label} role: ${describeError(error)}.`);
           continue;
         }
       }
       await deleteRecord(rest, channels.state, record);
-      store.testers = store.testers.filter((tester) => tester.id !== record.id);
+      store.optIns = store.optIns.filter((item) => item.id !== record.id);
       removed += 1;
     }
   } catch (error) {
     ctx.stats.errors += 1;
-    console.error(`Could not sync the Testers role: ${describeError(error)}.`);
+    console.error(`Could not sync the ${label} role: ${describeError(error)}.`);
   }
-  console.log(`Testers: ${added} added, ${removed} removed.`);
+  console.log(`${label}: ${added} added, ${removed} removed.`);
+}
+
+async function syncOptIns(ctx) {
+  for (const role of OPT_IN_ROLES) await syncOptIn(ctx, role);
 }
 
 async function run(env) {
@@ -443,7 +453,7 @@ async function run(env) {
   await syncAll(ctx);
 
   await postFeed(ctx);
-  await syncTesters(ctx);
+  await syncOptIns(ctx);
 
   if (config.linkClientId) await linkNewMembers(ctx, reactors);
   else console.log("LINK_CLIENT_ID is not set, so new members are not being linked.");

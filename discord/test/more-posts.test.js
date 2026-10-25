@@ -12,7 +12,7 @@ import {
   welcomeMessage,
   withTestersPing,
 } from "../src/posts.js";
-import { dedupeTesters, parseRecord, planTesters, serialiseRecord } from "../src/store.js";
+import { dedupeOptIns, parseRecord, planOptIns, serialiseRecord } from "../src/store.js";
 
 const repo = "ncjsvr/OrielOS";
 const person = { login: "alice", type: "User", html_url: "https://github.com/alice" };
@@ -170,29 +170,46 @@ test("feed records keep stars when valid", () => {
   assert.deepEqual(parseRecord('{"kind":"feed","pr":4,"stars":"25"}'), { kind: "feed", pr: 4 });
 });
 
-test("tester records round trip, and bad ones are ignored", () => {
-  const tester = { kind: "tester", discord: "100" };
-  assert.deepEqual(parseRecord(serialiseRecord(tester)), tester);
+test("opt-in records round trip, and bad ones are ignored", () => {
+  const nvidia = { kind: "optin", role: "nvidia", discord: "100" };
+  assert.deepEqual(parseRecord(serialiseRecord(nvidia)), nvidia);
+  assert.equal(parseRecord('{"kind":"optin","discord":"100"}'), null);
+  assert.equal(parseRecord('{"kind":"optin","role":"NVIDIA","discord":"100"}'), null);
+  assert.equal(parseRecord('{"kind":"optin","role":"amd2","discord":"100"}'), null);
+  assert.equal(parseRecord('{"kind":"optin","role":"amd","discord":""}'), null);
+  assert.equal(parseRecord('{"kind":"optin","role":"amd","discord":100}'), null);
+});
+
+test("older tester records count as Testers opt-ins", () => {
+  assert.deepEqual(parseRecord('{"kind":"tester","discord":"100"}'), {
+    kind: "optin",
+    role: "testers",
+    discord: "100",
+  });
   assert.equal(parseRecord('{"kind":"tester","discord":""}'), null);
   assert.equal(parseRecord('{"kind":"tester","discord":100}'), null);
 });
 
-test("planTesters adds new reactors and drops records whose reaction is gone", () => {
-  const testers = [
-    { kind: "tester", discord: "1", id: "m1" },
-    { kind: "tester", discord: "2", id: "m2" },
+test("planOptIns adds new reactors and drops records whose reaction is gone", () => {
+  const records = [
+    { kind: "optin", role: "amd", discord: "1", id: "m1" },
+    { kind: "optin", role: "amd", discord: "2", id: "m2" },
   ];
-  const plan = planTesters(new Set(["2", "3"]), testers);
+  const plan = planOptIns(new Set(["2", "3"]), records);
   assert.deepEqual(plan.add, ["3"]);
-  assert.deepEqual(plan.remove, [testers[0]]);
-  assert.deepEqual(planTesters(new Set(), []), { add: [], remove: [] });
+  assert.deepEqual(plan.remove, [records[0]]);
+  assert.deepEqual(planOptIns(new Set(), []), { add: [], remove: [] });
 });
 
-test("dedupeTesters keeps the newest record for each member", () => {
-  const newest = { kind: "tester", discord: "1", id: "m3" };
-  const older = { kind: "tester", discord: "1", id: "m1" };
-  const other = { kind: "tester", discord: "2", id: "m2" };
-  assert.deepEqual(dedupeTesters([newest, other, older]), { keep: [newest, other], drop: [older] });
+test("dedupeOptIns keeps the newest record for each role and member", () => {
+  const newest = { kind: "optin", role: "testers", discord: "1", id: "m4" };
+  const otherRole = { kind: "optin", role: "nvidia", discord: "1", id: "m3" };
+  const other = { kind: "optin", role: "testers", discord: "2", id: "m2" };
+  const older = { kind: "optin", role: "testers", discord: "1", id: "m1" };
+  assert.deepEqual(dedupeOptIns([newest, otherRole, other, older]), {
+    keep: [newest, otherRole, other],
+    drop: [older],
+  });
 });
 
 function fakeFetch(body, status = 200) {
