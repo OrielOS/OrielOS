@@ -1,0 +1,13 @@
+[Global]
+IconName=system-software-update
+Comment=OrielOS updates
+
+[Event/updateReady]
+Name=Update ready
+Comment=An OrielOS update is ready and starts at the next restart
+Action=Popup
+
+[Event/settingsFailed]
+Name=Update settings not changed
+Comment=Pausing updates, resuming them, checking for them or changing channel didn't work
+Action=Popup

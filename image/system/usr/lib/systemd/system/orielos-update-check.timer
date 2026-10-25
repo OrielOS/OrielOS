@@ -1,0 +1,15 @@
+[Unit]
+Description=Check for OrielOS updates in the background
+Documentation=https://github.com/ncjsvr/OrielOS
+
+[Timer]
+# A while after start-up, so the check doesn't compete with logging in, then about every six
+# hours. The random delay spreads computers out, and Persistent catches up on a check missed
+# while the computer was off.
+OnBootSec=10min
+OnUnitActiveSec=6h
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

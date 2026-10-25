@@ -2,6 +2,10 @@
 # before Fedora's 85-* and 90-* presets, so these lines win.
 # Updates are staged and the user is asked before restarting, instead of rebooting by itself.
 disable bootc-fetch-apply-updates.timer
+# OrielOS's own check stages updates in the background; the desktop then offers to restart.
+enable orielos-update-check.timer
+# Records each boot's update state before login, for the desktop's update notifier.
+enable orielos-update-state.service
 # A desktop does not listen for SSH.
 disable sshd.service
 # Flathub is the only Flatpak source, so Fedora's own remote is not added.

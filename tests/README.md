@@ -145,16 +145,34 @@ The disk, the SSH key and the VM's other files live in `/var/lib/orielos/vm/<run
 6. **Roll back** with `orielos-update rollback`, which must list the new build's digest in `/var/lib/orielos/update/rejected-digests`, and restart. The old build must run again, and `keepme.txt` must be unchanged.
 7. **Stage the new build again.** `orielos-update stage` must refuse it with exit status 3, and nothing must be staged.
 
+Then it tests the background update service, which normally gets builds from a registry:
+
+8. **A local update source.**
+   - In the VM, `skopeo copy` puts the new build into an OCI directory, `/var/lib/orielos/test-source`, tagged `testing`. `/etc/orielos/update.conf` points `source=` at it.
+   - The stable channel has no build there, so `orielos-update check` must stage nothing and report `unreachable`.
+9. **Channels and pause.**
+   - `orielos-update channel testing`, then a check: it must skip the new build, which step 6 rolled back, and report `rejected`.
+   - `orielos-update forget` that build and `orielos-update pause 1`, then a check: it must stage nothing and report `paused`.
+   - `orielos-update resume`.
+10. **The desktop.**
+    - SDDM's autologin logs `orielostest` in to Plasma, and the update notifier must start there with a tray icon on the session bus.
+    - `systemctl start orielos-update-check.service`, the unit the timer starts, must stage the new build.
+    - The notifier's tray icon must turn Active. `update-ready.png` shows the screen, with the notification.
+11. **Restart to update.**
+    - The notifier's "Restart to update" menu item is clicked over the session bus, through the tray icon's `com.canonical.dbusmenu` interface, as the tray does.
+    - The VM must restart into the new build, and this boot's `state.json` must say `up-to-date` with nothing staged.
+    - `keepme.txt` must be unchanged.
+
 ```sh
 tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
 tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
 ```
 
-`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about fifteen minutes: the installation, three boots, copying the archive and importing it.
+`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about forty minutes: the installation, five boots, copying the archive, importing it twice and the desktop login.
 
 Each restart is started with `systemctl reboot` over SSH; the VM restarts in place. The test waits for SSH to go away and answer again, then checks that `/proc/sys/kernel/random/boot_id` changed. `--timeout` is how long it waits for SSH after power-on and after each restart.
 
-It prints PASS or FAIL for twelve checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
+It prints PASS or FAIL for twenty-one checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
 
 Results go to `tests/results/<run id>/`, or to the folder given with `--results`. The run id is `update-<new build's tag>-<UTC time>`. The folder holds:
 
@@ -162,8 +180,23 @@ Results go to `tests/results/<run id>/`, or to the folder given with `--results`
 - `install.log` and `serial.log`: the installation's output and the VM's console output from every boot.
 - `bootc-status-<step>.json` and `status-<step>.txt`: the output of `bootc status --format=json` and `orielos-update status` after each step (`old`, `staged`, `new`, `rolled-back` and `final`).
 - `stage.txt`, `rollback.txt` and `stage-again.txt`: the output of those `orielos-update` commands.
+- `service.txt`: the output of the `orielos-update` commands in steps 8 to 10, and `bootc-status-service-<step>.json` and `status-service-<step>.txt` after them.
+- `state-staged.json` and `state-updated.json`: `/var/lib/orielos/update/state.json` once the check service has staged the build, and after the restart.
+- `update-ready.png`: the desktop once the update is staged.
+- `notifier.txt`: the test user's processes and the journal's lines about the notifier, when it didn't start.
 
 The work folder and `--keep` work as in the boot test.
+
+## Unit tests
+
+`unit/` holds quick tests for the shell tools that need no root, VM or network. `tools/lint.sh` runs every `unit/*-test.sh`, so CI runs them on every pull request.
+
+- `unit/orielos-update-test.sh` runs the real `orielos-update` against a scratch directory (`ORIELOS_UPDATE_ROOT`), with a fixed clock (`ORIELOS_UPDATE_NOW`). Stand-ins for `bootc`, `skopeo`, `busctl` and `systemctl` sit first on `PATH`, record their arguments and return prepared answers. It covers:
+  - pausing for 1 and 5 weeks, refusing other lengths, checks while paused, a pause that has ended, and resuming;
+  - the default channel, switching channel, keeping a pause when switching, and refusing unknown channels;
+  - up-to-date, newer, already staged and rejected builds, an unreachable source, and metered connections;
+  - a failed stage, the registry and OCI directory sources, a channel that moves while staging, an unsupported source, and `check-now`;
+  - the state file's fields, types and permissions, and `refresh` before any check, after a check and after restarting into an update.
 
 ## Secure Boot key test
 

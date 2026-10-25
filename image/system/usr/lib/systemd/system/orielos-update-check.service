@@ -1,0 +1,22 @@
+[Unit]
+Description=Check for an OrielOS update and stage it for the next restart
+Documentation=https://github.com/ncjsvr/OrielOS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Started by orielos-update-check.timer, or by "orielos-update check-now" from the desktop. It
+# never restarts the computer: the desktop asks the user to.
+Type=oneshot
+ExecStart=/usr/bin/orielos-update check
+# Downloading an update must not slow down whatever the user is doing.
+Nice=19
+IOSchedulingClass=idle
+# bootc writes the new deployment under /sysroot and /ostree, so the file system can't be made
+# read-only here; these settings cover what the check doesn't need.
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+LockPersonality=true

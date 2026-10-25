@@ -16,7 +16,7 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 - `build/27-lock-screen.sh`: installs `lockscreen/LockScreenUi.qml`, OrielOS's copy of Plasma's lock screen layout, over Plasma's own (see [The taskbar](#the-taskbar)). It fails the build unless Plasma's file is exactly the version the copy is based on, checked by its sha256.
 - `lockscreen/`: `LockScreenUi.qml`, Plasma's lock screen layout from plasma-desktop 6.7.5 with one change: the time and date sit under the sill of the OrielOS wallpaper while the screen is idle, in ink on Daybreak and white on Nightfall, and fade out while the user unlocks.
 - `build/30-nvidia.sh`: NVIDIA's open kernel modules and the matching driver. It checks that the modules were built for the installed kernel and that the driver packages carry negativo17's signature.
-- `build/40-apps.sh`: the runtime libraries the apps need (Qt Quick, Kirigami, KI18n, KCoreAddons). Plasma already pulls them in; listing them keeps the dependency explicit. It also installs `tar` and `jq`, which `orielos-update` uses.
+- `build/40-apps.sh`: the runtime libraries the apps need (Qt Quick, Kirigami, KI18n, KCoreAddons, and KStatusNotifierItem, KNotifications and KDBusAddons for the update notifier). Plasma already pulls them in; listing them keeps the dependency explicit. It also installs what `orielos-update` uses: `tar`, `jq`, `skopeo` and polkit's `pkexec`.
 - `build/80-repos.sh`: disables every repository that is not Fedora's own.
 - `build/85-check-modules.sh`: runs after every package is installed and fails the build unless:
   - every kernel module (`*.ko`, `*.ko.xz`, `*.ko.zst`) has a signer listed in `module-signers.txt`; the failure lists the offending modules and their signers, which may be none;
@@ -33,9 +33,9 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 
   On success it prints the kernel, its default LSM list and the kernel arguments.
 - `module-signers.txt`: the allowed module signers, one per line: `Fedora kernel signing key` and `ublue kernel` (Universal Blue's). OrielOS never builds or signs kernel modules itself and never ships one signed by another key, which keeps it eligible for anti-cheat systems that check the module signing chain.
-- `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists) and `orielos-secure-boot-key.service` (and fails if its parts are missing; see [Secure Boot](#secure-boot)), fails if new users would not get the taskbar or the wallpapers (see [The taskbar](#the-taskbar)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
+- `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists) and `orielos-secure-boot-key.service` (and fails if its parts are missing; see [Secure Boot](#secure-boot)), fails if new users would not get the taskbar or the wallpapers (see [The taskbar](#the-taskbar)), enables `orielos-update-check.timer` and `orielos-update-state.service` (and fails if `orielos-update`'s tools, source or polkit policy are missing, or update state is in the image; see [Updates](#updates)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
 - `system/`: files copied into the image as they are, laid out like the filesystem. It holds:
-  - `usr/bin/orielos-update`: the update command (see [Updates](#updates)).
+  - `usr/bin/orielos-update`, `usr/lib/orielos/update.conf`, `usr/lib/systemd/system/orielos-update-check.service`, `orielos-update-check.timer`, `orielos-update-state.service` and `usr/share/polkit-1/actions/org.orielos.update.policy`: the update command, its source, the background check, the per-boot state for the desktop and who may change the settings (see [Updates](#updates)).
   - `usr/libexec/orielos/flatpak-setup` and `usr/lib/systemd/system/orielos-flatpak-setup.service`: the first-boot install of Firefox from Flathub (see [The Store](#the-store)).
   - `usr/libexec/orielos/secure-boot-key`, `usr/lib/systemd/system/orielos-secure-boot-key.service`, `usr/libexec/orielos/secure-boot-notify` and `etc/xdg/autostart/orielos-secure-boot-notify.desktop`: the Secure Boot key step (see [Secure Boot](#secure-boot)). The Containerfile copies `system/etc/` to `/etc`, which bootc keeps as the default configuration.
   - `etc/skel/.config/kglobalshortcutsrc`: the KWin shortcuts every new user starts with (see [Keyboard shortcuts](#keyboard-shortcuts)).
@@ -44,7 +44,7 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
   - `usr/lib/bootc/install/00-orielos.toml`: the install configuration, which makes every installation use a Btrfs root filesystem with zstd compression.
   - `usr/lib/bootc/kargs.d/10-orielos-splash.toml`: the kernel arguments for the boot splash, `rhgb quiet`.
   - `usr/lib/bootc/kargs.d/20-orielos-anticheat.toml`, `usr/lib/sysctl.d/60-orielos-kexec.conf` and `usr/lib/systemd/sleep.conf.d/50-orielos.conf`: the anti-cheat boot mode (see [Anti-cheat boot mode](#anti-cheat-boot-mode)).
-  - `usr/lib/systemd/system-preset/80-orielos.preset`: keeps the server services listed below disabled whenever systemd applies its presets.
+  - `usr/lib/systemd/system-preset/80-orielos.preset`: keeps the server services listed below disabled, and OrielOS's own services enabled, whenever systemd applies its presets.
 - `keys/`: public keys used to verify packages during the build.
 - `pins.env`: the upstream inputs, each pinned by digest.
 
@@ -159,7 +159,7 @@ Every OrielOS boot meets Easy Anti-Cheat's published Linux requirements. There i
 
 fedora-bootc is set up for servers. `build/15-server-defaults.sh` changes that:
 
-- Automatic updates are off: `bootc-fetch-apply-updates.timer`, which downloads updates and reboots into them by itself, is disabled. OrielOS will stage updates and ask before restarting.
+- bootc's own automatic updates are off: `bootc-fetch-apply-updates.timer`, which downloads updates and reboots into them by itself, is disabled. OrielOS's update check stages updates and the desktop asks before restarting (see [Updates](#updates)).
 - The SSH server is off: `sshd.service` is disabled, so a desktop does not listen for SSH. `openssh-server` stays installed because systemd's vsock SSH socket, which `tests/boot-test.sh` uses, runs `sshd` without `sshd.service`.
 - These packages are removed, freeing about 300 MB:
   - `kexec-tools`, `kdump-utils` and `makedumpfile`: crash dumps through kexec, which will be disabled at boot.
@@ -175,7 +175,9 @@ Both services are also disabled in `system/usr/lib/systemd/system-preset/80-orie
 
 ## Updates
 
-OrielOS updates with bootc. A new build is staged for the next boot while the running system stays as it is; at the restart the staged build starts, and the build that was running becomes the rollback build, also listed in the boot menu. `/var`, which holds home folders and system state, is kept across updates and rollbacks. Images aren't published to a registry yet, so builds reach a machine as OCI archives from `tools/build-image.sh`.
+OrielOS updates with bootc. A new build is staged for the next boot while the running system stays as it is; at the restart the staged build starts, and the build that was running becomes the rollback build, also listed in the boot menu. `/var`, which holds home folders and system state, is kept across updates and rollbacks.
+
+Updates are whole images from one source, set by `source=` in `system/usr/lib/orielos/update.conf` (`docker://ghcr.io/ncjsvr/orielos`) and overridable in `/etc/orielos/update.conf`. Each channel, `stable` or `testing`, is a tag of that image. A source can also be `oci:/<directory>`, an OCI image layout directory with one tag per channel, which the update test uses. Images aren't published to the registry yet, so until they are, checks report the source as unreachable, and builds reach a machine as OCI archives from `tools/build-image.sh`.
 
 `orielos-update` (in `system/usr/bin/`) is the command-line front end. It runs as root:
 
@@ -183,8 +185,29 @@ OrielOS updates with bootc. A new build is staged for the next boot while the ru
 - `orielos-update stage FILE.ociarchive`: reads the build's manifest digest and version label from the archive's `index.json`, manifest and configuration with `tar` and `jq`, without importing it. It refuses a rejected build with exit status 3, does nothing if the build is already running or already staged, and otherwise runs `bootc switch --transport oci-archive FILE`, which imports the build and stages it for the next boot. Without `--apply`, bootc does not restart.
 - `orielos-update rollback`: refuses if there is no rollback build. Otherwise it adds the running build's digest to the rejected builds and runs `bootc rollback`, which makes the previous build start at the next restart. Running it again while that rollback is queued changes nothing.
 - `orielos-update forget DIGEST`: removes a digest from the rejected builds, for testers.
+- `orielos-update check`: the background check, which `orielos-update-check.timer` starts 10 minutes after boot and then about every 6 hours (with up to 30 minutes' random delay; missed checks run at the next boot), through `orielos-update-check.service` at low CPU and I/O priority. In order:
+  1. It stops if updates are paused.
+  2. For a registry source, it stops if NetworkManager's `Metered` property is yes or guess-yes.
+  3. It reads the channel tag's manifest digest and version label with `skopeo inspect`. An unreadable source is reported as `unreachable` and exits 0, so the unit doesn't fail while nothing is published.
+  4. It does nothing more when that build is running, already staged, or rejected.
+  5. Otherwise it stages the build. A registry build is pinned to the digest it read (`bootc switch <repository>@<digest>`), so a tag that moves meanwhile can't swap in another build. An OCI directory build is staged by tag, and the staged digest is checked afterwards.
 
-The rejected builds are kept in `/var/lib/orielos/update/rejected-digests`, one digest per line followed by a comment with the time it was rejected and its version. Exit status 1 means an error and 2 wrong usage. `tests/update-test.sh` tests the whole cycle in a VM, and [docs/updates.md](../docs/updates.md) explains it for users. The graphical update service will build on the same steps.
+  It never restarts the computer.
+- `orielos-update check-now`: starts the check unit without waiting.
+- `orielos-update pause WEEKS` (1 to 5), `orielos-update resume` and `orielos-update channel stable|testing`: the machine's settings, kept in `/var/lib/orielos/update/settings`. A pause runs from now, and a pause that has ended is cleared at the next check; a channel change takes effect at the next check.
+- `orielos-update refresh`: rewrites this boot's state without checking. `orielos-update-state.service` runs it at every boot, before the login screen.
+
+The rejected builds are kept in `/var/lib/orielos/update/rejected-digests`, one digest per line followed by a comment with the time it was rejected and its version. Exit status 1 means an error and 2 wrong usage.
+
+**The desktop's view.** `orielos-update` writes `/var/lib/orielos/update/state.json` (readable by everyone, replaced in one step) after every command that changes something. It holds:
+- the boot ID it describes;
+- the channel and the pause;
+- the last check's time, result (`never-checked`, `up-to-date`, `staged`, `paused`, `metered`, `rejected`, `unreachable` or `error`) and message;
+- the running and staged builds.
+
+The update notifier in `apps/updatenotifier/` follows it. It changes the settings by running `pkexec /usr/bin/orielos-update pause|resume|check-now|channel`, and `system/usr/share/polkit-1/actions/org.orielos.update.policy` decides who may: the person at the computer may pause, resume and check without a password, and changing the channel needs an administrator.
+
+`tests/unit/orielos-update-test.sh` tests the check, pause and channel logic and the state file with stand-in commands (`tools/lint.sh` runs it); `tests/update-test.sh` tests the whole cycle in a VM, and [docs/updates.md](../docs/updates.md) explains it for users.
 
 ## Boot splash
 

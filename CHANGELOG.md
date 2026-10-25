@@ -6,6 +6,11 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Updates now arrive by themselves.
+  - OrielOS checks for a new version a while after start-up and then about every six hours, downloads it in the background and prepares it for the next restart. It never restarts on its own.
+  - When a version is ready, a notification and the OrielOS updates icon in the system tray offer "Restart to update" and "Later".
+  - The tray icon's menu checks for updates, pauses them for one to five weeks or resumes them, and switches between the Stable and Testing channels. Changing channel needs an administrator.
+  - Updates are skipped on metered connections, and a version you went back from isn't offered again.
 - orielos.org's footer shows OrielOS's OpenSSF Best Practices and OpenSSF Baseline badges, loaded live from bestpractices.dev so they always show the current levels.
 - orielos.org has "Share OrielOS" links for X, Bluesky, Reddit, Facebook and email, which contact those sites only when clicked, and every image on the page has alt text.
 - orielos.org tells search engines and link previews what it is: a clearer page title, the OrielOS name and logo as structured data, a sitemap, a short summary for AI tools, and a notice to search engines whenever a page changes. Every crawler is welcome, and the site still has no cookies, analytics or scripts.
