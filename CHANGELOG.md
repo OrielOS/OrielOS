@@ -7,6 +7,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 ### Added
 
 - Pull requests from anyone but the maintainer that change the project's workflows, code owners, Discord bot, image signing keys and pins, licences or policy documents are closed automatically, as the contributing guide explains.
+- orielos.org has "Join the discussion on GitHub" and "Join Discord" buttons in GitHub's and Discord's own colours, at the top of the page and under "Made in the open".
 - The official OrielOS Discord server, https://discord.gg/RnpZYaKbHA, for live chat and quick help, linked from the README, the support and contributing guides, the user documentation and orielos.org. It's the only official OrielOS Discord server.
 - A Discord bot, run by GitHub Actions, that posts releases and merges to the OrielOS Discord server (pinging everyone for full releases only) and gives members who link their GitHub account the Maintainer and Contributor roles.
 - A wiki on GitHub that mirrors the user documentation in `docs/`, regenerated whenever the documentation changes.
@@ -29,3 +30,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Plasma Setup on first boot: a new installation has no user account, and KDE's setup wizard asks for the language, keyboard layout, network, time zone and the first account, then opens the login screen. It doesn't run again once setup is finished, and the boot test checks both.
 - Virtual machine disks for QEMU (qcow2) and VMware (VMDK) from one command, a tool that creates and boot-checks a VMware Workstation VM from the VMDK, and a guide to trying OrielOS in a virtual machine.
 - A command-line update tool that stages a new build for the next restart and rolls back to the previous build; rolled-back builds are not offered again.
+
+### Fixed
+
+- The credits line on orielos.org names only the upstream projects OrielOS builds on.
