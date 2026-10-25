@@ -1,0 +1,255 @@
+<!doctype html>
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+The home page of orielos.org. website/build.mjs fills in the blocks marked
+with "if:" comments and the {{...}} placeholders from GitHub.
+-->
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>OrielOS</title>
+<meta name="description" content="OrielOS is a free and open-source Linux desktop, tuned for gaming and development and familiar from the first boot. It is in early development.">
+<link rel="canonical" href="https://orielos.org/">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#cadafb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#050a1c" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/noto-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/noto-sans-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="images/daybreak.svg" as="image" type="image/svg+xml" media="(prefers-color-scheme: light)">
+<link rel="preload" href="images/nightfall.svg" as="image" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="styles.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OrielOS">
+<meta property="og:title" content="OrielOS">
+<meta property="og:description" content="A familiar desktop, tuned for gaming and development. Free and open source.">
+<meta property="og:url" content="https://orielos.org/">
+<meta property="og:image" content="https://orielos.org/images/open-graph.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The OrielOS logo">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="desktop">
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./">
+        <img class="only-light" src="images/orielos-logo.svg" alt="OrielOS home" width="133" height="38">
+        <img class="only-dark" src="images/orielos-logo-dark.svg" alt="OrielOS home" width="133" height="38">
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li class="nav-extra"><a href="#why">Why OrielOS</a></li>
+          <li class="nav-extra"><a href="#status">Status</a></li>
+          <li><a href="#download">Download</a></li>
+          <li class="nav-extra"><a href="#contribute">Contribute</a></li>
+          <li><a href="https://github.com/ncjsvr/OrielOS">GitHub</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap hero">
+      <section class="welcome" aria-labelledby="hero-title">
+        <div class="titlebar" aria-hidden="true">
+          <img src="favicon.svg" alt="" width="16" height="16">
+          <span>Welcome to OrielOS</span>
+        </div>
+        <div class="welcome-body">
+          <h1 id="hero-title">A familiar desktop, tuned for gaming and development</h1>
+          <p class="lead">OrielOS is a free and open-source Linux desktop for PCs with NVIDIA RTX graphics. Coming from Windows? The taskbar, Start menu, keyboard shortcuts and Settings are where you expect them.</p>
+          <div class="actions">
+            <!-- if:iso --><a class="button primary" href="#download">Download {{release.name}}</a><!-- end:iso -->
+            <!-- if:no-iso --><a class="button primary" href="https://github.com/ncjsvr/OrielOS">Follow on GitHub</a><!-- end:no-iso -->
+            <a class="button" href="https://github.com/ncjsvr/OrielOS/discussions">Join the discussion</a>
+          </div>
+          <p class="status">
+            <!-- if:no-release -->In early development. Nothing to download yet.<!-- end:no-release -->
+            <!-- if:release -->{{release.name}} is out.<!-- end:release -->
+          </p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="taskbar" aria-hidden="true">
+    <div class="taskbar-apps">
+      <span class="tile tile-start"><img src="favicon.svg" alt="" width="24" height="24"></span>
+      <span class="tile"><svg class="glyph glyph-files" viewBox="0 0 24 24"><path d="M2.5 6.5a2 2 0 0 1 2-2h4.6l2 2h8.4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2z"/></svg></span>
+      <span class="tile"><svg class="glyph glyph-web" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path class="glyph-line" d="M2.5 12h19M12 2.5c3 3.2 3 15.8 0 19M12 2.5c-3 3.2-3 15.8 0 19"/></svg></span>
+      <span class="tile"><svg class="glyph glyph-store" viewBox="0 0 24 24"><path d="M4 8.5h16l-1.2 11a1.5 1.5 0 0 1-1.5 1.3H6.7a1.5 1.5 0 0 1-1.5-1.3z"/><path class="glyph-line" d="M9 11V7a3 3 0 0 1 6 0v4"/></svg></span>
+    </div>
+    <div class="taskbar-tray">
+      <svg viewBox="0 0 24 24"><path d="M7 14.5l5-5 5 5"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M3.5 9.5a12 12 0 0 1 17 0M6.5 12.8a7.5 7.5 0 0 1 11 0M9.6 16a3 3 0 0 1 4.8 0"/><circle cx="12" cy="19" r="0.6"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg>
+    </div>
+  </div>
+</div>
+
+<section class="section" id="why" aria-labelledby="why-title">
+  <div class="wrap">
+    <h2 id="why-title">Why OrielOS</h2>
+    <ul class="goals">
+      <li>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M8.5 20h7M12 16.5V20"/></svg>
+        <h3>Familiar from the first boot</h3>
+        <p>A centred taskbar, a Start menu with search and pinned apps, a Settings app organised by task, and the keyboard shortcuts you know from Windows.</p>
+        <p class="keys">
+          <kbd class="combo" translate="no"><kbd>Win</kbd>+<kbd>E</kbd></kbd>
+          <kbd class="combo" translate="no"><kbd>Win</kbd>+<kbd>V</kbd></kbd>
+          <kbd class="combo" translate="no"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd></kbd>
+        </p>
+      </li>
+      <li>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 8.5h9a4.5 4.5 0 0 1 4.5 4.5v1.2a3 3 0 0 1-5.5 1.7l-1-1.4h-5l-1 1.4A3 3 0 0 1 3 14.2V13a4.5 4.5 0 0 1 4.5-4.5z"/><path d="M8 10.8v3.4M6.3 12.5h3.4"/><circle cx="15.8" cy="11.6" r="0.5"/><circle cx="17.6" cy="13.4" r="0.5"/></svg>
+        <h3>Tuned for gaming</h3>
+        <p>Native Linux games, and Windows games through Proton with GE-Proton as the default. Performance is measured against Windows on the same PC, and the results are published.</p>
+      </li>
+      <li>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4.5l-3 15"/></svg>
+        <h3>Ready for development</h3>
+        <p>Code editors such as VS Code, AI coding tools and containers for your toolchains, with a proper terminal whenever you want one.</p>
+      </li>
+      <li>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5l12.5 7-5.6 1.6-2.4 5.4z"/><path d="M13 12.2l4.5 6.3"/></svg>
+        <h3>No terminal needed</h3>
+        <p>Installing apps, updating, changing settings and running games all work without typing a command, and Windows programs open with a double-click.</p>
+      </li>
+      <li>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 10.5A7.5 7.5 0 0 0 6 6.6L4.5 8.2"/><path d="M4.5 4.5v3.7h3.7"/><path d="M4.5 13.5A7.5 7.5 0 0 0 18 17.4l1.5-1.6"/><path d="M19.5 19.5v-3.7h-3.7"/></svg>
+        <h3>Updates you can trust</h3>
+        <p>Updates download in the background and apply when you restart. If something goes wrong, go back to the previous version in one click, or pick it from the boot menu.</p>
+      </li>
+      <li>
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7.5 2.8v5.7c0 4.4-3.2 8-7.5 9-4.3-1-7.5-4.6-7.5-9V5.8z"/><path d="M8.7 12l2.3 2.3 4.3-4.6"/></svg>
+        <h3>Free, open and private</h3>
+        <p>Free to download and use, with its code open under the GPL. OrielOS collects nothing about you or your PC, and this website sets no cookies and runs no trackers.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="section" id="status" aria-labelledby="status-title">
+  <div class="wrap">
+    <h2 id="status-title">Where it stands</h2>
+    <ol class="milestones">
+      <li class="is-now">
+        <span class="milestone-when">Now</span>
+        <h3>Development builds</h3>
+        <p>Tested in virtual machines while the core pieces come together.</p>
+      </li>
+      <li>
+        <span class="milestone-when">Next</span>
+        <h3>First release</h3>
+        <p>An installer for desktop PCs with NVIDIA RTX graphics, 20-series or newer.</p>
+      </li>
+      <li>
+        <span class="milestone-when">After that</span>
+        <h3>AMD and Intel graphics</h3>
+        <p>Support for more graphics cards, and perhaps laptops and handhelds later on.</p>
+      </li>
+    </ol>
+    <div class="working">
+      <h3>Already working in development builds</h3>
+      <ul class="checks">
+        <li>A Fedora system image with NVIDIA’s driver, signed for Secure Boot</li>
+        <li>The KDE Plasma desktop with a centred taskbar and OrielOS’s own look</li>
+        <li>Windows keyboard shortcuts such as Win+E, Win+R and Ctrl+Shift+Esc</li>
+        <li>The Store, with apps from Flathub, and Firefox</li>
+        <li>Updates on restart, with a way back to the previous version</li>
+        <li>Boot settings that meet Easy Anti-Cheat’s Linux requirements</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section band" id="download" aria-labelledby="download-title">
+  <div class="wrap">
+    <h2 id="download-title">Download</h2>
+    <div class="download">
+      <!-- if:iso -->
+      <div class="download-card">
+        <h3>{{release.name}}</h3>
+        <p>Installer, {{iso.size}}. Write it to a USB stick of at least 4&nbsp;GB, start your PC from it and follow the steps. The installer downloads OrielOS as it goes, over Wi-Fi or Ethernet.</p>
+        <p><a class="button primary" href="{{iso.url}}">Download the installer</a></p>
+        <!-- if:sha256 --><p class="checksum">SHA-256 <code translate="no">{{iso.sha256}}</code></p><!-- end:sha256 -->
+        <p class="download-links"><a href="{{release.url}}">Release notes</a> <a href="https://github.com/ncjsvr/OrielOS/tree/main/docs">How to install</a></p>
+      </div>
+      <!-- end:iso -->
+      <!-- if:no-iso -->
+      <div class="download-card is-empty">
+        <h3>Nothing to download yet</h3>
+        <p>The first release will put an installer here, ready to write to a USB stick. Watch the repository on GitHub to hear when it’s out.</p>
+        <p><a class="button" href="https://github.com/ncjsvr/OrielOS">Watch on GitHub</a></p>
+      </div>
+      <!-- end:no-iso -->
+      <div class="needs">
+        <h3>What you’ll need</h3>
+        <dl class="specs">
+          <dt>Graphics</dt>
+          <dd>NVIDIA RTX, 20-series or newer</dd>
+          <dt>Computer</dt>
+          <dd>A desktop PC</dd>
+          <dt>Firmware</dt>
+          <dd>UEFI with Secure Boot turned on</dd>
+          <dt>Internet</dt>
+          <dd>Wi-Fi or Ethernet while installing</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="limits">
+      <h3>Known limitations</h3>
+      <ul class="limit-list">
+        <li><strong>Some online games won’t run.</strong> Games whose publishers block Linux in their anti-cheat, such as Valorant, League of Legends, Call of Duty and Battlefield&nbsp;6, can’t be played on any Linux system. OrielOS shows which games work and which are blocked.</li>
+        <li><strong>No hibernation.</strong> The secure boot settings that anti-cheat needs rule it out. Sleep works as normal.</li>
+        <li><strong>No Microsoft 365 or Adobe apps.</strong> They have no Linux versions. Use their web versions or Linux alternatives.</li>
+        <li><strong>Not affiliated with Microsoft.</strong> OrielOS follows layouts and habits people know from Windows, but uses none of Microsoft’s logos, fonts, icons, sounds or wallpapers.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="contribute" aria-labelledby="contribute-title">
+  <div class="wrap">
+    <h2 id="contribute-title">Made in the open</h2>
+    <p class="section-lead">Everyone who has contributed to OrielOS on GitHub. Code, docs, artwork and this website all take pull requests.</p>
+    <!-- if:contributors -->
+    <ul class="people">
+      <!-- contributors -->
+    </ul>
+    <!-- end:contributors -->
+    <!-- if:no-contributors --><p class="section-lead">See everyone who has contributed <a href="https://github.com/ncjsvr/OrielOS/graphs/contributors">on GitHub</a>.</p><!-- end:no-contributors -->
+    <div class="actions">
+      <a class="button primary" href="https://github.com/ncjsvr/OrielOS/blob/main/CONTRIBUTING.md">Read the contributing guide</a>
+      <a class="button" href="https://github.com/ncjsvr/OrielOS/contribute">Find a good first issue</a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <ul class="footer-links">
+      <li><a href="https://github.com/ncjsvr/OrielOS">GitHub</a></li>
+      <li><a href="https://github.com/ncjsvr/OrielOS/discussions">Discussions</a></li>
+      <li><a href="https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md">Security policy</a></li>
+      <li><a href="https://github.com/ncjsvr/OrielOS/tree/main/website">Improve this site</a></li>
+      <li><a href="mailto:hello@orielos.org">hello@orielos.org</a></li>
+    </ul>
+    <p>Built on <a href="https://fedoraproject.org/">Fedora</a>, <a href="https://github.com/bootc-dev/bootc">bootc</a>, <a href="https://kde.org/plasma-desktop/">KDE Plasma</a>, <a href="https://universal-blue.org/">Universal Blue</a>, <a href="https://bazzite.gg/">Bazzite</a>, <a href="https://github.com/ValveSoftware/Proton">Proton</a>, <a href="https://github.com/GloriousEggroll/proton-ge-custom">GE-Proton</a>, <a href="https://www.winehq.org/">Wine</a>, <a href="https://github.com/doitsujin/dxvk">DXVK</a>, <a href="https://github.com/HansKristian-Work/vkd3d-proton">VKD3D-Proton</a> and <a href="https://flathub.org/">Flathub</a>.</p>
+    <p>Code is licensed under GPL-3.0-or-later, and documentation and artwork under CC BY-SA 4.0. This site uses the Noto Sans fonts, under the SIL Open Font License. OrielOS is not affiliated with Microsoft. Windows is a trademark of Microsoft Corporation.</p>
+  </div>
+</footer>
+</body>
+</html>

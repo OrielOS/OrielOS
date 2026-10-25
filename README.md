@@ -52,6 +52,7 @@ data/      Compatibility data and app recipes used by installed systems
 tests/     Boot, update and rollback tests, benchmarks
 tools/     Developer scripts
 docs/      User documentation
+website/   The orielos.org website and its build
 ```
 
 Each folder has a short README describing what belongs there.

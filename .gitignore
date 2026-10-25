@@ -22,6 +22,9 @@ CMakeUserPresets.json
 tests/**/swtpm*/
 tools/**/swtpm*/
 
+# Website build output
+website/_site/
+
 # Test results and screenshots
 tests/results/
 tests/output/
