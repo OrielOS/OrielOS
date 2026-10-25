@@ -15,6 +15,7 @@ namespace {
 const QString bootId = QStringLiteral("boot-1");
 const QString running = QStringLiteral("sha256:") + QString(64, QLatin1Char('a'));
 const QString newer = QStringLiteral("sha256:") + QString(64, QLatin1Char('b'));
+const QString older = QStringLiteral("sha256:") + QString(64, QLatin1Char('c'));
 // 2026-10-25T12:00:00Z, the "now" of every test.
 const QDateTime now = QDateTime(QDate(2026, 10, 25), QTime(12, 0), QTimeZone::UTC);
 
@@ -35,6 +36,16 @@ QByteArray stateJson(const QString &staged = QString(), const QString &pausedUnt
     })")
         .arg(channel, pausedJson, running, stagedJson)
         .toUtf8();
+}
+
+// The same state with a previous build, 44.0, which going back would start.
+QByteArray withPrevious(QByteArray json, bool rejected = false, bool queued = false)
+{
+    const auto flag = [](bool value) { return value ? QStringLiteral("true") : QStringLiteral("false"); };
+    const QString fields = QStringLiteral(R"("previous": {"version": "44.0", "digest": "%1", "rejected": %2}, "rollbackQueued": %3, "staged":)")
+                               .arg(older, flag(rejected), flag(queued));
+    json.replace("\"staged\":", fields.toUtf8());
+    return json;
 }
 
 } // namespace
@@ -151,6 +162,63 @@ private Q_SLOTS:
         QCOMPARE(UpdateState::fromJson(stateJson(QString(), QString(), QStringLiteral("nightly"))).channel(), Channel::Stable);
     }
 
+    void readsThePreviousBuild()
+    {
+        const UpdateState state = UpdateState::fromJson(withPrevious(stateJson()));
+        QVERIFY(state.previous());
+        QCOMPARE(*state.previous(), (Build { QStringLiteral("44.0"), older }));
+        QVERIFY(!state.previousRejected());
+        QVERIFY(!state.rollbackQueued());
+        QVERIFY(UpdateState::fromJson(withPrevious(stateJson(), true)).previousRejected());
+        QVERIFY(UpdateState::fromJson(withPrevious(stateJson(), false, true)).rollbackQueued());
+    }
+
+    void readsAStateWithoutAPreviousBuild()
+    {
+        // State files from before going back existed have neither field.
+        const UpdateState state = UpdateState::fromJson(stateJson());
+        QVERIFY(state.isValid());
+        QVERIFY(!state.previous());
+        QVERIFY(!state.rollbackQueued());
+        QVERIFY(!state.canGoBack(bootId));
+        QVERIFY(!state.goingBack(bootId));
+    }
+
+    void canGoBackOnlyToABuildThatWasntRolledBack()
+    {
+        const UpdateState state = UpdateState::fromJson(withPrevious(stateJson()));
+        QVERIFY(state.canGoBack(bootId));
+        QVERIFY(!state.canGoBack(QStringLiteral("boot-2")));
+        QVERIFY(!UpdateState::fromJson(withPrevious(stateJson(), true)).canGoBack(bootId));
+    }
+
+    void goingBackReplacesAWaitingUpdate()
+    {
+        const UpdateState state = UpdateState::fromJson(withPrevious(stateJson(newer), false, true));
+        QVERIFY(state.goingBack(bootId));
+        QVERIFY(!state.goingBack(QStringLiteral("boot-2")));
+        QVERIFY(!state.canGoBack(bootId));
+        QVERIFY(!state.updateWaiting(bootId));
+    }
+
+    void goingBackNeedsAPreviousBuild()
+    {
+        QByteArray json = stateJson();
+        json.replace("\"staged\":", "\"rollbackQueued\": true, \"staged\":");
+        QVERIFY(!UpdateState::fromJson(json).goingBack(bootId));
+    }
+
+    void tellsWhenAnUpdateWasUndone()
+    {
+        QByteArray json = withPrevious(stateJson());
+        json.replace("\"up-to-date\"", "\"went-back\"");
+        const UpdateState state = UpdateState::fromJson(json);
+        QVERIFY(state.updateUndone(bootId));
+        QVERIFY(!state.updateUndone(QStringLiteral("boot-2")));
+        QVERIFY(!UpdateState::fromJson(stateJson()).updateUndone(bootId));
+        QCOMPARE(statusText(state, bootId, now), QStringLiteral("The last update didn't start, so OrielOS went back to the previous version"));
+    }
+
     void describesTheState()
     {
         QCOMPARE(statusText(UpdateState::fromJson(stateJson(newer)), bootId, now), QStringLiteral("Restart to finish updating to OrielOS 44.2"));
@@ -166,6 +234,12 @@ private Q_SLOTS:
         QByteArray metered = stateJson();
         metered.replace("\"up-to-date\"", "\"metered\"");
         QCOMPARE(statusText(UpdateState::fromJson(metered), bootId, now), QStringLiteral("Updates are skipped on a metered connection"));
+
+        const UpdateState goingBack = UpdateState::fromJson(withPrevious(stateJson(newer), false, true));
+        QCOMPARE(statusText(goingBack, bootId, now), QStringLiteral("Restart to go back to OrielOS 44.0"));
+        QByteArray queuedResult = stateJson();
+        queuedResult.replace("\"up-to-date\"", "\"rollback-queued\"");
+        QCOMPARE(statusText(UpdateState::fromJson(queuedResult), bootId, now), QStringLiteral("OrielOS is up to date"));
     }
 };
 

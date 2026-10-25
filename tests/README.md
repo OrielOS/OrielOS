@@ -163,16 +163,39 @@ Then it tests the background update service, which normally gets builds from a r
     - The VM must restart into the new build, and this boot's `state.json` must say `up-to-date` with nothing staged.
     - `keepme.txt` must be unchanged.
 
+Then it goes back through the notifier and checks the boot menu:
+
+12. **Go back to the previous version.**
+    - `orielostest` gets a known password, because going back needs an administrator and polkit asks for theirs.
+    - The notifier's "Go back to the previous version…" item is clicked over the session bus. The question's default is Cancel, so the test presses Alt+G for "Go back", then types the password into polkit's prompt and presses Enter, all over QMP. `go-back-question.png` and `go-back-password.png` show both.
+    - `state.json` must then say `rollbackQueued`, and the new build must be in `rejected-digests`.
+    - The tray icon must be Active and offer "Restart to go back" (`go-back-ready.png`), which the test clicks. The VM must restart into the old build, with `keepme.txt` unchanged.
+13. **The boot menu.** The firmware copies GRUB's screen to the serial console, so the test reads it there. For each restart it watches the serial log from `systemctl reboot` until the kernel prints `Linux version`.
+    - `/boot/grub2/grub.cfg` must include `12_orielos-menu.cfg`, and the boot entries must be `OrielOS <old version> (ostree:0)` and `OrielOS <new version> (ostree:1)`.
+    - Within 120 s of the desktop starting, `orielos_boot_ok` must be `1` in `EFI/fedora/orielos-boot.env` on the EFI system partition.
+    - After a restart, the menu must stay hidden.
+    - With `multi-user.target` as the default, so the display manager never starts, the next boot must leave the flag at `0`. The test then sets `graphical.target` back. Nothing was on trial, so the restart after that must show no menu and start the old build as usual.
+    - At the next restart the test presses Esc once, as soon as the firmware starts GRUB. The menu must appear (`boot-menu-esc.png`), highlighting the old build, and Enter must start it. The test reads the menu from the serial console, where GRUB marks the highlighted entry with `*`. A second Esc would close the menu again and leave GRUB at a `grub>` prompt, so the test presses it only once.
+14. **An update that doesn't start is undone.**
+    - The test forgets the new build's rejection, and `orielos-update check` stages it again. The flags must then say `orielos_trial=1`.
+    - The test makes the new build fail to reach the desktop. It sets `multi-user.target` as the old build's default before the restart, so the new build's `/etc` gets it too. Once the new build is running, it sets the old build's own default back on disk.
+    - The new build starts once and fails, then starts again, with `orielos_fails=1`, and fails again. No menu may appear.
+    - At the third restart, the old build must start, with no menu. `state.json` must say `went-back` with nothing queued, and the new build must be rejected.
+    - The desktop must start, with the notifier, and `update-undone.png` shows the notification. The next restart must start the old build again.
+15. **The last resort, and removing the previous build.**
+    - The test sets the flags as they'd be if the kept build failed too (`orielos_boot_ok=0`, `orielos_trial=kept`). The next start must show the menu by itself, listing both builds and highlighting the old one (`boot-menu-last-resort.png`), and Enter must start the old build.
+    - The test moves the running build's first start, in `/var/lib/orielos/update/running`, 15 days back and runs a check. The previous build must then be gone: bootc reports none, one boot entry is left, and `state.json` has no previous build.
+
 ```sh
 tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
 tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
 ```
 
-`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about forty minutes: the installation, five boots, copying the archive, importing it twice and the desktop login.
+`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about an hour: the installation, about fifteen restarts, copying the archive, importing it twice and several desktop logins.
 
 Each restart is started with `systemctl reboot` over SSH; the VM restarts in place. The test waits for SSH to go away and answer again, then checks that `/proc/sys/kernel/random/boot_id` changed. `--timeout` is how long it waits for SSH after power-on and after each restart.
 
-It prints PASS or FAIL for twenty-one checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
+It prints PASS or FAIL for thirty-nine checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
 
 Results go to `tests/results/<run id>/`, or to the folder given with `--results`. The run id is `update-<new build's tag>-<UTC time>`. The folder holds:
 
@@ -184,6 +207,9 @@ Results go to `tests/results/<run id>/`, or to the folder given with `--results`
 - `state-staged.json` and `state-updated.json`: `/var/lib/orielos/update/state.json` once the check service has staged the build, and after the restart.
 - `update-ready.png`: the desktop once the update is staged.
 - `notifier.txt`: the test user's processes and the journal's lines about the notifier, when it didn't start.
+- `go-back-question.png`, `go-back-password.png` and `go-back-ready.png`: the question, polkit's prompt, and the desktop once going back is queued. `bootc-status-go-back.json`, `bootc-status-went-back.json` and their `status-*.txt` files are taken after the prompt and after the restart.
+- `boot-menu-esc.png` and `boot-menu-last-resort.png`: the boot menu after Esc, and when it appears by itself. `update-undone.png`: the desktop after an update was undone. `boot-menu-unexpected.png` exists only if the menu appeared when it shouldn't have. `boot-entries.txt` lists the boot entries' titles and version keys at the start of step 13 and before each of its restarts. `bootc-status-boot-menu.json` and `bootc-status-boot-menu-esc.json` show which build started.
+- `boot-success.txt`: the journal of the units that mark a boot as good, when the flag wasn't set.
 
 The work folder and `--keep` work as in the boot test.
 
@@ -196,7 +222,12 @@ The work folder and `--keep` work as in the boot test.
   - the default channel, switching channel, keeping a pause when switching, and refusing unknown channels;
   - up-to-date, newer, already staged and rejected builds, an unreachable source, and metered connections;
   - a failed stage, the registry and OCI directory sources, a channel that moves while staging, an unsupported source, and `check-now`;
-  - the state file's fields, types and permissions, and `refresh` before any check, after a check and after restarting into an update.
+  - the state file's fields, types and permissions, and `refresh` before any check, after a check and after restarting into an update;
+  - the previous build and whether it was rejected, `rollback` with and without a previous build, a check while going back is queued, and `refresh` after restarting into the previous build;
+  - putting a staged build on trial, and taking it off when going back;
+  - undoing an update after the boot loader fell back, at boot and through `undo-update`, and only then;
+  - when the previous build is removed: after 14 days, by the check only and even while paused, not while an update is staged or going back is queued, and through `remove-previous`.
+- `unit/boot-flags-test.sh` runs the boot menu's flag helper on a plain file (`ORIELOS_BOOT_FLAGS_FILE`), with stand-ins for `grub2-editenv` and `orielos-update`. It covers each command's effect on the flags, keeping the previous build after a fallback (and what's left when that fails), `status`, and wrong usage.
 
 ## Secure Boot key test
 

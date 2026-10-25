@@ -1,0 +1,16 @@
+[Unit]
+Description=Tell OrielOS this boot reached the desktop, so the boot menu stays hidden at the next one
+Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/updates.md
+# The boot counts as good once the desktop is up, which is when Plasma's shell has started. If the
+# shell fails to start, this doesn't run, and the next boot shows the menu.
+Requires=plasma-plasmashell.service
+After=plasma-plasmashell.service
+
+[Service]
+Type=oneshot
+# The flag is on the EFI system partition, which only root can write; the polkit rule
+# 50-orielos-boot-success.rules lets this start the system unit that sets it.
+ExecStart=/usr/bin/systemctl start --no-block orielos-boot-success.service
+
+[Install]
+WantedBy=plasma-workspace.target
