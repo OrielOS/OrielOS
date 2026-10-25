@@ -62,7 +62,7 @@ Before each deploy, `node website/indexnow.mjs changed` compares the built pages
 
 GitHub Pages can't set response headers, so the page sets its Content-Security-Policy and referrer policy in `<meta>` tags. GitHub Pages enforces HTTPS, and the site sends no other security headers.
 
-The policy allows one thing from another site: images from `https://www.bestpractices.dev`, for the OpenSSF Best Practices badge in the footer. The badge is loaded live, so it always shows the project's current level, and that site sets no cookies. Everything else comes from orielos.org. The policy's `connect-src 'self'` lets tools that audit the page from inside it, such as Lighthouse, read `robots.txt`; no script can run on the page, so nothing else can use it.
+The policy allows one thing from another site: images from `https://www.bestpractices.dev`, for the OpenSSF Best Practices and Baseline badges in the footer. The badges are loaded live, so they always show the project's current levels, and that site sets no cookies. Everything else comes from orielos.org. The policy's `connect-src 'self'` lets tools that audit the page from inside it, such as Lighthouse, read `robots.txt`; no script can run on the page, so nothing else can use it.
 
 ## Writing and design
 
