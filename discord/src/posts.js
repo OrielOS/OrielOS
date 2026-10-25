@@ -20,18 +20,24 @@ function isGitHubUrl(value) {
   return typeof value === "string" && value.startsWith("https://github.com/");
 }
 
+// Cuts to a length without leaving the first half of an emoji at the end.
+function cutAt(text, length) {
+  const cut = text.slice(0, length);
+  return /[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut;
+}
+
 // Escapes Discord markdown, then cuts to the limit without leaving a lone backslash.
 export function clean(text, max) {
   const escaped = escapeMarkdown(String(text ?? ""));
   if (escaped.length <= max) return escaped;
-  let cut = escaped.slice(0, max - 1);
+  let cut = cutAt(escaped, max - 1);
   const slashes = cut.length - cut.replace(/\\+$/, "").length;
   if (slashes % 2 === 1) cut = cut.slice(0, -1);
   return `${cut}…`;
 }
 
 export function truncate(text, max) {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+  return text.length <= max ? text : `${cutAt(text, max - 1)}…`;
 }
 
 export function isoFrom(assets) {

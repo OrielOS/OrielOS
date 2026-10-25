@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { clean, formatSize, isoFrom, messagesFor, planPullPosts } from "../src/posts.js";
+import { clean, formatSize, isoFrom, messagesFor, planPullPosts, truncate } from "../src/posts.js";
 
 const repo = "ncjsvr/OrielOS";
 
@@ -71,6 +71,12 @@ test("release notes are cut to 1000 characters", () => {
   const description = message.embeds[0].description;
   assert.equal(description.length, 1000);
   assert.ok(description.endsWith("…"));
+});
+
+test("clean and truncate never cut an emoji in half", () => {
+  assert.equal(clean(`ab${"😀".repeat(5)}`, 4), "ab…");
+  assert.equal(truncate(`ab${"😀".repeat(5)}`, 4), "ab…");
+  assert.equal(clean(`ab${"😀".repeat(5)}`, 5), "ab😀…");
 });
 
 test("clean never ends on a lone backslash", () => {
