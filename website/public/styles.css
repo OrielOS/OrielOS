@@ -884,6 +884,18 @@ kbd kbd {
   font-weight: 600;
 }
 
+/* The badge's width changes with its level, so only its height is fixed */
+
+.badges a {
+  display: inline-block;
+  line-height: 0;
+}
+
+.badges img {
+  width: auto;
+  height: 20px;
+}
+
 /* Not-found page */
 
 .not-found .wrap {

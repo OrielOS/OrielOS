@@ -239,6 +239,19 @@ test("the home page with contributors gives every image alt text", () => {
   assert.doesNotMatch(html, /alt=""/);
 });
 
+test("the footer shows the live Best Practices badge, the only image from another site", () => {
+  const html = renderPage(template, { contributors: [], release: null });
+  assert.match(
+    html,
+    /<a href="https:\/\/www\.bestpractices\.dev\/projects\/15906"><img src="https:\/\/www\.bestpractices\.dev\/projects\/15906\/badge" alt="[^"]+"/,
+  );
+  const csp = /http-equiv="Content-Security-Policy" content="([^"]*)"/.exec(html)[1];
+  const imgSrc = csp.split(";").map((part) => part.trim()).find((part) => part.startsWith("img-src"));
+  assert.equal(imgSrc, "img-src 'self' https://www.bestpractices.dev");
+  const outside = [...html.matchAll(/<img\b[^>]*src="(https?:[^"]*)"/g)].map((match) => match[1]);
+  assert.deepEqual(outside, ["https://www.bestpractices.dev/projects/15906/badge"]);
+});
+
 test("the home page has share links that only navigate", () => {
   const html = renderPage(template, { contributors: [], release: null });
   const links = [...html.matchAll(/<a\b[^>]*aria-label="(Share[^"]*)"[^>]*href="([^"]*)"/g)].map(([, label, href]) => ({
