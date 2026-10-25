@@ -19,7 +19,7 @@ body:
     id: windows
     attributes:
       label: Windows behaviour it mirrors
-      description: If this matches something Windows 11 does, describe it.
+      description: If Windows does this in a way people know, describe it.
   - type: textarea
     id: alternatives
     attributes:

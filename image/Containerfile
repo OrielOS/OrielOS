@@ -102,5 +102,5 @@ LABEL org.opencontainers.image.title="OrielOS" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
       org.opencontainers.image.source="https://github.com/ncjsvr/OrielOS" \
       org.opencontainers.image.licenses="GPL-3.0-or-later" \
-      org.opencontainers.image.description="Linux distribution that looks and works like Windows 11, built for gaming" \
+      org.opencontainers.image.description="A familiar Linux desktop, tuned for gaming and development. Free and open source." \
       containers.bootc="1"

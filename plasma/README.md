@@ -1,10 +1,10 @@
 # plasma
 
-The Windows 11 layer for KDE Plasma.
+OrielOS's layer for KDE Plasma: the taskbar, Start menu, shortcuts and look.
 
 Contains:
 
-- `look-and-feel/org.orielos.desktop/`: OrielOS's look-and-feel package, which sets up the Windows 11-style taskbar for new users.
+- `look-and-feel/org.orielos.desktop/`: OrielOS's look-and-feel package, which sets up OrielOS's taskbar for new users.
 - `updates/`: desktop update scripts, which move existing users' desktops to the current layout.
 
 Will contain:
@@ -30,7 +30,7 @@ The lock screen, logout screen and splash screen come from Breeze, which Plasma 
 
 Plasma runs the default look-and-feel's layout script when a user logs in for the first time, that is, when there is no `~/.config/plasma-org.kde.plasma.desktop-appletsrc` yet. OrielOS's script keeps the desktop set-up from Breeze's own script, gives the desktop the OrielOS wallpaper and creates one taskbar:
 
-- along the bottom of the screen, across its whole width, 48 pixels high (Windows 11's taskbar at 100 % scale), not floating;
+- along the bottom of the screen, across its whole width, 48 pixels high at 100 % scale (the height people coming from Windows are used to), not floating;
 - a flexible spacer, the Start button, the icons-only task manager and another flexible spacer: two flexible spacers centre the widgets between them on the panel;
 - the system tray, which holds the notifications, network, sound and other status icons;
 - the digital clock, with the date under the time;

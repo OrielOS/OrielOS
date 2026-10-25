@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// Moves an existing user's taskbar to the Windows 11-style order of OrielOS's layout
+// Moves an existing user's taskbar to the order of OrielOS's layout
 // (plasma/look-and-feel/org.orielos.desktop): spacer, Start button, task manager, spacer,
 // system tray, clock and the show-desktop sliver. Plasma runs each update script once per user
 // and records it in plasmashellrc.

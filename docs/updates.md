@@ -1,6 +1,6 @@
 # Updates and going back
 
-OrielOS updates the way Windows Update does. A new version is prepared in the background while you keep working, and nothing changes until you restart. If the new version gives you trouble, you go back to the one you had before, and OrielOS doesn't offer that version to you again.
+OrielOS updates in the background. A new version is prepared while you keep working, and nothing changes until you restart. If the new version gives you trouble, you go back to the one you had before, and OrielOS doesn't offer that version to you again.
 
 This page describes how it works today, in development builds. The graphical update service, with "Restart to update" and a one-click way back in Settings, comes later.
 

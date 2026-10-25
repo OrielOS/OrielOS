@@ -3,7 +3,7 @@
 
 # The Plasma widgets and KWin scripts will be added here.
 
-# OrielOS's look-and-feel package, which lays out the Windows 11-style taskbar for new users.
+# OrielOS's look-and-feel package, which lays out OrielOS's taskbar for new users.
 install(DIRECTORY look-and-feel/org.orielos.desktop
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
 

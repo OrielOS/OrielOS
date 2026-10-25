@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // The desktop layout for a new user: the desktop, and one taskbar along the bottom of the screen
-// laid out like Windows 11. Plasma runs this once, when the user has no
+// laid out the way people coming from Windows expect. Plasma runs this once, when the user has no
 // plasma-org.kde.plasma.desktop-appletsrc yet. Keep the widget order in step with
 // plasma/updates/, which moves existing users' panels to it.
 
@@ -17,7 +17,8 @@ for (var j = 0; j < desktopsArray.length; j++) {
 
 var panel = new Panel;
 panel.location = "bottom";
-// Windows 11's taskbar is 48 px high at 100 % scale, across the whole width, and does not float.
+// 48 px high at 100 % scale (the height people coming from Windows are used to), across the
+// whole width, and not floating.
 panel.height = 48;
 panel.lengthMode = "fill";
 panel.floating = false;

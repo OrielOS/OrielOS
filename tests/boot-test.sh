@@ -4,7 +4,7 @@
 # device it then finishes setup the way the wizard does (creates a user and marks setup done),
 # restarts the VM and checks that the second boot reaches the login screen without Plasma Setup.
 # On the second boot it checks the services, starts OrielOS's apps and logs the new user in to a
-# Plasma Wayland session inside the VM, and checks that the new user got the Windows-style taskbar,
+# Plasma Wayland session inside the VM, and checks that the new user got the OrielOS taskbar,
 # the OrielOS wallpaper and the Windows keyboard shortcuts.
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
@@ -841,16 +841,16 @@ run_checks() {
 
     taskbar="panelspacer kickoff icontasks panelspacer systemtray digitalclock showdesktop"
     if [[ "$SSH_OK" -ne 1 ]]; then
-        fail "The Windows-style taskbar is set up: $no_ssh"
+        fail "The OrielOS taskbar is set up: $no_ssh"
         hint "$ssh_hint"
     elif [[ "$TASKBAR_READ" -ne 1 ]]; then
-        fail "The Windows-style taskbar is set up: could not read $TEST_USER's ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
+        fail "The OrielOS taskbar is set up: could not read $TEST_USER's ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
     elif [[ "$TASKBAR_PANELS" != "1" ]]; then
         fail "$TEST_USER does not have exactly one panel (${TASKBAR_PANELS:-no} panels; see plasma-appletsrc in the results)"
     elif [[ "$TASKBAR_LOCATION" != "4" ]]; then
         fail "$TEST_USER's panel is not at the bottom (location=${TASKBAR_LOCATION:-none}; 4 is the bottom)"
     elif [[ "$TASKBAR_ORDER" != "$taskbar" ]]; then
-        fail "$TEST_USER's taskbar widgets are not in the Windows-style order (found: ${TASKBAR_ORDER:-none}; expected: $taskbar)"
+        fail "$TEST_USER's taskbar widgets are not in the OrielOS layout's order (found: ${TASKBAR_ORDER:-none}; expected: $taskbar)"
     elif [[ ",$TASKBAR_LAUNCHERS," != *",applications:org.kde.dolphin.desktop,"* ||
         ",$TASKBAR_LAUNCHERS," != *",applications:org.mozilla.firefox.desktop,"* ||
         ",$TASKBAR_LAUNCHERS," != *",applications:org.kde.discover.desktop,"* ]]; then
@@ -858,7 +858,7 @@ run_checks() {
     elif [[ "$TASKBAR_ICON" != "orielos-start" ]]; then
         fail "The Start button does not use the OrielOS logo (kickoff icon: ${TASKBAR_ICON:-none})"
     else
-        pass "The Windows-style taskbar is set up (one panel at the bottom: $TASKBAR_ORDER; pinned: $TASKBAR_LAUNCHERS; Start icon: $TASKBAR_ICON)"
+        pass "The OrielOS taskbar is set up (one panel at the bottom: $TASKBAR_ORDER; pinned: $TASKBAR_LAUNCHERS; Start icon: $TASKBAR_ICON)"
     fi
 
     wallpaper="file:///usr/share/wallpapers/OrielOS/"
