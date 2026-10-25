@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- orielos.org has "Join the discussion on GitHub" and "Join Discord" buttons in GitHub's and Discord's own colours, at the top of the page and under "Made in the open".
 - The official OrielOS Discord server, https://discord.gg/RnpZYaKbHA, for live chat and quick help, linked from the README, the support and contributing guides, the user documentation and orielos.org. It's the only official OrielOS Discord server.
 - A Discord bot, run by GitHub Actions, that posts releases and merges to the OrielOS Discord server (pinging everyone for full releases only) and gives members who link their GitHub account the Maintainer and Contributor roles.
 - A wiki on GitHub that mirrors the user documentation in `docs/`, regenerated whenever the documentation changes.

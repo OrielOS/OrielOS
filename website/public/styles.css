@@ -295,6 +295,44 @@ code {
   gap: var(--space-3);
 }
 
+.actions + .actions {
+  margin-top: var(--space-3);
+}
+
+/* GitHub and Discord buttons in their own brand colours, with their marks in white, as both brands allow */
+
+.button.brand {
+  gap: var(--space-2);
+  padding-inline: 16px;
+  border-color: rgb(255 255 255 / 0.2);
+  color: #fff;
+}
+
+.button.brand svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.button.github {
+  background: #24292f;
+}
+
+.button.github:hover {
+  border-color: rgb(255 255 255 / 0.4);
+  background: #32383f;
+}
+
+.button.discord {
+  background: #5865f2;
+}
+
+.button.discord:hover {
+  border-color: rgb(255 255 255 / 0.4);
+  background: #4752c4;
+}
+
 /* The desktop: wallpaper, welcome window and taskbar */
 
 .desktop {
