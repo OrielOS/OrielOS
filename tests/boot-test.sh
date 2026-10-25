@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Installs the OrielOS image to a disk file, boots it headless under QEMU/KVM with Secure Boot
-# and a software TPM, and checks that it reaches the login screen. Prints PASS/FAIL per check.
+# and a software TPM, and checks that it reaches the login screen. Once it does, the test logs in
+# over SSH through a vsock device, checks the services and starts OrielOS's apps inside the VM.
+# Prints PASS/FAIL per check.
 #
 # Usage: tests/boot-test.sh [--image REF] [--archive FILE] [--timeout SECONDS] [--memory MIB]
 #                           [--cpus N] [--results DIR] [--keep] [--help]
@@ -34,6 +36,14 @@ OVMF_CODE=""
 OVMF_VARS=""
 BOOT_START=0
 SDDM_SECONDS=""
+SSH_PROXY=""
+GUEST_CID=""
+SSH_WAIT=60
+SSH_OK=0
+SSH_SDDM=""
+SSH_NM=""
+SELFTEST_OUT=""
+SELFTEST_RC=""
 PASSED=0
 FAILED=0
 
@@ -58,7 +68,7 @@ die() {
 }
 
 usage() {
-    sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 # Print one result line and add it to summary.txt: say <colour> <label> <text>
@@ -78,6 +88,13 @@ fail() {
 }
 warn() { say "$C_YELLOW" WARN "$1"; }
 info() { say "$C_BLUE" INFO "$1"; }
+
+# Print an indented hint under the previous line, and add it to summary.txt.
+hint() {
+    printf '      hint: %s\n' "$1"
+    if [[ -n "$SUMMARY" ]]; then printf '      hint: %s\n' "$1" >>"$SUMMARY"; fi
+    return 0
+}
 
 # Stop a daemon whose pid is in a file.
 stop_pid() {
@@ -124,6 +141,9 @@ print_boot_command() {
         "$WORK/tpm" "$WORK/swtpm.sock"
     printf 'then run:\n '
     printf ' %q' qemu-system-x86_64 "${BASE_ARGS[@]}" -display gtk
+    printf '\nand log in over SSH with:\n '
+    printf ' %q' ssh -i "$WORK/ssh_key" -F /dev/null -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        -o ProxyUseFdpass=yes -o ProxyCommand="$SSH_PROXY vsock/$GUEST_CID 22" "root@vsock/$GUEST_CID"
     printf '\n'
 }
 
@@ -170,6 +190,65 @@ find_firmware() {
     die "no Secure Boot capable OVMF firmware found (sudo apt install ovmf; Fedora: sudo dnf install edk2-ovmf)"
 }
 
+# Find systemd-ssh-proxy, make sure the host has vsock, create a key for this run and pick a
+# random guest CID. The key is handed to the VM as a systemd credential through SMBIOS.
+setup_ssh() {
+    local dir n
+    for dir in /usr/lib/systemd /usr/libexec; do
+        if [[ -x "$dir/systemd-ssh-proxy" ]]; then
+            SSH_PROXY="$dir/systemd-ssh-proxy"
+            break
+        fi
+    done
+    [[ -n "$SSH_PROXY" ]] ||
+        die "systemd-ssh-proxy is not installed (it comes with systemd 256 or newer; tools/check-env.sh shows what is missing)"
+    if [[ ! -e /dev/vhost-vsock ]]; then
+        modprobe vhost_vsock 2>/dev/null || true
+        [[ -e /dev/vhost-vsock ]] ||
+            die "/dev/vhost-vsock is missing and vhost_vsock could not be loaded (tools/check-env.sh shows how to fix it)"
+    fi
+    ssh-keygen -q -t ed25519 -N '' -C "orielos-boot-test" -f "$WORK/ssh_key"
+    n="$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')"
+    GUEST_CID=$((3 + n % 4294967292))
+}
+
+# Run a command inside the VM as root over SSH through vsock: vm_ssh <command...>
+vm_ssh() {
+    timeout 120 ssh -n -i "$WORK/ssh_key" -F /dev/null -o BatchMode=yes -o IdentitiesOnly=yes \
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 \
+        -o ProxyUseFdpass=yes -o ProxyCommand="$SSH_PROXY vsock/$GUEST_CID 22" "root@vsock/$GUEST_CID" "$@"
+}
+
+# Wait up to $SSH_WAIT seconds for SSH to answer. Returns 1 if it never does.
+wait_for_ssh() {
+    local start=$SECONDS
+    info "Waiting up to $SSH_WAIT s for SSH over vsock (guest CID $GUEST_CID)"
+    while ((SECONDS - start < SSH_WAIT)); do
+        if vm_ssh true >/dev/null 2>&1; then
+            SSH_OK=1
+            info "SSH answered $((SECONDS - BOOT_START)) s after power-on"
+            return 0
+        fi
+        vm_running || break
+        sleep 2
+    done
+    info "SSH did not answer within $SSH_WAIT s"
+    return 1
+}
+
+# Check the services, start the apps and report the system state over SSH.
+collect_over_ssh() {
+    local state units
+    SSH_SDDM="$(vm_ssh systemctl is-active sddm 2>&1)" || true
+    SSH_NM="$(vm_ssh systemctl is-active NetworkManager 2>&1)" || true
+    SELFTEST_RC=0
+    SELFTEST_OUT="$(vm_ssh orielos-buildcheck --self-test 2>&1)" || SELFTEST_RC=$?
+    state="$(vm_ssh systemctl is-system-running 2>&1)" || true
+    info "System state: ${state:-unknown}"
+    units="$(vm_ssh systemctl --failed --no-legend --plain 2>&1 | awk '{print $1}' | paste -sd ' ' -)" || true
+    info "Failed units: ${units:-none}"
+}
+
 install_image() {
     local start=$SECONDS
     info "Installing $IMAGE to a 30 GiB disk (this takes a few minutes)"
@@ -204,6 +283,8 @@ start_vm() {
         -drive "file=$WORK/disk.raw,format=raw,if=virtio"
         -device virtio-vga
         -netdev "user,id=n0" -device "virtio-net-pci,netdev=n0"
+        -device "vhost-vsock-pci,guest-cid=$GUEST_CID"
+        -smbios "type=11,value=io.systemd.credential.binary:ssh.authorized_keys.root=$(base64 -w0 "$WORK/ssh_key.pub")"
     )
     qemu-system-x86_64 "${BASE_ARGS[@]}" -display none \
         -serial "file:$WORK/serial.log" -qmp "unix:$WORK/qmp.sock,server=on,wait=off" \
@@ -299,7 +380,9 @@ PY
 }
 
 run_checks() {
-    local status="$1" colours="$2" cmdline btrfs after failed unit shown="not reached"
+    local status="$1" colours="$2" cmdline btrfs after failed unit line shown="not reached"
+    local no_ssh="SSH over vsock did not answer, so this could not be checked inside the VM"
+    local ssh_hint="check that /dev/vhost-vsock exists on the host, and look for sshd or systemd-ssh-generator errors in serial.log"
 
     if [[ -n "$(grep_log 'secureboot: Secure boot enabled')" ]]; then
         pass "Secure Boot was on"
@@ -337,16 +420,39 @@ run_checks() {
         fail "SDDM started but the VM was not running (state: ${status:-unknown})"
     elif [[ ! "$colours" =~ ^[0-9]+$ || "$colours" -le 1 ]]; then
         fail "SDDM started but the screen is blank (${colours:-no screenshot} distinct colours)"
+    elif [[ "$SSH_OK" -ne 1 ]]; then
+        fail "SDDM started and the screen shows $colours distinct colours, but $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$SSH_SDDM" != "active" ]]; then
+        fail "SDDM is not active inside the VM (systemctl is-active sddm: ${SSH_SDDM:-no output})"
     else
-        pass "SDDM is running ($colours distinct colours on screen)"
+        pass "SDDM is running ($colours distinct colours on screen; systemctl is-active sddm: active)"
     fi
 
     if [[ -z "$(grep_log 'Started NetworkManager\.service')" ]]; then
         fail "NetworkManager did not start"
     elif [[ -n "$(grep_log 'Failed to start NetworkManager\.service|NetworkManager\.service: Failed')" ]]; then
         fail "NetworkManager failed"
+    elif [[ "$SSH_OK" -ne 1 ]]; then
+        fail "NetworkManager started, but $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$SSH_NM" != "active" ]]; then
+        fail "NetworkManager is not active inside the VM (systemctl is-active NetworkManager: ${SSH_NM:-no output})"
     else
-        pass "NetworkManager is running"
+        pass "NetworkManager is running (systemctl is-active NetworkManager: active)"
+    fi
+
+    line="$(grep -m1 'orielos-buildcheck: self-test passed' <<<"$SELFTEST_OUT" || true)"
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "OrielOS apps start: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$SELFTEST_RC" -eq 0 && -n "$line" ]]; then
+        pass "OrielOS apps start ($line)"
+    else
+        fail "OrielOS apps do not start (orielos-buildcheck --self-test exited with status $SELFTEST_RC)"
+        while IFS= read -r line; do
+            if [[ -n "$line" ]]; then say "" "    " "$line"; fi
+        done <<<"$SELFTEST_OUT"
     fi
 
     failed="$(grep_log 'FAILED' | sed -n 's/.*Failed to start \([^ ]*\).*/\1/p' | sort -u)"
@@ -399,7 +505,7 @@ main() {
         command -v sudo >/dev/null 2>&1 || die "run this script as root (sudo is not installed)"
         exec sudo "${BASH_SOURCE[0]}" "${original[@]}"
     fi
-    for cmd in podman qemu-system-x86_64 swtpm python3; do
+    for cmd in podman qemu-system-x86_64 swtpm python3 ssh ssh-keygen; do
         command -v "$cmd" >/dev/null 2>&1 || die "$cmd is not installed (tools/check-env.sh shows what is missing)"
     done
     [[ -r /dev/kvm && -w /dev/kvm ]] || die "/dev/kvm is not usable (tools/check-env.sh shows how to fix it)"
@@ -424,9 +530,11 @@ main() {
     if [[ -n "$ARCHIVE" ]]; then load_archive; fi
     podman image exists "$IMAGE" || die "image $IMAGE does not exist (build it with tools/build-image.sh)"
 
+    setup_ssh
     install_image
     start_vm
     wait_for_login || timed_out=1
+    if vm_running && wait_for_ssh; then collect_over_ssh; fi
     if vm_running; then
         status="$(take_screenshots | sed -n 's/^status=//p')" || true
         if [[ -r "$WORK/screen.ppm" ]]; then colours="$(count_colours "$WORK/screen.ppm")" || true; fi

@@ -1,0 +1,32 @@
+# Keeps the image build context (the repository root) small. Only image/, apps/, plasma/,
+# CMakeLists.txt and VERSION are used by image/Containerfile.
+.git
+.github
+.cache
+tests/results
+tests/output
+build
+build-*
+out
+CMakeUserPresets.json
+compile_commands.json
+**/.qmlls.ini
+**/*.user
+
+# Images and VM disks produced locally
+**/*.qcow2
+**/*.raw
+**/*.img
+**/*.iso
+**/*.vmdk
+**/*.ociarchive
+**/*.oci.tar
+
+# Editors and operating systems
+.vscode
+.idea
+**/*.swp
+**/*~
+**/.DS_Store
+**/Thumbs.db
+**/desktop.ini

@@ -154,6 +154,7 @@ main() {
     check_pin BASE_IMAGE
     check_pin AKMODS_IMAGE
     check_pin AKMODS_NVIDIA_IMAGE
+    check_pin BUILDER_IMAGE
 
     if [[ "$CLEAN_ONLY" -eq 1 ]]; then
         cleanup "$FEDORA_MAJOR"
@@ -168,8 +169,9 @@ main() {
         --build-arg "BASE_IMAGE=$BASE_IMAGE" \
         --build-arg "AKMODS_IMAGE=$AKMODS_IMAGE" \
         --build-arg "AKMODS_NVIDIA_IMAGE=$AKMODS_NVIDIA_IMAGE" \
+        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" \
         --build-arg "IMAGE_VERSION=$tag" \
-        -t "$REPO:$tag" "$ROOT/image/"
+        -t "$REPO:$tag" "$ROOT"
     podman tag "$REPO:$tag" "$REPO:latest"
 
     report "$tag"

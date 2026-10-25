@@ -1,12 +1,28 @@
 # The OrielOS image: Fedora bootc with the Fedora CoreOS stable kernel, NVIDIA's open
-# kernel modules and driver, and a minimal KDE Plasma desktop.
+# kernel modules and driver, a minimal KDE Plasma desktop and OrielOS's own apps.
 # Build it with tools/build-image.sh, which passes the pinned inputs from image/pins.env.
+# The build context is the repository root.
 ARG BASE_IMAGE=scratch-must-be-set
 ARG AKMODS_IMAGE=scratch-must-be-set
 ARG AKMODS_NVIDIA_IMAGE=scratch-must-be-set
+ARG BUILDER_IMAGE=scratch-must-be-set
 
 FROM ${AKMODS_IMAGE} AS akmods
 FROM ${AKMODS_NVIDIA_IMAGE} AS akmods-nvidia
+
+# Builds and tests OrielOS's own apps, and installs them to /out. tools/test-apps.sh builds
+# only this stage. None of the build tools reach the final image.
+FROM ${BUILDER_IMAGE} AS app-builder
+
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/apps-builder.sh deps
+
+COPY CMakeLists.txt VERSION /src/
+COPY apps/ /src/apps/
+COPY plasma/ /src/plasma/
+
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/apps-builder.sh build
 
 FROM ${BASE_IMAGE}
 
@@ -22,26 +38,33 @@ LABEL org.opencontainers.image.title="OrielOS" \
 # Refuse to build an unversioned image.
 RUN [ "${IMAGE_VERSION}" != "must-be-set" ] || { echo "error: IMAGE_VERSION is not set" >&2; exit 1; }
 
-RUN --mount=type=bind,source=build,target=/ctx \
+RUN --mount=type=bind,source=image/build,target=/ctx \
     --mount=type=bind,from=akmods,source=/kernel-rpms,target=/akmods/kernel-rpms \
     --mount=type=bind,from=akmods,source=/rpms,target=/akmods/rpms \
     /ctx/10-kernel.sh
 
-RUN --mount=type=bind,source=build,target=/ctx \
+RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/20-desktop.sh
 
-RUN --mount=type=bind,source=build,target=/ctx \
-    --mount=type=bind,source=keys,target=/keys \
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    --mount=type=bind,source=image/keys,target=/keys \
     --mount=type=bind,from=akmods-nvidia,source=/rpms,target=/akmods-nvidia/rpms \
     /ctx/30-nvidia.sh
 
-RUN --mount=type=bind,source=build,target=/ctx \
-    /ctx/80-repos.sh
-
-# Static configuration goes in after the package layers, so changing it does not rebuild them.
-COPY system/usr/ /usr/
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/40-apps.sh
 
 # Each feature script is its own layer on purpose, so a failure shows which step broke.
 # hadolint ignore=DL3059
-RUN --mount=type=bind,source=build,target=/ctx \
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/80-repos.sh
+
+# Static configuration and the apps go in after the package layers, so changing them does
+# not rebuild those layers.
+COPY image/system/usr/ /usr/
+COPY --from=app-builder /out/usr/ /usr/
+
+# The final step is its own layer for the same reason.
+# hadolint ignore=DL3059
+RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/90-finalise.sh

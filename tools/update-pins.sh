@@ -10,7 +10,7 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PINS="$ROOT/image/pins.env"
 WRITE=0
-VARS=(BASE_IMAGE AKMODS_IMAGE AKMODS_NVIDIA_IMAGE)
+VARS=(BASE_IMAGE AKMODS_IMAGE AKMODS_NVIDIA_IMAGE BUILDER_IMAGE)
 
 die() {
     printf 'error: %s\n' "$1" >&2
@@ -60,7 +60,8 @@ main() {
         new_digest[$var]="$(skopeo inspect --format '{{.Digest}}' "docker://$name_tag")"
         [[ "${new_digest[$var]}" =~ ^sha256:[0-9a-f]{64}$ ]] || die "unexpected digest for $name_tag: ${new_digest[$var]}"
         kernel[$var]=""
-        if [[ "$var" != BASE_IMAGE ]]; then
+        # Only the akmods images carry a kernel label; the others are just reported by digest.
+        if [[ "$var" == AKMODS_* ]]; then
             kernel[$var]="$(skopeo inspect --format '{{index .Labels "ostree.linux"}}' "docker://${name_tag%%:*}@${new_digest[$var]}")"
         fi
     done

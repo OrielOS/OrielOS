@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs every linter over the repository: shellcheck, shfmt, hadolint,
-# actionlint, clang-format, qmllint and gitleaks. Prints PASS/FAIL/SKIP per
-# check with the linter's own output on failure, and exits 1 on any failure.
+# actionlint, clang-format and gitleaks (qmllint runs in tools/test-apps.sh).
+# Prints PASS/FAIL/SKIP per check with the linter's own output on failure, and
+# exits 1 on any failure.
 # Tracked files and new files that are not ignored are both linted.
 #
 # Usage: tools/lint.sh [--help]
@@ -116,30 +117,15 @@ run_check() {
     fi
 }
 
-find_qmllint() {
-    local dir
-    if command -v qmllint >/dev/null 2>&1; then
-        command -v qmllint
-        return 0
-    fi
-    for dir in /usr/lib/qt6/bin /usr/lib64/qt6/bin; do
-        if [[ -x "$dir/qmllint" ]]; then
-            printf '%s\n' "$dir/qmllint"
-            return 0
-        fi
-    done
-    return 1
-}
-
+# qmllint needs the import paths and Qt and KDE Frameworks versions of the app build to give
+# meaningful results, so it runs there (tools/test-apps.sh) rather than here.
 check_qmllint() {
-    local qmllint
     select_by_name '*.qml'
-    if [[ "${#SELECTED[@]}" -gt 0 ]] && qmllint="$(find_qmllint)"; then
-        run_check qmllint QML "$qmllint" "" "fix the findings above" "$qmllint"
+    if [[ "${#SELECTED[@]}" -eq 0 ]]; then
+        skip qmllint QML
     else
-        run_check qmllint QML qmllint \
-            "install Qt 6's declarative tools (Ubuntu: qt6-declarative-dev-tools, Fedora: qt6-qtdeclarative-devel)" \
-            "fix the findings above" qmllint
+        SKIPPED=$((SKIPPED + 1))
+        printf '%sSKIP%s  %-22s %s\n' "$C_YELLOW" "$C_OFF" qmllint "(runs in tools/test-apps.sh)"
     fi
 }
 

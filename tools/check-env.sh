@@ -139,6 +139,7 @@ check_commands() {
     check_command swtpm "swtpm swtpm-tools" "swtpm swtpm-tools" --version
     check_command swtpm_setup "swtpm swtpm-tools" "swtpm swtpm-tools"
     check_command losetup util-linux util-linux
+    check_command ssh openssh-client openssh-clients
 }
 
 check_firmware() {
@@ -176,6 +177,31 @@ check_qemu_kvm() {
         last="$(last_line <"$TMP/qemu.err")"
         fail "QEMU cannot use KVM acceleration (exit status $rc${last:+: $last})" \
             "check that /dev/kvm is usable by this user and that nested virtualisation is enabled"
+    fi
+}
+
+# The boot test logs in to its VM over SSH through a vsock device.
+check_vsock() {
+    local dir proxy=""
+    if [[ -e /dev/vhost-vsock ]]; then
+        pass "vsock for test VMs is available (/dev/vhost-vsock)"
+    elif modprobe -n vhost_vsock >/dev/null 2>&1; then
+        pass "vsock for test VMs is available (vhost_vsock can be loaded; the boot test loads it)"
+    else
+        fail "vsock for test VMs is not available (/dev/vhost-vsock is missing and vhost_vsock cannot be loaded)" \
+            "sudo modprobe vhost_vsock; to load it at every boot: echo vhost_vsock | sudo tee /etc/modules-load.d/vhost-vsock.conf"
+    fi
+    for dir in /usr/lib/systemd /usr/libexec; do
+        if [[ -x "$dir/systemd-ssh-proxy" ]]; then
+            proxy="$dir/systemd-ssh-proxy"
+            break
+        fi
+    done
+    if [[ -n "$proxy" ]]; then
+        pass "systemd-ssh-proxy is installed ($proxy)"
+    else
+        fail "systemd-ssh-proxy is not installed" \
+            "it comes with systemd 256 or newer (Ubuntu 24.10 or newer, Fedora 41 or newer)"
     fi
 }
 
@@ -315,6 +341,7 @@ main() {
     check_commands
     check_firmware
     check_qemu_kvm
+    check_vsock
     check_loop
     check_podman_rootful
     check_container
