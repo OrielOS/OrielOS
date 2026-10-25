@@ -65,6 +65,10 @@ UpdateState UpdateState::fromJson(const QByteArray &json)
     state.m_pausedUntil = parseTime(object.value(QLatin1String("pausedUntil")));
     state.m_running = *running;
     state.m_staged = parseBuild(object.value(QLatin1String("staged")));
+    const QJsonValue previous = object.value(QLatin1String("previous"));
+    state.m_previous = parseBuild(previous);
+    state.m_previousRejected = previous.toObject().value(QLatin1String("rejected")).toBool();
+    state.m_rollbackQueued = object.value(QLatin1String("rollbackQueued")).toBool();
     return state;
 }
 
@@ -84,7 +88,18 @@ bool UpdateState::isForThisBoot(const QString &currentBootId) const
 
 bool UpdateState::updateWaiting(const QString &currentBootId) const
 {
-    return isForThisBoot(currentBootId) && m_staged && m_staged->digest != m_running.digest;
+    // Going back drops a staged build, so it can't be waiting at the same time.
+    return isForThisBoot(currentBootId) && !m_rollbackQueued && m_staged && m_staged->digest != m_running.digest;
+}
+
+bool UpdateState::canGoBack(const QString &currentBootId) const
+{
+    return isForThisBoot(currentBootId) && m_previous && !m_previousRejected && !m_rollbackQueued;
+}
+
+bool UpdateState::goingBack(const QString &currentBootId) const
+{
+    return isForThisBoot(currentBootId) && m_rollbackQueued && m_previous;
 }
 
 bool UpdateState::isPaused(const QDateTime &now) const
@@ -140,6 +155,9 @@ QString displayDate(const QDateTime &time)
 
 QString statusText(const UpdateState &state, const QString &currentBootId, const QDateTime &now)
 {
+    if (state.goingBack(currentBootId)) {
+        return i18nc("@info:tooltip", "Restart to go back to OrielOS %1", state.previous()->version);
+    }
     if (state.updateWaiting(currentBootId)) {
         return i18nc("@info:tooltip", "Restart to finish updating to OrielOS %1", state.staged()->version);
     }
@@ -151,7 +169,8 @@ QString statusText(const UpdateState &state, const QString &currentBootId, const
         return i18nc("@info:tooltip", "Not checked for updates yet");
     }
     const QString result = state.result();
-    if (result == QLatin1String("up-to-date") || result == QLatin1String("rejected") || result == QLatin1String("staged")) {
+    if (result == QLatin1String("up-to-date") || result == QLatin1String("rejected") || result == QLatin1String("staged")
+        || result == QLatin1String("rollback-queued")) {
         return i18nc("@info:tooltip", "OrielOS is up to date");
     }
     if (result == QLatin1String("metered")) {

@@ -48,11 +48,21 @@ public:
     QDateTime pausedUntil() const { return m_pausedUntil; }
     Build running() const { return m_running; }
     std::optional<Build> staged() const { return m_staged; }
+    // The build that going back would start, and whether it was rolled back on this computer.
+    std::optional<Build> previous() const { return m_previous; }
+    bool previousRejected() const { return m_previousRejected; }
+    // Someone chose to go back: the previous build starts at the next restart.
+    bool rollbackQueued() const { return m_rollbackQueued; }
 
     // The file describes one boot; after a restart it is stale until it is written again.
     bool isForThisBoot(const QString &currentBootId) const;
     // A build is staged for the next restart and differs from the one running.
     bool updateWaiting(const QString &currentBootId) const;
+    // There is a previous build to go back to, it wasn't rolled back before, and going back isn't
+    // queued already.
+    bool canGoBack(const QString &currentBootId) const;
+    // Going back is queued: the previous build starts at the next restart.
+    bool goingBack(const QString &currentBootId) const;
     bool isPaused(const QDateTime &now) const;
 
 private:
@@ -65,9 +75,12 @@ private:
     QDateTime m_pausedUntil;
     Build m_running;
     std::optional<Build> m_staged;
+    std::optional<Build> m_previous;
+    bool m_previousRejected = false;
+    bool m_rollbackQueued = false;
 };
 
-// Pauses last a whole number of weeks, as on Windows.
+// Pauses last a whole number of weeks.
 constexpr int minPauseWeeks = 1;
 constexpr int maxPauseWeeks = 5;
 

@@ -18,7 +18,8 @@
 #   status     show the channel, the pause, the last check, the running build, the build staged
 #              for the next restart, the previous build and the rejected builds
 #   check      stage the channel's newest build for the next restart, unless updates are paused,
-#              the connection is metered, or that build is running, staged or rejected
+#              going back to the previous build is queued, the connection is metered, or that
+#              build is running, staged or rejected
 #   check-now  start orielos-update-check.service, which runs check, without waiting for it
 #   pause      stop checking for WEEKS weeks (1 to 5) from now
 #   resume     end a pause
@@ -54,7 +55,7 @@ die() {
 }
 
 usage() {
-    sed -n '2,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 need() {
@@ -154,6 +155,11 @@ has_deployment() {
     [[ "$(jq -r --arg s "$1" '.status[$s] != null' <<<"$STATUS_JSON")" == "true" ]]
 }
 
+# Succeed if the previous build starts at the next restart, because someone chose to go back.
+rollback_queued() {
+    [[ "$(jq -r '.status.rollbackQueued == true' <<<"$STATUS_JSON")" == "true" ]]
+}
+
 # The running build's version, from bootc or else from the build-info file.
 booted_version() {
     local version
@@ -174,11 +180,18 @@ is_rejected() {
 # describes this boot only: readers compare its bootId with their own.
 #   write_state <result> <message> <checked at or "">
 write_state() {
-    local result="$1" message="$2" checked="$3" boot_id="" staged="null" tmp
+    local result="$1" message="$2" checked="$3" boot_id="" staged="null" previous="null" rejected=false queued=false tmp
     if [[ -r "$BOOT_ID_FILE" ]]; then boot_id="$(tr -d '\n' <"$BOOT_ID_FILE")"; fi
+    if rollback_queued; then queued=true; fi
     if has_deployment staged; then
         staged="$(jq -n --arg v "$(field staged version)" --arg d "$(field staged digest)" \
             '{version: (if $v == "" then "unknown" else $v end), digest: $d}')"
+    fi
+    # The previous build is the one going back would start; a rejected one is never offered.
+    if has_deployment rollback; then
+        if is_rejected "$(field rollback digest)"; then rejected=true; fi
+        previous="$(jq -n --arg v "$(field rollback version)" --arg d "$(field rollback digest)" --argjson r "$rejected" \
+            '{version: (if $v == "" then "unknown" else $v end), digest: $d, rejected: $r}')"
     fi
     mkdir -p "$STATE_DIR"
     tmp="$(mktemp "$STATE_FILE.XXXXXX")"
@@ -192,6 +205,8 @@ write_state() {
         --arg runningVersion "$(booted_version)" \
         --arg runningDigest "$(field booted digest)" \
         --argjson staged "$staged" \
+        --argjson previous "$previous" \
+        --argjson rollbackQueued "$queued" \
         '{
             bootId: $bootId,
             channel: $channel,
@@ -200,7 +215,9 @@ write_state() {
             result: $result,
             message: $message,
             running: {version: $runningVersion, digest: $runningDigest},
-            staged: $staged
+            staged: $staged,
+            previous: $previous,
+            rollbackQueued: $rollbackQueued
         }' >"$tmp"
     chmod 0644 "$tmp"
     mv -f "$tmp" "$STATE_FILE"
@@ -215,8 +232,9 @@ last_check() {
     fi
 }
 
-# Rewrite state.json from bootc's current view, keeping the last check's result. A build that was
-# staged and is now running (after a restart) is reported as up to date.
+# Rewrite state.json from bootc's current view, keeping the last check's result. After a restart,
+# a build that was staged is running, or the previous build that was chosen is, so either is
+# reported as up to date.
 refresh_state() {
     local checked result message
     {
@@ -228,6 +246,9 @@ refresh_state() {
         result="never-checked"
         message="OrielOS hasn't checked for updates yet."
     elif [[ "$result" == "staged" ]] && ! has_deployment staged; then
+        result="up-to-date"
+        message="OrielOS $(booted_version) is running."
+    elif [[ "$result" == "rollback-queued" ]] && ! rollback_queued; then
         result="up-to-date"
         message="OrielOS $(booted_version) is running."
     fi
@@ -256,7 +277,7 @@ cmd_status() {
     show "Running build" booted
     show "Staged for the next restart" staged
     show "Previous build" rollback
-    if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
+    if rollback_queued; then
         printf 'The previous build starts at the next restart.\n'
     fi
     printf 'Rejected builds:'
@@ -310,6 +331,10 @@ cmd_check() {
     until="$(paused_until_setting)"
     if [[ -n "$until" ]]; then
         finish 0 paused "Updates are paused until $until."
+    fi
+    # Staging a build now would replace the version someone chose to go back to.
+    if rollback_queued; then
+        finish 0 rollback-queued "OrielOS $(field rollback version) starts at the next restart; updates continue after it."
     fi
 
     source="$(conf_value source)"
@@ -471,7 +496,7 @@ cmd_rollback() {
     need bootc jq
     load_status
     has_deployment rollback || die "there is no previous build to go back to"
-    if [[ "$(jq -r '.status.rollbackQueued' <<<"$STATUS_JSON")" == "true" ]]; then
+    if rollback_queued; then
         printf 'The previous build already starts at the next restart.\n'
         return 0
     fi

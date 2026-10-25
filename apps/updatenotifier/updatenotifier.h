@@ -19,8 +19,9 @@ class QMenu;
 namespace UpdateNotifier {
 
 // The tray icon that tells the user about OrielOS updates. It follows the state file that
-// orielos-update writes, offers "Restart to update" when a build is staged, and changes the pause
-// and channel by running orielos-update through pkexec, where polkit decides who may.
+// orielos-update writes, offers "Restart to update" when a build is staged, offers going back to
+// the previous version, and changes the pause and channel by running orielos-update through pkexec,
+// where polkit decides who may.
 class Notifier : public QObject
 {
     Q_OBJECT
@@ -32,8 +33,10 @@ private:
     void reload();
     void updateItem();
     void showReadyNotification();
-    void showErrorNotification(const QString &detail);
-    void restartToUpdate();
+    void showGoBackNotification();
+    void showErrorNotification(const QString &title, const QString &detail);
+    void goBack();
+    void restart();
     void runUpdateCommand(const QStringList &arguments);
     void watchStateFile();
     QMenu *buildMenu();
@@ -41,17 +44,21 @@ private:
     QString m_statePath;
     QString m_bootId;
     UpdateState m_state;
-    // The staged build already announced in this session, so "Later" isn't followed by the same
-    // notification at the next check.
+    // The staged build, and the previous build being gone back to, already announced in this
+    // session, so "Later" isn't followed by the same notification at the next change.
     QString m_announcedDigest;
+    QString m_announcedGoBackDigest;
+    bool m_askingToGoBack = false;
 
     KStatusNotifierItem *m_item = nullptr;
     QFileSystemWatcher m_watcher;
     QTimer m_reloadDelay;
     QTimer m_periodicReload;
     QPointer<KNotification> m_readyNotification;
+    QPointer<KNotification> m_goBackNotification;
 
     QAction *m_restartAction = nullptr;
+    QAction *m_goBackAction = nullptr;
     QAction *m_pausedLine = nullptr;
     QAction *m_resumeAction = nullptr;
     QMenu *m_pauseMenu = nullptr;

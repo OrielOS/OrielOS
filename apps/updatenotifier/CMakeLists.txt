@@ -4,7 +4,7 @@
 # The tray icon that tells the user about OrielOS updates. It is started at login in Plasma.
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets DBus)
-find_package(KF6 6.0 REQUIRED COMPONENTS StatusNotifierItem Notifications DBusAddons)
+find_package(KF6 6.0 REQUIRED COMPONENTS StatusNotifierItem Notifications DBusAddons WidgetsAddons)
 
 # The update state and its rules, apart from the tray icon, so the unit tests can use them.
 add_library(OrielOSUpdateState STATIC updatestate.cpp updatestate.h)
@@ -26,6 +26,7 @@ target_link_libraries(orielos-update-notifier PRIVATE
     KF6::StatusNotifierItem
     KF6::Notifications
     KF6::DBusAddons
+    KF6::WidgetsAddons
 )
 
 install(TARGETS orielos-update-notifier ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
