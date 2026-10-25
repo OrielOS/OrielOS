@@ -6,7 +6,9 @@ Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/updates.md
 
 [Service]
 Type=oneshot
-ExecStart=/usr/libexec/orielos/boot-success
+# If the boot loader started the previous version in place of an update that failed to reach the
+# desktop, and it wasn't kept at boot, this keeps it.
+ExecStart=/usr/libexec/orielos/boot-flags good
 # The EFI system partition is mounted only inside this service, and only while it runs.
 PrivateMounts=yes
 ProtectHome=yes

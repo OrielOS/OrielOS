@@ -100,10 +100,10 @@ if [[ "${#update_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
-# The boot menu stays hidden while the last boot reached the desktop. bootupd adds OrielOS's GRUB
-# snippet to the boot loader's configuration when OrielOS is installed. Each desktop session then
-# asks orielos-boot-success.service to mark the boot as good, through a user unit enabled for
-# every user here and a polkit rule that allows only that.
+# The boot menu stays hidden, and an update that fails to reach the desktop twice is undone without
+# asking. bootupd adds OrielOS's GRUB snippet to the boot loader's configuration when OrielOS is
+# installed. Each desktop session then asks orielos-boot-success.service to mark the start as
+# good, through a user unit enabled for every user here and a polkit rule that allows only that.
 systemctl --global enable orielos-mark-boot-success.service
 boot_menu_errors=()
 menu_snippet=/usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg
@@ -118,9 +118,9 @@ fi
 for f in /usr/lib/systemd/system/orielos-boot-success.service /usr/share/polkit-1/rules.d/50-orielos-boot-success.rules; do
     [[ -r "$f" ]] || boot_menu_errors+=("$f is missing")
 done
-[[ -x /usr/libexec/orielos/boot-success ]] || boot_menu_errors+=("/usr/libexec/orielos/boot-success is not executable")
-for cmd in grub2-editenv lsblk findmnt mountpoint; do
-    command -v "$cmd" >/dev/null || boot_menu_errors+=("$cmd, which marks a boot as good, is not installed")
+[[ -x /usr/libexec/orielos/boot-flags ]] || boot_menu_errors+=("/usr/libexec/orielos/boot-flags is not executable")
+for cmd in grub2-editenv lsblk findmnt mountpoint unshare flock ostree; do
+    command -v "$cmd" >/dev/null || boot_menu_errors+=("$cmd, which the boot menu's flags or removing the previous build need, is not installed")
 done
 if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${boot_menu_errors[@]}" >&2
