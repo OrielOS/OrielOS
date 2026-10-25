@@ -1,0 +1,4 @@
+# The boot mode that games with anti-cheat (Easy Anti-Cheat) need: kernel lockdown in integrity
+# mode and the IOMMU on, with no passthrough. AMD processors turn their IOMMU on by default, so
+# only Intel needs intel_iommu=on.
+kargs = ["lockdown=integrity", "intel_iommu=on", "iommu.passthrough=0"]

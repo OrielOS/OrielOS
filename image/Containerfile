@@ -71,6 +71,11 @@ COPY --from=app-builder /out/usr/ /usr/
 RUN --mount=type=bind,source=image,target=/image \
     /image/build/85-check-modules.sh
 
+# The boot security check makes sure every boot will meet the anti-cheat requirements.
+# hadolint ignore=DL3059
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/86-check-boot-security.sh
+
 # The final step is its own layer for the same reason.
 # hadolint ignore=DL3059
 RUN --mount=type=bind,source=image/build,target=/ctx \

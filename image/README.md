@@ -23,6 +23,13 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
   - the 32-bit libraries Steam needs are installed: `nvidia-driver-libs.i686`, `nvidia-driver-cuda-libs.i686` and `libnvidia-fbc.i686`.
 
   On success it prints the kernel and driver versions and the number of modules per signer. It is bind-mounted with the whole `image/` folder so it can read the signers file.
+- `build/86-check-boot-security.sh`: runs after the module check and fails the build unless every boot will be in the anti-cheat mode (see [Anti-cheat boot mode](#anti-cheat-boot-mode)):
+  - every `kargs.d` file has exactly one `kargs = [...]` line, `20-orielos-anticheat.toml` sets `lockdown=integrity`, `intel_iommu=on` and `iommu.passthrough=0`, and no file sets `lsm=`;
+  - `kexec-tools` is not installed and `60-orielos-kexec.conf` sets `kernel.kexec_load_disabled = 1`;
+  - the kernel's config (`/usr/lib/modules/<version>/config`) has `CONFIG_BPF_LSM=y` and `bpf` in its default LSM list, `CONFIG_LSM`;
+  - `50-orielos.conf` switches hibernation, suspend-then-hibernate and hybrid sleep off.
+
+  On success it prints the kernel, its default LSM list and the kernel arguments.
 - `module-signers.txt`: the allowed module signers, one per line: `Fedora kernel signing key` and `ublue kernel` (Universal Blue's). OrielOS never builds or signs kernel modules itself and never ships one signed by another key, which keeps it eligible for anti-cheat systems that check the module signing chain.
 - `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists) and `orielos-secure-boot-key.service` (and fails if its parts are missing; see [Secure Boot](#secure-boot)), fails if new users would not get the taskbar (see [The taskbar](#the-taskbar)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
 - `system/`: files copied into the image as they are, laid out like the filesystem. It holds:
@@ -33,6 +40,7 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
   - `etc/xdg/dolphinrc`: Files (Dolphin) opens a fresh window on the Home folder instead of restoring the last session's tabs.
   - `usr/lib/bootc/install/00-orielos.toml`: the install configuration, which makes every installation use a Btrfs root filesystem with zstd compression.
   - `usr/lib/bootc/kargs.d/10-orielos-splash.toml`: the kernel arguments for the boot splash, `rhgb quiet`.
+  - `usr/lib/bootc/kargs.d/20-orielos-anticheat.toml`, `usr/lib/sysctl.d/60-orielos-kexec.conf` and `usr/lib/systemd/sleep.conf.d/50-orielos.conf`: the anti-cheat boot mode (see [Anti-cheat boot mode](#anti-cheat-boot-mode)).
   - `usr/lib/systemd/system-preset/80-orielos.preset`: keeps the server services listed below disabled whenever systemd applies its presets.
 - `keys/`: public keys used to verify packages during the build.
 - `pins.env`: the upstream inputs, each pinned by digest.
@@ -130,6 +138,18 @@ OrielOS boots with Secure Boot. Its kernel is signed by Fedora, but its NVIDIA, 
 - In the Plasma session, the autostart entry `/etc/xdg/autostart/orielos-secure-boot-notify.desktop` runs `/usr/libexec/orielos/secure-boot-notify`, which reads the state and shows, with `notify-send` from `libnotify`: "Finish setting up your graphics driver" with the steps on shim's screen and a **Restart now** button while the key is pending, and "Your PC needs a firmware update" when `ca2023=missing`. Each is shown once per state change (a new request counts as one), remembered in `~/.local/state/orielos/secure-boot-notified`. These texts are the source strings for translation.
 
 `build/90-finalise.sh` fails the build if the service is not enabled, if the scripts are not executable, if the key, the autostart entry, `mokutil` or `notify-send` is missing, or if the state folder is in the image. The VM tests enrol the key in the VM's firmware beforehand, and `tests/secure-boot-key-test.sh` tests the user's steps on shim's screen (see [tests/README.md](../tests/README.md)).
+
+## Anti-cheat boot mode
+
+Every OrielOS boot meets Easy Anti-Cheat's published Linux requirements. There is one boot entry, and it is always in this mode:
+
+- Secure Boot (see [Secure Boot](#secure-boot)), with only modules signed by Fedora or Universal Blue (`module-signers.txt`).
+- Kernel lockdown in integrity mode and the IOMMU on without passthrough: `system/usr/lib/bootc/kargs.d/20-orielos-anticheat.toml` adds `lockdown=integrity intel_iommu=on iommu.passthrough=0`. bootc applies `kargs.d` files when it installs the image and on every update. AMD processors turn their IOMMU on by default, so they need no argument of their own.
+- The BPF LSM: Fedora's kernel lists `bpf` in its built-in default LSM list, so there is no `lsm=` argument, which would replace that list.
+- kexec disabled from early boot: `system/usr/lib/sysctl.d/60-orielos-kexec.conf` sets `kernel.kexec_load_disabled = 1`, which `systemd-sysctl` applies early and which cannot be unset until the next restart. `kexec-tools` is removed with the server defaults.
+- No hibernation, because kernel lockdown rules it out: `system/usr/lib/systemd/sleep.conf.d/50-orielos.conf` sets `AllowHibernation=no`, `AllowSuspendThenHibernate=no` and `AllowHybridSleep=no`. logind's `CanHibernate` is then not `yes`, so Plasma and SDDM do not offer Hibernate. Sleep still works.
+
+`build/86-check-boot-security.sh` checks all of this while the image builds, and `tests/boot-test.sh` checks it in the running system. [docs/anti-cheat.md](../docs/anti-cheat.md) explains it for users.
 
 ## Server defaults
 

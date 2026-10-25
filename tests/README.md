@@ -51,6 +51,10 @@ Store and Firefox, after the second boot:
 18. Store is Discover with Flathub only: `flatpak remotes --system` lists only `flathub`, `/usr/share/applications/org.kde.discover.desktop` has `Name=Store`, and `/usr/lib64/qt6/plugins/discover/` holds only `flatpak-backend.so`, so Discover has no system-package, image or firmware backend.
 19. Firefox is installed on first boot: `/var/lib/orielos/flatpak-setup.done` exists (the test waits up to 10 minutes for it), `flatpak list --system --app --columns=application` contains `org.mozilla.firefox`, and `xdg-mime query default x-scheme-handler/https`, run as `orielostest` in a login shell, prints `org.mozilla.firefox.desktop`. The VM has user-mode networking with internet access through the host, so the download is real. It starts on the first boot, so the install is timed from the first power-on; the time and Firefox's version are printed as INFO lines. The test waits for it last, after the other checks, so the download runs alongside them. If the wait runs out, the last lines of the service's journal are printed.
 
+Anti-cheat boot mode, on the second boot (see `image/README.md`):
+
+20. The boot is anti-cheat ready: `/proc/cmdline` contains `lockdown=integrity`, `intel_iommu=on` and `iommu.passthrough=0`; `/sys/kernel/security/lockdown` shows `[integrity]`; `/proc/sys/kernel/kexec_load_disabled` is `1`; `/sys/kernel/security/lsm` includes `bpf`; logind's `CanHibernate` (`busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate`) is not `yes`; and every module in `/proc/modules` has a `modinfo -F signer` value listed in `image/module-signers.txt`, which the test reads on the host. The lockdown state, the active LSMs and the number of loaded modules checked are printed as INFO lines, and a failure names the unsigned or unexpected modules. The VM has no virtual IOMMU, so `intel_iommu=on` finds no DMAR table there, which is harmless; the check reads the argument, not the hardware.
+
 ### Finishing setup
 
 Plasma Setup's wizard has no scripting interface, so the test does over SSH what the wizard does when the user clicks Finish:

@@ -9,7 +9,9 @@
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
 # The VM's firmware has Universal Blue's driver-signing key enrolled, and the test checks that the
-# kernel trusts it. Prints PASS/FAIL per check.
+# kernel trusts it. It also checks that the second boot is in the mode anti-cheat needs: kernel
+# lockdown, the IOMMU on, kexec disabled, the BPF LSM, no hibernation and only allowed module
+# signers. Prints PASS/FAIL per check.
 #
 # Usage: tests/boot-test.sh [--image REF] [--archive FILE] [--timeout SECONDS] [--memory MIB]
 #                           [--cpus N] [--results DIR] [--no-mok] [--keep] [--help]
@@ -131,6 +133,9 @@ KEY_STATE=""
 KEY_NEW=""
 V4L2_LOADED=""
 MODULES_LOAD=""
+# The anti-cheat boot mode, read over SSH on the second boot.
+ANTICHEAT_OUT=""
+ANTICHEAT_KARGS=(lockdown=integrity intel_iommu=on iommu.passthrough=0)
 
 usage() {
     sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -256,6 +261,35 @@ collect_over_ssh() {
     KEY_NEW="$(vm_ssh mokutil --list-new 2>&1)" || true
     V4L2_LOADED="$(vm_ssh "lsmod | awk '\$1 == \"v4l2loopback\" {print \"loaded\"}'" 2>&1)" || true
     MODULES_LOAD="$(vm_ssh systemctl is-active systemd-modules-load.service 2>&1)" || true
+    ANTICHEAT_OUT="$(vm_ssh "$(anticheat_probe)" 2>&1)" || true
+}
+
+# Print a shell script that reports the kernel command line, lockdown, kexec, the active LSMs,
+# whether hibernation is offered, and every loaded module with its signer.
+anticheat_probe() {
+    cat <<'EOF'
+echo "cmdline=$(cat /proc/cmdline)"
+echo "lockdown=$(cat /sys/kernel/security/lockdown 2>&1)"
+echo "kexec=$(cat /proc/sys/kernel/kexec_load_disabled 2>&1)"
+echo "lsm=$(cat /sys/kernel/security/lsm 2>&1)"
+echo "hibernate=$(busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate 2>&1)"
+while read -r m _; do
+    printf 'module=%s|%s\n' "$m" "$(modinfo -F signer "$m" 2>/dev/null)"
+done </proc/modules
+EOF
+}
+
+# Print the loaded modules whose signer is not in image/module-signers.txt, as "<module> (<signer>)".
+anticheat_bad_modules() {
+    local allowed name signer ok s
+    mapfile -t allowed < <(grep -v -e '^#' -e '^[[:space:]]*$' "$ROOT/image/module-signers.txt")
+    while IFS='|' read -r name signer; do
+        ok=0
+        for s in "${allowed[@]}"; do
+            if [[ "$signer" == "$s" ]]; then ok=1; fi
+        done
+        if [[ "$ok" -ne 1 ]]; then printf '%s (%s)\n' "$name" "${signer:-unsigned}"; fi
+    done < <(sed -n 's/^module=//p' <<<"$ANTICHEAT_OUT")
 }
 
 # Succeed if the first-boot Flatpak service has finished; record when, counted from the first
@@ -589,7 +623,8 @@ PY
 
 run_checks() {
     local status="$1" colours="$2" cmdline btrfs after failed unit line versions rejected taskbar shown="not reached"
-    local wrong spec key component action names meta
+    local wrong spec key component action names meta arg
+    local ac_cmdline ac_lockdown ac_kexec ac_lsm ac_hibernate ac_modules ac_bad ac_missing
     local no_ssh="SSH over vsock did not answer, so this could not be checked inside the VM"
     local ssh_hint="check that /dev/vhost-vsock exists on the host, and look for sshd or systemd-ssh-generator errors in serial.log"
 
@@ -870,6 +905,48 @@ run_checks() {
     else
         pass "Firefox is installed on first boot (flatpak-setup.done written; org.mozilla.firefox installed system-wide; xdg-mime gives $FIREFOX_BROWSER for https links as $TEST_USER)"
         info "Firefox was installed $FIREFOX_SECONDS s after the first power-on (version ${FIREFOX_VERSION:-unknown})"
+    fi
+
+    info "Anti-cheat boot mode"
+    ac_cmdline="$(sed -n 's/^cmdline=//p' <<<"$ANTICHEAT_OUT")"
+    ac_lockdown="$(sed -n 's/^lockdown=//p' <<<"$ANTICHEAT_OUT")"
+    ac_kexec="$(sed -n 's/^kexec=//p' <<<"$ANTICHEAT_OUT")"
+    ac_lsm="$(sed -n 's/^lsm=//p' <<<"$ANTICHEAT_OUT")"
+    ac_hibernate="$(sed -n 's/^hibernate=//p' <<<"$ANTICHEAT_OUT")"
+    ac_modules="$(grep -c '^module=' <<<"$ANTICHEAT_OUT" || true)"
+    ac_bad="$(anticheat_bad_modules | paste -sd ',' - | sed 's/,/, /g')"
+    ac_missing=""
+    for arg in "${ANTICHEAT_KARGS[@]}"; do
+        if [[ " $ac_cmdline " != *" $arg "* ]]; then ac_missing="$ac_missing $arg"; fi
+    done
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "The boot is anti-cheat ready: $no_ssh"
+        hint "$ssh_hint"
+    else
+        info "Kernel lockdown: ${ac_lockdown:-no output}"
+        info "Active LSMs: ${ac_lsm:-no output}"
+        info "Loaded modules checked: $ac_modules"
+        if [[ -n "$ac_missing" ]]; then
+            fail "The boot is not anti-cheat ready: the kernel command line lacks$ac_missing"
+            hint "check image/system/usr/lib/bootc/kargs.d/20-orielos-anticheat.toml and bootc's kargs in the install log"
+        elif [[ "$ac_lockdown" != *"[integrity]"* ]]; then
+            fail "The boot is not anti-cheat ready: kernel lockdown is not in integrity mode (${ac_lockdown:-no output})"
+        elif [[ "$ac_kexec" != "1" ]]; then
+            fail "The boot is not anti-cheat ready: kexec is not disabled (kernel.kexec_load_disabled: ${ac_kexec:-no output})"
+            hint "check that systemd-sysctl.service read /usr/lib/sysctl.d/60-orielos-kexec.conf"
+        elif [[ ",$ac_lsm," != *",bpf,"* ]]; then
+            fail "The boot is not anti-cheat ready: the BPF LSM is not active (LSMs: ${ac_lsm:-no output})"
+        elif [[ -z "$ac_hibernate" || "$ac_hibernate" == *'"yes"'* ]]; then
+            fail "The boot is not anti-cheat ready: hibernation is offered (CanHibernate: ${ac_hibernate:-no output})"
+            hint "check /usr/lib/systemd/sleep.conf.d/50-orielos.conf"
+        elif [[ "$ac_modules" -eq 0 ]]; then
+            fail "The boot is not anti-cheat ready: no loaded modules found in /proc/modules"
+        elif [[ -n "$ac_bad" ]]; then
+            fail "The boot is not anti-cheat ready: loaded modules with an unexpected signer or none: $ac_bad"
+            hint "the allowed signers are in image/module-signers.txt"
+        else
+            pass "The boot is anti-cheat ready (${ANTICHEAT_KARGS[*]} on the command line; lockdown $ac_lockdown; kexec disabled; bpf LSM active; CanHibernate: $ac_hibernate; all $ac_modules loaded modules signed by an allowed signer)"
+        fi
     fi
 
     failed="$(grep_log 'FAILED' | sed -n 's/.*Failed to start \([^ ]*\).*/\1/p' | sort -u)"

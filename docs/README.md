@@ -9,6 +9,7 @@ Contains:
 - [Installing apps](apps.md): the Store, Flathub, and how Firefox arrives on first boot.
 - [Keyboard shortcuts](keyboard-shortcuts.md): the Windows shortcuts for Start, Files, Run, Task Manager, Snipping Tool and more.
 - [Secure Boot and your drivers](secure-boot.md): the one-time blue screen that lets the NVIDIA driver and other drivers load, and the firmware update warning.
+- [Games with anti-cheat](anti-cheat.md): why OrielOS always starts in the mode that games with anti-cheat need, and why there's Sleep but no Hibernate.
 
 Will contain:
 
