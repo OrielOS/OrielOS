@@ -392,6 +392,8 @@ done
 echo "item=\$item"
 [ -n "\$item" ] || exit 0
 echo "status=\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Status | jq -r '.data')"
+# The tooltip is (icon name, icon pixmaps, title, text); the text says what the state file says.
+echo "tooltip=\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem ToolTip | jq -r '.data[3]')"
 if [ -n "\$label" ]; then
     menu="\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Menu | jq -r '.data')"
     echo "menu=\$menu"
@@ -804,7 +806,12 @@ step_undo_update() {
     if wait_for_notifier && wait_for_good_boot; then
         sleep 5
         vm_qmp "shot:$RESULTS/update-undone.png" || true
-        pass "The desktop starts and the notifier tells the user the update was undone (see update-undone.png); flags $(boot_flags | paste -sd ' ' -)"
+        out="$(service_value "$(vm_ssh "$(notifier_script)" 2>/dev/null)" tooltip)" || true
+        if [[ "$out" == *"went back to the previous version"* ]]; then
+            pass "The desktop starts and the notifier tells the user the update was undone (tooltip: $out; see update-undone.png)"
+        else
+            fail "After undoing the update, the notifier's tooltip says '${out:-nothing}' (see update-undone.png)"
+        fi
     else
         fail "After undoing the update, the desktop or the notifier didn't start (see notifier.txt)"
     fi
