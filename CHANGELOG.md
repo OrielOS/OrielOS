@@ -6,6 +6,12 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
+  - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
+  - GameMode, umu-launcher and Fedora's compressed memory swap (zram) are included.
+  - Steam from the Store reaches Xbox and PlayStation 4 and 5 controllers. The PlayStation touchpad doesn't move the desktop's pointer.
+  - Solaar, Piper and OpenRGB from the Store can reach Logitech devices, gaming mice and RGB lighting.
+  - A new "Games and controllers" page explains pairing controllers over Bluetooth.
 - Updates now arrive by themselves.
   - OrielOS checks for a new version a while after start-up and then about every six hours, downloads it in the background and prepares it for the next restart. It never restarts on its own.
   - When a version is ready, a notification and the OrielOS updates icon in the system tray offer "Restart to update" and "Later".
@@ -47,6 +53,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - A command-line update tool that stages a new build for the next restart and rolls back to the previous build; rolled-back builds are not offered again.
 
 ### Changed
+
+- OrielOS no longer sends Fedora's anonymous weekly package count ("countme") when it checks repositories.
 
 - Pull requests that don't change the apps, such as documentation or website changes, no longer wait about two minutes for the app build and tests; the `apps` check still reports and passes. The Discord bot's tests run after a merge only when the bot changed.
 
