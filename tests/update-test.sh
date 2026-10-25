@@ -354,7 +354,8 @@ notifier_script() {
 mode="${1:-read}"
 uid="\$(id -u $TEST_USER)"
 as_user() { runuser -u $TEST_USER -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\$uid/bus" "\$@"; }
-pid="\$(pgrep -u $TEST_USER -x orielos-update-notifier | head -n1)"
+# The kernel keeps only the first 15 characters of a process's name, so match the command line.
+pid="\$(pgrep -u $TEST_USER -f '(^|/)orielos-update-notifier( |\$)' | head -n1)"
 echo "notifier=\$pid"
 [ -n "\$pid" ] || exit 0
 item="\$(as_user gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
@@ -390,7 +391,9 @@ step_service_notify() {
         sleep 3
     done
     if [[ -z "$(service_value "$out" item)" ]]; then
-        fail "The update notifier did not start in $TEST_USER's session within 120 s (${out//$'\n'/; })"
+        fail "The update notifier did not start in $TEST_USER's session within 120 s (${out//$'\n'/; }; see notifier.txt)"
+        vm_ssh "ps -u $TEST_USER -o pid,args; journalctl -b --no-pager | grep -i -E 'update-notifier|UpdateNotifier' | tail -n 40" \
+            >"$RESULTS/notifier.txt" 2>&1 || true
         return 1
     fi
     pass "The update notifier runs in $TEST_USER's session with a tray icon ($(service_value "$out" item))"
