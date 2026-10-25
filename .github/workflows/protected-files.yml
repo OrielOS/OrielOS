@@ -1,0 +1,108 @@
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Protected files
+
+# Closes pull requests from anyone but the repository owner and Dependabot
+# that change a protected file, and fails the protected-files check.
+# pull_request_target runs this file as it is on the base branch, so a pull
+# request can't change the check that judges it. It reads only the pull
+# request's file list and never checks out or runs its code.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  protected-files:
+    name: protected-files
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Close the pull request if it changes a protected file
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          OWNER: ${{ github.repository_owner }}
+          PR: ${{ github.event.pull_request.number }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+          # Only the owner may change these. An entry ending in / covers
+          # everything under it; any other entry is a single file.
+          PROTECTED: |
+            .github/
+            discord/
+            image/keys/
+            image/module-signers.txt
+            image/pins.env
+            LICENSE
+            docs/LICENSE
+            README.md
+            CONTRIBUTING.md
+            CODE_OF_CONDUCT.md
+            GOVERNANCE.md
+            SECURITY.md
+            SUPPORT.md
+            VERSION
+        run: |
+          set -euo pipefail
+
+          if [ "${AUTHOR}" = "${OWNER}" ] || [ "${AUTHOR}" = "dependabot[bot]" ]; then
+              echo "${AUTHOR} may change protected files."
+              exit 0
+          fi
+
+          # GitHub lists at most 3000 files of a pull request, so a larger one
+          # can't be checked and is refused.
+          if [ "${CHANGED_FILES}" -gt 3000 ]; then
+              matched="more files than GitHub can list"
+          else
+              # File names come from the pull request, so they are matched
+              # in jq and never printed; only the protected entries are.
+              matched="$(
+                  gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files" \
+                      --jq '[.[] | .filename, (.previous_filename // empty)]' |
+                      jq -rs --arg protected "${PROTECTED}" '
+                          (add // []) as $files
+                          | $protected | split("\n")[] | select(length > 0)
+                          | . as $entry
+                          | select(any($files[];
+                              if ($entry | endswith("/")) then startswith($entry) else . == $entry end))'
+              )"
+          fi
+
+          if [ -z "${matched}" ]; then
+              echo "The pull request changes no protected files."
+              exit 0
+          fi
+
+          mapfile -t entries <<<"${matched}"
+          list="$(printf -- "- \`%s\`\n" "${entries[@]}")"
+          {
+              echo "## Protected files"
+              echo
+              echo "This pull request changes files that only @${OWNER} may change:"
+              echo
+              echo "${list}"
+          } >>"${GITHUB_STEP_SUMMARY}"
+
+          # Comment and close only once, however many events arrive.
+          if [ "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR}" --jq .state)" = "open" ]; then
+              gh api --silent "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" -F body=@- <<EOF
+          Thank you for the pull request. It changes files that only the maintainer changes, so it has been closed automatically:
+
+          ${list}
+
+          Please open a new pull request without those changes. To suggest a change to one of these files, open an issue instead. [CONTRIBUTING.md](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/main/CONTRIBUTING.md#files-only-the-maintainer-changes) explains why.
+          EOF
+              gh api --silent -X PATCH "repos/${GITHUB_REPOSITORY}/pulls/${PR}" -f state=closed
+          fi
+
+          echo "::error::This pull request changes files that only ${OWNER} may change: ${matched//$'\n'/, }"
+          exit 1

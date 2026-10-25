@@ -18,6 +18,17 @@ Thank you for helping with OrielOS. This page explains how to report problems, s
 5. Sign off every commit with `git commit -s`. This adds a `Signed-off-by:` line with your name and email, and certifies the [Developer Certificate of Origin](https://developercertificate.org/). CI checks it. There is no contributor licence agreement.
 6. Open the pull request against `main` and complete the template. The maintainer reviews and merges every pull request.
 
+### Files only the maintainer changes
+
+Some files decide how the project is run, what the OS image trusts and what CI does with its secrets. A pull request from anyone but the maintainer that changes one of them is closed automatically, and its `protected-files` check fails. To suggest a change to one of these files, open an issue.
+
+- `.github/`: the workflows, the code owners (who also get the Maintainer role on Discord), Dependabot, the Sponsor button, and the issue and pull request templates.
+- `discord/`: the Discord bot, which runs with the bot's token.
+- `image/keys/`, `image/module-signers.txt` and `image/pins.env`: the package signing keys, the allowed kernel module signers, and the pinned inputs the image is built from.
+- `LICENSE`, `docs/LICENSE`, `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `SUPPORT.md` and `VERSION`.
+
+The check's list is in `.github/workflows/protected-files.yml`. Dependabot's dependency updates are allowed.
+
 ### Building, linting and testing
 
 All tools run inside Linux or WSL2.
