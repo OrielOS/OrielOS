@@ -4,17 +4,17 @@ On OrielOS, apps come from the Store, the way they do on Windows. The Store is t
 
 ## Firefox
 
-Firefox is the only app that comes with OrielOS, and it is your web browser from the start. It isn't part of the system image; the first time OrielOS starts with an internet connection, it downloads Firefox from Flathub in the background. That usually takes a minute or two. Firefox appears in the menu when it is ready, and links you open anywhere use it.
+Firefox is the only app that comes with OrielOS, and it is your web browser from the start. It isn't part of the system image; the first time OrielOS starts with an internet connection, it downloads Firefox from Flathub in the background. That usually takes a minute or two. Firefox appears in Start when it is ready, and links you open anywhere use it.
 
 If there is no connection on the first start, OrielOS tries again every five minutes until Firefox is installed. You don't have to do anything.
 
 ## Installing an app
 
-1. Open the Store from the menu.
+1. Open the Store from Start.
 2. Search for the app, or browse the categories.
 3. Choose **Install**.
 
-The app appears in the menu when it is installed. Apps are installed for everyone who uses the computer.
+The app appears in Start when it is installed. Apps are installed for everyone who uses the computer.
 
 ## Removing an app
 
