@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- The lock screen shows the time and date under the orange sill of the OrielOS wallpaper, in dark text on Daybreak and white on Nightfall, and hides them while you type your password.
 - A Sponsor button on the repository, for supporting OrielOS through GitHub Sponsors.
 - Contribution guidelines, a code of conduct, a security policy, support and governance notes, issue and pull request templates, and a GitHub Discussions form for questions.
 - OrielOS has its own logo, Start button icon and wallpapers. Daybreak (light) and Nightfall (dark) are the default on the desktop and the lock screen, and the plainer Horizon is in the wallpaper picker.

@@ -46,6 +46,11 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/26-shortcuts.sh
 
+# hadolint ignore=DL3059
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    --mount=type=bind,source=image/lockscreen,target=/lockscreen \
+    /ctx/27-lock-screen.sh
+
 RUN --mount=type=bind,source=image/build,target=/ctx \
     --mount=type=bind,source=image/keys,target=/keys \
     --mount=type=bind,from=akmods-nvidia,source=/rpms,target=/akmods-nvidia/rpms \
