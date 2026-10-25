@@ -11,6 +11,8 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 - `build/20-desktop.sh`: installs the desktop from `packages/desktop.txt` without weak dependencies, makes Flathub the only Flatpak source, enables Plasma Setup for the first boot and SDDM for every boot, makes `graphical.target` the default, makes OrielOS's look-and-feel the default (see [The taskbar](#the-taskbar)) and sets the Plymouth theme.
 - `packages/desktop.txt`: the desktop package list, one package per line, grouped under comment headings (see [The desktop](#the-desktop)). It is bind-mounted into the build like the scripts.
 - `build/25-store.sh`: turns Discover into the Store (see [The Store](#the-store)), removes its firmware backend and makes Firefox the default browser. It fails the build if a Discover desktop entry or the default-browser file is missing, or if any backend but Flatpak is left.
+- `build/26-shortcuts.sh`: the Windows keyboard shortcuts for apps and the Windows names of the system tools (see [Keyboard shortcuts](#keyboard-shortcuts)). It fails the build if a desktop entry it changes is missing or no longer has the shortcuts or name it expects, if a Plasma default that OrielOS relies on has moved, or if two desktop entries share a shortcut.
+- `build/desktop-entry.sh`: helpers sourced by `25-store.sh` and `26-shortcuts.sh`: `die`, and `rename_entry`, which renames a desktop entry, sets its `GenericName` and drops its translated names.
 - `build/30-nvidia.sh`: NVIDIA's open kernel modules and the matching driver. It checks that the modules were built for the installed kernel and that the driver packages carry negativo17's signature.
 - `build/40-apps.sh`: the runtime libraries the apps need (Qt Quick, Kirigami, KI18n, KCoreAddons). Plasma already pulls them in; listing them keeps the dependency explicit. It also installs `tar` and `jq`, which `orielos-update` uses.
 - `build/80-repos.sh`: disables every repository that is not Fedora's own.
@@ -22,10 +24,13 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 
   On success it prints the kernel and driver versions and the number of modules per signer. It is bind-mounted with the whole `image/` folder so it can read the signers file.
 - `module-signers.txt`: the allowed module signers, one per line: `Fedora kernel signing key` and `ublue kernel` (Universal Blue's). OrielOS never builds or signs kernel modules itself and never ships one signed by another key, which keeps it eligible for anti-cheat systems that check the module signing chain.
-- `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists), fails if new users would not get the taskbar (see [The taskbar](#the-taskbar)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
+- `build/90-finalise.sh`: fails the build if any `-devel` package, `gcc`, `gcc-c++`, `cmake` or `extra-cmake-modules` is installed, or if the first boot would not run Plasma Setup (see [First boot](#first-boot)), enables `orielos-flatpak-setup.service` (and fails if its stamp file exists) and `orielos-secure-boot-key.service` (and fails if its parts are missing; see [Secure Boot](#secure-boot)), fails if new users would not get the taskbar (see [The taskbar](#the-taskbar)), refreshes the `hicolor` icon cache, then rebuilds the initramfs with Plymouth in it, cleans up and lints the image.
 - `system/`: files copied into the image as they are, laid out like the filesystem. It holds:
   - `usr/bin/orielos-update`: the update command (see [Updates](#updates)).
   - `usr/libexec/orielos/flatpak-setup` and `usr/lib/systemd/system/orielos-flatpak-setup.service`: the first-boot install of Firefox from Flathub (see [The Store](#the-store)).
+  - `usr/libexec/orielos/secure-boot-key`, `usr/lib/systemd/system/orielos-secure-boot-key.service`, `usr/libexec/orielos/secure-boot-notify` and `etc/xdg/autostart/orielos-secure-boot-notify.desktop`: the Secure Boot key step (see [Secure Boot](#secure-boot)). The Containerfile copies `system/etc/` to `/etc`, which bootc keeps as the default configuration.
+  - `etc/skel/.config/kglobalshortcutsrc`: the KWin shortcuts every new user starts with (see [Keyboard shortcuts](#keyboard-shortcuts)).
+  - `etc/xdg/dolphinrc`: Files (Dolphin) opens a fresh window on the Home folder instead of restoring the last session's tabs.
   - `usr/lib/bootc/install/00-orielos.toml`: the install configuration, which makes every installation use a Btrfs root filesystem with zstd compression.
   - `usr/lib/bootc/kargs.d/10-orielos-splash.toml`: the kernel arguments for the boot splash, `rhgb quiet`.
   - `usr/lib/systemd/system-preset/80-orielos.preset`: keeps the server services listed below disabled whenever systemd applies its presets.
@@ -63,6 +68,34 @@ New users get a Windows 11-style taskbar: the Start button and pinned apps (File
 
 `tests/boot-test.sh` checks the new user's taskbar.
 
+## Keyboard shortcuts
+
+The Windows keyboard shortcuts work for every new user, and open the tools that play the Windows tools' parts. Most are already Plasma 6.7's defaults; OrielOS changes only the rest. [docs/keyboard-shortcuts.md](../docs/keyboard-shortcuts.md) lists them for users.
+
+| Shortcut | Plasma 6.7's default | OrielOS |
+|---|---|---|
+| Win | Start (Kickoff), from `kwinrc`'s `ModifierOnlyShortcuts` | unchanged |
+| Win+E | Dolphin (`X-KDE-Shortcuts=Meta+E`) | unchanged; Dolphin is named Files |
+| Win+R | Spectacle's region recording (`Meta+Shift+R,Meta+R`); KRunner is on `Alt+Space,Alt+F2,Search` | KRunner (Run) gets `Meta+R`; region recording keeps `Meta+Shift+R` |
+| Win+L | Lock Session (ksmserver) | unchanged |
+| Win+D | Show Desktop (KWin) | unchanged |
+| Win+Tab | KWin's Walk Through Windows, together with Alt+Tab (and Win+Shift+Tab with Alt+Shift+Tab for the reverse) | KWin's Overview, which a second press closes, and which keeps Win+W; Walk Through Windows keeps Alt+Tab and Alt+Shift+Tab only |
+| Win+I | System Settings (`Tools,Meta+I`) | unchanged |
+| Win+Shift+S | Spectacle (`Print,Meta+Shift+S`), which starts with a rectangular region | unchanged; Spectacle is named Snipping Tool |
+| Win+V | Klipper's clipboard history at the mouse pointer (`show-on-mouse-pos`) | unchanged |
+| Win+. | Emoji picker (`Meta+.,Meta+Ctrl+Alt+Shift+Space`) | unchanged |
+| Ctrl+Shift+Esc | nothing; System Monitor is on `Meta+Esc` | System Monitor (Task Manager), on both |
+| Win+Left/Right | KWin's Quick Tile Left/Right | unchanged |
+| Win+Up/Down | KWin's Quick Tile Top/Bottom | KWin's Maximise and Minimise, which keep Win+PgUp/PgDown; Quick Tile Top/Bottom have no shortcut |
+| Win+PrtSc | Spectacle's active window capture | a new Spectacle action, `spectacle --background --fullscreen`, which saves the whole desktop to Pictures/Screenshots without opening Spectacle's window; the active window moves to Alt+PrtSc, as on Windows |
+
+- **App shortcuts.** kglobalaccel reads app shortcuts from the `X-KDE-Shortcuts` keys of the desktop entries in `/usr/share/kglobalaccel` (some are links to the entries in `/usr/share/applications`), and the key `X-KDE-Shortcuts` of each `[Desktop Action ...]` group. `build/26-shortcuts.sh` changes those keys in place, like the Store rename. System Monitor's entry in `/usr/share/kglobalaccel` was a hard link to its menu entry, which editing would split, so the script replaces it with a symbolic link, as Dolphin's and Spectacle's already are.
+- **KWin shortcuts.** kglobalaccel keeps the other global shortcuts in each user's `~/.config/kglobalshortcutsrc`, so `system/etc/skel/.config/kglobalshortcutsrc` gives every new account (created by Plasma Setup or `useradd -m`) the `[kwin]` entries for Win+Tab and Win+Up/Down, and takes those keys off the actions that had them by default. Each value is the active shortcut, Plasma's default and the action's name; every other shortcut keeps Plasma's default, and the user can change any of them in System Settings. Accounts created before this change keep their shortcuts.
+- **Names.** `build/26-shortcuts.sh` uses `rename_entry` from `build/desktop-entry.sh` to name System Monitor **Task Manager** (`GenericName=System monitor`), Spectacle **Snipping Tool** (`GenericName=Screenshot tool`) and Dolphin **Files** (`GenericName=File manager`, as on the taskbar), and deletes their translated names. The apps' own windows still show their KDE names. KRunner keeps its name; it has no menu entry.
+- **No clashes.** The script fails the build if two desktop entries share a shortcut. It does not see KWin's or Plasma's built-in shortcuts, which the boot test checks in the new user's `kglobalshortcutsrc`.
+
+`tests/boot-test.sh` asks the new user's kglobalaccel which action each shortcut runs, fails if two actions in the user's `kglobalshortcutsrc` share a shortcut, presses Win+E and expects Files to start, and checks the names.
+
 ## The Store
 
 OrielOS's app store is KDE Discover under another name, like Windows' Microsoft Store. Apps come only from Flathub, and users cannot add Fedora packages to the OS.
@@ -82,6 +115,21 @@ The image has no user account, and installing it with `bootc install` creates no
 - It offers to create an account only when there is no regular user (UID 1000 to 60000) yet, and never runs again once the done marker exists.
 
 `build/90-finalise.sh` fails the build if `plasma-setup.service` is not enabled, if `/etc/plasma-setup-done` exists or if the image has a regular user. Plasma Setup looks as KDE and Fedora ship it for now; OrielOS's own styling will follow. `tests/boot-test.sh` checks both boots.
+
+## Secure Boot
+
+OrielOS boots with Secure Boot. Its kernel is signed by Fedora, but its NVIDIA, xone, xpadneo, OpenRazer and v4l2loopback modules are signed by Universal Blue's key, `/etc/pki/akmods/certs/akmods-ublue.der` ("ublue kernel"), and the kernel refuses them (`Loading of module with unavailable key is rejected`) until that key is in shim's Machine Owner Key (MOK) list. Enrolling it takes the user's confirmation on shim's MOK manager screen at boot, once; [docs/secure-boot.md](../docs/secure-boot.md) explains the steps for users.
+
+- `orielos-secure-boot-key.service` (enabled by `80-orielos.preset` and by `build/90-finalise.sh`) is a oneshot that runs on every boot after `local-fs.target` and before the display manager. It runs `/usr/libexec/orielos/secure-boot-key`, which writes `/var/lib/orielos/secure-boot/state` (`key=value` lines, readable by everyone):
+  - Secure Boot off (`mokutil --sb-state`): `key=not-needed`, and nothing else is done.
+  - `mokutil --test-key` says the key is already enrolled: `key=enrolled`.
+  - It says the key is already in the enrolment request: `key=pending`.
+  - Otherwise it writes the hash of the one-time password `orielos` (`mokutil --generate-hash=orielos`) to a root-only temporary file in `/run`, runs `mokutil --import /etc/pki/akmods/certs/akmods-ublue.der --hash-file <file>`, deletes the file and records `key=pending` with the time in `requested=`. If a later boot finds the key neither enrolled nor queued, for example because shim dropped the request, it is queued again with a new time.
+  - It also records `ca2023=present` or `ca2023=missing`, depending on whether `mokutil --db` lists Microsoft UEFI CA 2023 in the firmware's db. Microsoft's 2011 UEFI CA expired in June 2026, and newer shims are signed by the 2023 CA.
+- The key path is fixed in the script: it imports Universal Blue's key and nothing else. OrielOS never generates or enrols a key of its own, which keeps it eligible for anti-cheat systems that check the module signing chain.
+- In the Plasma session, the autostart entry `/etc/xdg/autostart/orielos-secure-boot-notify.desktop` runs `/usr/libexec/orielos/secure-boot-notify`, which reads the state and shows, with `notify-send` from `libnotify`: "Finish setting up your graphics driver" with the steps on shim's screen and a **Restart now** button while the key is pending, and "Your PC needs a firmware update" when `ca2023=missing`. Each is shown once per state change (a new request counts as one), remembered in `~/.local/state/orielos/secure-boot-notified`. These texts are the source strings for translation.
+
+`build/90-finalise.sh` fails the build if the service is not enabled, if the scripts are not executable, if the key, the autostart entry, `mokutil` or `notify-send` is missing, or if the state folder is in the image. The VM tests enrol the key in the VM's firmware beforehand, and `tests/secure-boot-key-test.sh` tests the user's steps on shim's screen (see [tests/README.md](../tests/README.md)).
 
 ## Server defaults
 

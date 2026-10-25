@@ -5,10 +5,8 @@
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
-die() {
-    printf 'error: %s\n' "$1" >&2
-    exit 1
-}
+# shellcheck source-path=SCRIPTDIR source=desktop-entry.sh
+source "$(dirname "${BASH_SOURCE[0]}")/desktop-entry.sh"
 
 # Every desktop entry that shows Discover's name: the app, its URL handler, the updates
 # notifier (in the menu and in autostart) and the Flatpak entry.
@@ -20,14 +18,7 @@ entries=(
     /etc/xdg/autostart/org.kde.discover.notifier.desktop
 )
 for file in "${entries[@]}"; do
-    [[ -f "$file" ]] || die "$file does not exist; Discover's packaging changed, so update image/build/25-store.sh"
-    grep -q '^Name=Discover$' "$file" || die "$file does not have Name=Discover; update image/build/25-store.sh"
-    # Drop the translated names, which would still say Discover in other languages, then set the
-    # English ones. GenericName is added after Name when the entry has none.
-    sed -i -e '/^Name\[[^]]*\]=/d' -e '/^GenericName\[[^]]*\]=/d' -e '/^GenericName=/d' \
-        -e 's/^Name=Discover$/Name=Store\nGenericName=App store/' "$file"
-    grep -q '^Name=Store$' "$file" || die "could not rename Discover in $file"
-    grep -q '^GenericName=App store$' "$file" || die "could not set GenericName in $file"
+    rename_entry "$file" Discover Store "App store" image/build/25-store.sh
 done
 
 # Discover's backends are plugins. Flatpak is the Store's only source: the firmware backend is

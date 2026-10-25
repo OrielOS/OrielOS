@@ -138,6 +138,7 @@ check_commands() {
     check_command qemu-img qemu-utils qemu-img
     check_command swtpm "swtpm swtpm-tools" "swtpm swtpm-tools" --version
     check_command swtpm_setup "swtpm swtpm-tools" "swtpm swtpm-tools"
+    check_command virt-fw-vars python3-virt-firmware python3-virt-firmware
     check_command losetup util-linux util-linux
     check_command ssh openssh-client openssh-clients
 }

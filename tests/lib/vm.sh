@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Shared code for the VM tests: result lines, installing the image to a disk file, booting it
 # under QEMU/KVM with Secure Boot firmware and a software TPM, SSH into the VM through a vsock
-# device, finishing Plasma Setup and cleaning up. Sourced by tests/boot-test.sh and
-# tests/update-test.sh.
+# device, finishing Plasma Setup and cleaning up. The VM's firmware has Universal Blue's
+# driver-signing key in shim's MokList unless MOK_ENROL is 0. Sourced by tests/boot-test.sh,
+# tests/update-test.sh and tests/secure-boot-key-test.sh.
 #
 # The caller sets IMAGE, MEMORY, CPUS, KEEP, WORK, RESULTS and SUMMARY (and ARCHIVE for
 # load_archive) before using these functions, and installs cleanup as its EXIT trap.
@@ -20,6 +21,12 @@
     SSH_OK=0
     FINISH_OK=0
     TEST_USER="orielostest"
+    # 1: the VM's firmware already has Universal Blue's key in shim's MokList, like a machine
+    # whose owner confirmed it on shim's blue screen. 0: the key is not enrolled.
+    MOK_ENROL=1
+    UBLUE_KEY="/etc/pki/akmods/certs/akmods-ublue.der"
+    # Owner GUID for the MokList entry: shim's own.
+    MOK_OWNER="605dab50-e046-4300-abb6-3dd810dd8b23"
     PASSED=0
     FAILED=0
 }
@@ -275,9 +282,23 @@ install_image() {
     info "Installed in $((SECONDS - start)) s"
 }
 
+# Add Universal Blue's key, read from the image, to shim's MokList in the VM's firmware variables,
+# so the VM trusts the image's drivers from the first boot on.
+enrol_mok() {
+    command -v virt-fw-vars >/dev/null 2>&1 ||
+        die "virt-fw-vars is not installed (sudo apt install python3-virt-firmware; Fedora: sudo dnf install python3-virt-firmware)"
+    podman run --rm "$IMAGE" cat "$UBLUE_KEY" >"$WORK/ublue.der" ||
+        die "could not read Universal Blue's key, $UBLUE_KEY, from $IMAGE"
+    virt-fw-vars --inplace "$WORK/vars.fd" --add-mok "$MOK_OWNER" "$WORK/ublue.der" >"$WORK/virt-fw-vars.log" 2>&1 ||
+        die "could not add Universal Blue's key to the VM's MokList; see $WORK/virt-fw-vars.log"
+    info "Universal Blue's key is in the VM's MokList, as if it had been enrolled"
+}
+
 start_vm() {
     local _
     cp "$OVMF_VARS" "$WORK/vars.fd"
+    chmod u+w "$WORK/vars.fd"
+    if [[ "$MOK_ENROL" -eq 1 ]]; then enrol_mok; fi
     mkdir -p "$WORK/tpm"
     swtpm socket --tpm2 --tpmstate "dir=$WORK/tpm" --ctrl "type=unixio,path=$WORK/swtpm.sock" \
         --pid "file=$WORK/swtpm.pid" --daemon

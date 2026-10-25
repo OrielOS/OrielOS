@@ -1,0 +1,12 @@
+# OrielOS's Windows shortcuts for KWin, copied to every new user's ~/.config, where kglobalaccel
+# keeps each user's shortcuts. Each value is the active shortcut, Plasma's default and the
+# action's name; "none" means no shortcut, and \t separates two shortcuts. Shortcuts that are
+# not listed here keep Plasma's defaults.
+[kwin]
+Overview=Meta+Tab\tMeta+W,Meta+W,Toggle Overview
+Walk Through Windows=Alt+Tab,Alt+Tab\tMeta+Tab,Walk Through Windows
+Walk Through Windows (Reverse)=Alt+Shift+Tab,Alt+Shift+Tab\tMeta+Shift+Tab,Walk Through Windows (Reverse)
+Window Maximize=Meta+Up\tMeta+PgUp,Meta+PgUp,Maximize Window
+Window Minimize=Meta+Down\tMeta+PgDown,Meta+PgDown,Minimize Window
+Window Quick Tile Bottom=none,Meta+Down,Quick Tile Window to the Bottom
+Window Quick Tile Top=none,Meta+Up,Quick Tile Window to the Top

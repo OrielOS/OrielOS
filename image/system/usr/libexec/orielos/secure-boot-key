@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# Makes sure the kernel trusts the drivers OrielOS ships. The NVIDIA, xone, xpadneo, OpenRazer
+# and v4l2loopback modules are signed by Universal Blue's key, and under Secure Boot the kernel
+# loads them only once that key is in shim's Machine Owner Key (MOK) list. On every boot this
+# checks the key and, if it is neither enrolled nor queued yet, queues it with mokutil and the
+# one-time password "orielos"; shim then asks the user to confirm it at the next restart. It
+# also checks that the firmware trusts Microsoft's 2023 UEFI CA, which signs newer shims.
+# Run by orielos-secure-boot-key.service; the session's notification reads the state file.
+# Runs as root.
+#
+# The key is fixed: this script imports Universal Blue's key and nothing else, and OrielOS never
+# makes or enrols a key of its own.
+set -Eeuo pipefail
+
+KEY="/etc/pki/akmods/certs/akmods-ublue.der"
+PASSWORD="orielos"
+STATE_DIR="/var/lib/orielos/secure-boot"
+STATE="$STATE_DIR/state"
+CA2023="Microsoft UEFI CA 2023"
+HASH_FILE=""
+
+log() {
+    printf 'orielos-secure-boot-key: %s\n' "$1"
+}
+
+remove_hash_file() {
+    if [[ -n "$HASH_FILE" ]]; then rm -f "$HASH_FILE"; fi
+}
+
+# Write the state file atomically, one key=value per line: write_state <line...>
+# The session reads it as the logged-in user, so it is readable by everyone.
+write_state() {
+    local tmp
+    mkdir -p "$STATE_DIR"
+    chmod 0755 "$STATE_DIR"
+    tmp="$(mktemp "$STATE_DIR/.state.XXXXXX")"
+    printf '%s\n' "$@" "checked=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$STATE"
+}
+
+# Print the value of a line in the current state file: old_value <key>
+old_value() {
+    if [[ -r "$STATE" ]]; then sed -n "s/^$1=//p" "$STATE" | head -n1; fi
+}
+
+secure_boot_on() {
+    mokutil --sb-state 2>/dev/null | grep -q '^SecureBoot enabled'
+}
+
+# Print "present" or "missing" for Microsoft's 2023 UEFI CA in the firmware's db.
+ca2023_state() {
+    if mokutil --db 2>/dev/null | grep -qF "$CA2023"; then
+        echo present
+    else
+        echo missing
+    fi
+}
+
+# Print "enrolled", "pending" or "missing" for the key.
+key_state() {
+    local out
+    # mokutil --test-key exits non-zero for an enrolled key, so only its output counts.
+    out="$(mokutil --test-key "$KEY" 2>&1 || true)"
+    if [[ "$out" == *"is already enrolled"* ]]; then
+        echo enrolled
+    elif [[ "$out" == *"already in the enrollment request"* ]]; then
+        echo pending
+    else
+        echo missing
+    fi
+}
+
+# Queue the key for shim's MOK manager with the one-time password. The password hash goes to a
+# root-only file that is deleted straight after.
+import_key() {
+    HASH_FILE="$(mktemp /run/orielos-mok-hash.XXXXXX)"
+    chmod 0600 "$HASH_FILE"
+    mokutil --generate-hash="$PASSWORD" >"$HASH_FILE"
+    mokutil --import "$KEY" --hash-file "$HASH_FILE"
+    remove_hash_file
+}
+
+main() {
+    local key ca requested
+    trap remove_hash_file EXIT
+
+    if [[ ! -d /sys/firmware/efi ]] || ! secure_boot_on; then
+        log "Secure Boot is off, so no key is needed"
+        write_state "key=not-needed"
+        return 0
+    fi
+    [[ -r "$KEY" ]] || {
+        log "error: $KEY is missing"
+        exit 1
+    }
+
+    ca="$(ca2023_state)"
+    log "$CA2023 in the firmware's db: $ca"
+    key="$(key_state)"
+    requested="$(old_value requested)"
+    case "$key" in
+        enrolled)
+            log "Universal Blue's key is enrolled"
+            write_state "key=enrolled" "ca2023=$ca"
+            ;;
+        pending)
+            log "Universal Blue's key is already queued for enrolment at the next restart"
+            write_state "key=pending" "requested=${requested:-unknown}" "ca2023=$ca"
+            ;;
+        *)
+            log "queuing Universal Blue's key for enrolment at the next restart"
+            import_key
+            write_state "key=pending" "requested=$(date -u +%Y-%m-%dT%H:%M:%SZ)" "ca2023=$ca"
+            ;;
+    esac
+}
+
+main "$@"

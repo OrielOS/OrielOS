@@ -4,13 +4,15 @@
 # device it then finishes setup the way the wizard does (creates a user and marks setup done),
 # restarts the VM and checks that the second boot reaches the login screen without Plasma Setup.
 # On the second boot it checks the services, starts OrielOS's apps and logs the new user in to a
-# Plasma Wayland session inside the VM, and checks that the new user got the Windows-style taskbar.
+# Plasma Wayland session inside the VM, and checks that the new user got the Windows-style taskbar
+# and the Windows keyboard shortcuts.
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
-# Prints PASS/FAIL per check.
+# The VM's firmware has Universal Blue's driver-signing key enrolled, and the test checks that the
+# kernel trusts it. Prints PASS/FAIL per check.
 #
 # Usage: tests/boot-test.sh [--image REF] [--archive FILE] [--timeout SECONDS] [--memory MIB]
-#                           [--cpus N] [--results DIR] [--keep] [--help]
+#                           [--cpus N] [--results DIR] [--no-mok] [--keep] [--help]
 #   --image REF         image to test (default localhost/orielos:latest)
 #   --archive FILE      load this OCI archive (from tools/build-image.sh) into Podman first and
 #                       test it as localhost/orielos-archive:<file name>, unless --image is given
@@ -20,6 +22,8 @@
 #   --cpus N            VM CPUs (default 4)
 #   --results DIR       where serial.log, install.log, the screenshots and summary.txt go
 #                       (default tests/results/<run id>)
+#   --no-mok            do not enrol Universal Blue's key in the VM's firmware; the key check
+#                       then expects the key to be queued for enrolment instead
 #   --keep              keep the disk and work folder, and print how to boot them again
 # The work folder is /var/lib/orielos/vm/<run id>, where the run id is <image tag>-<UTC time>.
 # Runs as root; re-executes itself through sudo otherwise.
@@ -78,6 +82,29 @@ TASKBAR_LOCATION=""
 TASKBAR_ORDER=""
 TASKBAR_LAUNCHERS=""
 TASKBAR_ICON=""
+# The Windows shortcuts: "<shortcut>|<Qt key code>|<component>|<action>". The component may be
+# empty when only the action name is fixed. Keep in step with docs/keyboard-shortcuts.md.
+SHORTCUT_TABLE=(
+    "Meta+E|0x10000045|org.kde.dolphin.desktop|_launch"
+    "Meta+R|0x10000052|org.kde.krunner.desktop|_launch"
+    "Meta+L|0x1000004c|ksmserver|Lock Session"
+    "Meta+D|0x10000044|kwin|Show Desktop"
+    "Meta+Tab|0x11000001|kwin|Overview"
+    "Meta+I|0x10000049|systemsettings.desktop|_launch"
+    "Meta+Shift+S|0x12000053|org.kde.spectacle.desktop|_launch"
+    "Meta+V|0x10000056||show-on-mouse-pos"
+    "Meta+.|0x1000002e|org.kde.plasma.emojier.desktop|_launch"
+    "Ctrl+Shift+Esc|0x07000000|org.kde.plasma-systemmonitor.desktop|_launch"
+    "Meta+Left|0x11000012|kwin|Window Quick Tile Left"
+    "Meta+Right|0x11000014|kwin|Window Quick Tile Right"
+    "Meta+Up|0x11000013|kwin|Window Maximize"
+    "Meta+Down|0x11000015|kwin|Window Minimize"
+    "Meta+Print|0x11000009|org.kde.spectacle.desktop|FullScreenToFile"
+)
+SHORTCUTS_OUT=""
+SHORTCUT_CLASHES=""
+TOOL_NAMES=""
+WIN_E_SECONDS=""
 BT_ENABLED=""
 BT_ACTIVE=""
 SERVER_UNITS=""
@@ -98,6 +125,16 @@ FIREFOX_APPS=""
 FIREFOX_BROWSER=""
 FIREFOX_VERSION=""
 FIREFOX_JOURNAL=""
+# Universal Blue's key and the drivers it signs.
+KEY_TEST=""
+KEY_STATE=""
+KEY_NEW=""
+V4L2_LOADED=""
+MODULES_LOAD=""
+
+usage() {
+    sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
 
 # Print the current boot's part of the serial log.
 clean_log() {
@@ -214,6 +251,11 @@ collect_over_ssh() {
     STORE_NAME="$(vm_ssh grep -m1 '^Name=' /usr/share/applications/org.kde.discover.desktop 2>&1)" || true
     STORE_BACKENDS="$(vm_ssh ls /usr/lib64/qt6/plugins/discover 2>&1 | paste -sd ' ' -)" || true
     NVIDIA_VERSIONS="$(vm_ssh "rpm -qa --qf '%{NAME} %{VERSION}-%{RELEASE}\n' | grep -E '$NVIDIA_COMPONENTS' | grep -v '^nvidia-driver-selinux '" 2>&1)" || true
+    KEY_TEST="$(vm_ssh mokutil --test-key "$UBLUE_KEY" 2>&1)" || true
+    KEY_STATE="$(vm_ssh "sed -n 's/^key=//p' /var/lib/orielos/secure-boot/state" 2>&1)" || true
+    KEY_NEW="$(vm_ssh mokutil --list-new 2>&1)" || true
+    V4L2_LOADED="$(vm_ssh "lsmod | awk '\$1 == \"v4l2loopback\" {print \"loaded\"}'" 2>&1)" || true
+    MODULES_LOAD="$(vm_ssh systemctl is-active systemd-modules-load.service 2>&1)" || true
 }
 
 # Succeed if the first-boot Flatpak service has finished; record when, counted from the first
@@ -300,6 +342,102 @@ desktop_login() {
     fi
     SOUND_STATE="$(vm_ssh systemctl --user -M "$TEST_USER@" is-active pipewire wireplumber 2>&1 | paste -sd ' ' -)" || true
     read_taskbar
+    read_shortcuts
+    press_win_e
+}
+
+# Ask the test user's kglobalaccel which action each Windows shortcut runs, over the session's
+# D-Bus. Prints one "<shortcut>|<names>" line per shortcut, where <names> are the component and
+# action names kglobalaccel returns, separated by "|", then "meta=<kwinrc's action for the Win key
+# alone>" (empty means Plasma's default, Start).
+shortcut_probe() {
+    cat <<SH
+ask() {
+    out="\$(busctl --user -M $TEST_USER@ call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel action i "\$2" 2>/dev/null)"
+    if [ -z "\$(printf '%s' "\$out" | grep -o '"[^"]*"')" ]; then
+        out="\$(busctl --user -M $TEST_USER@ call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel globalShortcutsByKey '(ai)i' 1 "\$2" 0 2>/dev/null)"
+    fi
+    printf '%s|%s\n' "\$1" "\$(printf '%s' "\$out" | grep -o '"[^"]*"' | tr -d '"' | paste -sd '|' -)"
+}
+SH
+    for spec in "${SHORTCUT_TABLE[@]}"; do
+        IFS='|' read -r key code _ <<<"$spec"
+        printf 'ask %q %d\n' "$key" "$code"
+    done
+    cat <<SH
+printf 'meta=%s\n' "\$(runuser -l $TEST_USER -c 'kreadconfig6 --file kwinrc --group ModifierOnlyShortcuts --key Meta')"
+SH
+}
+
+# Read the action of each Windows shortcut in the test user's session, and copy the user's
+# kglobalshortcutsrc to the results.
+read_shortcuts() {
+    SHORTCUTS_OUT="$(vm_ssh "$(shortcut_probe)" 2>&1)" || true
+    vm_ssh cat "/home/$TEST_USER/.config/kglobalshortcutsrc" >"$RESULTS/kglobalshortcutsrc" 2>/dev/null || true
+    SHORTCUT_CLASHES="$(shortcut_clashes "$RESULTS/kglobalshortcutsrc" 2>/dev/null)" || true
+    TOOL_NAMES="$(vm_ssh "grep -m1 -h '^Name=' /usr/share/applications/org.kde.plasma-systemmonitor.desktop /usr/share/applications/org.kde.spectacle.desktop /usr/share/applications/org.kde.dolphin.desktop" 2>&1 | paste -sd ',' -)" || true
+}
+
+# Print each key that more than one action in a kglobalshortcutsrc file has as its active
+# shortcut, as "<key>: <group>/<action> <group>/<action>...", one line per key.
+#   shortcut_clashes <file>
+shortcut_clashes() {
+    awk '
+        /^\[/ { group = substr($0, 2, length($0) - 2); next }
+        /^_k_friendly_name=/ || !/=/ { next }
+        {
+            name = substr($0, 1, index($0, "=") - 1)
+            value = substr($0, index($0, "=") + 1)
+            active = substr(value, 1, index(value, ",") - 1)
+            n = split(active, keys, /\\t/)
+            for (i = 1; i <= n; i++) {
+                if (keys[i] == "" || keys[i] == "none") continue
+                count[keys[i]]++
+                owners[keys[i]] = owners[keys[i]] " " group "/" name
+            }
+        }
+        END { for (k in count) if (count[k] > 1) print k ":" owners[k] }
+    ' "$1"
+}
+
+# Press Win+E in the session over QMP and wait up to 20 s for Dolphin to start as the test user.
+press_win_e() {
+    local start
+    vm_ssh pgrep -u "$TEST_USER" -x dolphin >/dev/null 2>&1 && return 0
+    python3 -I - "$WORK/qmp.sock" <<'PY' || return 0
+import json, socket, sys
+
+sock = socket.socket(socket.AF_UNIX)
+sock.settimeout(60)
+sock.connect(sys.argv[1])
+f = sock.makefile("rw")
+
+
+def cmd(name, args=None):
+    msg = {"execute": name}
+    if args:
+        msg["arguments"] = args
+    f.write(json.dumps(msg) + "\n")
+    f.flush()
+    while True:
+        reply = json.loads(f.readline())
+        if "return" in reply or "error" in reply:
+            return reply
+
+
+f.readline()
+cmd("qmp_capabilities")
+cmd("send-key", {"keys": [{"type": "qcode", "data": "meta_l"}, {"type": "qcode", "data": "e"}]})
+PY
+    start=$SECONDS
+    while ((SECONDS - start < 20)); do
+        if vm_ssh pgrep -u "$TEST_USER" -x dolphin >/dev/null 2>&1; then
+            WIN_E_SECONDS=$((SECONDS - start))
+            vm_ssh pkill -u "$TEST_USER" -x dolphin >/dev/null 2>&1 || true
+            return 0
+        fi
+        sleep 2
+    done
 }
 
 # Copy the test user's Plasma layout to plasma-appletsrc in the results and read its panels:
@@ -450,7 +588,8 @@ PY
 }
 
 run_checks() {
-    local status="$1" colours="$2" cmdline btrfs after failed unit line versions taskbar shown="not reached"
+    local status="$1" colours="$2" cmdline btrfs after failed unit line versions rejected taskbar shown="not reached"
+    local wrong spec key component action names meta
     local no_ssh="SSH over vsock did not answer, so this could not be checked inside the VM"
     local ssh_hint="check that /dev/vhost-vsock exists on the host, and look for sshd or systemd-ssh-generator errors in serial.log"
 
@@ -626,6 +765,33 @@ run_checks() {
         fi
     fi
 
+    rejected="$(grep_log 'Loading of module with unavailable key is rejected' | head -n1)"
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Universal Blue's key is trusted: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$MOK_ENROL" -ne 1 ]]; then
+        # --no-mok: the key is not in the firmware, so the first boot must have queued it.
+        if [[ "$KEY_STATE" != "pending" ]]; then
+            fail "Universal Blue's key is not queued for enrolment (state: key=${KEY_STATE:-no output})"
+        elif [[ "$KEY_NEW" != *"ublue kernel"* || "$(grep -c '^\[key ' <<<"$KEY_NEW")" -ne 1 ]]; then
+            fail "mokutil --list-new does not show Universal Blue's key alone ($(grep -c '^\[key ' <<<"$KEY_NEW") keys)"
+        else
+            pass "Universal Blue's key is queued for enrolment (state: key=pending; mokutil --list-new shows only the ublue kernel key)"
+        fi
+    elif [[ "$KEY_TEST" != *"is already enrolled"* ]]; then
+        fail "Universal Blue's key is not enrolled (mokutil --test-key: ${KEY_TEST:-no output})"
+    elif [[ "$KEY_STATE" != "enrolled" ]]; then
+        fail "orielos-secure-boot-key.service did not record the key as enrolled (state: key=${KEY_STATE:-no output})"
+    elif [[ -n "$rejected" ]]; then
+        fail "The kernel rejected a module signed with an unknown key ($rejected)"
+    elif [[ "$V4L2_LOADED" != "loaded" ]]; then
+        fail "v4l2loopback, signed by Universal Blue, is not loaded (lsmod)"
+    elif [[ "$MODULES_LOAD" != "active" ]]; then
+        fail "systemd-modules-load.service is not active (${MODULES_LOAD:-no output})"
+    else
+        pass "Universal Blue's key is trusted (mokutil --test-key: enrolled; state: key=enrolled; v4l2loopback loaded; systemd-modules-load.service active)"
+    fi
+
     taskbar="panelspacer kickoff icontasks panelspacer systemtray digitalclock showdesktop"
     if [[ "$SSH_OK" -ne 1 ]]; then
         fail "The Windows-style taskbar is set up: $no_ssh"
@@ -646,6 +812,33 @@ run_checks() {
         fail "The Start button does not use the OrielOS logo (kickoff icon: ${TASKBAR_ICON:-none})"
     else
         pass "The Windows-style taskbar is set up (one panel at the bottom: $TASKBAR_ORDER; pinned: $TASKBAR_LAUNCHERS; Start icon: $TASKBAR_ICON)"
+    fi
+
+    wrong=""
+    for spec in "${SHORTCUT_TABLE[@]}"; do
+        IFS='|' read -r key _ component action <<<"$spec"
+        names="$(awk -F'|' -v k="$key" '$1 == k {sub(/^[^|]*\|/, ""); print; exit}' <<<"$SHORTCUTS_OUT")"
+        if [[ "|$names|" != *"|$action|"* || (-n "$component" && "|$names|" != *"|$component|"*) ]]; then
+            wrong="$wrong $key (${names:-nothing})"
+        fi
+    done
+    meta="$(sed -n 's/^meta=//p' <<<"$SHORTCUTS_OUT")"
+    if [[ -n "$meta" && "$meta" != *activateLauncherMenu* ]]; then wrong="$wrong Meta ($meta)"; fi
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Windows shortcuts are set: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ -z "$SESSION_SECONDS" ]]; then
+        fail "Windows shortcuts are set: $TEST_USER's Plasma session did not start"
+    elif [[ -n "$wrong" ]]; then
+        fail "Windows shortcuts are set: these shortcuts do not run the expected action:$wrong (see kglobalshortcutsrc in the results)"
+    elif [[ -n "$SHORTCUT_CLASHES" ]]; then
+        fail "Windows shortcuts are set, but more than one action has the same shortcut: $(paste -sd ';' - <<<"$SHORTCUT_CLASHES")"
+    elif [[ -z "$WIN_E_SECONDS" ]]; then
+        fail "Windows shortcuts are set, but pressing Win+E over QMP did not start Dolphin within 20 s"
+    elif [[ "$TOOL_NAMES" != "Name=Task Manager,Name=Snipping Tool,Name=Files" ]]; then
+        fail "System Monitor, Spectacle and Dolphin do not have their Windows names (${TOOL_NAMES:-no output})"
+    else
+        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Task Manager, Snipping Tool and Files)"
     fi
 
     info "Store and Firefox"
@@ -715,6 +908,10 @@ main() {
                 ;;
             --keep)
                 KEEP=1
+                shift
+                ;;
+            --no-mok)
+                MOK_ENROL=0
                 shift
                 ;;
             --help | -h)

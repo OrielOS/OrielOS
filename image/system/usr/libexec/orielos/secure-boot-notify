@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Tells the user about the one-time Secure Boot step. Reads the state that
+# orielos-secure-boot-key.service wrote this boot and, in the Plasma session, shows:
+#   - while Universal Blue's key is queued: how to confirm it on shim's blue screen at the next
+#     restart, with a "Restart now" button;
+#   - if the firmware lacks Microsoft's 2023 UEFI CA: that the firmware needs an update.
+# Each notification is shown once per state change; what was shown is remembered in
+# ~/.local/state/orielos/secure-boot-notified. Started by the XDG autostart entry
+# orielos-secure-boot-notify.desktop. Runs as the logged-in user.
+set -Eeuo pipefail
+
+STATE="/var/lib/orielos/secure-boot/state"
+SEEN_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/orielos"
+SEEN="$SEEN_DIR/secure-boot-notified"
+APP_NAME="OrielOS"
+
+# Print the value of a line in a key=value file: value_of <file> <key>
+value_of() {
+    if [[ -r "$1" ]]; then sed -n "s/^$2=//p" "$1" | head -n1; fi
+}
+
+# Remember that a notification was shown: remember <key> <value>
+remember() {
+    local tmp
+    mkdir -p "$SEEN_DIR"
+    tmp="$(mktemp "$SEEN_DIR/.secure-boot-notified.XXXXXX")"
+    if [[ -r "$SEEN" ]]; then grep -v "^$1=" "$SEEN" >"$tmp" || true; fi
+    printf '%s=%s\n' "$1" "$2" >>"$tmp"
+    mv -f "$tmp" "$SEEN"
+}
+
+notify_pending() {
+    local title body action
+    title="Finish setting up your graphics driver"
+    body="The next restart shows a blue screen. Press a key, choose Enroll MOK, then Continue, then Yes. Type the password orielos, then choose Reboot."
+    # --wait keeps the notification's button working until it is clicked or closed.
+    action="$(notify-send --app-name="$APP_NAME" --icon=preferences-system --urgency=critical \
+        --action=restart="Restart now" --wait "$title" "$body" || true)"
+    if [[ "$action" == "restart" ]]; then
+        systemctl reboot
+    fi
+}
+
+notify_ca_missing() {
+    local title body
+    title="Your PC needs a firmware update"
+    body="Update your PC's firmware (BIOS or UEFI) before OrielOS can keep starting with Secure Boot. Look for firmware updates on your PC or motherboard manufacturer's website."
+    notify-send --app-name="$APP_NAME" --icon=dialog-warning --urgency=critical "$title" "$body" || true
+}
+
+main() {
+    local key requested ca
+    # Plasma Setup's own session and other system accounts are not told anything.
+    if [[ "$(id -u)" -lt 1000 ]]; then return 0; fi
+    key="$(value_of "$STATE" key)"
+    requested="$(value_of "$STATE" requested)"
+    ca="$(value_of "$STATE" ca2023)"
+
+    if [[ "$ca" == "missing" && "$(value_of "$SEEN" ca2023)" != "missing" ]]; then
+        remember ca2023 missing
+        notify_ca_missing
+    elif [[ "$ca" == "present" ]]; then
+        remember ca2023 present
+    fi
+
+    # A new request after a skipped blue screen has a new time, so it is shown again.
+    if [[ "$key" == "pending" && "$(value_of "$SEEN" key)" != "pending:$requested" ]]; then
+        remember key "pending:$requested"
+        notify_pending
+    elif [[ -n "$key" && "$key" != "pending" ]]; then
+        remember key "$key"
+    fi
+}
+
+main "$@"

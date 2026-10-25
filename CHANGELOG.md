@@ -6,6 +6,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Windows keyboard shortcuts work out of the box, including Win+R for Run, Win+Tab for the task overview, Ctrl+Shift+Esc for Task Manager and Win+PrtSc to save a screenshot, and the system tools appear in Start as Task Manager, Snipping Tool and Files.
+- First boot queues Universal Blue's driver-signing key for enrolment and explains the one-time Secure Boot step; a warning appears if the firmware lacks Microsoft's 2023 UEFI CA.
 - A Windows 11-style taskbar for new users: Start button and pinned apps in the centre, system tray, clock and notifications at the right.
 - Discover appears as Store, with Flathub as its only source of apps. Firefox is installed from Flathub on first boot, retrying until it succeeds, and is the default web browser.
 - README describing what OrielOS is, its goals, how it will be built and its known limitations.

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Secure Boot set-up reminder
+Comment=Explains the one-time Secure Boot step for OrielOS's drivers
+Exec=/usr/libexec/orielos/secure-boot-notify
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2

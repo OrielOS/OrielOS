@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Checks that no build tools are installed, that the first boot will run Plasma Setup and install
-# Firefox (and enables the latter) and that new users get the taskbar, refreshes the icon cache,
+# Checks that no build tools are installed, that the first boot will run Plasma Setup, install
+# Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
+# users get the taskbar, refreshes the icon cache,
 # rebuilds the initramfs for the installed kernel, removes build
 # leftovers and lints the image.
 set -Eeuo pipefail
@@ -42,6 +43,33 @@ if [[ "$(systemctl is-enabled orielos-flatpak-setup.service 2>/dev/null)" != "en
 fi
 if [[ -e /var/lib/orielos/flatpak-setup.done ]]; then
     printf 'error: /var/lib/orielos/flatpak-setup.done exists, so Firefox would never be installed\n' >&2
+    exit 1
+fi
+
+# The Secure Boot key service queues Universal Blue's key on first boot, and the session tells the
+# user what to do; it is enabled here for the same reason. Its state must not be in the image.
+systemctl enable orielos-secure-boot-key.service
+secure_boot_errors=()
+if [[ "$(systemctl is-enabled orielos-secure-boot-key.service 2>/dev/null)" != "enabled" ]]; then
+    secure_boot_errors+=("orielos-secure-boot-key.service is not enabled")
+fi
+for f in /usr/libexec/orielos/secure-boot-key /usr/libexec/orielos/secure-boot-notify; do
+    [[ -x "$f" ]] || secure_boot_errors+=("$f is not executable")
+done
+if [[ ! -r /etc/pki/akmods/certs/akmods-ublue.der ]]; then
+    secure_boot_errors+=("Universal Blue's key, /etc/pki/akmods/certs/akmods-ublue.der, is missing")
+fi
+if [[ ! -r /etc/xdg/autostart/orielos-secure-boot-notify.desktop ]]; then
+    secure_boot_errors+=("the Secure Boot notification's autostart entry is missing")
+fi
+if ! command -v mokutil >/dev/null || ! command -v notify-send >/dev/null; then
+    secure_boot_errors+=("mokutil or notify-send is not installed")
+fi
+if [[ -e /var/lib/orielos/secure-boot ]]; then
+    secure_boot_errors+=("/var/lib/orielos/secure-boot exists in the image")
+fi
+if [[ "${#secure_boot_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${secure_boot_errors[@]}" >&2
     exit 1
 fi
 

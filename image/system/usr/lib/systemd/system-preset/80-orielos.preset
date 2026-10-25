@@ -11,3 +11,5 @@ disable flatpak-add-fedora-repos.service
 enable plasma-setup.service
 # Installs Firefox from Flathub on first boot, retrying until it succeeds.
 enable orielos-flatpak-setup.service
+# Queues Universal Blue's driver-signing key for Secure Boot, and checks the firmware's CA.
+enable orielos-secure-boot-key.service

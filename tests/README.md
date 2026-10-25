@@ -19,7 +19,7 @@ tests/boot-test.sh --keep --timeout 300
 
 Run `tests/boot-test.sh --help` for all the options. It needs the tools that `tools/check-env.sh` checks for, and runs as root (it uses `sudo` when needed). A run takes about ten minutes, most of it the installation and the two boots. `--timeout` applies to each boot.
 
-It prints PASS or FAIL for seventeen checks, under a "First boot", a "Second boot" and a "Store and Firefox" heading, and exits with status 0 only if all seventeen pass.
+It prints PASS or FAIL for eighteen checks, under a "First boot", a "Second boot" and a "Store and Firefox" heading, and exits with status 0 only if all eighteen pass.
 
 First boot:
 
@@ -40,14 +40,16 @@ Second boot, after finishing setup and restarting:
 12. The Bluetooth service is enabled: `systemctl is-enabled bluetooth.service` says `enabled`. The VM has no Bluetooth adapter, so the service is skipped by its condition; its state is printed as an INFO line.
 13. Server defaults are off: `systemctl is-enabled bootc-fetch-apply-updates.timer sshd.service` says `disabled` for both, and there is no `kexec`, `kdumpctl` or `makedumpfile` binary. Both results are printed as INFO lines too.
 14. Kernel modules are signed by Fedora or Universal Blue: `modinfo -F signer nvidia` prints `ublue kernel`; `rpm -q kernel` matches the kernel installed in the image (read with `rpm -q kernel-core` in the container, because the base image's `ostree.linux` label still names the base kernel); and the NVIDIA driver packages (the same set that the image build checks) have exactly one version between them. `rpm -q kernel` and the driver version are printed as INFO lines. The module is not loaded in a VM without an NVIDIA GPU; `modinfo` reads the file, which is what the check needs.
-15. The Windows-style taskbar is set up: after the scripted desktop login, `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, which Plasma wrote from OrielOS's layout script because the user is brand new, has exactly one panel (`plugin=org.kde.panel`), at the bottom (`location=4`). Its widgets, in the panel's `AppletOrder`, are a panel spacer, Kickoff, the icons-only task manager, a panel spacer, the system tray, the digital clock and show desktop; the task manager's `launchers` include `org.kde.dolphin.desktop`, `org.mozilla.firefox.desktop` and `org.kde.discover.desktop`; and Kickoff's `icon` is `orielos-start`, the OrielOS logo placeholder. The file is saved as `plasma-appletsrc` in the results. Look at `desktop.png` too: it should show the Start button and pinned apps in the centre of the taskbar, and the tray and clock at the right.
+15. Universal Blue's key is trusted: `mokutil --test-key /etc/pki/akmods/certs/akmods-ublue.der` says the key is already enrolled, `/var/lib/orielos/secure-boot/state` says `key=enrolled`, the kernel log has no `Loading of module with unavailable key is rejected` line, `lsmod` lists `v4l2loopback` (signed by Universal Blue and loaded at every boot) and `systemctl is-active systemd-modules-load.service` says `active`. The VM's firmware has the key in shim's MokList from the start (see [Universal Blue's key](#universal-blues-key)). With `--no-mok` the check expects the opposite: `key=pending`, and `mokutil --list-new` showing one key, `ublue kernel`.
+16. The Windows-style taskbar is set up: after the scripted desktop login, `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, which Plasma wrote from OrielOS's layout script because the user is brand new, has exactly one panel (`plugin=org.kde.panel`), at the bottom (`location=4`). Its widgets, in the panel's `AppletOrder`, are a panel spacer, Kickoff, the icons-only task manager, a panel spacer, the system tray, the digital clock and show desktop; the task manager's `launchers` include `org.kde.dolphin.desktop`, `org.mozilla.firefox.desktop` and `org.kde.discover.desktop`; and Kickoff's `icon` is `orielos-start`, the OrielOS logo placeholder. The file is saved as `plasma-appletsrc` in the results. Look at `desktop.png` too: it should show the Start button and pinned apps in the centre of the taskbar, and the tray and clock at the right.
+17. Windows shortcuts are set: in `orielostest`'s session, the test asks kglobalaccel over the user's D-Bus (`busctl --user -M orielostest@ call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel action i <key code>`, or `globalShortcutsByKey` if `action` gives nothing) which action each shortcut in [docs/keyboard-shortcuts.md](../docs/keyboard-shortcuts.md) runs, and expects the component and action listed in `SHORTCUT_TABLE` in the script, for example `kwin` `Overview` for Win+Tab and `org.kde.plasma-systemmonitor.desktop` `_launch` for Ctrl+Shift+Esc. `kreadconfig6 --file kwinrc --group ModifierOnlyShortcuts --key Meta`, run as the user, must be empty (Plasma's default, Start) or name Kickoff's `activateLauncherMenu`, and no shortcut may be the active one of two actions in the user's `~/.config/kglobalshortcutsrc`. The test then presses Win+E with QMP `send-key` and expects a `dolphin` process for the user within 20 s, and the menu entries of System Monitor, Spectacle and Dolphin must be named Task Manager, Snipping Tool and Files. The user's `~/.config/kglobalshortcutsrc` is saved as `kglobalshortcutsrc` in the results.
 
-Checks 3 to 15 read the second boot only: before restarting, the test notes how long the serial log is, and afterwards it reads from the new kernel's first line on. Any other unit that failed to start on the second boot is reported as a WARN and does not fail the test. The times from power-on to SDDM and to Plasma Setup's wizard, the time from the restart to SDDM, the time until SSH answered, the output of `systemctl is-system-running` and the list of failed units are printed as INFO lines too.
+Checks 3 to 17 read the second boot only: before restarting, the test notes how long the serial log is, and afterwards it reads from the new kernel's first line on. Any other unit that failed to start on the second boot is reported as a WARN and does not fail the test. The times from power-on to SDDM and to Plasma Setup's wizard, the time from the restart to SDDM, the time until SSH answered, the output of `systemctl is-system-running` and the list of failed units are printed as INFO lines too.
 
 Store and Firefox, after the second boot:
 
-16. Store is Discover with Flathub only: `flatpak remotes --system` lists only `flathub`, `/usr/share/applications/org.kde.discover.desktop` has `Name=Store`, and `/usr/lib64/qt6/plugins/discover/` holds only `flatpak-backend.so`, so Discover has no system-package, image or firmware backend.
-17. Firefox is installed on first boot: `/var/lib/orielos/flatpak-setup.done` exists (the test waits up to 10 minutes for it), `flatpak list --system --app --columns=application` contains `org.mozilla.firefox`, and `xdg-mime query default x-scheme-handler/https`, run as `orielostest` in a login shell, prints `org.mozilla.firefox.desktop`. The VM has user-mode networking with internet access through the host, so the download is real. It starts on the first boot, so the install is timed from the first power-on; the time and Firefox's version are printed as INFO lines. The test waits for it last, after the other checks, so the download runs alongside them. If the wait runs out, the last lines of the service's journal are printed.
+18. Store is Discover with Flathub only: `flatpak remotes --system` lists only `flathub`, `/usr/share/applications/org.kde.discover.desktop` has `Name=Store`, and `/usr/lib64/qt6/plugins/discover/` holds only `flatpak-backend.so`, so Discover has no system-package, image or firmware backend.
+19. Firefox is installed on first boot: `/var/lib/orielos/flatpak-setup.done` exists (the test waits up to 10 minutes for it), `flatpak list --system --app --columns=application` contains `org.mozilla.firefox`, and `xdg-mime query default x-scheme-handler/https`, run as `orielostest` in a login shell, prints `org.mozilla.firefox.desktop`. The VM has user-mode networking with internet access through the host, so the download is real. It starts on the first boot, so the install is timed from the first power-on; the time and Firefox's version are printed as INFO lines. The test waits for it last, after the other checks, so the download runs alongside them. If the wait runs out, the last lines of the service's journal are printed.
 
 ### Finishing setup
 
@@ -59,6 +61,10 @@ Plasma Setup's wizard has no scripting interface, so the test does over SSH what
 4. It writes the done marker, `/etc/plasma-setup-done`, with the same "Plasma Setup completed at" line.
 
 The wizard then logs out to the login screen; the test restarts the VM with `systemctl reboot` instead, which also proves that the marker survives a restart.
+
+### Universal Blue's key
+
+OrielOS's NVIDIA, xone, xpadneo, OpenRazer and v4l2loopback modules are signed by Universal Blue's key, which a new PC asks the user to confirm once on shim's blue screen (see [docs/secure-boot.md](../docs/secure-boot.md)). So that the VM tests boot like a PC where that is done, `lib/vm.sh` reads the key from the image (`podman run --rm <image> cat /etc/pki/akmods/certs/akmods-ublue.der`) and adds it to shim's MokList in the VM's copy of the firmware variables with `virt-fw-vars --add-mok`, from the `python3-virt-firmware` package. The boot test and the update test both get it. `tests/boot-test.sh --no-mok` leaves it out, and `secure-boot-key-test.sh` tests the user's steps.
 
 ### Console output
 
@@ -129,6 +135,21 @@ Results go to `tests/results/<run id>/`, or to the folder given with `--results`
 - `stage.txt`, `rollback.txt` and `stage-again.txt`: the output of those `orielos-update` commands.
 
 The work folder and `--keep` work as in the boot test.
+
+## Secure Boot key test
+
+`secure-boot-key-test.sh` tests enrolling Universal Blue's key the way a user does. It installs the image the way the boot test does and boots it with the stock Microsoft firmware variables, so shim's MokList is empty, like on a new PC:
+
+1. **First boot.** Over SSH it waits for `orielos-secure-boot-key.service`, then checks that `/var/lib/orielos/secure-boot/state` says `key=pending` and `ca2023=present`, that `mokutil --list-new` shows exactly one key, `CN=ublue kernel`, and that `v4l2loopback` is not loaded, because the kernel refuses it.
+2. **shim's MOK manager.** It restarts the VM over SSH. A QMP client waits for the guest's `RESET` event, then takes screendumps until more than half the screen is the firmware console's blue, and saves `mok-1.png`. It then presses the keys in `MOK_STEPS` with QMP `send-key`: a key to start MOK management, Down and Enter for **Enroll MOK**, Down and Enter for **Continue**, Down and Enter for **Yes**, the password `orielos` and Enter, and Enter for **Reboot**, with a screenshot after each step (`mok-2.png` to `mok-7.png`). shim waits only 10 seconds for the first key.
+3. **After the restart.** It checks that `mokutil --list-enrolled` contains `CN=ublue kernel` and `mokutil --test-key` says it is enrolled, that `mokutil --sb-state` says `SecureBoot enabled`, that the state file says `key=enrolled` and that `v4l2loopback` is loaded.
+
+```sh
+tests/secure-boot-key-test.sh
+tests/secure-boot-key-test.sh --archive FILE --keep
+```
+
+It needs the same tools as the boot test and runs as root. A run takes about eight minutes. Results go to `tests/results/secure-boot-<image tag>-<UTC time>/`: `summary.txt`, `install.log`, `serial.log`, the screenshots, `mok-steps.txt` (when the blue screen appeared, and how much of each screenshot is blue) and `queued.txt` and `enrolled.txt`, what the VM reported before and after.
 
 ## Shared VM code
 
