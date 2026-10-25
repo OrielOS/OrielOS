@@ -9,9 +9,16 @@ find_package(Plasma 6.0 REQUIRED)
 # The Start menu widget.
 add_subdirectory(startmenu)
 
-# OrielOS's look-and-feel package, which lays out OrielOS's taskbar for new users.
-install(DIRECTORY look-and-feel/org.orielos.desktop
+# OrielOS's look-and-feel packages, which lay out OrielOS's taskbar for new users: OrielOS, in light
+# colours, and OrielOS Dark, which has the same layout script.
+install(DIRECTORY look-and-feel/org.orielos.desktop look-and-feel/org.orielos.desktop.dark
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
+install(DIRECTORY look-and-feel/org.orielos.desktop/contents/layouts
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/org.orielos.desktop.dark/contents)
+
+# OrielOS's colour schemes, which the look-and-feel packages choose.
+install(FILES color-schemes/OrielOSLight.colors color-schemes/OrielOSDark.colors
+    DESTINATION ${KDE_INSTALL_DATADIR}/color-schemes)
 
 # Update scripts move existing users' desktops to the current layout. Plasma runs each one once
 # per user, in file-name order, so the Start menu replaces the old launcher before the taskbar is

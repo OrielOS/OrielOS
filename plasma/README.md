@@ -5,7 +5,8 @@ OrielOS's layer for KDE Plasma: the taskbar, Start menu, shortcuts and look.
 Contains:
 
 - `startmenu/`: the Start menu, OrielOS's own Plasma widget (see [The Start menu](#the-start-menu)).
-- `look-and-feel/org.orielos.desktop/`: OrielOS's look-and-feel package, which sets up OrielOS's taskbar for new users.
+- `look-and-feel/org.orielos.desktop/` and `look-and-feel/org.orielos.desktop.dark/`: OrielOS's look-and-feel packages, light and dark, which set up OrielOS's taskbar for new users.
+- `color-schemes/`: OrielOS's colour schemes, OrielOS Light and OrielOS Dark (see [Colour schemes](#colour-schemes)).
 - `updates/`: desktop update scripts, which move existing users' desktops to the current layout.
 
 Will contain:
@@ -14,17 +15,29 @@ Will contain:
 
 `CMakeLists.txt` installs them with OrielOS's apps; `tools/test-apps.sh` builds them, and the image build copies them in.
 
-## The look-and-feel package
+## The look-and-feel packages
 
-A Plasma 6 look-and-feel package (a "global theme"), installed to `/usr/share/plasma/look-and-feel/org.orielos.desktop`:
+Two Plasma 6 look-and-feel packages ("global themes"), installed to `/usr/share/plasma/look-and-feel/`:
 
-- `metadata.json`: its id, `org.orielos.desktop`, and name, OrielOS.
-- `contents/defaults`: the settings applied when a user picks the theme in System Settings. For now they are Breeze's: Breeze colours, Plasma theme, icons, cursors and window decorations, with the OrielOS wallpaper (see [Wallpapers](#wallpapers)).
-- `contents/layouts/org.kde.plasma.desktop-layout.js`: the layout script (below).
+- `org.orielos.desktop`, named OrielOS, and `org.orielos.desktop.dark`, named OrielOS Dark.
+- `contents/defaults`: the settings applied when a user picks the theme in System Settings: OrielOS Light or OrielOS Dark colours, Breeze's or Breeze Dark's icons, and Breeze's widget style, Plasma theme, cursors and window decorations, with the OrielOS wallpaper (see [Wallpapers](#wallpapers)), which shows Nightfall with the dark colours.
+- `contents/layouts/org.kde.plasma.desktop-layout.js`: the layout script (below), the same file in both; `CMakeLists.txt` installs the light package's copy into the dark one.
 
 The lock screen, logout screen and splash screen come from Breeze, which Plasma falls back to when a look-and-feel package doesn't have its own.
 
-`image/build/20-desktop.sh` makes it the default for every user with `LookAndFeelPackage=org.orielos.desktop` in the `[KDE]` group of `/etc/xdg/kdeglobals`. `/etc/xdg` comes before Fedora's `kde-settings` profile on `XDG_CONFIG_DIRS`, so this overrides Fedora's look-and-feel. `image/build/90-finalise.sh` fails the build if the setting, the package, the Start button's icon or the wallpapers are missing.
+`image/build/20-desktop.sh` makes OrielOS the default for every user with `LookAndFeelPackage=org.orielos.desktop` in the `[KDE]` group of `/etc/xdg/kdeglobals`, and makes the two packages Plasma's light and dark choices for the Day-Night Cycle (`DefaultLightLookAndFeel` and `DefaultDarkLookAndFeel`). `/etc/xdg` comes before Fedora's `kde-settings` profile on `XDG_CONFIG_DIRS`, so this overrides Fedora's look-and-feel. `image/build/90-finalise.sh` fails the build if the settings, the packages, the colour schemes, the Start button's icon or the wallpapers are missing.
+
+## Colour schemes
+
+`color-schemes/OrielOSLight.colors` and `OrielOSDark.colors` are KDE colour schemes, installed to `/usr/share/color-schemes/`. They have the structure of Breeze's light and dark schemes (LGPL-2.0-or-later, so they keep that licence and Breeze's authors) with OrielOS's palette from its brand guidelines:
+
+- **Light:** Ink text (`#121A2E`), Slate for secondary text (`#5B6478`), Mist (`#F4F6FB`) for windows and white for views, and Oriel Blue (`#3A66F0`) for focus, links and the selection, with white selected text.
+- **Dark:** near-white text on cool dark greys drawn from Night (`#1A1F2E` windows, `#121622` views), Pane (`#6D97FA`) for focus, Glass (`#9CC2FF`) for links, and the same Oriel Blue selection.
+- **Both:** Night (`#0C1530`) for the complementary areas, such as on-screen displays.
+
+All text is at least 4.5:1 against its background: Ink on Mist is 16:1, Slate on Mist 5.5:1, white on Oriel Blue and Oriel Blue links on white 4.8:1; in the dark scheme, text on windows is 14.5:1, secondary text 6.5:1 and Glass links on views 9.9:1.
+
+Plasma Setup's Dark Theme switch still applies Breeze or Breeze Dark; the first-run setup's own pages replace it.
 
 ## The layout script
 

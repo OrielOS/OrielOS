@@ -134,9 +134,17 @@ taskbar_errors=()
 if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage)" != "$lnf" ]]; then
     taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf the default look-and-feel")
 fi
-if [[ ! -f "/usr/share/plasma/look-and-feel/$lnf/contents/layouts/org.kde.plasma.desktop-layout.js" ]]; then
-    taskbar_errors+=("the $lnf look-and-feel package or its layout script is not installed")
+for package in "$lnf" "$lnf.dark"; do
+    if [[ ! -f "/usr/share/plasma/look-and-feel/$package/contents/layouts/org.kde.plasma.desktop-layout.js" ]]; then
+        taskbar_errors+=("the $package look-and-feel package or its layout script is not installed")
+    fi
+done
+if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultDarkLookAndFeel)" != "$lnf.dark" ]]; then
+    taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf.dark the dark look-and-feel")
 fi
+for scheme in OrielOSLight OrielOSDark; do
+    [[ -r "/usr/share/color-schemes/$scheme.colors" ]] || taskbar_errors+=("the $scheme colour scheme is not installed")
+done
 if [[ ! -f /usr/share/icons/hicolor/scalable/apps/orielos-start.svg ]]; then
     taskbar_errors+=("the Start button's icon, orielos-start.svg, is not installed")
 fi

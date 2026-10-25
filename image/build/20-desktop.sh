@@ -36,6 +36,9 @@ systemctl set-default graphical.target
 # kde-settings profile on XDG_CONFIG_DIRS, so this overrides Fedora's look-and-feel.
 # 90-finalise.sh checks that the package is installed.
 kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage org.orielos.desktop
+# Plasma's Day-Night Cycle switches between these two when it's turned on.
+kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultLightLookAndFeel org.orielos.desktop
+kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultDarkLookAndFeel org.orielos.desktop.dark
 
 # 90-finalise.sh rebuilds the initramfs with the theme in it.
 plymouth-set-default-theme bgrt
