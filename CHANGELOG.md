@@ -6,6 +6,11 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Updates now arrive by themselves.
+  - OrielOS checks for a new version a while after start-up and then about every six hours, downloads it in the background and prepares it for the next restart. It never restarts on its own.
+  - When a version is ready, a notification and the OrielOS updates icon in the system tray offer "Restart to update" and "Later".
+  - The tray icon's menu checks for updates, pauses them for one to five weeks or resumes them, and switches between the Stable and Testing channels. Changing channel needs an administrator.
+  - Updates are skipped on metered connections, and a version you went back from isn't offered again.
 - OrielOS's own Start menu replaces Plasma's launcher on the taskbar.
   - Search at the top lists apps, settings, files and Store results as you type, but opens nothing until you press Enter or click.
   - Below it are your pinned apps, an All apps list, and recommendations: recently added apps and recently opened files.

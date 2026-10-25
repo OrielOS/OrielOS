@@ -7,7 +7,6 @@ Will contain:
 - Settings.
 - Game Settings.
 - Run this app, which runs Windows `.exe` and `.msi` programs through Proton.
-- The update service and notifier.
 
 ## Layout
 
@@ -20,6 +19,11 @@ buildcheck/           orielos-buildcheck, the placeholder app
   main.cpp            start-up, translations and --self-test
   systeminfo.h/.cpp   the SystemInfo QML singleton
   qml/Main.qml        the window
+updatenotifier/       orielos-update-notifier, the update tray icon
+  main.cpp            start-up, translations, --state and --boot-id-file
+  updatestate.h/.cpp  the update state and its rules (static library OrielOSUpdateState)
+  updatenotifier.h/.cpp  the tray icon, its menu, the notification and restarting
+  autotests/          Qt Test unit tests for the update state
 ```
 
 Each app is a QML module (`qt_add_qml_module`) with the URI `org.orielos.<app>`. Unit tests go in an `autotests/` folder next to the code they test and are added with `ecm_add_test`. C++ follows the repository's `.clang-format`, and every source file starts with the `SPDX-FileCopyrightText` and `SPDX-License-Identifier` lines.
@@ -43,6 +47,17 @@ cmake -S . -B build -G Ninja -DBUILD_TESTING=ON
 cmake --build build
 QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 ```
+
+## The update notifier
+
+`orielos-update-notifier` tells the user about OrielOS updates. The autostart entry `org.orielos.UpdateNotifier.desktop`, installed to `/etc/xdg/autostart`, starts it in every Plasma session; `KDBusService` keeps it to one per session.
+
+- **What it reads.** It follows `/var/lib/orielos/update/state.json`, which `orielos-update` writes (see `image/README.md`). It watches the file and its folder, and also rereads them every five minutes. The file describes one boot, so the notifier trusts it only when its `bootId` matches `/proc/sys/kernel/random/boot_id`.
+- **The tray icon** (`KStatusNotifierItem`, "OrielOS updates") stays in the tray's hidden area until a build is staged for the next restart, then turns Active. Its tooltip says what the last check found, or until when updates are paused.
+- **The notification.** It shows the KNotification event `updateReady`, from `orielos-update-notifier.notifyrc`, once per staged build per session, with "Restart to update" and "Later".
+- **Restarting.** "Restart to update" calls `org.kde.Shutdown.logoutAndReboot`, so Plasma signs out cleanly before restarting.
+- **The menu.** It checks for updates, pauses for 1 to 5 weeks, resumes, and switches between the stable and testing channels by running `pkexec /usr/bin/orielos-update ...`. polkit allows the first three without a password and asks for an administrator to change channel. A failure other than a cancelled password prompt shows the `settingsFailed` event.
+- **Testing.** `--state FILE` and `--boot-id-file FILE` point it at other files. `autotests/updatestatetest.cpp` covers reading the state, when an update counts as waiting, pauses, the pause choices, the channels and the tooltip texts.
 
 ## The placeholder app
 
