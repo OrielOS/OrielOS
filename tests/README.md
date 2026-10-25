@@ -8,7 +8,7 @@ Automated and manual checks for the image.
 
 1. **First boot.** The disk has no user account, so Plasma Setup, KDE's first-boot wizard, should start. The test checks that it did, takes `first-boot.png`, then finishes setup over SSH the way the wizard does (see [Finishing setup](#finishing-setup)) and restarts the VM.
 2. **Second boot.** Plasma Setup must not run again, and SDDM shows the login screen. The test checks the services, starts OrielOS's apps and logs the user that setup created in to the Plasma desktop.
-3. **Third boot.** Last, the test drives OrielOS's Start menu with the keyboard and pins an app, then restarts the VM once more to check that the pin is kept (see [Start menu](#start-menu)).
+3. **Third boot.** Last, the test drives OrielOS's Start menu with the keyboard and pins an app, then restarts the VM once more to check that the pin is kept, takes screenshots of the rest of the menu and unpins the app (see [Start menu](#start-menu)).
 
 The installation is left to the image's own install configuration, so the test also proves that the root filesystem is Btrfs with zstd compression.
 
@@ -20,7 +20,7 @@ tests/boot-test.sh --keep --timeout 300
 
 Run `tests/boot-test.sh --help` for all the options. It needs the tools that `tools/check-env.sh` checks for, and runs as root (it uses `sudo` when needed). A run takes about ten minutes, most of it the installation and the two boots. `--timeout` applies to each boot.
 
-It prints PASS or FAIL for twenty-nine checks, under a "First boot", a "Second boot", a "Store and Firefox", a "Start menu" and an "Anti-cheat boot mode" heading, and exits with status 0 only if all twenty-nine pass.
+It prints PASS or FAIL for thirty checks, under a "First boot", a "Second boot", a "Store and Firefox", a "Start menu" and an "Anti-cheat boot mode" heading, and exits with status 0 only if all thirty pass.
 
 First boot:
 
@@ -63,10 +63,11 @@ Start menu, after every other second-boot check, because it restarts the VM (see
 26. Start menu: Enter opens the first result: Enter then starts `dolphin` for `orielostest` within 20 seconds.
 27. Start menu: pinning saves the app: after Win, `a`, `r`, `k`, the Menu key and Enter, the `favorites` key in the Start menu's `[Containments][N][Applets][M][Configuration][General]` group of `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc` contains `org.kde.ark.desktop` within 30 seconds. The file is saved as `start-appletsrc`, and the open context menu as `start-pin-menu.png`. The test presses QEMU's `compose` key, which is a PC keyboard's Menu key.
 28. Start menu: pins survive a restart: after restarting the VM and SDDM's autologin, the same key still contains `org.kde.ark.desktop`. The file is saved as `start-appletsrc-restart`, and the open menu as `start-pinned.png`, which should show Ark among the pinned apps.
+29. Start menu: unpinning removes the app: after Win, `a`, `r`, `k`, the Menu key and Enter on the pinned Ark, the same key no longer contains `org.kde.ark.desktop` within 30 seconds. The file is saved as `start-appletsrc-unpinned`, and the open context menu, with "Unpin from Start" highlighted, as `start-unpin-menu.png`.
 
 Anti-cheat boot mode, on the second boot (see `image/README.md`):
 
-29. The boot is anti-cheat ready: `/proc/cmdline` contains `lockdown=integrity`, `intel_iommu=on` and `iommu.passthrough=0`; `/sys/kernel/security/lockdown` shows `[integrity]`; `/proc/sys/kernel/kexec_load_disabled` is `1`; `/sys/kernel/security/lsm` includes `bpf`; logind's `CanHibernate` (`busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate`) is not `yes`; and every module in `/proc/modules` has a `modinfo -F signer` value listed in `image/module-signers.txt`, which the test reads on the host. The lockdown state, the active LSMs and the number of loaded modules checked are printed as INFO lines, and a failure names the unsigned or unexpected modules. The VM has no virtual IOMMU, so `intel_iommu=on` finds no DMAR table there, which is harmless; the check reads the argument, not the hardware.
+30. The boot is anti-cheat ready: `/proc/cmdline` contains `lockdown=integrity`, `intel_iommu=on` and `iommu.passthrough=0`; `/sys/kernel/security/lockdown` shows `[integrity]`; `/proc/sys/kernel/kexec_load_disabled` is `1`; `/sys/kernel/security/lsm` includes `bpf`; logind's `CanHibernate` (`busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate`) is not `yes`; and every module in `/proc/modules` has a `modinfo -F signer` value listed in `image/module-signers.txt`, which the test reads on the host. The lockdown state, the active LSMs and the number of loaded modules checked are printed as INFO lines, and a failure names the unsigned or unexpected modules. The VM has no virtual IOMMU, so `intel_iommu=on` finds no DMAR table there, which is harmless; the check reads the argument, not the hardware.
 
 ### Finishing setup
 
@@ -103,10 +104,14 @@ Restarting SDDM stops it on purpose, so check 7 reads the console only up to the
 After the other checks on the second boot, the test uses OrielOS's Start menu the way a person would, with keys sent over QMP `send-key`:
 
 1. It stops the `dolphin` that Win+E started (`pkill -u orielostest -x dolphin`) and waits for it to go.
-2. It presses Win alone, waits 2 seconds, types `f`, `i`, `l` about 0.3 seconds apart, waits 3 seconds and takes `start-search.png`. For check 22, no `dolphin` may start in the next 5 seconds: typing only lists results.
-3. It presses Enter, which runs the first result, Files, and waits up to 20 seconds for `dolphin` (check 23), then stops it again.
-4. It opens the menu again and types `ark`. Ark is not pinned by default. The Menu key opens the result's context menu with "Pin to Start" highlighted, so Enter pins it, and Escape closes the menu. Plasma saves widget settings a few seconds after they change, so the test reads the layout file for up to 30 seconds (check 24).
-5. It restarts the VM. The autologin written for the desktop login stays in `/etc/sddm.conf.d`, so SDDM logs `orielostest` straight back in; the test waits up to `--timeout` seconds for the session, reads the layout file again (check 25), opens the menu and takes `start-pinned.png`.
+2. It presses Win alone, waits 2 seconds, types `f`, `i`, `l` about 0.3 seconds apart, waits 3 seconds and takes `start-search.png`. For check 25, no `dolphin` may start in the next 5 seconds: typing only lists results.
+3. It presses Enter, which runs the first result, Files, and waits up to 20 seconds for `dolphin` (check 26), then stops it again.
+4. It opens the menu again and types `ark`. Ark is not pinned by default. The Menu key opens the result's context menu with "Pin to Start" highlighted, so Enter pins it, and Escape closes the menu. Plasma saves widget settings a few seconds after they change, so the test reads the layout file for up to 30 seconds (check 27).
+5. It restarts the VM. The autologin written for the desktop login stays in `/etc/sddm.conf.d`, so SDDM logs `orielostest` straight back in; the test waits up to `--timeout` seconds for the session, reads the layout file again (check 28), opens the menu and takes `start-pinned.png`.
+6. It writes `~/Documents/orielos-notes.txt` and tells the session's activity manager that an editor opened and closed it (`RegisterResourceEvent` on `org.kde.ActivityManager.Resources`, events 1 and 3), as KDE apps do. It opens the menu and takes `start-recommended.png`, which should list the file and Firefox, which the first boot installed, as recently added.
+7. It presses Tab six times, taking `start-tab-1.png` to `start-tab-6.png`: the focus should go from the search field to All apps, the pinned apps, Recommended, the account button and the power button, then back to the search field.
+8. It opens the menu, presses Shift+Tab, which goes round to the power button, and Enter, and takes `start-power-menu.png`, which should offer Sleep, Restart and Shut down and no hibernation. Two Shift+Tabs and Enter give `start-account-menu.png`, with Account settings, Lock, Switch user and Sign out.
+9. It types `ark` again. Ark is pinned now, so the Menu key offers "Unpin from Start" first, and Enter unpins it (check 29).
 
 If a step cannot be done, because the VM stopped, SSH did not answer or the session did not start, the remaining Start menu checks fail with the reason. The other checks keep reading the second boot: the test puts back its SSH state and its part of the serial log after the restart.
 
@@ -132,6 +137,7 @@ Results go to `tests/results/<run id>/` (ignored by git), or to the folder given
 - `start-search.png`: the Start menu listing the results for "fil".
 - `start-appletsrc` and `start-appletsrc-restart`: the test user's Plasma layout after pinning Ark, and again after the last restart.
 - `start-pinned.png`: the Start menu after the last restart, with Ark pinned.
+- `start-recommended.png`, `start-tab-1.png` to `start-tab-6.png`, `start-power-menu.png`, `start-account-menu.png` and `start-unpin-menu.png`: Recommended, the Tab order, the two menus and unpinning, for reading by eye. `start-appletsrc-unpinned` is the layout after unpinning.
 - `summary.txt`: the same lines as the test printed.
 
 The disk, the SSH key and the VM's other files live in `/var/lib/orielos/vm/<run id>` while the test runs and are deleted afterwards. With `--keep` they stay, and the test prints how to boot the disk again (setup is finished on it, so it starts at the login screen), with the same vsock device and key so SSH keeps working.

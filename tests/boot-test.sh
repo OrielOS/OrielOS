@@ -11,7 +11,9 @@
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
 # Last, it drives the Start menu with the keyboard over QMP (searching runs nothing, Enter opens
-# the first result, Menu then Enter pins an app), restarts the VM and checks the pin is kept.
+# the first result, Menu then Enter pins an app), restarts the VM and checks the pin is kept, then
+# opens a recent file, takes screenshots of Recommended, each Tab stop and the account and power
+# menus, and unpins the app again.
 # The VM's firmware has Universal Blue's driver-signing key enrolled, and the test checks that the
 # kernel trusts it. It also checks that the second boot is in the mode anti-cheat needs: kernel
 # lockdown, the IOMMU on, kexec disabled, the BPF LSM, no hibernation and only allowed module
@@ -126,6 +128,11 @@ START_PINNED=""
 START_FAVORITES=""
 START_KEPT=""
 START_KEPT_FAVORITES=""
+# After the restart: whether a recently opened file was registered for Recommended, and whether
+# unpinning Ark removed it from the pinned apps.
+START_RECENT=""
+START_UNPINNED=""
+START_UNPIN_FAVORITES=""
 BT_ENABLED=""
 BT_ACTIVE=""
 SERVER_UNITS=""
@@ -703,6 +710,67 @@ start_menu_restart() {
     fi
     if [[ "$START_KEPT_FAVORITES" == *org.kde.ark.desktop* ]]; then START_KEPT="yes"; fi
     vm_qmp keys:meta_l wait:3 "shot:$RESULTS/start-pinned.png" keys:esc || true
+    start_menu_more_checks
+}
+
+# A script for the VM that writes a text file in the test user's Documents and tells the session's
+# activity manager it was opened and closed, as an editor would, so the Start menu's Recommended
+# list has a recent file. Prints "recent=yes" when the activity manager took both events.
+start_recent_script() {
+    local file="/home/$TEST_USER/Documents/orielos-notes.txt"
+    cat <<SH
+runuser -u $TEST_USER -- sh -c 'mkdir -p /home/$TEST_USER/Documents && echo Notes >$file'
+bus() { busctl --user -M $TEST_USER@ "\$@" 2>/dev/null; }
+# RegisterResourceEvent(application, window id, URI, event): 1 is Opened, 3 is Closed.
+if bus call org.kde.ActivityManager /ActivityManager/Resources org.kde.ActivityManager.Resources \
+    RegisterResourceEvent susu org.kde.kwrite 0 "file://$file" 1 >/dev/null &&
+    bus call org.kde.ActivityManager /ActivityManager/Resources org.kde.ActivityManager.Resources \
+        RegisterResourceEvent susu org.kde.kwrite 0 "file://$file" 3 >/dev/null; then
+    echo recent=yes
+else
+    echo recent=no
+fi
+SH
+}
+
+# Wait up to 30 s for Ark to leave the Start menu's pinned apps, keeping the last reading in
+# START_UNPIN_FAVORITES and start-appletsrc-unpinned. Returns 1 if it stays.
+wait_for_ark_unpinned() {
+    local start=$SECONDS
+    while true; do
+        START_UNPIN_FAVORITES="$(read_start_favorites start-appletsrc-unpinned)" || START_UNPIN_FAVORITES=""
+        [[ -n "$START_UNPIN_FAVORITES" && "$START_UNPIN_FAVORITES" != *org.kde.ark.desktop* ]] && return 0
+        ((SECONDS - start < 30)) && vm_running || return 1
+        sleep 3
+    done
+}
+
+# The rest of the Start menu, after the restart: Recommended with a recent file (Firefox, installed
+# on the first boot, is recently added too), every stop in the Tab order, the account and power
+# menus, and unpinning Ark. The screenshots are for reading by eye; unpinning is checked in the
+# saved settings.
+start_menu_more_checks() {
+    local out i
+    out="$(vm_ssh "$(start_recent_script)" 2>/dev/null)" || true
+    START_RECENT="$(sed -n 's/^recent=//p' <<<"$out")"
+    vm_qmp keys:meta_l wait:3 "shot:$RESULTS/start-recommended.png" || true
+    # Tab from the search field visits All apps, the pinned apps, Recommended, the account and the
+    # power button, then comes back to the search field.
+    for i in 1 2 3 4 5 6; do
+        vm_qmp keys:tab wait:1 "shot:$RESULTS/start-tab-$i.png" || true
+    done
+    # Shift+Tab from the search field goes round to the power button; Enter opens its menu.
+    vm_qmp keys:esc wait:2 keys:meta_l wait:3 keys:shift+tab wait:1 keys:ret wait:2 \
+        "shot:$RESULTS/start-power-menu.png" keys:esc wait:1 keys:esc wait:2 || true
+    vm_qmp keys:meta_l wait:3 keys:shift+tab wait:1 keys:shift+tab wait:1 keys:ret wait:2 \
+        "shot:$RESULTS/start-account-menu.png" keys:esc wait:1 keys:esc wait:2 || true
+    # Ark is pinned, so the Menu key offers "Unpin from Start" first.
+    START_UNPINNED="no"
+    if vm_qmp keys:meta_l wait:2 keys:a wait:0.3 keys:r wait:0.3 keys:k wait:3 \
+        keys:compose wait:1 "shot:$RESULTS/start-unpin-menu.png" keys:ret wait:2 keys:esc wait:5 &&
+        wait_for_ark_unpinned; then
+        START_UNPINNED="yes"
+    fi
 }
 
 # Copy the test user's Plasma layout to plasma-appletsrc in the results and read its panels:
@@ -1245,6 +1313,17 @@ run_checks() {
         fail "Start menu: pins do not survive a restart (${START_WHY:-favorites after the restart: ${START_KEPT_FAVORITES:-none}}; see start-appletsrc-restart)"
     else
         pass "Start menu: pins survive a restart (favorites after the restart: $START_KEPT_FAVORITES; see start-pinned.png)"
+    fi
+
+    if [[ -z "$START_UNPINNED" ]]; then
+        fail "Start menu: unpinning removes the app: $skipped"
+    elif [[ "$START_UNPINNED" != "yes" ]]; then
+        fail "Start menu: Menu then Enter on the pinned Ark did not remove it within 30 s (favorites: ${START_UNPIN_FAVORITES:-none}; see start-unpin-menu.png, start-appletsrc-unpinned)"
+    else
+        pass "Start menu: unpinning removes the app (favorites: $START_UNPIN_FAVORITES; see start-unpin-menu.png)"
+    fi
+    if [[ -n "$START_UNPINNED" ]]; then
+        info "Start menu, to read by eye: start-recommended.png (Firefox recently added, orielos-notes.txt opened; registered: ${START_RECENT:-no}), start-tab-1.png to start-tab-6.png (the Tab order), start-power-menu.png and start-account-menu.png"
     fi
 
     info "Anti-cheat boot mode"
