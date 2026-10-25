@@ -3,7 +3,11 @@
 # boots it headless under QEMU/KVM with Secure Boot and a software TPM, finishes setup and
 # creates user data over SSH through a vsock device, then stages the new build from an OCI
 # archive with orielos-update, restarts into it, rolls back, restarts into the old build again
-# and checks that the rolled-back build is refused. Prints PASS/FAIL per check.
+# and checks that the rolled-back build is refused. Then it tests the background update service:
+# it offers the new build as the testing channel of a local update source, checks that the stable
+# channel and a pause stage nothing and that the rolled-back build is skipped, logs the user in,
+# lets orielos-update-check.service stage the build, checks the notifier's tray icon, chooses
+# "Restart to update" in its menu and checks the new build runs. Prints PASS/FAIL per check.
 #
 # Usage: tests/update-test.sh --old IMAGE_OR_ARCHIVE --new ARCHIVE [--timeout SECONDS]
 #                             [--memory MIB] [--cpus N] [--results DIR] [--keep] [--help]
@@ -48,9 +52,11 @@ STATUS_JSON=""
 BOOTED_DIGEST=""
 BOOTED_VERSION=""
 STAGED_DIGEST=""
+# The local update source the service steps use: an OCI directory with one tag per channel.
+SERVICE_SOURCE="/var/lib/orielos/test-source"
 
 usage() {
-    sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 # Print the manifest digest and the version label of the build in an OCI archive, without
@@ -272,6 +278,191 @@ step_rollback() {
     check_keepme "after the rollback"
 }
 
+# Run orielos-update in the VM and print its state file's result: service_run <arguments...>
+# Prints "rc=<exit status>" and "result=<state.json's result>" lines.
+service_run() {
+    local rc=0 out
+    out="$(SSH_TIMEOUT=1800 vm_ssh orielos-update "$@" 2>&1)" || rc=$?
+    printf '%s\n' "$out" >>"$RESULTS/service.txt"
+    printf 'rc=%s\n' "$rc"
+    printf 'result=%s\n' "$(vm_ssh jq -r .result /var/lib/orielos/update/state.json 2>/dev/null)"
+}
+
+# Read one key from service_run's output: service_value <output> <key>
+service_value() {
+    sed -n "s/^$2=//p" <<<"$1" | head -n1
+}
+
+step_service_source() {
+    local out
+    info "Step 8: offer the new build as the testing channel of a local update source"
+    # An OCI directory with one tag per channel stands in for the registry, so the test needs no
+    # network. Only testing has a build; stable has none.
+    if ! out="$(SSH_TIMEOUT=1800 vm_ssh "set -e
+        skopeo copy --quiet oci-archive:$REMOTE_ARCHIVE oci:$SERVICE_SOURCE:testing
+        mkdir -p /etc/orielos
+        printf 'source=oci:%s\n' $SERVICE_SOURCE >/etc/orielos/update.conf" 2>&1)"; then
+        fail "The local update source was not set up: ${out:-no output}"
+        return 1
+    fi
+    out="$(service_run check)"
+    read_status service-stable
+    if [[ "$(service_value "$out" rc)" == 0 && "$(service_value "$out" result)" == unreachable && -z "$STAGED_DIGEST" ]]; then
+        pass "A check on the stable channel, which has no build, stages nothing (result unreachable)"
+    else
+        fail "A check on the empty stable channel gave exit $(service_value "$out" rc), result $(service_value "$out" result), staged ${STAGED_DIGEST:-none}"
+        return 1
+    fi
+}
+
+step_service_channel() {
+    local out
+    info "Step 9: switch to the testing channel, then pause and resume"
+    out="$(service_run channel testing)"
+    [[ "$(service_value "$out" rc)" == 0 ]] || {
+        fail "orielos-update channel testing exited with $(service_value "$out" rc)"
+        return 1
+    }
+    out="$(service_run check)"
+    read_status service-rejected
+    if [[ "$(service_value "$out" result)" == rejected && -z "$STAGED_DIGEST" ]]; then
+        pass "On the testing channel, the check skips the build that was rolled back (result rejected)"
+    else
+        fail "The check on the testing channel gave result $(service_value "$out" result), staged ${STAGED_DIGEST:-none}, not rejected"
+    fi
+    vm_ssh orielos-update forget "$NEW_DIGEST" >>"$RESULTS/service.txt" 2>&1 || true
+    service_run pause 1 >/dev/null
+    out="$(service_run check)"
+    read_status service-paused
+    if [[ "$(service_value "$out" result)" == paused && -z "$STAGED_DIGEST" ]]; then
+        pass "While updates are paused, the check stages nothing (result paused)"
+    else
+        fail "The check while paused gave result $(service_value "$out" result), staged ${STAGED_DIGEST:-none}"
+    fi
+    out="$(service_run resume)"
+    [[ "$(service_value "$out" rc)" == 0 ]] || {
+        fail "orielos-update resume exited with $(service_value "$out" rc)"
+        return 1
+    }
+}
+
+# A script for the VM that reads the update notifier's tray icon as the test user over the
+# session bus: prints "notifier=<pid>", "item=<bus name>", "status=<Status property>", and for
+# notifier_script restart also clicks its "Restart to update" menu item the way the tray does.
+notifier_script() {
+    cat <<SH
+mode="${1:-read}"
+uid="\$(id -u $TEST_USER)"
+as_user() { runuser -u $TEST_USER -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/\$uid/bus" "\$@"; }
+pid="\$(pgrep -u $TEST_USER -x orielos-update-notifier | head -n1)"
+echo "notifier=\$pid"
+[ -n "\$pid" ] || exit 0
+item="\$(as_user gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+    --method org.freedesktop.DBus.ListNames | grep -o "org.kde.StatusNotifierItem-\$pid-[0-9]*" | head -n1)"
+echo "item=\$item"
+[ -n "\$item" ] || exit 0
+echo "status=\$(as_user gdbus call --session --dest "\$item" --object-path /StatusNotifierItem \
+    --method org.freedesktop.DBus.Properties.Get org.kde.StatusNotifierItem Status)"
+if [ "\$mode" = restart ]; then
+    layout="\$(as_user gdbus call --session --dest "\$item" --object-path /MenuBar --method com.canonical.dbusmenu.GetLayout 0 -1 '[]')"
+    id="\$(printf '%s' "\$layout" | grep -o "([0-9]*, {[^}]*'label': <'Restart to update'>" | head -n1 | grep -o '^([0-9]*' | tr -d '(')"
+    echo "restart_item=\$id"
+    [ -n "\$id" ] && as_user gdbus call --session --dest "\$item" --object-path /MenuBar \
+        --method com.canonical.dbusmenu.Event "\$id" clicked '<0>' 0 >/dev/null && echo clicked=yes
+fi
+SH
+}
+
+step_service_notify() {
+    local out start rc
+    info "Step 10: log in to the desktop, let the check service stage the build and see the notifier"
+    if ! out="$(vm_ssh "set -e
+        mkdir -p /etc/sddm.conf.d
+        printf '[Autologin]\nUser=%s\nSession=plasma.desktop\n' $TEST_USER >/etc/sddm.conf.d/99-update-test-autologin.conf
+        systemctl restart sddm" 2>&1)"; then
+        fail "Could not log $TEST_USER in to the desktop: ${out:-no output}"
+        return 1
+    fi
+    start=$SECONDS
+    while ((SECONDS - start < 120)); do
+        out="$(vm_ssh "$(notifier_script)" 2>/dev/null)" || true
+        [[ -n "$(service_value "$out" item)" ]] && break
+        sleep 3
+    done
+    if [[ -z "$(service_value "$out" item)" ]]; then
+        fail "The update notifier did not start in $TEST_USER's session within 120 s (${out//$'\n'/; })"
+        return 1
+    fi
+    pass "The update notifier runs in $TEST_USER's session with a tray icon ($(service_value "$out" item))"
+
+    # The real unit, as the timer starts it.
+    rc=0
+    SSH_TIMEOUT=1800 vm_ssh systemctl start orielos-update-check.service >>"$RESULTS/service.txt" 2>&1 || rc=$?
+    read_status service-staged
+    if [[ "$rc" -eq 0 && "$STAGED_DIGEST" == "$NEW_DIGEST" ]]; then
+        pass "orielos-update-check.service stages the testing channel's build ($NEW_VERSION)"
+    else
+        fail "orielos-update-check.service exited with $rc and staged ${STAGED_DIGEST:-nothing}, not $NEW_DIGEST"
+        return 1
+    fi
+    vm_ssh cat /var/lib/orielos/update/state.json >"$RESULTS/state-staged.json" 2>/dev/null || true
+
+    sleep 10
+    vm_qmp "shot:$RESULTS/update-ready.png" || true
+    out="$(vm_ssh "$(notifier_script)" 2>/dev/null)" || true
+    if [[ "$(service_value "$out" status)" == *Active* ]]; then
+        pass "The notifier's tray icon asks for attention once the update is staged (see update-ready.png)"
+    else
+        fail "The notifier's tray icon status is $(service_value "$out" status), not Active (see update-ready.png)"
+    fi
+}
+
+# Wait for the VM to come back as a new boot after something inside it restarted it. Returns 1 if
+# it doesn't within the timeout.
+wait_for_new_boot() {
+    local before="$BOOT_ID" start=$SECONDS now=""
+    while ((SECONDS - start < 300)); do
+        now="$(vm_ssh cat /proc/sys/kernel/random/boot_id 2>/dev/null)" || true
+        [[ -z "$now" || "$now" == "$before" ]] || break
+        sleep 3
+    done
+    BOOT_START=$SECONDS
+    wait_for_ssh || return 1
+    now="$(vm_ssh cat /proc/sys/kernel/random/boot_id 2>/dev/null)" || true
+    [[ -n "$now" && "$now" != "$before" ]] || return 1
+    BOOT_ID="$now"
+}
+
+step_service_restart() {
+    local out state state_boot state_summary
+    info "Step 11: choose Restart to update in the notifier"
+    out="$(vm_ssh "$(notifier_script restart)" 2>&1)" || true
+    if [[ "$(service_value "$out" clicked)" != yes ]]; then
+        fail "Could not choose Restart to update in the notifier's menu (${out//$'\n'/; })"
+        return 1
+    fi
+    if ! wait_for_new_boot; then
+        fail "Restart to update did not restart the VM within 300 s"
+        return 1
+    fi
+    read_status service-updated
+    if [[ "$BOOTED_DIGEST" == "$NEW_DIGEST" ]]; then
+        pass "Restart to update restarts into the new build ($NEW_VERSION)"
+    else
+        fail "After Restart to update, the VM runs ${BOOTED_VERSION:-unknown} (${BOOTED_DIGEST:-no digest}), not $NEW_VERSION"
+    fi
+    state="$(vm_ssh cat /var/lib/orielos/update/state.json 2>/dev/null)" || true
+    printf '%s\n' "$state" >"$RESULTS/state-updated.json"
+    state_boot="$(jq -r '.bootId' <<<"$state" 2>/dev/null)" || true
+    state_summary="$(jq -r '.result + " " + (.staged | tostring) + " " + .running.digest' <<<"$state" 2>/dev/null)" || true
+    if [[ "$state_boot" == "$BOOT_ID" && "$state_summary" == "up-to-date null $NEW_DIGEST" ]]; then
+        pass "This boot's update state says OrielOS is up to date, with nothing staged"
+    else
+        fail "This boot's update state is not up to date (see state-updated.json)"
+    fi
+    check_keepme "after updating through the notifier"
+}
+
 step_stage_again() {
     local out rc=0
     info "Step 7: stage the rolled-back build again"
@@ -347,7 +538,8 @@ main() {
     NEW_VERSION="${details#* }"
 
     if step_boot_old && step_user_data && step_copy && step_stage && step_update_boot &&
-        step_rollback && step_stage_again; then
+        step_rollback && step_stage_again && step_service_source && step_service_channel &&
+        step_service_notify && step_service_restart; then
         :
     else
         fail "The test stopped early; the remaining steps did not run"
