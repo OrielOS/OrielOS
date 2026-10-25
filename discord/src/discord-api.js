@@ -4,6 +4,7 @@
 import { REST, Routes } from "discord.js";
 
 export const EMOJI = "🔗";
+export const TESTER_EMOJI = "🧪";
 
 const NO_MENTIONS = { parse: [] };
 
@@ -80,22 +81,22 @@ export const deleteMessage = (rest, channel, message) =>
 export const crosspost = (rest, channel, message) =>
   rest.post(Routes.channelMessageCrosspost(channel, message));
 
-export const addOwnReaction = (rest, channel, message) =>
-  rest.put(Routes.channelMessageOwnReaction(channel, message, encodeURIComponent(EMOJI)));
+export const addOwnReaction = (rest, channel, message, emoji = EMOJI) =>
+  rest.put(Routes.channelMessageOwnReaction(channel, message, encodeURIComponent(emoji)));
 
-export const removeUserReaction = (rest, channel, message, user) =>
+export const removeUserReaction = (rest, channel, message, user, emoji = EMOJI) =>
   rest.delete(
-    Routes.channelMessageUserReaction(channel, message, encodeURIComponent(EMOJI), user),
+    Routes.channelMessageUserReaction(channel, message, encodeURIComponent(emoji), user),
   );
 
-export async function listReactors(rest, channel, message) {
+export async function listReactors(rest, channel, message, emoji = EMOJI) {
   const users = [];
   let after;
   for (;;) {
     const query = new URLSearchParams({ limit: "100" });
     if (after) query.set("after", after);
     const page = await rest.get(
-      Routes.channelMessageReaction(channel, message, encodeURIComponent(EMOJI)),
+      Routes.channelMessageReaction(channel, message, encodeURIComponent(emoji)),
       { query },
     );
     users.push(...page);

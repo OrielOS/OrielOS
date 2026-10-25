@@ -37,6 +37,7 @@ test("configuration has defaults", () => {
     feed: "github-feed",
     maintainer: "Maintainer",
     contributor: "Contributor",
+    testers: "Testers",
   });
 });
 
@@ -100,7 +101,7 @@ test("sendMessage adds allowed_mentions to every message", async () => {
   assert.deepEqual(rest.calls[0].options.body.allowed_mentions, { parse: [] });
 });
 
-test("sendPosts sends each post with no mentions and crossposts announcements", async () => {
+test("sendPosts sends each post with no mentions and does not crosspost merges", async () => {
   const rest = fakeRest();
   const payload = {
     ref: "refs/heads/main",
@@ -108,9 +109,18 @@ test("sendPosts sends each post with no mentions and crossposts announcements", 
   };
   const messages = messagesFor("push", payload, "ncjsvr/OrielOS");
   await sendPosts(rest, { id: "10", type: 5 }, messages);
-  assert.equal(rest.calls.length, 2);
+  assert.equal(rest.calls.length, 1);
   assert.deepEqual(rest.calls[0].options.body.allowed_mentions, { parse: [] });
+  assert.equal("crosspost" in rest.calls[0].options.body, false);
+});
+
+test("sendPosts crossposts releases to an announcement channel", async () => {
+  const rest = fakeRest();
+  const release = { name: "1.0", draft: false, prerelease: false };
+  await sendPosts(rest, { id: "10", type: 5 }, messagesFor("release", { action: "published", release }, "a/b"));
+  assert.equal(rest.calls.length, 2);
   assert.match(rest.calls[1].route, /crosspost$/);
+  assert.equal("crosspost" in rest.calls[0].options.body, false);
 });
 
 test("sendPosts pings everyone for a full release only", async () => {
@@ -140,5 +150,5 @@ test("sendPosts ignores crosspost failures", async () => {
       return { id: "1" };
     },
   };
-  await sendPosts(rest, { id: "10", type: 5 }, [{ embeds: [] }]);
+  await sendPosts(rest, { id: "10", type: 5 }, [{ embeds: [], crosspost: true }]);
 });

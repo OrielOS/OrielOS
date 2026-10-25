@@ -23,6 +23,7 @@ export function readConfig(env) {
       feed: text("CHANNEL_FEED", "github-feed"),
       maintainer: text("ROLE_MAINTAINER", "Maintainer"),
       contributor: text("ROLE_CONTRIBUTOR", "Contributor"),
+      testers: text("ROLE_TESTERS", "Testers"),
     },
   };
 }

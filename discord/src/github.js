@@ -89,6 +89,39 @@ export async function fetchContributorIds(repo, token, fetchFn = fetch) {
   return ids;
 }
 
+export async function fetchRecentPulls(repo, token, fetchFn = fetch) {
+  const response = await fetchFn(
+    `${API}/repos/${repo}/pulls?state=all&sort=created&direction=desc&per_page=30`,
+    { headers: apiHeaders(token) },
+  );
+  if (!response.ok) throw new Error(`GitHub answered ${response.status} for the pull requests.`);
+  const json = await response.json();
+  if (!Array.isArray(json)) throw new Error("GitHub returned an unexpected pull request list.");
+  return json;
+}
+
+// 0, 1 or 2: how many commits on main this person authored (2 means "more than one").
+export async function fetchCommitCountByAuthor(repo, username, token, fetchFn = fetch) {
+  const query = new URLSearchParams({ sha: "main", author: username, per_page: "2" });
+  const response = await fetchFn(`${API}/repos/${repo}/commits?${query}`, {
+    headers: apiHeaders(token),
+  });
+  if (!response.ok) throw new Error(`GitHub answered ${response.status} for the commit history.`);
+  const json = await response.json();
+  if (!Array.isArray(json)) throw new Error("GitHub returned an unexpected commit list.");
+  return Math.min(json.length, 2);
+}
+
+export async function fetchStars(repo, token, fetchFn = fetch) {
+  const response = await fetchFn(`${API}/repos/${repo}`, { headers: apiHeaders(token) });
+  if (!response.ok) throw new Error(`GitHub answered ${response.status} for the repository.`);
+  const json = await response.json();
+  if (!Number.isInteger(json?.stargazers_count)) {
+    throw new Error("GitHub returned an unexpected repository.");
+  }
+  return json.stargazers_count;
+}
+
 export async function fetchGithubUser(token, fetchFn = fetch) {
   const response = await fetchFn(`${API}/user`, { headers: apiHeaders(token) });
   if (!response.ok) throw new Error(`GitHub answered ${response.status} for the profile.`);
