@@ -136,10 +136,11 @@ google-noto-sans-mono-vf-fonts
 google-noto-sans-cjk-vf-fonts
 google-noto-color-emoji-fonts
 
-# Boot splash. plymouth-system-theme brings Fedora's default theme, bgrt (the firmware's
-# logo with a spinner).
+# Boot splash. OrielOS's theme (image/system/usr/share/plymouth/themes/orielos) uses Plymouth's
+# two-step module and the spinner theme's images.
 plymouth
-plymouth-system-theme
+plymouth-plugin-two-step
+plymouth-theme-spinner
 
 # Graphics: Mesa's OpenGL, Vulkan and VA-API drivers (VA-API is part of mesa-dri-drivers),
 # and Intel's video decoding driver.

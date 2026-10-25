@@ -174,8 +174,28 @@ fi
 # and never find icons added after it was made, such as the Start button's.
 gtk-update-icon-cache --force --quiet /usr/share/icons/hicolor
 
+# The boot splash: OrielOS's Plymouth theme, with its logo from the app-builder stage and the spinner,
+# password and keyboard images from Plymouth's spinner theme. The initramfs below carries it.
+theme=/usr/share/plymouth/themes/orielos
+spinner=/usr/share/plymouth/themes/spinner
+for f in "$spinner"/throbber-*.png "$spinner"/animation-*.png "$spinner"/{bullet,capslock,entry,keyboard,keymap-render,lock}.png; do
+    install -m 0644 "$f" "$theme/"
+done
+splash_errors=()
+for f in orielos.plymouth watermark.png throbber-0001.png entry.png lock.png; do
+    [[ -s "$theme/$f" ]] || splash_errors+=("$theme/$f is missing")
+done
+plymouth-set-default-theme orielos
+[[ "$(plymouth-set-default-theme)" == orielos ]] || splash_errors+=("Plymouth's theme is $(plymouth-set-default-theme), not orielos")
+
 kver="$(ls /usr/lib/modules)"
 dracut --no-hostonly --kver "$kver" --reproducible --zstd --add "ostree plymouth" -f "/usr/lib/modules/$kver/initramfs.img"
+lsinitrd "/usr/lib/modules/$kver/initramfs.img" | grep -q 'usr/share/plymouth/themes/orielos/watermark.png' ||
+    splash_errors+=("the initramfs doesn't contain the OrielOS boot splash")
+if [[ "${#splash_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${splash_errors[@]}" >&2
+    exit 1
+fi
 
 dnf clean all
 rm -rf /var/cache/* /var/log/* /var/lib/dnf /tmp/* /run/dnf /run/sddm

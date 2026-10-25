@@ -26,6 +26,10 @@ install(FILES color-schemes/OrielOSLight.colors color-schemes/OrielOSDark.colors
 install(FILES updates/orielos-startmenu-1.js updates/orielos-taskbar-1.js
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/shells/org.kde.plasma.desktop/contents/updates)
 
+# The boot splash's logo, for the Plymouth theme in image/system/usr/share/plymouth/themes/orielos.
+install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash-white.png
+    DESTINATION ${KDE_INSTALL_DATADIR}/plymouth/themes/orielos RENAME watermark.png)
+
 # The Start button's icon: the OrielOS mark, drawn with wider gaps for taskbar sizes.
 install(FILES ${PROJECT_SOURCE_DIR}/artwork/icons/orielos-start.svg
     DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)

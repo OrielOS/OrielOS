@@ -19,6 +19,15 @@ Every image, font and sound file in OrielOS, with its author, source and licence
 
 The SVG files contain the letter shapes as outlines rather than the fonts themselves. The OFL allows this, and no font file is shipped from this folder.
 
+## From other projects
+
+These are installed with OrielOS's own files but come from the projects named. OrielOS doesn't change them.
+
+| Files | Used in | Author | Source | Licence |
+|---|---|---|---|---|
+| The spinner, password and keyboard images of Plymouth's spinner theme (`throbber-*.png`, `animation-*.png`, `bullet.png`, `capslock.png`, `entry.png`, `keyboard.png`, `keymap-render.png`, `lock.png`) | The boot splash, copied from Fedora's `plymouth-theme-spinner` package at build time | Jakub Steiner and the Plymouth authors | https://gitlab.freedesktop.org/plymouth/plymouth | GPL-2.0-or-later |
+| `plasma/color-schemes/OrielOSLight.colors`, `OrielOSDark.colors` | OrielOS's colour schemes, with OrielOS's palette in Breeze's structure | Breeze's authors and OrielOS contributors | https://invent.kde.org/plasma/breeze | LGPL-2.0-or-later |
+
 ## What is not here
 
 None of this artwork comes from Microsoft or is derived from Microsoft's logos, fonts, icons, sounds or wallpapers.

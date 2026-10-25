@@ -280,7 +280,7 @@ It also writes `/usr/lib/bootc/kargs.d/90-orielos-build.toml`, which adds `oriel
 
 ## Boot splash
 
-Plymouth shows a splash screen while the system starts, with Fedora's `bgrt` theme: the firmware's own logo with a spinner. `build/20-desktop.sh` sets the theme, `build/90-finalise.sh` adds Plymouth to the initramfs, and `system/usr/lib/bootc/kargs.d/10-orielos-splash.toml` adds the `rhgb quiet` kernel arguments, which hide kernel and service messages behind the splash.
+Plymouth shows a splash screen while the system starts and shuts down: OrielOS's own theme, the white OrielOS logo in the middle of a black screen with a spinner below, so the boot carries on from the firmware's black screen without a flash of colour. The theme file is `system/usr/share/plymouth/themes/orielos/orielos.plymouth` (Plymouth's two-step module); `plasma/CMakeLists.txt` installs `artwork/splash/orielos-splash-white.png` beside it as `watermark.png`, and `build/90-finalise.sh` copies the spinner, password and keyboard images from Plymouth's spinner theme into it, makes it the default, rebuilds the initramfs with it and fails the build if the initramfs doesn't contain the logo. `system/usr/lib/bootc/kargs.d/10-orielos-splash.toml` adds the `rhgb quiet` kernel arguments, which hide kernel and service messages behind the splash.
 
 ## Building
 
