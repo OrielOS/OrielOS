@@ -1,10 +1,10 @@
 # discord
 
-The bot for [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA): it posts releases and merges, and gives members who link their GitHub account the Maintainer and Contributor roles. It has no server and never stays connected to Discord; it runs only as short GitHub Actions jobs.
+The bot for [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA): it posts releases, merges, issues, discussions and pull requests, and gives members who link their GitHub account the Maintainer and Contributor roles. It has no server and never stays connected to Discord; it runs only as short GitHub Actions jobs.
 
 ## What it does
 
-- **Posts.** When a release is published, or a change is merged into `main`, it posts to `#github-feed`. A full release pings @everyone; pre-releases and merges never ping anyone.
+- **Posts.** When a release is published, a change is merged into `main`, or an issue or discussion is opened, it posts to `#github-feed`. New pull requests are found by the scheduled run, so they appear within about ten minutes. Only full releases ping @everyone and are crossposted if the channel is an announcement channel; everything else never pings and is not crossposted. Issue and discussion text is never posted, only the title, author, labels or category.
 - **Roles.** Every 10 minutes it gives each linked member the Maintainer and Contributor roles that match GitHub, and takes them away when that stops being true.
 
 ## Linking
@@ -28,7 +28,7 @@ The roles carry no permissions, and only the bot gives them.
 
 - **Channels:**
   - the link channel (`LINK_CHANNEL`, default `about`), holding the message members react to;
-  - `#github-feed` (`CHANNEL_FEED`), for releases and merges;
+  - `#github-feed` (`CHANNEL_FEED`), for releases, merges, issues, discussions and pull requests;
   - `#bot-state` (`CHANNEL_STATE`), a private channel only the bot can see, where links are stored;
   - `#mod-log` (`CHANNEL_LOG`), optional: if it exists, every link and role change is logged there.
   Each setting takes a channel name or a channel ID; IDs keep working when a channel is renamed. The workflow sets the IDs of the official server's `#about` and `#github-feed`.

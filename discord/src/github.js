@@ -89,6 +89,17 @@ export async function fetchContributorIds(repo, token, fetchFn = fetch) {
   return ids;
 }
 
+export async function fetchRecentPulls(repo, token, fetchFn = fetch) {
+  const response = await fetchFn(
+    `${API}/repos/${repo}/pulls?state=all&sort=created&direction=desc&per_page=30`,
+    { headers: apiHeaders(token) },
+  );
+  if (!response.ok) throw new Error(`GitHub answered ${response.status} for the pull requests.`);
+  const json = await response.json();
+  if (!Array.isArray(json)) throw new Error("GitHub returned an unexpected pull request list.");
+  return json;
+}
+
 export async function fetchGithubUser(token, fetchFn = fetch) {
   const response = await fetchFn(`${API}/user`, { headers: apiHeaders(token) });
   if (!response.ok) throw new Error(`GitHub answered ${response.status} for the profile.`);

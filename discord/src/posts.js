@@ -8,6 +8,7 @@ import { crosspost, sendMessage } from "./discord-api.js";
 const COLOUR = 0x3a66f0;
 const MAX_TITLE = 256;
 const MAX_NOTES = 1000;
+const MAX_FIELD = 1024;
 const MAX_COMMITS = 10;
 
 function isGitHubUrl(value) {
@@ -73,8 +74,10 @@ function releaseMessages(payload) {
     embed.fields = [{ name: "Installer", value: `[Download the ISO](${iso.url}) (${iso.size})` }];
   }
   // Full releases ping everyone; pre-releases and merges never ping.
-  if (release.prerelease) return [{ embeds: [embed] }];
-  return [{ content: "@everyone", embeds: [embed], mentions: { parse: ["everyone"] } }];
+  if (release.prerelease) return [{ embeds: [embed], crosspost: true }];
+  return [
+    { content: "@everyone", embeds: [embed], mentions: { parse: ["everyone"] }, crosspost: true },
+  ];
 }
 
 function isBotCommit(commit) {
@@ -108,16 +111,75 @@ function pushMessages(payload, repo) {
   return embeds.map((embed) => ({ embeds: [embed] }));
 }
 
+function isBotUser(user) {
+  return user?.type === "Bot" || String(user?.login ?? "").endsWith("[bot]");
+}
+
+function authorOf(user) {
+  const author = { name: clean(user?.login, MAX_TITLE) };
+  if (isGitHubUrl(user?.html_url)) author.url = user.html_url;
+  return author;
+}
+
+function itemEmbed(title, item) {
+  const embed = { title: clean(title, MAX_TITLE), color: COLOUR, author: authorOf(item.user) };
+  if (isGitHubUrl(item.html_url)) embed.url = item.html_url;
+  if (typeof item.created_at === "string") embed.timestamp = item.created_at;
+  return embed;
+}
+
+function issueMessages(payload) {
+  const issue = payload.issue;
+  if (payload.action !== "opened" || !issue || isBotUser(issue.user)) return [];
+  const embed = itemEmbed(`Issue #${issue.number}: ${issue.title ?? ""}`, issue);
+  const labels = (Array.isArray(issue.labels) ? issue.labels : [])
+    .map((label) => clean(label?.name, MAX_TITLE))
+    .filter((name) => name !== "");
+  if (labels.length > 0) {
+    embed.fields = [{ name: "Labels", value: truncate(labels.join(", "), MAX_FIELD) }];
+  }
+  return [{ embeds: [embed] }];
+}
+
+function discussionMessages(payload) {
+  const discussion = payload.discussion;
+  if (payload.action !== "created" || !discussion || isBotUser(discussion.user)) return [];
+  const category = discussion.category;
+  const label = category?.slug === "q-a" ? "Question" : "Discussion";
+  const embed = itemEmbed(`${label}: ${discussion.title ?? ""}`, discussion);
+  if (typeof category?.name === "string" && category.name !== "") {
+    embed.fields = [{ name: "Category", value: clean(category.name, MAX_FIELD) }];
+  }
+  return [{ embeds: [embed] }];
+}
+
 export function messagesFor(eventName, payload, repo) {
   if (eventName === "release") return releaseMessages(payload ?? {});
   if (eventName === "push") return pushMessages(payload ?? {}, repo);
+  if (eventName === "issues") return issueMessages(payload ?? {});
+  if (eventName === "discussion") return discussionMessages(payload ?? {});
   return [];
 }
 
+// pulls is newest first; bookmark is the highest number already handled, or null on the first run.
+export function planPullPosts(pulls, bookmark) {
+  const numbers = pulls.map((pull) => pull.number).filter(Number.isInteger);
+  const highest = Math.max(0, ...numbers);
+  if (bookmark === null) return { posts: [], bookmark: highest };
+  const posts = pulls
+    .filter((pull) => Number.isInteger(pull.number) && pull.number > bookmark && !isBotUser(pull.user))
+    .sort((a, b) => a.number - b.number)
+    .map((pull) => {
+      const kind = pull.draft ? "Draft pull request" : "Pull request";
+      return { embeds: [itemEmbed(`${kind} #${pull.number}: ${pull.title ?? ""}`, pull)] };
+    });
+  return { posts, bookmark: Math.max(bookmark, highest) };
+}
+
 export async function sendPosts(rest, feed, messages) {
-  for (const { mentions, ...body } of messages) {
+  for (const { mentions, crosspost: wantsCrosspost, ...body } of messages) {
     const sent = await sendMessage(rest, feed.id, body, mentions);
-    if (feed.type === 5) {
+    if (wantsCrosspost === true && feed.type === 5) {
       try {
         await crosspost(rest, feed.id, sent.id);
       } catch {

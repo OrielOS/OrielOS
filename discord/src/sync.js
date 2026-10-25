@@ -28,10 +28,12 @@ import {
 import {
   fetchContributorIds,
   fetchGithubUser,
+  fetchRecentPulls,
   readMaintainers,
   requestDeviceCode,
   waitForToken,
 } from "./github.js";
+import { planPullPosts, sendPosts } from "./posts.js";
 import { desiredRoles, roleChanges } from "./roles.js";
 import {
   deleteRecord,
@@ -300,6 +302,32 @@ async function linkNewMembers(ctx, reactors) {
   );
 }
 
+// New pull requests are found here, not from an event, because jobs holding the token never run on pull requests.
+async function postNewPulls(ctx) {
+  const { rest, config, store, guild } = ctx;
+  try {
+    let feed;
+    try {
+      feed = resolveByName(await listChannels(rest, guild), config.names.feed, "channel");
+    } catch {
+      console.log("The feed channel was not found, so new pull requests are not being posted.");
+      return;
+    }
+    const pulls = await fetchRecentPulls(config.repo, config.githubToken);
+    const plan = planPullPosts(pulls, store.feed?.pr ?? null);
+    await sendPosts(rest, feed, plan.posts);
+    if (!store.feed) {
+      store.feed = await saveRecord(rest, ctx.channels.state, { kind: "feed", pr: plan.bookmark });
+    } else if (store.feed.pr !== plan.bookmark) {
+      store.feed = await updateRecord(rest, ctx.channels.state, { ...store.feed, pr: plan.bookmark });
+    }
+    console.log(`Posted ${plan.posts.length} new ${plan.posts.length === 1 ? "pull request" : "pull requests"}.`);
+  } catch (error) {
+    ctx.stats.errors += 1;
+    console.error(`Could not post new pull requests: ${describeError(error)}.`);
+  }
+}
+
 async function run(env) {
   const config = readConfig(env);
   if (!isEnabled(config)) {
@@ -332,6 +360,8 @@ async function run(env) {
     contributorIds: await fetchContributorIds(config.repo, config.githubToken),
   };
   await syncAll(ctx);
+
+  await postNewPulls(ctx);
 
   if (config.linkClientId) await linkNewMembers(ctx, reactors);
   else console.log("LINK_CLIENT_ID is not set, so new members are not being linked.");

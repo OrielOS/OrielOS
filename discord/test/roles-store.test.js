@@ -45,6 +45,8 @@ test("records survive a round trip", () => {
   assert.deepEqual(parseRecord(serialiseRecord(link)), link);
   const welcome = { kind: "welcome", message: "555" };
   assert.deepEqual(parseRecord(serialiseRecord(welcome)), welcome);
+  const feed = { kind: "feed", pr: 42 };
+  assert.deepEqual(parseRecord(serialiseRecord(feed)), feed);
   const onMessage = { ...link, on: "555" };
   assert.deepEqual(parseRecord(serialiseRecord(onMessage)), onMessage);
 });
@@ -71,6 +73,9 @@ test("unknown kinds, bad JSON and incomplete records are ignored", () => {
   assert.equal(parseRecord("null"), null);
   assert.equal(parseRecord('{"kind":"link","discord":"1"}'), null);
   assert.equal(parseRecord('{"kind":"welcome"}'), null);
+  assert.equal(parseRecord('{"kind":"feed","pr":-1}'), null);
+  assert.equal(parseRecord('{"kind":"feed","pr":"3"}'), null);
+  assert.equal(parseRecord('{"kind":"feed","pr":1.5}'), null);
 });
 
 test("planLink for a new link removes nothing", () => {

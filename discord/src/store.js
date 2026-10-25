@@ -28,6 +28,9 @@ export function parseRecord(content) {
   if (value.kind === "welcome" && typeof value.message === "string") {
     return { kind: "welcome", message: value.message };
   }
+  if (value.kind === "feed" && Number.isInteger(value.pr) && value.pr >= 0) {
+    return { kind: "feed", pr: value.pr };
+  }
   return null;
 }
 
@@ -36,6 +39,7 @@ export function serialiseRecord(record) {
     const { kind, discord, github, login, at, on } = record;
     return JSON.stringify({ kind, discord, github, login, at, on });
   }
+  if (record.kind === "feed") return JSON.stringify({ kind: "feed", pr: record.pr });
   return JSON.stringify({ kind: "welcome", message: record.message });
 }
 
@@ -96,10 +100,11 @@ export async function loadStore(rest, channel, botId) {
 
   const { keep, drop } = dedupeLinks(entries.filter((entry) => entry.kind === "link"));
   const welcomes = entries.filter((entry) => entry.kind === "welcome");
-  for (const entry of [...drop, ...welcomes.slice(1)]) {
+  const feeds = entries.filter((entry) => entry.kind === "feed");
+  for (const entry of [...drop, ...welcomes.slice(1), ...feeds.slice(1)]) {
     await deleteMessage(rest, channel, entry.id);
   }
-  return { links: keep, welcome: welcomes[0] ?? null };
+  return { links: keep, welcome: welcomes[0] ?? null, feed: feeds[0] ?? null };
 }
 
 export async function saveRecord(rest, channel, record) {
