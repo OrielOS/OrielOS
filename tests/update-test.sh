@@ -63,6 +63,7 @@ SERVICE_SOURCE="/var/lib/orielos/test-source"
 TEST_PASSWORD="orielos-test-pass"
 # Where this boot's output starts in the serial log, and what the boot menu showed (boot menu steps).
 SERIAL_MARK=0
+NOTIFIER_OUT=""
 MENU_SHOWN=0
 MENU_TEXT=""
 
@@ -405,8 +406,22 @@ fi
 SH
 }
 
+# Wait up to 120 s for the update notifier's tray icon in the test user's session, keeping the
+# probe's last output in NOTIFIER_OUT. Returns 1, and saves notifier.txt, if it doesn't appear.
+wait_for_notifier() {
+    local start=$SECONDS
+    while ((SECONDS - start < 120)); do
+        NOTIFIER_OUT="$(vm_ssh "$(notifier_script)" 2>/dev/null)" || true
+        [[ -n "$(service_value "$NOTIFIER_OUT" item)" ]] && return 0
+        sleep 3
+    done
+    vm_ssh "ps -u $TEST_USER -o pid,args; journalctl -b --no-pager | grep -i -E 'update-notifier|UpdateNotifier' | tail -n 40" \
+        >"$RESULTS/notifier.txt" 2>&1 || true
+    return 1
+}
+
 step_service_notify() {
-    local out start rc
+    local out rc
     info "Step 10: log in to the desktop, let the check service stage the build and see the notifier"
     if ! out="$(vm_ssh "set -e
         mkdir -p /etc/sddm.conf.d
@@ -415,19 +430,11 @@ step_service_notify() {
         fail "Could not log $TEST_USER in to the desktop: ${out:-no output}"
         return 1
     fi
-    start=$SECONDS
-    while ((SECONDS - start < 120)); do
-        out="$(vm_ssh "$(notifier_script)" 2>/dev/null)" || true
-        [[ -n "$(service_value "$out" item)" ]] && break
-        sleep 3
-    done
-    if [[ -z "$(service_value "$out" item)" ]]; then
-        fail "The update notifier did not start in $TEST_USER's session within 120 s (${out//$'\n'/; }; see notifier.txt)"
-        vm_ssh "ps -u $TEST_USER -o pid,args; journalctl -b --no-pager | grep -i -E 'update-notifier|UpdateNotifier' | tail -n 40" \
-            >"$RESULTS/notifier.txt" 2>&1 || true
+    if ! wait_for_notifier; then
+        fail "The update notifier did not start in $TEST_USER's session within 120 s (${NOTIFIER_OUT//$'\n'/; }; see notifier.txt)"
         return 1
     fi
-    pass "The update notifier runs in $TEST_USER's session with a tray icon ($(service_value "$out" item))"
+    pass "The update notifier runs in $TEST_USER's session with a tray icon ($(service_value "$NOTIFIER_OUT" item))"
 
     # The real unit, as the timer starts it.
     rc=0
@@ -503,6 +510,11 @@ step_go_back() {
     # Going back needs an administrator's password, so the test user gets one to type.
     if ! vm_ssh "printf '%s:%s\n' $TEST_USER '$TEST_PASSWORD' | chpasswd" >/dev/null 2>&1; then
         fail "Could not set $TEST_USER's password for polkit's prompt"
+        return 1
+    fi
+    # After the restart, the session starts the notifier a while after SSH answers.
+    if ! wait_for_notifier; then
+        fail "The update notifier did not start after the restart within 120 s (see notifier.txt)"
         return 1
     fi
     out="$(vm_ssh "$(notifier_script "Go back to the previous version")" 2>&1)" || true
