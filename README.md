@@ -60,7 +60,7 @@ Each folder has a short README describing what belongs there.
 
 ## Contributing
 
-OrielOS is developed in the open on GitHub. Changes go through pull requests into `main`. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and please follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as described in [SECURITY.md](SECURITY.md). Ask questions, share ideas and follow announcements in [GitHub Discussions](https://github.com/ncjsvr/OrielOS/discussions); [SUPPORT.md](SUPPORT.md) says where everything else goes.
+OrielOS is developed in the open on GitHub. Changes go through pull requests into `main`. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and please follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as described in [SECURITY.md](SECURITY.md). Ask questions, share ideas and follow announcements in [GitHub Discussions](https://github.com/ncjsvr/OrielOS/discussions); [SUPPORT.md](SUPPORT.md) says where everything else goes. For live chat, join [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA). It's the only official one.
 
 ## Licence
 
