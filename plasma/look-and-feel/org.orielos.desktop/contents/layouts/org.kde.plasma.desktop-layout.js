@@ -27,7 +27,9 @@ panel.floating = false;
 // pinned apps.
 panel.addWidget("org.kde.plasma.panelspacer");
 
-var start = panel.addWidget("org.kde.plasma.kickoff");
+// OrielOS's own Start menu (plasma/startmenu), in place of Plasma's Kickoff, with the OrielOS
+// mark as its button.
+var start = panel.addWidget("org.orielos.startmenu");
 start.currentConfigGroup = ["General"];
 start.writeConfig("icon", "orielos-start");
 

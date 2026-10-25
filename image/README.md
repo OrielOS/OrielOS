@@ -86,7 +86,7 @@ The Windows keyboard shortcuts work for every new user, and open the tools that 
 
 | Shortcut | Plasma 6.7's default | OrielOS |
 |---|---|---|
-| Win | Start (Kickoff), from `kwinrc`'s `ModifierOnlyShortcuts` | unchanged |
+| Win | Start (OrielOS's Start menu, as the taskbar's launcher), from `kwinrc`'s `ModifierOnlyShortcuts` | unchanged |
 | Win+E | Dolphin (`X-KDE-Shortcuts=Meta+E`) | unchanged; Dolphin is named Files |
 | Win+R | Spectacle's region recording (`Meta+Shift+R,Meta+R`); KRunner is on `Alt+Space,Alt+F2,Search` | KRunner (Run) gets `Meta+R`; region recording keeps `Meta+Shift+R` |
 | Win+L | Lock Session (ksmserver) | unchanged |

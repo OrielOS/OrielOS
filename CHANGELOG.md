@@ -6,6 +6,11 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- OrielOS's own Start menu replaces Plasma's launcher on the taskbar.
+  - Search at the top lists apps, settings, files and Store results as you type, but opens nothing until you press Enter or click.
+  - Below it are your pinned apps, an All apps list, and recommendations: recently added apps and recently opened files.
+  - At the bottom are your account and the power button, with Sleep, Restart and Shut down.
+  - Pins are kept across restarts and updates, the whole menu works from the keyboard, and existing users' taskbars switch to it automatically.
 - Pull requests from anyone but the maintainer that change the project's workflows, code owners, Discord bot, image signing keys and pins, licences or policy documents are closed automatically, as the contributing guide explains.
 - orielos.org has "Join the discussion on GitHub" and "Join Discord" buttons in GitHub's and Discord's own colours, at the top of the page and under "Made in the open".
 - The official OrielOS Discord server, https://discord.gg/RnpZYaKbHA, for live chat and quick help, linked from the README, the support and contributing guides, the user documentation and orielos.org. It's the only official OrielOS Discord server.

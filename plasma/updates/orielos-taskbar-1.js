@@ -10,10 +10,14 @@
 // a task manager. It reuses the widgets already on the panel and adds only the missing ones, so
 // nothing is duplicated; other widgets are kept, just before the system tray. Running it on a
 // panel that is already in order changes nothing.
+//
+// orielos-startmenu-1.js runs first and swaps Plasma's launcher for OrielOS's Start menu, so the
+// Start slot expects the Start menu. Plasma's launchers still count as the Start button, so a
+// panel whose launcher was left in place is still put in order, without adding a second one.
 
 var ORDER = [
     "org.kde.plasma.panelspacer",
-    "org.kde.plasma.kickoff",
+    "org.orielos.startmenu",
     "org.kde.plasma.icontasks",
     "org.kde.plasma.panelspacer",
     "org.kde.plasma.systemtray",
@@ -22,7 +26,7 @@ var ORDER = [
 ];
 // Widgets that count as the Start button or the task manager when the panel has another kind.
 var SAME_ROLE = {
-    "org.kde.plasma.kickoff": ["org.kde.plasma.kicker", "org.kde.plasma.kickerdash"],
+    "org.orielos.startmenu": ["org.kde.plasma.kickoff", "org.kde.plasma.kicker", "org.kde.plasma.kickerdash"],
     "org.kde.plasma.icontasks": ["org.kde.plasma.taskmanager"],
 };
 // The launcher icons Plasma and Fedora set, which are replaced by OrielOS's.
@@ -60,7 +64,7 @@ function update() {
     var panel = bottom[0];
     var widgets = currentOrder(panel).map(function (id) { return panel.widgetById(id); })
         .filter(function (w) { return w; });
-    var isDefault = ["org.kde.plasma.kickoff", "org.kde.plasma.icontasks"].every(function (type) {
+    var isDefault = ["org.orielos.startmenu", "org.kde.plasma.icontasks"].every(function (type) {
         return widgets.some(function (w) { return hasRole(w, type); });
     });
     if (!isDefault) {
@@ -91,7 +95,7 @@ function update() {
         log("reordered panel " + panel.id + " from " + (oldIds || "nothing") + " to " + newIds);
     }
 
-    var start = slots[ORDER.indexOf("org.kde.plasma.kickoff")];
+    var start = slots[ORDER.indexOf("org.orielos.startmenu")];
     start.currentConfigGroup = ["General"];
     if (STOCK_ICONS.indexOf(String(start.readConfig("icon", ""))) >= 0) {
         start.writeConfig("icon", "orielos-start");
