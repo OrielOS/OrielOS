@@ -58,7 +58,7 @@ Start menu, after every other second-boot check, because it restarts the VM (see
 
 22. Start menu: typing a search runs nothing: after Win and `f`, `i`, `l`, no `dolphin` process starts for `orielostest` within 5 seconds. The menu is saved as `start-search.png`.
 23. Start menu: Enter opens the first result: Enter then starts `dolphin` for `orielostest` within 20 seconds.
-24. Start menu: pinning saves the app: after Win, `a`, `r`, `k`, the Menu key and Enter, the `favorites` key in the Start menu's `[Containments][N][Applets][M][Configuration][General]` group of `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc` contains `org.kde.ark.desktop` within 30 seconds. The file is saved as `start-appletsrc`.
+24. Start menu: pinning saves the app: after Win, `a`, `r`, `k`, the Menu key and Enter, the `favorites` key in the Start menu's `[Containments][N][Applets][M][Configuration][General]` group of `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc` contains `org.kde.ark.desktop` within 30 seconds. The file is saved as `start-appletsrc`, and the open context menu as `start-pin-menu.png`. The test presses QEMU's `compose` key, which is a PC keyboard's Menu key.
 25. Start menu: pins survive a restart: after restarting the VM and SDDM's autologin, the same key still contains `org.kde.ark.desktop`. The file is saved as `start-appletsrc-restart`, and the open menu as `start-pinned.png`, which should show Ark among the pinned apps.
 
 Anti-cheat boot mode, on the second boot (see `image/README.md`):

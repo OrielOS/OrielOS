@@ -612,10 +612,11 @@ start_menu_checks() {
     fi
 
     # Ark is not pinned by default. The Menu key opens the result's context menu with "Pin to
-    # Start" highlighted, so Enter pins it.
+    # Start" highlighted, so Enter pins it. A PC keyboard's Menu key is QEMU's "compose" key,
+    # which Linux and Qt read as Menu; QEMU's "menu" key is a different, rarely used key.
     START_PINNED="no"
     if ! vm_qmp keys:meta_l wait:2 keys:a wait:0.3 keys:r wait:0.3 keys:k wait:3 \
-        keys:menu wait:1 keys:ret wait:2 keys:esc wait:5; then
+        keys:compose wait:1 "shot:$RESULTS/start-pin-menu.png" keys:ret wait:2 keys:esc wait:5; then
         START_WHY="could not send keys over QMP"
         return 0
     fi
