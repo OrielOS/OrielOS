@@ -61,4 +61,4 @@ npm ci
 npm test
 ```
 
-The tests use no network and no token.
+The tests use no network and no token. `test/properties.test.js` fuzzes the code that handles text from GitHub and Discord with [fast-check](https://fast-check.dev/), which tries 100 random inputs for each property on every run and prints the smallest one that fails.
