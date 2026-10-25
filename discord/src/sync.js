@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { NOT_RUNNING_NOTICE, isEnabled, readConfig } from "./config.js";
 import {
   EMOJI,
+  TESTER_EMOJI,
   addOwnReaction,
   addRole,
   botUserId,
@@ -28,10 +29,13 @@ import {
 import {
   fetchContributorIds,
   fetchGithubUser,
+  fetchRecentPulls,
+  fetchStars,
   readMaintainers,
   requestDeviceCode,
   waitForToken,
 } from "./github.js";
+import { planPullPosts, planStarPost, sendPosts } from "./posts.js";
 import { desiredRoles, roleChanges } from "./roles.js";
 import {
   deleteRecord,
@@ -39,12 +43,14 @@ import {
   linksToUnlink,
   loadStore,
   planLink,
+  planTesters,
   saveRecord,
   updateRecord,
 } from "./store.js";
 
 const MAX_NEW_LINKS = 10;
 const REASON = "Synced from GitHub";
+const TESTER_REASON = "Asked for test build pings";
 const UNKNOWN_MEMBER = 10007;
 const UNKNOWN_MESSAGE = 10008;
 const CANNOT_DM = 50007;
@@ -81,6 +87,13 @@ async function setup(config, rest) {
   const roles = await listRoles(rest, guild);
   const names = config.names;
   const roleFor = (name) => resolveByName(roles, name, "role", { ignoreCase: true });
+  const optionalRole = (name) => {
+    try {
+      return roleFor(name).id;
+    } catch {
+      return null;
+    }
+  };
   return {
     guild,
     channels: {
@@ -91,6 +104,7 @@ async function setup(config, rest) {
     roleIds: {
       maintainer: roleFor(names.maintainer).id,
       contributor: roleFor(names.contributor).id,
+      testers: optionalRole(names.testers),
     },
     roleNames: { maintainer: names.maintainer, contributor: names.contributor },
   };
@@ -100,17 +114,12 @@ async function setup(config, rest) {
 async function ensureLinkMessage(ctx) {
   const { rest, channels, store, config } = ctx;
   if (config.linkMessage) {
-    let message;
     try {
-      message = await getMessage(rest, channels.link, config.linkMessage);
+      await getMessage(rest, channels.link, config.linkMessage);
     } catch (error) {
       if (errorCode(error) !== UNKNOWN_MESSAGE) throw error;
       throw new Error("The LINK_MESSAGE message does not exist in the link channel.");
     }
-    const reacted = (message.reactions ?? []).some(
-      (reaction) => reaction.emoji?.name === EMOJI && reaction.me,
-    );
-    if (!reacted) await addOwnReaction(rest, channels.link, config.linkMessage);
     return config.linkMessage;
   }
   if (store.welcome) {
@@ -126,6 +135,18 @@ async function ensureLinkMessage(ctx) {
   await addOwnReaction(rest, channels.link, message.id);
   store.welcome = await saveRecord(rest, channels.state, { kind: "welcome", message: message.id });
   return message.id;
+}
+
+// The bot's own 🔗, and 🧪 when there is a Testers role, so members can click them.
+async function ensureReactions(ctx) {
+  const { rest, channels, roleIds } = ctx;
+  const message = await getMessage(rest, channels.link, ctx.linkMessage);
+  const has = (emoji) =>
+    (message.reactions ?? []).some((reaction) => reaction.emoji?.name === emoji && reaction.me);
+  if (!has(EMOJI)) await addOwnReaction(rest, channels.link, ctx.linkMessage);
+  if (roleIds.testers && !has(TESTER_EMOJI)) {
+    await addOwnReaction(rest, channels.link, ctx.linkMessage, TESTER_EMOJI);
+  }
 }
 
 async function modLog(ctx, content) {
@@ -300,6 +321,93 @@ async function linkNewMembers(ctx, reactors) {
   );
 }
 
+// New pull requests and star milestones are found here, not from events, because jobs holding
+// the token never run on pull requests and starring starts no workflow.
+async function postFeed(ctx) {
+  const { rest, config, store, guild } = ctx;
+  try {
+    let feed;
+    try {
+      feed = resolveByName(await listChannels(rest, guild), config.names.feed, "channel");
+    } catch {
+      console.log("The feed channel was not found, so new pull requests and stars are not being posted.");
+      return;
+    }
+    const pullPlan = planPullPosts(
+      await fetchRecentPulls(config.repo, config.githubToken),
+      store.feed?.pr ?? null,
+    );
+    const starPlan = planStarPost(
+      await fetchStars(config.repo, config.githubToken),
+      store.feed?.stars,
+      config.repo,
+    );
+    const posts = starPlan.post ? [...pullPlan.posts, starPlan.post] : pullPlan.posts;
+    await sendPosts(rest, feed, posts);
+    const bookmark = { kind: "feed", pr: pullPlan.bookmark, stars: starPlan.announced };
+    if (!store.feed) {
+      store.feed = await saveRecord(rest, ctx.channels.state, bookmark);
+    } else if (store.feed.pr !== bookmark.pr || store.feed.stars !== bookmark.stars) {
+      store.feed = await updateRecord(rest, ctx.channels.state, { ...store.feed, ...bookmark });
+    }
+    const pulls = pullPlan.posts.length;
+    console.log(
+      `Posted ${pulls} new ${pulls === 1 ? "pull request" : "pull requests"}` +
+        (starPlan.post ? " and a star milestone." : "."),
+    );
+  } catch (error) {
+    ctx.stats.errors += 1;
+    console.error(`Could not post new pull requests or stars: ${describeError(error)}.`);
+  }
+}
+
+// Members who react 🧪 get the Testers role; removing the reaction takes it away.
+async function syncTesters(ctx) {
+  const { rest, guild, channels, roleIds, store } = ctx;
+  if (!roleIds.testers) {
+    console.log("There is no Testers role, so test build pings are off.");
+    return;
+  }
+  let added = 0;
+  let removed = 0;
+  try {
+    const reactors = (
+      await listReactors(rest, channels.link, ctx.linkMessage, TESTER_EMOJI)
+    ).filter((user) => !user.bot);
+    const plan = planTesters(new Set(reactors.map((user) => user.id)), store.testers);
+    for (const id of plan.add) {
+      try {
+        await addRole(rest, guild, id, roleIds.testers, TESTER_REASON);
+      } catch (error) {
+        if (errorCode(error) === UNKNOWN_MEMBER) continue;
+        ctx.stats.errors += 1;
+        console.error(`Could not give the Testers role: ${describeError(error)}.`);
+        continue;
+      }
+      store.testers.push(await saveRecord(rest, channels.state, { kind: "tester", discord: id }));
+      added += 1;
+    }
+    for (const record of plan.remove) {
+      try {
+        await removeRole(rest, guild, record.discord, roleIds.testers, TESTER_REASON);
+      } catch (error) {
+        if (errorCode(error) !== UNKNOWN_MEMBER) {
+          ctx.stats.errors += 1;
+          console.error(`Could not remove the Testers role: ${describeError(error)}.`);
+          continue;
+        }
+      }
+      await deleteRecord(rest, channels.state, record);
+      store.testers = store.testers.filter((tester) => tester.id !== record.id);
+      removed += 1;
+    }
+  } catch (error) {
+    ctx.stats.errors += 1;
+    console.error(`Could not sync the Testers role: ${describeError(error)}.`);
+  }
+  console.log(`Testers: ${added} added, ${removed} removed.`);
+}
+
 async function run(env) {
   const config = readConfig(env);
   if (!isEnabled(config)) {
@@ -320,6 +428,7 @@ async function run(env) {
   };
 
   ctx.linkMessage = await ensureLinkMessage(ctx);
+  await ensureReactions(ctx);
   const reactors = (await listReactors(rest, found.channels.link, ctx.linkMessage)).filter(
     (user) => !user.bot,
   );
@@ -332,6 +441,9 @@ async function run(env) {
     contributorIds: await fetchContributorIds(config.repo, config.githubToken),
   };
   await syncAll(ctx);
+
+  await postFeed(ctx);
+  await syncTesters(ctx);
 
   if (config.linkClientId) await linkNewMembers(ctx, reactors);
   else console.log("LINK_CLIENT_ID is not set, so new members are not being linked.");

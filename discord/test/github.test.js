@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isHuman, maintainersFromCodeowners, nextLink, nextPollStep } from "../src/github.js";
+import { fetchRecentPulls, isHuman, maintainersFromCodeowners, nextLink, nextPollStep } from "../src/github.js";
 
 test("maintainers skip comments, blank lines, teams and emails", () => {
   const text = [
@@ -83,4 +83,19 @@ test("nextPollStep stops at the deadline", () => {
     failure: "expired",
   });
   assert.deepEqual(nextPollStep(late, { error: "slow_down" }), { done: true, failure: "expired" });
+});
+
+test("fetchRecentPulls returns the list and rejects bad answers", async () => {
+  let url;
+  const ok = async (input) => {
+    url = input;
+    return { ok: true, json: async () => [{ number: 1 }] };
+  };
+  assert.deepEqual(await fetchRecentPulls("a/b", "t", ok), [{ number: 1 }]);
+  assert.match(url, /\/repos\/a\/b\/pulls\?state=all&sort=created&direction=desc&per_page=30$/);
+  await assert.rejects(fetchRecentPulls("a/b", "t", async () => ({ ok: false, status: 403 })), /403/);
+  await assert.rejects(
+    fetchRecentPulls("a/b", "t", async () => ({ ok: true, json: async () => ({}) })),
+    /unexpected/,
+  );
 });

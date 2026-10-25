@@ -1,11 +1,15 @@
 # discord
 
-The bot for [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA): it posts releases and merges, and gives members who link their GitHub account the Maintainer and Contributor roles. It has no server and never stays connected to Discord; it runs only as short GitHub Actions jobs.
+The bot for [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA): it posts what happens on GitHub, gives members who link their GitHub account the Maintainer and Contributor roles, and gives the Testers role to members who ask for test build pings. It has no server and never stays connected to Discord; it runs only as short GitHub Actions jobs.
 
 ## What it does
 
-- **Posts.** When a release is published, or a change is merged into `main`, it posts to `#github-feed`. A full release pings @everyone; pre-releases and merges never ping anyone.
+- **Posts** to `#github-feed`:
+  - as they happen: published releases, merges into `main`, someone's first merged contribution, new issues, issues labelled `good first issue` after they were opened, new discussions, and questions marked as answered;
+  - from the scheduled run, within about ten minutes: new pull requests, and star milestones (10, 25, 50, 100, 250 and on, each posted once).
+  A full release pings @everyone; a pre-release is posted as a test build and pings the Testers role. Only releases are crossposted if the channel is an announcement channel; nothing else pings. Issue and discussion text is never posted, only the title, author, labels or category.
 - **Roles.** Every 10 minutes it gives each linked member the Maintainer and Contributor roles that match GitHub, and takes them away when that stops being true.
+- **Testers.** Members who react 🧪 on the about message get the Testers role, and lose it when they remove the reaction. The bot adds the 🧪 reaction only when a Testers role exists.
 
 ## Linking
 
@@ -28,14 +32,14 @@ The roles carry no permissions, and only the bot gives them.
 
 - **Channels:**
   - the link channel (`LINK_CHANNEL`, default `about`), holding the message members react to;
-  - `#github-feed` (`CHANNEL_FEED`), for releases and merges;
+  - `#github-feed` (`CHANNEL_FEED`), for releases, merges, issues, discussions and pull requests;
   - `#bot-state` (`CHANNEL_STATE`), a private channel only the bot can see, where links are stored;
   - `#mod-log` (`CHANNEL_LOG`), optional: if it exists, every link and role change is logged there.
   Each setting takes a channel name or a channel ID; IDs keep working when a channel is renamed. The workflow sets the IDs of the official server's `#about` and `#github-feed`.
-- **The link message.** Set `LINK_MESSAGE` to the ID of an existing message, such as the about message, and the bot adds its 🔗 reaction to it. Without it, the bot posts its own message in the link channel.
-- **Roles,** found by name without regard to case: `Maintainer` and `Contributor`. The bot's own role sits above them.
-- **The bot's permissions:** View Channels, Send Messages, Embed Links, Read Message History, Add Reactions and Manage Roles. In the link channel it also needs Manage Messages, to remove reactions. In `#github-feed` it also needs Mention @everyone, @here and All Roles, for release pings.
-- **Members** must lack Add Reactions in the link channel, so they can only click the existing 🔗.
+- **The link message.** Set `LINK_MESSAGE` to the ID of an existing message, such as the about message, and the bot adds its 🔗 reaction (and 🧪, when there is a Testers role) to it. Without it, the bot posts its own message in the link channel.
+- **Roles,** found by name without regard to case: `Maintainer` and `Contributor`, and optionally `Testers` (`ROLE_TESTERS`). The bot's own role sits above them.
+- **The bot's permissions:** View Channels, Send Messages, Embed Links, Read Message History, Add Reactions and Manage Roles. In the link channel it also needs Manage Messages, to remove reactions. In `#github-feed` it also needs Mention @everyone, @here and All Roles, for the release and Testers pings.
+- **Members** must lack Add Reactions in the link channel, so they can only click the existing 🔗 and 🧪.
 
 If the bot is in more than one server, set `DISCORD_GUILD_ID`.
 

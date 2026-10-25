@@ -11,6 +11,10 @@ on:
     types: [published]
   push:
     branches: [main]
+  issues:
+    types: [opened, labeled]
+  discussion:
+    types: [created, answered]
   pull_request:
     paths:
       - "discord/**"
@@ -50,6 +54,8 @@ jobs:
     if: >-
       github.repository == 'ncjsvr/OrielOS' &&
       (github.event_name == 'release' ||
+      github.event_name == 'issues' ||
+      github.event_name == 'discussion' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -58,9 +64,8 @@ jobs:
     environment:
       name: discord
       deployment: false
-    concurrency:
-      group: discord-post
-      cancel-in-progress: false
+    # No concurrency group: GitHub keeps only one waiting run per group, so a
+    # burst of issues or merges would cancel some posts.
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -80,6 +85,7 @@ jobs:
         working-directory: discord
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           CHANNEL_FEED: "1563925191057346662"
         run: node src/post.js
 
@@ -122,6 +128,7 @@ jobs:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           LINK_CLIENT_ID: ${{ vars.LINK_CLIENT_ID }}
           GITHUB_TOKEN: ${{ github.token }}
+          CHANNEL_FEED: "1563925191057346662"
           LINK_CHANNEL: "1563925111805845534"
           LINK_MESSAGE: "1563926132112228403"
         run: node src/sync.js
