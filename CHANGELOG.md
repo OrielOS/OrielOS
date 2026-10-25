@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Contribution guidelines, a code of conduct, a security policy, support and governance notes, and issue and pull request templates.
 - OrielOS has its own logo, Start button icon and wallpapers. Daybreak (light) and Nightfall (dark) are the default on the desktop and the lock screen, and the plainer Horizon is in the wallpaper picker.
 - Every boot meets Easy Anti-Cheat's Linux requirements: kernel lockdown, IOMMU on, the BPF LSM, kexec disabled and only signed drivers. Hibernation is not offered.
 - Windows keyboard shortcuts work out of the box, including Win+R for Run, Win+Tab for the task overview, Ctrl+Shift+Esc for Task Manager and Win+PrtSc to save a screenshot, and the system tools appear in Start as Task Manager, Snipping Tool and Files.

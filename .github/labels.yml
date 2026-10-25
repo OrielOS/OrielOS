@@ -1,0 +1,60 @@
+- name: "type: bug"
+  color: d73a4a
+  description: Something does not work as it should
+- name: "type: feature"
+  color: a2eeef
+  description: A new feature or improvement
+- name: "type: docs"
+  color: 0075ca
+  description: Documentation changes
+- name: "type: compatibility"
+  color: 5319e7
+  description: Game or application compatibility
+- name: "type: hardware"
+  color: fbca04
+  description: Hardware support
+- name: "area: image"
+  color: c5def5
+  description: OS image recipe and build
+- name: "area: kernel"
+  color: c5def5
+  description: Kernel and drivers
+- name: "area: install"
+  color: c5def5
+  description: Installer and first boot
+- name: "area: updates"
+  color: c5def5
+  description: Updates and rollback
+- name: "area: desktop"
+  color: c5def5
+  description: Taskbar, Start menu and desktop layout
+- name: "area: settings"
+  color: c5def5
+  description: Settings apps
+- name: "area: store"
+  color: c5def5
+  description: App Store
+- name: "area: windows-programs"
+  color: c5def5
+  description: Running Windows programs
+- name: "area: gaming"
+  color: c5def5
+  description: Games, Proton and launchers
+- name: "area: performance"
+  color: c5def5
+  description: Performance and benchmarks
+- name: "status: needs-triage"
+  color: ededed
+  description: Waiting for the maintainer to look at it
+- name: "status: confirmed"
+  color: 0e8a16
+  description: Reproduced or accepted
+- name: "status: blocked"
+  color: b60205
+  description: Waiting on something else
+- name: "good first issue"
+  color: 7057ff
+  description: Good for newcomers
+- name: "help wanted"
+  color: 008672
+  description: Extra help is welcome

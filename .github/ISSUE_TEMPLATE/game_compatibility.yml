@@ -1,0 +1,43 @@
+name: Game compatibility report
+description: Report whether a game works on OrielOS
+labels: ["type: compatibility", "status: needs-triage"]
+body:
+  - type: input
+    id: game
+    attributes:
+      label: Game
+    validations:
+      required: true
+  - type: dropdown
+    id: store
+    attributes:
+      label: Store
+      options:
+        - Steam
+        - Heroic
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: proton
+    attributes:
+      label: Proton version
+      description: For example "GE-Proton10-1". Write "native" for a Linux build.
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Works
+        - Works with tweaks
+        - Broken
+        - Blocked by anti-cheat
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Launch options, tweaks, performance, crashes, or the anti-cheat in use.

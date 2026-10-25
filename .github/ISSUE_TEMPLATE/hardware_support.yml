@@ -1,0 +1,36 @@
+name: Hardware support
+description: Report hardware that works, or does not work, on OrielOS
+labels: ["type: hardware", "status: needs-triage"]
+body:
+  - type: dropdown
+    id: device-type
+    attributes:
+      label: Device type
+      options:
+        - Graphics card
+        - Network or Wi-Fi
+        - Audio
+        - Bluetooth
+        - Storage
+        - Controller or input device
+        - Display
+        - Motherboard or other
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model
+    validations:
+      required: true
+  - type: textarea
+    id: works
+    attributes:
+      label: What works and what does not
+    validations:
+      required: true
+  - type: textarea
+    id: lspci
+    attributes:
+      label: Output of `lspci -nnk` and `lsusb`
+      render: text

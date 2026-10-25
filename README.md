@@ -57,7 +57,7 @@ Each folder has a short README describing what belongs there.
 
 ## Contributing
 
-OrielOS is developed in the open on GitHub. Changes go through pull requests into `main`. Contribution guidelines will be added before the first public build.
+OrielOS is developed in the open on GitHub. Changes go through pull requests into `main`. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and please follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as described in [SECURITY.md](SECURITY.md), and find where to ask questions in [SUPPORT.md](SUPPORT.md).
 
 ## Licence
 

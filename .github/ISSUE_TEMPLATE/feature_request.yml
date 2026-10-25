@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an improvement to OrielOS
+labels: ["type: feature", "status: needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that is hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: windows
+    attributes:
+      label: Windows behaviour it mirrors
+      description: If this matches something Windows 11 does, describe it.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
