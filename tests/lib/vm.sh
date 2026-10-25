@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Shared code for the VM tests: result lines, installing the image to a disk file, booting it
 # under QEMU/KVM with Secure Boot firmware and a software TPM, SSH into the VM through a vsock
-# device, finishing Plasma Setup and cleaning up. The VM's firmware has Universal Blue's
-# driver-signing key in shim's MokList unless MOK_ENROL is 0. Sourced by tests/boot-test.sh,
-# tests/update-test.sh and tests/secure-boot-key-test.sh.
+# device, pressing keys, clicking and taking screenshots over QMP, finishing Plasma Setup and
+# cleaning up. The VM's firmware has Universal Blue's driver-signing key in shim's MokList unless
+# MOK_ENROL is 0. Sourced by tests/boot-test.sh, tests/update-test.sh,
+# tests/secure-boot-key-test.sh and tests/screenshot-tour.sh.
 #
 # The caller sets IMAGE, MEMORY, CPUS, KEEP, WORK, RESULTS and SUMMARY (and ARCHIVE for
 # load_archive) before using these functions, and installs cleanup as its EXIT trap.
@@ -27,6 +28,14 @@
     UBLUE_KEY="/etc/pki/akmods/certs/akmods-ublue.der"
     # Owner GUID for the MokList entry: shim's own.
     MOK_OWNER="605dab50-e046-4300-abb6-3dd810dd8b23"
+    # Extra kernel arguments for the installation. The image boots with "quiet" for its splash
+    # screen. The checks read systemd's status lines and kernel messages from the serial console,
+    # so turn both back on there, and turn Plymouth off: while the splash runs it takes over the
+    # console output, so systemd's status lines never reach the serial console.
+    INSTALL_KARGS=(console=tty0 "console=ttyS0,115200" systemd.show_status=1 ignore_loglevel plymouth.enable=0)
+    # The VM's screen size as <width>x<height>, or empty for the graphics card's default. With a
+    # size, the VM also gets a USB tablet, so vm_qmp can click at a point on the screen.
+    VM_SCREEN=""
     PASSED=0
     FAILED=0
 }
@@ -237,6 +246,73 @@ wait_for_ssh() {
     return 1
 }
 
+# Drive the VM's keyboard and screen over QMP, one step after another: vm_qmp <step...>
+#   keys:<qcode>[+<qcode>...]   press keys together, for example keys:meta_l+e or keys:ret
+#   type:<text>                 type letters, digits, spaces and . - _ one key at a time
+#   shot:<file>                 save a screendump; PNG when the name ends in .png, PPM otherwise
+#   click:<x>,<y>               click the left mouse button at that pixel (needs VM_SCREEN)
+#   wait:<seconds>              pause
+vm_qmp() {
+    python3 -I - "$WORK/qmp.sock" "${VM_SCREEN:-0x0}" "$@" <<'PY'
+import json, socket, sys, time
+
+sock = socket.socket(socket.AF_UNIX)
+sock.settimeout(60)
+sock.connect(sys.argv[1])
+width, height = (int(n) for n in sys.argv[2].split("x"))
+f = sock.makefile("rw")
+NAMES = {" ": "spc", ".": "dot", "-": "minus", "_": "shift+minus"}
+
+
+def cmd(name, args=None):
+    msg = {"execute": name}
+    if args:
+        msg["arguments"] = args
+    f.write(json.dumps(msg) + "\n")
+    f.flush()
+    while True:
+        reply = json.loads(f.readline())
+        if "return" in reply or "error" in reply:
+            return reply
+
+
+def press(combo):
+    keys = [{"type": "qcode", "data": k} for k in combo.split("+")]
+    cmd("send-key", {"keys": keys, "hold-time": 80})
+    time.sleep(0.15)
+
+
+f.readline()
+cmd("qmp_capabilities")
+def click(x, y):
+    move = [{"type": "abs", "data": {"axis": "x", "value": int(x * 32767 / (width - 1))}},
+            {"type": "abs", "data": {"axis": "y", "value": int(y * 32767 / (height - 1))}}]
+    cmd("input-send-event", {"events": move})
+    time.sleep(0.3)
+    for down in (True, False):
+        cmd("input-send-event", {"events": [{"type": "btn", "data": {"down": down, "button": "left"}}]})
+        time.sleep(0.1)
+
+
+for step in sys.argv[3:]:
+    kind, _, value = step.partition(":")
+    if kind == "click" and width:
+        click(*(int(n) for n in value.split(",")))
+    elif kind == "keys":
+        press(value)
+    elif kind == "type":
+        for ch in value:
+            press(NAMES.get(ch) or ("shift+" + ch.lower() if ch.isupper() else ch))
+    elif kind == "shot":
+        fmt = "png" if value.endswith(".png") else "ppm"
+        cmd("screendump", {"filename": value, "format": fmt})
+    elif kind == "wait":
+        time.sleep(float(value))
+    else:
+        sys.exit("unknown step: " + step)
+PY
+}
+
 # Finish setup the way Plasma Setup does when the user clicks Finish: create the user with a
 # password and its own group, add it to the groups in /etc/xdg/plasmasetuprc, copy the theme and
 # display scaling chosen in the wizard to it, remove the wizard's autologin and write the done
@@ -265,19 +341,14 @@ finish_setup() {
 }
 
 install_image() {
-    local start=$SECONDS
+    local start=$SECONDS karg kargs=()
     info "Installing $IMAGE to a 30 GiB disk (this takes a few minutes)"
     truncate -s 30G "$WORK/disk.raw"
-    # The image boots with "quiet" for its splash screen. The checks read systemd's status lines
-    # and kernel messages from the serial console, so turn both back on there, and turn Plymouth
-    # off: while the splash runs it takes over the console output, so systemd's status lines
-    # never reach the serial console.
+    for karg in "${INSTALL_KARGS[@]}"; do kargs+=(--karg "$karg"); done
     podman run --rm --privileged --pid=host --security-opt label=disable \
         -v /var/lib/containers:/var/lib/containers -v /dev:/dev -v "$WORK:/output" \
         "$IMAGE" bootc install to-disk --via-loopback --generic-image --wipe \
-        --karg console=tty0 --karg console=ttyS0,115200 \
-        --karg systemd.show_status=1 --karg ignore_loglevel --karg plymouth.enable=0 \
-        /output/disk.raw >"$RESULTS/install.log" 2>&1 ||
+        "${kargs[@]}" /output/disk.raw >"$RESULTS/install.log" 2>&1 ||
         die "the installation failed; see $RESULTS/install.log"
     info "Installed in $((SECONDS - start)) s"
 }
@@ -315,12 +386,13 @@ start_vm() {
         -chardev "socket,id=chrtpm,path=$WORK/swtpm.sock"
         -tpmdev "emulator,id=tpm0,chardev=chrtpm" -device "tpm-crb,tpmdev=tpm0"
         -drive "file=$WORK/disk.raw,format=raw,if=virtio"
-        -device virtio-vga
+        -device "virtio-vga${VM_SCREEN:+,xres=${VM_SCREEN%x*},yres=${VM_SCREEN#*x}}"
         -audiodev "none,id=snd0" -device ich9-intel-hda -device "hda-output,audiodev=snd0"
         -netdev "user,id=n0" -device "virtio-net-pci,netdev=n0"
         -device "vhost-vsock-pci,guest-cid=$GUEST_CID"
         -smbios "type=11,value=io.systemd.credential.binary:ssh.authorized_keys.root=$(base64 -w0 "$WORK/ssh_key.pub")"
     )
+    if [[ -n "$VM_SCREEN" ]]; then BASE_ARGS+=(-device qemu-xhci -device usb-tablet); fi
     qemu-system-x86_64 "${BASE_ARGS[@]}" -display none \
         -serial "file:$WORK/serial.log" -qmp "unix:$WORK/qmp.sock,server=on,wait=off" \
         -daemonize -pidfile "$WORK/qemu.pid"

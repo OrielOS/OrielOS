@@ -156,9 +156,17 @@ tests/secure-boot-key-test.sh --archive FILE --keep
 
 It needs the same tools as the boot test and runs as root. A run takes about eight minutes. Results go to `tests/results/secure-boot-<image tag>-<UTC time>/`: `summary.txt`, `install.log`, `serial.log`, the screenshots, `mok-steps.txt` (when the blue screen appeared, and how much of each screenshot is blue) and `queued.txt` and `enrolled.txt`, what the VM reported before and after.
 
+## Screenshot tour
+
+`screenshot-tour.sh` is not a test: it shows what OrielOS looks like. It installs the image the way the boot test does, but keeps the boot splash, and boots it with a 1920×1080 screen and a USB tablet. It catches the splash, clicks through Plasma Setup and types an account (`alex`) on its user page, restarts, signs in at the login screen once Firefox is installed, and then opens Start, Start search, Files, Store, Process Manager, Settings, Firefox, Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock screen with the same keys a person would use, sent with QMP `send-key`. Between screenshots it closes the windows over SSH. If a step cannot be driven, it prints a WARN line and goes on: if the wizard does not create the account, setup is finished over SSH as in the boot test, and if typing the password does not sign in, SDDM's autologin is used. The numbered screenshots go to `tests/results/tour-<image tag>-<UTC time>/`, with `00-contact-sheet.png` when Pillow or ImageMagick is installed. It takes about fifteen minutes; `--image` and `--keep` work as in the boot test.
+
+```sh
+tests/screenshot-tour.sh
+```
+
 ## Shared VM code
 
-`lib/vm.sh` holds what both tests need: the PASS, FAIL, WARN and INFO lines, installing the image, starting the VM with its firmware, TPM and vsock device, SSH into the VM, finishing setup and cleaning up. Both tests source it. `.shellcheckrc` lets shellcheck follow it.
+`lib/vm.sh` holds what the VM scripts need: the PASS, FAIL, WARN and INFO lines, installing the image, starting the VM with its firmware, TPM and vsock device, SSH into the VM, pressing keys, clicking and taking screenshots over QMP, finishing setup and cleaning up. They all source it. `.shellcheckrc` lets shellcheck follow it.
 
 ## Still to come
 
