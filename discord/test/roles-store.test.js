@@ -4,7 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { desiredRoles, roleChanges } from "../src/roles.js";
+import { readConfig } from "../src/config.js";
+import { OPT_IN_ROLES, desiredRoles, roleChanges } from "../src/roles.js";
 import {
   dedupeLinks,
   linksToMove,
@@ -15,6 +16,19 @@ import {
 } from "../src/store.js";
 
 const roleIds = { maintainer: "R1", contributor: "R2" };
+
+test("opt-in roles have unique keys and emoji, and a configured role name each", () => {
+  assert.deepEqual(
+    OPT_IN_ROLES.map((role) => role.key),
+    ["testers", "nvidia", "amd"],
+  );
+  assert.equal(new Set(OPT_IN_ROLES.map((role) => role.emoji)).size, OPT_IN_ROLES.length);
+  const names = readConfig({}).names;
+  for (const role of OPT_IN_ROLES) {
+    assert.match(role.key, /^[a-z]+$/);
+    assert.equal(typeof names[role.key], "string");
+  }
+});
 
 test("desiredRoles matches the login and the GitHub ID", () => {
   const who = { maintainers: ["alice"], contributorIds: [7] };

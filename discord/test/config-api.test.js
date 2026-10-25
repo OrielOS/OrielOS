@@ -38,6 +38,8 @@ test("configuration has defaults", () => {
     maintainer: "Maintainer",
     contributor: "Contributor",
     testers: "Testers",
+    nvidia: "NVIDIA",
+    amd: "AMD",
   });
 });
 
@@ -46,11 +48,15 @@ test("configuration reads overrides", () => {
     GITHUB_REPOSITORY: "a/b",
     CHANNEL_FEED: "news",
     ROLE_CONTRIBUTOR: "Helper",
+    ROLE_NVIDIA: "GeForce",
+    ROLE_AMD: "Radeon",
     LINK_CLIENT_ID: "abc",
   });
   assert.equal(config.repo, "a/b");
   assert.equal(config.names.feed, "news");
   assert.equal(config.names.contributor, "Helper");
+  assert.equal(config.names.nvidia, "GeForce");
+  assert.equal(config.names.amd, "Radeon");
   assert.equal(config.linkClientId, "abc");
 });
 

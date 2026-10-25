@@ -24,6 +24,8 @@ export function readConfig(env) {
       maintainer: text("ROLE_MAINTAINER", "Maintainer"),
       contributor: text("ROLE_CONTRIBUTOR", "Contributor"),
       testers: text("ROLE_TESTERS", "Testers"),
+      nvidia: text("ROLE_NVIDIA", "NVIDIA"),
+      amd: text("ROLE_AMD", "AMD"),
     },
   };
 }
