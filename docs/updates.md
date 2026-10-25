@@ -53,7 +53,7 @@ allows it again.
 
 When the computer starts, the boot menu normally stays out of sight. It appears by itself, for 10 seconds, when the last start didn't reach the desktop, for example because the new version stopped partway or the screen stayed black. It lists the versions on the computer by name, such as **OrielOS 44.20261026**, with the one that normally starts at the top. Use the arrow keys to choose the previous version and press Enter. The highlighted version starts by itself when the 10 seconds are up.
 
-To open the boot menu at any start, press Esc or hold Shift just after the computer's own start-up screen.
+To open the boot menu at any start, press Esc once, or hold Shift, just after the computer's own start-up screen. Pressing Esc again while the menu is showing closes it and leaves a `grub>` prompt instead; type `reboot` and press Enter to start again.
 
 Choosing a version in the boot menu starts it this once. To keep it, go back to it from the tray icon once you're at the desktop.
 
