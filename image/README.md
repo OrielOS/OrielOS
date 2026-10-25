@@ -56,7 +56,7 @@ More system configuration (sysctl settings, udev rules, systemd units) will be a
 - SDDM with the Breeze theme on a Wayland greeter, and its settings page.
 - Plasma Setup, the first-boot wizard, with the Fedora look-and-feel and wallpapers it needs.
 - System Settings, power management, display, disk health, Thunderbolt, firewall, printing, Bluetooth, sound and network settings, including Wi-Fi, mobile broadband and the common VPN types.
-- The system tools that play the parts of Windows' built-in ones: Dolphin (File Explorer), Konsole (Terminal), Spectacle (Snipping Tool), Plasma System Monitor (Task Manager), Klipper (clipboard history, part of Plasma), System Settings, Discover, KInfoCenter and Ark (archive support in Dolphin).
+- The everyday system tools: Dolphin (named Files), Konsole (Terminal), Spectacle (named Screenshot), Plasma System Monitor (named Process Manager), Klipper (clipboard history, part of Plasma), System Settings, Discover, KInfoCenter and Ark (archive support in Dolphin).
 - Discover with only its Flatpak backend. Flathub is the only source: Fedora's own Flatpak remote is never added, and Flathub's remote file from `fedora-flathub-remote` is installed in `/usr/share/flatpak/remotes.d` without Fedora's filter, so all of Flathub is available. Discover cannot add Fedora packages to the OS.
 - NetworkManager, PipeWire (with PulseAudio, ALSA and JACK compatibility) and WirePlumber, BlueZ, CUPS with its filters, firewalld and Flatpak.
 - Breeze icons, cursors and GTK theme, and the Noto fonts, with CJK and colour emoji.
@@ -90,17 +90,17 @@ The Windows keyboard shortcuts work for every new user, and open the tools that 
 | Win+D | Show Desktop (KWin) | unchanged |
 | Win+Tab | KWin's Walk Through Windows, together with Alt+Tab (and Win+Shift+Tab with Alt+Shift+Tab for the reverse) | KWin's Overview, which a second press closes, and which keeps Win+W; Walk Through Windows keeps Alt+Tab and Alt+Shift+Tab only |
 | Win+I | System Settings (`Tools,Meta+I`) | unchanged |
-| Win+Shift+S | Spectacle (`Print,Meta+Shift+S`), which starts with a rectangular region | unchanged; Spectacle is named Snipping Tool |
+| Win+Shift+S | Spectacle (`Print,Meta+Shift+S`), which starts with a rectangular region | unchanged; Spectacle is named Screenshot |
 | Win+V | Klipper's clipboard history at the mouse pointer (`show-on-mouse-pos`) | unchanged |
 | Win+. | Emoji picker (`Meta+.,Meta+Ctrl+Alt+Shift+Space`) | unchanged |
-| Ctrl+Shift+Esc | nothing; System Monitor is on `Meta+Esc` | System Monitor (Task Manager), on both |
+| Ctrl+Shift+Esc | nothing; System Monitor is on `Meta+Esc` | System Monitor (named Process Manager), on both |
 | Win+Left/Right | KWin's Quick Tile Left/Right | unchanged |
 | Win+Up/Down | KWin's Quick Tile Top/Bottom | KWin's Maximise and Minimise, which keep Win+PgUp/PgDown; Quick Tile Top/Bottom have no shortcut |
 | Win+PrtSc | Spectacle's active window capture | a new Spectacle action, `spectacle --background --fullscreen`, which saves the whole desktop to Pictures/Screenshots without opening Spectacle's window; the active window moves to Alt+PrtSc, as on Windows |
 
 - **App shortcuts.** kglobalaccel reads app shortcuts from the `X-KDE-Shortcuts` keys of the desktop entries in `/usr/share/kglobalaccel` (some are links to the entries in `/usr/share/applications`), and the key `X-KDE-Shortcuts` of each `[Desktop Action ...]` group. `build/26-shortcuts.sh` changes those keys in place, like the Store rename. System Monitor's entry in `/usr/share/kglobalaccel` was a hard link to its menu entry, which editing would split, so the script replaces it with a symbolic link, as Dolphin's and Spectacle's already are.
 - **KWin shortcuts.** kglobalaccel keeps the other global shortcuts in each user's `~/.config/kglobalshortcutsrc`, so `system/etc/skel/.config/kglobalshortcutsrc` gives every new account (created by Plasma Setup or `useradd -m`) the `[kwin]` entries for Win+Tab and Win+Up/Down, and takes those keys off the actions that had them by default. Each value is the active shortcut, Plasma's default and the action's name; every other shortcut keeps Plasma's default, and the user can change any of them in System Settings. Accounts created before this change keep their shortcuts.
-- **Names.** `build/26-shortcuts.sh` uses `rename_entry` from `build/desktop-entry.sh` to name System Monitor **Task Manager** (`GenericName=System monitor`), Spectacle **Snipping Tool** (`GenericName=Screenshot tool`) and Dolphin **Files** (`GenericName=File manager`, as on the taskbar), and deletes their translated names. The apps' own windows still show their KDE names. KRunner keeps its name; it has no menu entry.
+- **Names.** `build/26-shortcuts.sh` uses `rename_entry` from `build/desktop-entry.sh` to name System Monitor **Process Manager** (`GenericName=System monitor`), Spectacle **Screenshot** (`GenericName=Screen capture`) and Dolphin **Files** (`GenericName=File manager`, as on the taskbar), and deletes their translated names. OrielOS uses its own plain names rather than Microsoft's names for its tools. `add_keywords` puts search words such as "processes", "end task", "snip" and "print screen" at the front of the first two entries' keywords, so Start search finds them by what people want to do. The apps' own windows still show their KDE names. KRunner keeps its name; it has no menu entry.
 - **No clashes.** The script fails the build if two desktop entries share a shortcut. It does not see KWin's or Plasma's built-in shortcuts, which the boot test checks in the new user's `kglobalshortcutsrc`.
 
 `tests/boot-test.sh` asks the new user's kglobalaccel which action each shortcut runs, fails if two actions in the user's `kglobalshortcutsrc` share a shortcut, presses Win+E and expects Files to start, and checks the names.

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Windows keyboard shortcuts and Windows names for the system tools. Gives System Monitor
+# Windows keyboard shortcuts and plain names for the system tools. Gives System Monitor
 # Ctrl+Shift+Esc, KRunner Win+R and Spectacle a Win+PrtSc action that saves a full screenshot
 # without a dialog, moves the Spectacle shortcuts those keys clash with, and renames System
-# Monitor, Spectacle and Dolphin to Task Manager, Snipping Tool and Files. The KWin shortcuts
+# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files. The KWin shortcuts
 # (Win+Tab and Win+Up/Down) are in system/etc/skel/.config/kglobalshortcutsrc.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
@@ -37,15 +37,29 @@ set_shortcuts() {
 # kglobalaccel reads the shortcuts of an app from its entry in /usr/share/kglobalaccel. Some of
 # those are hard links to the menu entry, which sed -i would split, so after the menu entry is
 # changed the kglobalaccel one becomes a link to it, as Dolphin's and Spectacle's already are.
+# Put search words at the front of an entry's English keywords, so Start finds the tool by what
+# people want to do with it. An entry without keywords gets them after its GenericName.
+#   add_keywords <file> <generic name> <words, each ending in ;>
+add_keywords() {
+    local file="$1" generic="$2" words="$3"
+    if grep -q '^Keywords=' "$file"; then
+        sed -i "s/^Keywords=/Keywords=${words}/" "$file"
+    else
+        sed -i "s/^GenericName=${generic}\$/&\nKeywords=${words}/" "$file"
+    fi
+    grep -q "^Keywords=${words}" "$file" || die "could not add keywords to $file; update $script"
+}
+
 link_accel() {
     local name="$1"
     [[ -e "$accel/$name" ]] || die "$accel/$name does not exist; update $script"
     ln -sf "$apps/$name" "$accel/$name"
 }
 
-# Task Manager: System Monitor, on Ctrl+Shift+Esc as well as Plasma's Win+Esc.
+# Process Manager: System Monitor, on Ctrl+Shift+Esc as well as Plasma's Win+Esc.
 monitor=$apps/org.kde.plasma-systemmonitor.desktop
-rename_entry "$monitor" "System Monitor" "Task Manager" "System monitor" "$script"
+rename_entry "$monitor" "System Monitor" "Process Manager" "System monitor" "$script"
+add_keywords "$monitor" "System monitor" "processes;tasks;end task;not responding;performance;cpu;memory;"
 set_shortcuts "$monitor" "Desktop Entry" "Meta+Esc" "Ctrl+Shift+Esc,Meta+Esc"
 link_accel org.kde.plasma-systemmonitor.desktop
 
@@ -53,11 +67,12 @@ link_accel org.kde.plasma-systemmonitor.desktop
 # keeps Win+Shift+R.
 set_shortcuts "$accel/org.kde.krunner.desktop" "Desktop Entry" "Alt+Space,Alt+F2,Search" "Meta+R,Alt+Space,Alt+F2,Search"
 
-# Snipping Tool: Spectacle. Win+Shift+S (a rectangular region) is Plasma's default. Win+PrtSc
+# Screenshot: Spectacle. Win+Shift+S (a rectangular region) is Plasma's default. Win+PrtSc
 # saves the whole desktop to Pictures/Screenshots without opening Spectacle's window, as on
 # Windows, and the active window moves to Alt+PrtSc, its Windows key.
 spectacle=$apps/org.kde.spectacle.desktop
-rename_entry "$spectacle" Spectacle "Snipping Tool" "Screenshot tool" "$script"
+rename_entry "$spectacle" Spectacle Screenshot "Screen capture" "$script"
+add_keywords "$spectacle" "Screen capture" "screenshot;screen capture;snip;print screen;capture;"
 set_shortcuts "$spectacle" "Desktop Action RecordRegion" "Meta+Shift+R,Meta+R" "Meta+Shift+R"
 set_shortcuts "$spectacle" "Desktop Action ActiveWindowScreenShot" "Meta+Print" "Alt+Print"
 grep -q '^Actions=.*;$' "$spectacle" || die "$spectacle has no Actions= list ending in ;; update $script"

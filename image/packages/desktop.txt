@@ -113,9 +113,9 @@ plasma-discover-notifier
 flatpak-kcm
 fedora-flathub-remote
 
-# The system tools that play the parts of Windows' built-in ones: File Explorer, Terminal,
-# Snipping Tool and archive support in File Explorer. Task Manager (plasma-systemmonitor),
-# System Settings, the system information page (kinfocenter) and Discover are listed above.
+# The everyday system tools: Files, Terminal, Screenshot and archive support in Files.
+# Process Manager (plasma-systemmonitor), System Settings, the system information page
+# (kinfocenter) and Discover are listed above.
 dolphin
 kio-extras
 konsole

@@ -896,10 +896,10 @@ run_checks() {
         fail "Windows shortcuts are set, but more than one action has the same shortcut: $(paste -sd ';' - <<<"$SHORTCUT_CLASHES")"
     elif [[ -z "$WIN_E_SECONDS" ]]; then
         fail "Windows shortcuts are set, but pressing Win+E over QMP did not start Dolphin within 20 s"
-    elif [[ "$TOOL_NAMES" != "Name=Task Manager,Name=Snipping Tool,Name=Files" ]]; then
-        fail "System Monitor, Spectacle and Dolphin do not have their Windows names (${TOOL_NAMES:-no output})"
+    elif [[ "$TOOL_NAMES" != "Name=Process Manager,Name=Screenshot,Name=Files" ]]; then
+        fail "System Monitor, Spectacle and Dolphin do not have their OrielOS names (${TOOL_NAMES:-no output})"
     else
-        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Task Manager, Snipping Tool and Files)"
+        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Process Manager, Screenshot and Files)"
     fi
 
     info "Store and Firefox"
