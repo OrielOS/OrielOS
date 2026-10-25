@@ -29,6 +29,7 @@ jobs:
       pages: read
     outputs:
       enabled: ${{ steps.pages.outputs.enabled }}
+      indexnow: ${{ steps.changed.outputs.urls }}
     steps:
       - name: Check that GitHub Pages is turned on
         id: pages
@@ -64,6 +65,12 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node website/build.mjs
 
+      # Compared with the live site before the deploy replaces it.
+      - name: Find the pages that changed
+        id: changed
+        if: steps.pages.outputs.enabled == 'true' && github.event_name != 'pull_request'
+        run: node website/indexnow.mjs changed
+
       - name: Upload the website
         if: steps.pages.outputs.enabled == 'true' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
@@ -90,3 +97,27 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  indexnow:
+    name: indexnow
+    needs: [build, deploy]
+    if: needs.deploy.result == 'success' && needs.build.outputs.indexnow != '' && needs.build.outputs.indexnow != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Tell search engines what changed
+        env:
+          INDEXNOW_URLS: ${{ needs.build.outputs.indexnow }}
+        run: node website/indexnow.mjs submit
