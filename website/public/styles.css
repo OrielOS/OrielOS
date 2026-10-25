@@ -565,6 +565,21 @@ code {
   color: var(--text-muted);
 }
 
+/* Share links: plain links to each site's share page, so nothing loads until one is clicked */
+
+.share {
+  margin-top: var(--space-8);
+}
+
+.share-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
 .goals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));

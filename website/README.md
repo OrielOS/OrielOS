@@ -48,6 +48,10 @@ The build fails unless every page that search engines may index (all but those m
 
 Script blocks must be `application/ld+json` structured data that parses as JSON; anything that would run in the browser fails the build. The home page's structured data names the site and the OrielOS organisation, with its logo and its GitHub and Discord pages.
 
+Every `<img>` needs alt text, even decorative ones inside parts hidden from screen readers, because search engines read it and SEO checkers flag empty `alt`. A contributor's avatar reads "<name>’s avatar", so it doesn't just repeat the name beside it.
+
+The "Share OrielOS" links are plain links to each site's own share page (X, Bluesky, Reddit, Facebook) and a `mailto:` link, so nothing is loaded from those sites unless a visitor clicks one.
+
 The build then writes `sitemap.xml` with every checked page. It has no `lastmod` dates, because a shallow checkout can't give accurate ones. `robots.txt` lets every crawler in and points to the sitemap.
 
 ## Publishing

@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- orielos.org has "Share OrielOS" links for X, Bluesky, Reddit, Facebook and email, which contact those sites only when clicked, and every image on the page has alt text.
 - orielos.org tells search engines and link previews what it is: a clearer page title, the OrielOS name and logo as structured data, a sitemap, a short summary for AI tools, and a notice to search engines whenever a page changes. Every crawler is welcome, and the site still has no cookies, analytics or scripts.
 - On the OrielOS Discord server, members can react 🟢 or 🔴 on the about message to get the NVIDIA or AMD role and show which graphics card they have. Removing the reaction takes the role away.
 - OrielOS's own Start menu replaces Plasma's launcher on the taskbar.

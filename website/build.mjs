@@ -64,8 +64,8 @@ function attributesOf(tag) {
 }
 
 // What search engines and link previews read from a page: its titles, the
-// meta tags by name or property (the first of each), the canonical link and
-// every script block.
+// meta tags by name or property (the first of each), the canonical link,
+// every script block and every image.
 export function readHead(html) {
   const head = /<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(html)?.[1] ?? "";
   const titles = [...head.matchAll(/<title\b[^>]*>([\s\S]*?)<\/title>/gi)].map((match) =>
@@ -94,7 +94,8 @@ export function readHead(html) {
   if ((html.match(/<script\b/gi)?.length ?? 0) > scripts.length) {
     scripts.push({ type: "unclosed", body: "" });
   }
-  return { titles, meta, canonical, scripts };
+  const images = [...html.matchAll(/<img\b[^>]*>/gi)].map(([tag]) => attributesOf(tag));
+  return { titles, meta, canonical, scripts, images };
 }
 
 export function isNoindex(html) {
@@ -116,7 +117,7 @@ export function checkPages(pages) {
   const seen = { title: new Map(), description: new Map(), "canonical link": new Map() };
   for (const { file, url, html } of pages) {
     const problem = (message) => problems.push(`${file}: ${message}`);
-    const { titles, meta, canonical, scripts } = readHead(html);
+    const { titles, meta, canonical, scripts, images } = readHead(html);
 
     const title = titles[0] ?? "";
     if (titles.length !== 1 || title === "") {
@@ -137,6 +138,11 @@ export function checkPages(pages) {
     if (meta["og:url"] !== url) problem(`og:url should be ${url}.`);
     if (meta["og:image"] && !meta["og:image"].startsWith(`${SITE}/`)) {
       problem(`og:image should be on ${SITE}.`);
+    }
+    // Search engines read alt text, and SEO checkers flag empty alt, so even
+    // images in parts hidden from screen readers get some.
+    for (const image of images) {
+      if (!image.alt?.trim()) problem(`an <img> has no alt text: ${image.src ?? "(no src)"}.`);
     }
     for (const script of scripts) {
       if (script.type !== "application/ld+json") {
@@ -279,7 +285,8 @@ export function renderPage(template, { contributors, release }) {
     .map(
       (person) =>
         `<li><a href="https://github.com/${encodeURIComponent(person.login)}">` +
-        `<img src="${escapeHtml(person.avatar)}" alt="" width="56" height="56" loading="lazy" decoding="async">` +
+        // The alt text differs from the name beside it, which Lighthouse would flag as redundant.
+        `<img src="${escapeHtml(person.avatar)}" alt="${escapeHtml(person.login)}’s avatar" width="56" height="56" loading="lazy" decoding="async">` +
         `<span class="person-name">${escapeHtml(person.login)}</span></a></li>`,
     )
     .join("\n          ");

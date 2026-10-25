@@ -171,7 +171,7 @@ test("renderPage throws on an unknown leftover marker", () => {
 });
 
 // A page that passes every search check, for the tests to break one part at a time.
-function page({ url = "https://orielos.org/", title = "A page", description = "What the page is about.", head = "" } = {}) {
+function page({ url = "https://orielos.org/", title = "A page", description = "What the page is about.", head = "", body = "" } = {}) {
   return `<!doctype html><html><head>
 <title>${title}</title>
 <meta name="description" content="${description}">
@@ -181,7 +181,7 @@ function page({ url = "https://orielos.org/", title = "A page", description = "W
 <meta property="og:url" content="${url}">
 <meta property="og:image" content="https://orielos.org/images/open-graph.png">
 <meta property="og:image:alt" content="A picture">
-${head}</head><body></body></html>`;
+${head}</head><body>${body}</body></html>`;
 }
 
 const check = (...pages) =>
@@ -222,6 +222,37 @@ test("checkPages reports each missing or wrong part", () => {
     () => check(page().replace("https://orielos.org/images", "https://example.com/images")),
     /og:image should be on https:\/\/orielos\.org/,
   );
+});
+
+test("checkPages wants alt text on every image", () => {
+  assert.doesNotThrow(() => check(page({ body: '<img src="a.png" alt="A diagram">' })));
+  assert.throws(() => check(page({ body: '<img src="a.png">' })), /an <img> has no alt text: a\.png/);
+  assert.throws(() => check(page({ body: '<img src="b.png" alt="">' })), /an <img> has no alt text: b\.png/);
+  assert.throws(() => check(page({ body: "<img alt=' ' src=c.png>" })), /an <img> has no alt text: c\.png/);
+});
+
+test("the home page with contributors gives every image alt text", () => {
+  const contributors = [{ login: "alice", avatar: "avatars/1.png" }];
+  const html = renderPage(template, { contributors, release: null });
+  assert.doesNotThrow(() => checkPages([{ file: "index.html", url: "https://orielos.org/", html }]));
+  assert.match(html, /<img src="avatars\/1\.png" alt="alice’s avatar"/);
+  assert.doesNotMatch(html, /alt=""/);
+});
+
+test("the home page has share links that only navigate", () => {
+  const html = renderPage(template, { contributors: [], release: null });
+  const links = [...html.matchAll(/<a\b[^>]*aria-label="(Share[^"]*)"[^>]*href="([^"]*)"/g)].map(([, label, href]) => ({
+    label,
+    href: href.replaceAll("&amp;", "&"),
+  }));
+  assert.deepEqual(
+    links.map((link) => link.label),
+    ["Share on X", "Share on Bluesky", "Share on Reddit", "Share on Facebook", "Share by email"],
+  );
+  for (const { href } of links) {
+    assert.match(href, /^(https:\/\/|mailto:)/);
+    assert.match(decodeURIComponent(href), /https:\/\/orielos\.org\//);
+  }
 });
 
 test("checkPages allows structured data but no scripts that run", () => {
