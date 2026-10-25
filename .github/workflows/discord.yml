@@ -47,14 +47,23 @@ jobs:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
         run: |
+          rc=0
           if [ "${EVENT}" = "push" ] && [ "$(git rev-parse HEAD^1 2>/dev/null)" != "${BEFORE}" ]; then
-              changed=true
-          elif git diff --quiet HEAD^1 HEAD -- discord .github/workflows/discord.yml; then
-              changed=false
-              echo "::notice::The bot hasn't changed, so its tests were not run."
+              rc=2
           else
-              changed=true
+              git diff --quiet HEAD^1 HEAD -- discord .github/workflows/discord.yml || rc=$?
           fi
+          case "${rc}" in
+              0)
+                  changed=false
+                  echo "::notice::The bot hasn't changed, so its tests were not run."
+                  ;;
+              1) changed=true ;;
+              *)
+                  changed=true
+                  echo "::warning::Couldn't compare with the previous commit, so the bot's tests are run."
+                  ;;
+          esac
           echo "changed=${changed}" >>"${GITHUB_OUTPUT}"
 
       - name: Set up Node
