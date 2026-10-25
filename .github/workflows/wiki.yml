@@ -1,0 +1,117 @@
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "tools/build-wiki.mjs"
+      - "tools/test/**"
+      - ".github/workflows/wiki.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "tools/build-wiki.mjs"
+      - "tools/test/**"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Test the wiki build
+        run: node --test "tools/test/*.test.mjs"
+
+      - name: Check that the wiki builds
+        run: node tools/build-wiki.mjs --out "$RUNNER_TEMP/wiki"
+
+  publish:
+    name: publish
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: wiki
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Check that the wiki is turned on
+        id: wiki
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .has_wiki)" = "true" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::The wiki is off for this repository, so the documentation is not published to it."
+          fi
+
+      - name: Check out the repository
+        if: steps.wiki.outputs.enabled == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        if: steps.wiki.outputs.enabled == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Build the wiki
+        if: steps.wiki.outputs.enabled == 'true'
+        run: node tools/build-wiki.mjs --out "$RUNNER_TEMP/wiki"
+
+      - name: Clone the wiki
+        if: steps.wiki.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          if ! git -c http.extraheader="AUTHORIZATION: basic $auth" \
+            clone "https://github.com/$GITHUB_REPOSITORY.wiki.git" "$RUNNER_TEMP/wiki-repo"; then
+            echo "::error::The wiki has no pages yet. Open the Wiki tab, create the first page with any text, then run this workflow again."
+            exit 1
+          fi
+
+      - name: Replace the wiki's pages and push
+        if: steps.wiki.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd "$RUNNER_TEMP/wiki-repo" || exit 1
+          git ls-files -z | xargs -0 --no-run-if-empty git rm -q -f --
+          cp -R "$RUNNER_TEMP/wiki/." .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The wiki is already up to date."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Update from docs/ at ${GITHUB_SHA:0:7}"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push origin HEAD

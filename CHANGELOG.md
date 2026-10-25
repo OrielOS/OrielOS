@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- A wiki on GitHub that mirrors the user documentation in `docs/`, regenerated whenever the documentation changes.
 - The orielos.org website: one page with OrielOS's goals, status, download and contributors, built from `website/` and published to GitHub Pages. Its download section links straight to the newest release's installer, with its size and SHA-256 checksum.
 - The lock screen shows the time and date under the orange sill of the OrielOS wallpaper, in dark text on Daybreak and white on Nightfall, and hides them while you type your password.
 - A Sponsor button on the repository, for supporting OrielOS through GitHub Sponsors.

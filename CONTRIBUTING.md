@@ -36,6 +36,10 @@ CI runs the linters and checks on every pull request, and it must pass before a 
 - QML passes `qmllint`.
 - Every user-visible string goes through KI18n so that it can be translated.
 
+## Documentation
+
+User documentation lives in `docs/`, and the repository's wiki is generated from it each time it changes. To improve a page, change its file in `docs/` in a pull request; edits made on the wiki are lost.
+
 ## Artwork
 
 Artwork must be original, or under a compatible licence with the author and licence recorded alongside it. Nothing owned by Microsoft may be used: no logos, fonts, icons, sounds or wallpapers.

@@ -2,6 +2,8 @@
 
 User documentation for OrielOS.
 
+These pages are also published as the repository's [wiki](https://github.com/ncjsvr/OrielOS/wiki), which is generated from this folder.
+
 Contains:
 
 - [Try OrielOS in a virtual machine](install-vm.md): build OrielOS, make a virtual machine disk and start it in QEMU or VMware Workstation.
