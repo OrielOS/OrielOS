@@ -2,7 +2,10 @@ blank_issues_enabled: false
 contact_links:
   - name: Ask a question
     url: https://github.com/ncjsvr/OrielOS/discussions/categories/q-a
-    about: Questions and ideas belong in GitHub Discussions, in the Q&A category.
+    about: Questions about installing and using OrielOS go in the Q&A category of GitHub Discussions.
+  - name: Start a discussion
+    url: https://github.com/ncjsvr/OrielOS/discussions/categories/general
+    about: Ideas, feedback and anything else about OrielOS go in the General category of GitHub Discussions.
   - name: Report a security vulnerability
     url: https://github.com/ncjsvr/OrielOS/security/advisories/new
     about: Report vulnerabilities privately. Please do not open a public issue.

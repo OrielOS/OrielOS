@@ -1,0 +1,28 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing discussions and the [user guides](https://github.com/ncjsvr/OrielOS/tree/main/docs) before you ask.
+
+        If something is broken, [open an issue](https://github.com/ncjsvr/OrielOS/issues/new/choose) instead. Security problems must be reported as described in [SECURITY.md](https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md), never posted publicly.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you have tried
+  - type: textarea
+    id: build
+    attributes:
+      label: OrielOS build
+      description: If your question is about an installed system, paste the output of `rpm-ostree status` or `bootc status`.
+      render: text
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver version
+      description: For example "RTX 4070, driver 580.xx". `nvidia-smi` shows both.
