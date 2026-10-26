@@ -164,7 +164,7 @@ Results go to `tests/results/<run id>/` (ignored by git), or to the folder given
 - `start-recommended.png`, `start-tab-1.png` to `start-tab-6.png`, `start-power-menu.png`, `start-account-menu.png` and `start-unpin-menu.png`: Recommended, the Tab order, the two menus and unpinning, for reading by eye. `start-appletsrc-unpinned` is the layout after unpinning.
 - `summary.txt`: the same lines as the test printed.
 
-The disk, the SSH key and the VM's other files live in `/var/lib/orielos/vm/<run id>` while the test runs and are deleted afterwards. With `--keep` they stay, and the test prints how to boot the disk again (setup is finished on it, so it starts at the login screen), with the same vsock device and key so SSH keeps working.
+The disk, the SSH key and the VM's other files live in `/var/lib/orielos/vm/<run id>` while the test runs and are deleted afterwards (see [Shared VM code](#shared-vm-code)). With `--keep` they stay until `tools/clean.sh` removes them, and the test prints how to boot the disk again (setup is finished on it, so it starts at the login screen), with the same vsock device and key so SSH keeps working.
 
 ## Update test
 
@@ -238,7 +238,7 @@ tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/
 tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
 ```
 
-`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about an hour and a quarter: the installation, about sixteen restarts, copying the archive, importing it three times and several desktop logins.
+`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. `tools/build-image.sh` keeps only the newest build, so build the new one with `--keep 2` to keep the old one for `--old`, and run `tools/clean.sh` afterwards. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about an hour and a quarter: the installation, about sixteen restarts, copying the archive, importing it three times and several desktop logins.
 
 Each restart is started with `systemctl reboot` over SSH; the VM restarts in place. The test waits for SSH to go away and answer again, then checks that `/proc/sys/kernel/random/boot_id` changed. `--timeout` is how long it waits for SSH after power-on and after each restart.
 
@@ -341,6 +341,12 @@ It uses 4 GiB of memory by default and takes about ten minutes. `probe.txt` in t
 ## Shared VM code
 
 `lib/vm.sh` holds what the VM scripts need: the PASS, FAIL, WARN and INFO lines, installing the image, starting the VM with its firmware, TPM and vsock device, SSH into the VM, pressing keys, clicking and taking screenshots over QMP, finishing setup and cleaning up. They all source it. `.shellcheckrc` lets shellcheck follow it. SSH goes through `systemd-ssh-proxy`, or through `socat`'s `VSOCK-CONNECT` where systemd is older than 256, as on GitHub's Ubuntu 24.04 runners.
+
+A VM test takes tens of gigabytes while it runs, so the tests keep the disk lean:
+
+- **One at a time.** Each test takes the lock in `tools/lib/lock.sh` (`/run/lock/orielos.lock`) before it creates anything, and holds it until it ends. A second test, or an image build, stops at once with an error naming the process that holds it.
+- **They delete what they make.** When a test ends, passed, failed or interrupted, it removes its work folder and disk, and any image it loaded from an archive. With `--keep` the disk stays, and its folder is marked with a `kept` file.
+- **Leftovers go.** A run that is killed, by `wsl --shutdown` for example, never cleans up, so the next test removes the folders such runs left in `/var/lib/orielos/vm`. It leaves kept disks and folders whose VM still runs, and lists them. `tools/clean.sh` removes everything, kept disks too.
 
 ## Still to come
 

@@ -32,7 +32,7 @@ The check's list is in `.github/workflows/protected-files.yml`. Dependabot's dep
 
 ### Building, linting and testing
 
-All tools run inside Linux or WSL2.
+All tools run inside Linux or WSL2. An image build or VM test takes tens of gigabytes while it runs, and they run one at a time; `tools/clean.sh` frees what's left afterwards.
 
 - `tools/check-env.sh` checks that the machine can build and boot-test the image.
 - `tools/install-lint-tools.sh` installs the pinned linters once; `tools/lint.sh` then runs all of them.

@@ -25,6 +25,8 @@ OUTPUT="/var/lib/orielos/vm-disks"
 FORMATS="qcow2,vmdk"
 SERIAL=0
 WORK=""
+# The image load_archive added to Podman, which cleanup removes again.
+LOADED=""
 
 die() {
     printf 'error: %s\n' "$1" >&2
@@ -41,12 +43,17 @@ cleanup() {
     local rc=$?
     trap - EXIT
     if [[ -n "$WORK" ]]; then rm -rf "$WORK"; fi
+    if [[ -n "$LOADED" ]]; then
+        podman rmi "$LOADED" >/dev/null 2>&1 || true
+        podman image prune -f >/dev/null 2>&1 || true
+    fi
     exit "$rc"
 }
 
 load_archive() {
     local id
     [[ -r "$ARCHIVE" ]] || die "cannot read $ARCHIVE"
+    if ! podman image exists "$IMAGE"; then LOADED="$IMAGE"; fi
     step "Loading $ARCHIVE as $IMAGE"
     # skopeo creates only the requested tag; podman pull also tags the archive's own name.
     if command -v skopeo >/dev/null 2>&1; then
@@ -153,6 +160,7 @@ main() {
         command -v "$cmd" >/dev/null 2>&1 || die "$cmd is not installed (tools/check-env.sh shows what is missing)"
     done
 
+    trap cleanup EXIT
     if [[ -n "$ARCHIVE" ]]; then
         tag="${ARCHIVE##*/}"
         IMAGE="localhost/orielos-archive:${tag%.ociarchive}"
@@ -163,7 +171,6 @@ main() {
 
     mkdir -p "$OUTPUT"
     WORK="$(mktemp -d "$OUTPUT/.work-XXXXXX")"
-    trap cleanup EXIT
     raw="$WORK/disk.raw"
     install_image "$raw"
     for format in "${formats[@]}"; do
