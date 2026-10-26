@@ -5,7 +5,7 @@
 # Widgets, and OrielOS's own, under categories in the order Windows Settings uses.
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets)
-find_package(KF6 6.0 REQUIRED COMPONENTS KCMUtils WidgetsAddons DBusAddons WindowSystem CoreAddons Runner KIO)
+find_package(KF6 6.0 REQUIRED COMPONENTS KCMUtils WidgetsAddons DBusAddons WindowSystem CoreAddons Runner KIO JobWidgets)
 
 # The categories, pages and search, finding the modules, and the search Start and KRunner use,
 # apart from the window, so the runner and the unit tests can use them. Position-independent,

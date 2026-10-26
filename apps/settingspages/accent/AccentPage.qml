@@ -83,7 +83,7 @@ KCM.SimpleKCM {
         QQC2.Button {
             text: root.l10n.i18nc("@action:button", "Use the theme's colour")
             icon.name: "edit-undo"
-            enabled: !root.accent.busy && root.accent.themeColour.valid && !Qt.colorEqual(root.accent.current, root.accent.themeColour)
+            enabled: !root.accent.busy && root.accent.current.valid
             onClicked: root.accent.useThemeColour()
         }
 

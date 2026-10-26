@@ -1,13 +1,15 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Loads the built settings modules the way Settings and System Settings do, and fails on any QML
-// warning. Start and Taskbar can't reach a desktop here, so they show that instead.
+// Loads the built settings modules the way Settings does, one after another into one shared QML
+// engine, and fails on any QML warning. Start and Taskbar can't reach a desktop here, so they show
+// that instead.
 
 #include <KPluginMetaData>
 #include <KQuickConfigModule>
 #include <KQuickConfigModuleLoader>
 
+#include <QQmlEngine>
 #include <QQuickItem>
 #include <QTest>
 
@@ -34,6 +36,14 @@ class PagesLoadTest : public QObject
 private Q_SLOTS:
     void initTestCase() { defaultHandler = qInstallMessageHandler(recordQmlWarnings); }
 
+    // The modules go before the engine they were loaded into.
+    void cleanupTestCase()
+    {
+        qDeleteAll(m_modules);
+        m_modules.clear();
+        m_engine.reset();
+    }
+
     void loadsThePage_data()
     {
         QTest::addColumn<QString>("id");
@@ -56,8 +66,10 @@ private Q_SLOTS:
         QVERIFY2(metaData.isValid(), qPrintable(id + QStringLiteral(" isn't in plasma/kcms/systemsettings on QT_PLUGIN_PATH")));
         QCOMPARE(metaData.name(), name);
         QCOMPARE(metaData.value(QStringLiteral("X-KDE-System-Settings-Parent-Category")), category);
-        const auto result = KQuickConfigModuleLoader::loadModule(metaData, this);
+        // Settings shares one engine across every page, so each module here joins the ones before.
+        const auto result = KQuickConfigModuleLoader::loadModule(metaData, nullptr, { }, m_engine);
         QVERIFY2(result.plugin, qPrintable(result.errorString));
+        m_modules.append(result.plugin);
         QQuickItem *page = result.plugin->mainUi();
         QVERIFY2(page, qPrintable(result.plugin->errorString()));
         QVERIFY2(result.plugin->errorString().isEmpty(), qPrintable(result.plugin->errorString()));
@@ -65,6 +77,10 @@ private Q_SLOTS:
         QTest::qWait(500);
         QVERIFY2(qmlWarnings.isEmpty(), qPrintable(qmlWarnings.join(QLatin1Char('\n'))));
     }
+
+private:
+    std::shared_ptr<QQmlEngine> m_engine = std::make_shared<QQmlEngine>();
+    QList<KQuickConfigModule *> m_modules;
 };
 
 QTEST_MAIN(PagesLoadTest)
