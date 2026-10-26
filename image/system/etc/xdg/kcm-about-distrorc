@@ -1,0 +1,5 @@
+# OrielOS: About this System takes its logo from os-release (LOGO=orielos-logo-icon) and shows the
+# whole build version, such as 44.20261026, not only the Fedora release. This replaces Fedora's KDE
+# settings, which point the page at Fedora's logo; LogoPath must stay unset for os-release to count.
+[General]
+UseOSReleaseVersion=true

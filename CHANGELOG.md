@@ -66,5 +66,6 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- About this System shows the OrielOS logo and the whole version, such as 44.20261026, instead of Fedora's logo.
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.
 - The Discord bot no longer cuts an emoji in half when it shortens a long title or release note.

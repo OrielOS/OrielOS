@@ -41,6 +41,7 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
   - `usr/libexec/orielos/flatpak-setup` and `usr/lib/systemd/system/orielos-flatpak-setup.service`: the first-boot install of Firefox from Flathub (see [The Store](#the-store)).
   - `usr/libexec/orielos/secure-boot-key`, `usr/lib/systemd/system/orielos-secure-boot-key.service`, `usr/libexec/orielos/secure-boot-notify` and `etc/xdg/autostart/orielos-secure-boot-notify.desktop`: the Secure Boot key step (see [Secure Boot](#secure-boot)). The Containerfile copies `system/etc/` to `/etc`, which bootc keeps as the default configuration.
   - `etc/skel/.config/kglobalshortcutsrc`: the KWin shortcuts every new user starts with (see [Keyboard shortcuts](#keyboard-shortcuts)).
+  - `etc/xdg/kcm-about-distrorc`: About this System (in System Settings and Info Center) shows OrielOS's logo, which os-release's `LOGO=orielos-logo-icon` names (`build/95-version.sh`), and the whole build version. It replaces Fedora's file, which points the page at Fedora's logo; it must not set `LogoPath`, or that wins over os-release.
   - `etc/xdg/dolphinrc`: Files (Dolphin) opens a fresh window on the Home folder instead of restoring the last session's tabs.
   - `etc/xdg/kscreenlockerrc`: the lock screen shows the OrielOS wallpaper instead of Fedora's (see [The taskbar](#the-taskbar)).
   - `usr/lib/modules-load.d/orielos-ntsync.conf`, `usr/lib/sysctl.d/60-orielos-gaming.conf` and `usr/lib/udev/rules.d/70-orielos-playstation-touchpad.rules`: the gaming defaults (see [Gaming](#gaming)).

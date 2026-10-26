@@ -158,6 +158,13 @@ if [[ "$(kreadconfig6 --file /etc/xdg/kscreenlockerrc --group Greeter --group Wa
     --group General --key Image)" != "file:///usr/share/wallpapers/OrielOS/" ]]; then
     taskbar_errors+=("/etc/xdg/kscreenlockerrc does not make OrielOS the lock screen wallpaper")
 fi
+# About this System shows the logo os-release names (95-version.sh sets LOGO=orielos-logo-icon), as
+# long as /etc/xdg/kcm-about-distrorc sets no LogoPath of its own.
+[[ -f /usr/share/icons/hicolor/scalable/apps/orielos-logo-icon.svg ]] ||
+    taskbar_errors+=("OrielOS's logo icon, orielos-logo-icon.svg, is not installed")
+if [[ -n "$(kreadconfig6 --file /etc/xdg/kcm-about-distrorc --group General --key LogoPath)" ]]; then
+    taskbar_errors+=("/etc/xdg/kcm-about-distrorc points About this System at another logo")
+fi
 if [[ "${#taskbar_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${taskbar_errors[@]}" >&2
     exit 1
