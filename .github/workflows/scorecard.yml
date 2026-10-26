@@ -25,7 +25,21 @@ jobs:
         with:
           persist-credentials: false
 
+      # Scorecard's first GitHub query reads 100 commits with their pull requests and reviews, and
+      # GitHub sometimes cuts it off at its 10-second limit (504 Gateway Timeout). One more try
+      # gets past most of those. Publishing results allows only approved actions in this job, so
+      # the retry is a second step rather than a shell loop.
       - name: Run the analysis
+        id: analysis
+        continue-on-error: true
+        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Run the analysis again
+        if: steps.analysis.outcome == 'failure'
         uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
         with:
           results_file: results.sarif
