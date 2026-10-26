@@ -16,7 +16,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
     </entry>
     <entry name="favorites" type="StringList">
       <label>The pinned apps, in order, as desktop entry IDs.</label>
-      <default>org.kde.dolphin.desktop,org.mozilla.firefox.desktop,org.kde.discover.desktop,systemsettings.desktop,org.kde.konsole.desktop,org.kde.plasma-systemmonitor.desktop,org.kde.spectacle.desktop</default>
+      <default>org.kde.dolphin.desktop,org.mozilla.firefox.desktop,org.kde.discover.desktop,org.orielos.Settings.desktop,org.kde.konsole.desktop,org.kde.plasma-systemmonitor.desktop,org.kde.spectacle.desktop</default>
     </entry>
   </group>
 </kcfg>

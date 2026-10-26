@@ -188,10 +188,10 @@ void Notifier::restart()
 
 void Notifier::openSettings()
 {
-    // System Settings opens the page in its own window, or in the window it already has. The tray
-    // passes an activation token with the click, so the window gets the focus.
+    // Settings opens the page in its own window, or in the window it already has. The tray passes
+    // an activation token with the click, so the window gets the focus.
     QProcess process;
-    process.setProgram(QStringLiteral("systemsettings"));
+    process.setProgram(QStringLiteral("orielos-settings"));
     process.setArguments({ QLatin1String(settingsModule) });
     const QString token = m_item->providedToken();
     if (!token.isEmpty()) {

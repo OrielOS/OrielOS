@@ -107,7 +107,7 @@ SHORTCUT_TABLE=(
     "Meta+L|0x1000004c|ksmserver|Lock Session"
     "Meta+D|0x10000044|kwin|Show Desktop"
     "Meta+Tab|0x11000001|kwin|Overview"
-    "Meta+I|0x10000049|systemsettings.desktop|_launch"
+    "Meta+I|0x10000049|org.orielos.Settings.desktop|_launch"
     "Meta+Shift+S|0x12000053|org.kde.spectacle.desktop|_launch"
     "Meta+V|0x10000056||show-on-mouse-pos"
     "Meta+.|0x1000002e|org.kde.plasma.emojier.desktop|_launch"

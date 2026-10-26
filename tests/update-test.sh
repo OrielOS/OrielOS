@@ -576,14 +576,14 @@ open_update_settings() {
     fi
     start=$SECONDS
     while ((SECONDS - start < 60)); do
-        if vm_ssh pgrep -u "$TEST_USER" -f "systemsettings.*$SETTINGS_MODULE" >/dev/null 2>&1; then
+        if vm_ssh pgrep -u "$TEST_USER" -f "orielos-settings.*$SETTINGS_MODULE" >/dev/null 2>&1; then
             # Let the page load and read the state before it's used.
             vm_qmp "wait:8" "shot:$RESULTS/$1.png" || true
             return 0
         fi
         sleep 2
     done
-    vm_ssh "ps -u $TEST_USER -o pid,args; journalctl -b --no-pager | grep -i -E 'systemsettings|kcm_orielos' | tail -n 40" \
+    vm_ssh "ps -u $TEST_USER -o pid,args; journalctl -b --no-pager | grep -i -E 'orielos-settings|kcm_orielos' | tail -n 40" \
         >"$RESULTS/settings.txt" 2>&1 || true
     return 1
 }
@@ -594,7 +594,7 @@ open_update_settings() {
 # shortcut claims goes to the sidebar's search field. Returns 1 if the window doesn't start.
 open_update_window() {
     local start
-    vm_ssh "pkill -u $TEST_USER -f 'systemsettings.*$SETTINGS_MODULE'; pkill -u $TEST_USER -x kcmshell6; sleep 2
+    vm_ssh "pkill -u $TEST_USER -x orielos-settings; pkill -u $TEST_USER -x kcmshell6; sleep 2
         systemd-run --user -M $TEST_USER@ --collect --quiet kcmshell6 $SETTINGS_MODULE" >/dev/null 2>&1 || true
     start=$SECONDS
     while ((SECONDS - start < 60)); do

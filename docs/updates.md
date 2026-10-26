@@ -27,7 +27,7 @@ OrielOS doesn't download updates over a metered connection, such as a phone hots
 
 ## The update settings
 
-**OrielOS Update** in System Settings, under System, holds everything about updates. Open it by clicking the **OrielOS updates** tray icon, or search Start for "OrielOS Update". It shows the version you are running and when OrielOS last checked for updates, and offers:
+**Update** in Settings holds everything about updates. Open it by clicking the **OrielOS updates** tray icon, or press Windows + I and choose **Update**. It shows the version you are running and when OrielOS last checked for updates, and offers:
 
 - **Check for updates**, to check straight away. The page says what the check found when it's done.
 - **Restart now**, while a new version is ready, or while going back is waiting for a restart.

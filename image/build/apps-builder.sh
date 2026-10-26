@@ -18,7 +18,7 @@ deps() {
         kf6-kirigami-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
         libplasma-devel kf6-kconfig-devel \
         kf6-kstatusnotifieritem-devel kf6-knotifications-devel kf6-kdbusaddons-devel \
-        kf6-kcmutils-devel
+        kf6-kcmutils-devel kf6-kwidgetsaddons-devel kf6-kwindowsystem-devel
     # The QML modules the Start menu imports, so qmllint can check it: Plasma's private menu
     # models come with plasma-workspace.
     dnf -y install --setopt=install_weak_deps=False \
