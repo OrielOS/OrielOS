@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Installs the KDE Plasma desktop listed in image/packages/desktop.txt, makes Flathub the
 # only Flatpak source, starts Plasma Setup on first boot and SDDM at every boot, makes OrielOS's
-# look-and-feel the default and sets the Plymouth boot splash.
+# look-and-feel the default, with its light and dark versions for Plasma's Day-Night Cycle.
+# 90-finalise.sh sets the Plymouth boot splash.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -36,8 +37,8 @@ systemctl set-default graphical.target
 # kde-settings profile on XDG_CONFIG_DIRS, so this overrides Fedora's look-and-feel.
 # 90-finalise.sh checks that the package is installed.
 kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage org.orielos.desktop
-
-# 90-finalise.sh rebuilds the initramfs with the theme in it.
-plymouth-set-default-theme bgrt
+# Plasma's Day-Night Cycle switches between these two when it's turned on.
+kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultLightLookAndFeel org.orielos.desktop
+kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultDarkLookAndFeel org.orielos.desktop.dark
 
 dnf clean all

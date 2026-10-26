@@ -19,15 +19,26 @@ install(DIRECTORY firstrun/power/
 install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash.png
     DESTINATION ${KDE_INSTALL_DATADIR}/orielos/first-run RENAME finished-logo.png)
 
-# OrielOS's look-and-feel package, which lays out OrielOS's taskbar for new users.
-install(DIRECTORY look-and-feel/org.orielos.desktop
+# OrielOS's look-and-feel packages, which lay out OrielOS's taskbar for new users: OrielOS, in light
+# colours, and OrielOS Dark, which has the same layout script.
+install(DIRECTORY look-and-feel/org.orielos.desktop look-and-feel/org.orielos.desktop.dark
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
+install(DIRECTORY look-and-feel/org.orielos.desktop/contents/layouts
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/org.orielos.desktop.dark/contents)
+
+# OrielOS's colour schemes, which the look-and-feel packages choose.
+install(FILES color-schemes/OrielOSLight.colors color-schemes/OrielOSDark.colors
+    DESTINATION ${KDE_INSTALL_DATADIR}/color-schemes)
 
 # Update scripts move existing users' desktops to the current layout. Plasma runs each one once
 # per user, in file-name order, so the Start menu replaces the old launcher before the taskbar is
 # put in order.
 install(FILES updates/orielos-startmenu-1.js updates/orielos-startmenu-2.js updates/orielos-taskbar-1.js
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/shells/org.kde.plasma.desktop/contents/updates)
+
+# The boot splash's logo, for the Plymouth theme in image/system/usr/share/plymouth/themes/orielos.
+install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash-white.png
+    DESTINATION ${KDE_INSTALL_DATADIR}/plymouth/themes/orielos RENAME watermark.png)
 
 # The Start button's icon: the OrielOS mark, drawn with wider gaps for taskbar sizes.
 install(FILES ${PROJECT_SOURCE_DIR}/artwork/icons/orielos-start.svg
