@@ -14,6 +14,8 @@ PC3.ItemDelegate {
 
     required property string label
     required property var iconSource
+    // The theme icon shown when iconSource can't be loaded.
+    property string fallbackIcon: "unknown"
     property string subtitle: ""
     // Whether the row is the keyboard's current item.
     property bool current: false
@@ -37,6 +39,7 @@ PC3.ItemDelegate {
             Layout.preferredWidth: Kirigami.Units.iconSizes.medium
             Layout.preferredHeight: Kirigami.Units.iconSizes.medium
             source: row.iconSource
+            fallback: row.fallbackIcon
             active: row.hovered
         }
 

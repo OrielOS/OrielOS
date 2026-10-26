@@ -23,6 +23,8 @@ Your pinned apps are saved with your account, so they stay the same after a rest
 
 Recommended shows apps you installed in the last three days, then files you opened recently. Click one to open it.
 
+Until you hide them, Recommended also suggests apps to get started with: Steam, Heroic Games Launcher, Discord, Spotify, OBS Studio and Lutris. Each one says "Get it from the Store", and clicking it opens its page in the Store, where you choose whether to install it. An app leaves the list once it's installed. To hide the suggestions, right-click one (or press the Menu key on it) and choose **Hide these suggestions**.
+
 ## Your account and the power button
 
 At the bottom of Start:

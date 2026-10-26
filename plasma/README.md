@@ -52,7 +52,7 @@ Pressing Win or clicking the Start button opens it:
 
 - **Search** on top. Typing lists apps, settings, files, Store results and calculations, but runs nothing: only Enter, or a click, opens a result.
 - **Pinned** apps in a grid, with an **All apps** list one click away.
-- **Recommended:** apps installed in the last three days, then recently opened files.
+- **Recommended:** apps installed in the last three days, then recently opened files, then the Get started suggestions, six entries at most. The suggestions are the Flathub apps listed in `startmenu/getstarted.js` that aren't installed (no desktop entry `<Flathub ID>.desktop` among the apps Kicker lists). Each opens `appstream://<Flathub ID>`, which the Store handles by showing the app's page; nothing is installed until the user chooses Install there. Their icons are Flathub's, from `/var/lib/flatpak/appstream/flathub/x86_64/active/icons/128x128/`, once the Store has fetched Flathub's catalogue, and the Store's icon until then. "Hide these suggestions" in an entry's context menu sets `getStartedHidden` in the widget's settings.
 - **The account button** (picture and name) with Account settings, Lock, Switch user and Sign out, and **the power button** with Sleep, Restart and Shut down. There is no Hibernate: OrielOS doesn't offer hibernation.
 
 Right-click an app, or press the Menu key, to pin it to or unpin it from Start. Everything works from the keyboard.
