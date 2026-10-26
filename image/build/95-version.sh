@@ -23,9 +23,10 @@ version="${1:-}"
 file=/usr/lib/os-release
 [[ -f "$file" && ! -L "$file" ]] || die "$file is missing or a link"
 
-# Fedora's links send people to Fedora's support and bug tracker, which don't cover OrielOS.
+# Fedora's links send people to Fedora's support and bug tracker, which don't cover OrielOS, and its
+# logo isn't OrielOS's: LOGO names OrielOS's, installed with the apps as the orielos-logo-icon icon.
 tmp="$(mktemp)"
-grep -v -E '^(NAME|VERSION|PRETTY_NAME|HOME_URL|DOCUMENTATION_URL|SUPPORT_URL|BUG_REPORT_URL|DEFAULT_HOSTNAME|IMAGE_ID|IMAGE_VERSION|REDHAT_[A-Z_]+)=' \
+grep -v -E '^(NAME|VERSION|PRETTY_NAME|LOGO|HOME_URL|DOCUMENTATION_URL|SUPPORT_URL|BUG_REPORT_URL|DEFAULT_HOSTNAME|IMAGE_ID|IMAGE_VERSION|REDHAT_[A-Z_]+)=' \
     "$file" >"$tmp" || true
 cat >>"$tmp" <<EOF
 NAME="OrielOS"
@@ -33,6 +34,7 @@ VERSION="$version"
 PRETTY_NAME="OrielOS $version"
 IMAGE_ID=orielos
 IMAGE_VERSION=$version
+LOGO=orielos-logo-icon
 DEFAULT_HOSTNAME="orielos"
 HOME_URL="https://orielos.org/"
 DOCUMENTATION_URL="https://github.com/ncjsvr/OrielOS/tree/main/docs"
@@ -43,7 +45,7 @@ install -m 0644 "$tmp" "$file"
 rm -f "$tmp"
 
 # One line for each key, and the name and version as written.
-for key in NAME VERSION PRETTY_NAME IMAGE_ID IMAGE_VERSION ID VERSION_ID; do
+for key in NAME VERSION PRETTY_NAME LOGO IMAGE_ID IMAGE_VERSION ID VERSION_ID; do
     count="$(grep -c -E "^$key=" "$file" || true)"
     [[ "$count" -eq 1 ]] || die "$file has $count $key lines"
 done

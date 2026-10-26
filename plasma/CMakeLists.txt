@@ -47,6 +47,11 @@ install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash-white.png
 install(FILES ${PROJECT_SOURCE_DIR}/artwork/icons/orielos-start.svg
     DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)
 
+# OrielOS's logo as an icon, which os-release's LOGO names: About this System and other tools that
+# show the system's logo use it.
+install(FILES ${PROJECT_SOURCE_DIR}/artwork/logo/orielos-mark.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps RENAME orielos-logo-icon.svg)
+
 # OrielOS's wallpapers: OrielOS (Daybreak and Nightfall), the default set by the look-and-feel
 # package, and OrielOS Horizon. Plasma shows the dark image when the colour scheme is dark.
 install(DIRECTORY
