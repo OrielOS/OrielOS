@@ -2,7 +2,7 @@
 # Installs the OrielOS image to a disk file, boots it under QEMU/KVM with Secure Boot, a software
 # TPM and a 1920x1080 screen, and saves a numbered set of screenshots that show what OrielOS looks
 # like: the boot splash, Plasma Setup's pages, the sign-in screen, the desktop, Start, a setting
-# found from Start, Files, the Store, Process Manager, Settings and two of its pages, Firefox,
+# found from Start, Files, the Store, Process Manager, Settings and some of its pages, Firefox,
 # Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock
 # screen. It drives the VM with QMP mouse clicks and key presses, as a person would, and uses SSH
 # through a vsock device to wait for each step and to close windows between screenshots.
@@ -272,6 +272,10 @@ desktop_tour() {
     in_session orielos-settings accessories >/dev/null 2>&1 || warn "Could not open the Accessory apps page"
     sleep 5
     shot 11-settings-accessories
+    # Taskbar reads its settings from the running desktop.
+    in_session orielos-settings taskbar >/dev/null 2>&1 || warn "Could not open the Taskbar page"
+    sleep 5
+    shot 11-settings-taskbar
     close_apps
 
     open_app 15 firefox flatpak run org.mozilla.firefox

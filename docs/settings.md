@@ -9,7 +9,7 @@ The categories on the left come in the order you know from Windows:
 - **System**: Display, Night light, Sound, Notifications, Power & sleep and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
-- **Personalisation**: Background, Themes (including dark mode), Accent colour and Lock screen.
+- **Personalisation**: Background, Themes (including dark mode), Accent colour, Lock screen, Start and Taskbar.
 - **Apps**: Default apps and Startup.
 - **Accounts**: Your info, with your password and other accounts.
 - **Time & language**: Date & time, and Language & region.
@@ -24,6 +24,12 @@ You can also search from Start: type what you're looking for, such as "wifi" or 
 Some pages change things as soon as you choose them. Others show **Apply** and **Reset** at the bottom: Apply keeps your changes, and Reset puts back the settings you had. **Defaults** puts back OrielOS's own settings. If you leave a page, or close Settings, with changes you haven't applied, Settings asks whether to apply or discard them.
 
 Some changes, such as the date and time, ask for an administrator's password.
+
+## Start and the taskbar
+
+**Personalisation > Start** chooses what Start shows under Recommended: turn off **Show recently added apps** or **Show recently opened files** and Start stops listing them straight away.
+
+**Personalisation > Taskbar** sets **Taskbar alignment**, Centre or Left, and **Automatically hide the taskbar**, which hides it until you move the pointer to the bottom of the screen. Changes apply at once. If you've rearranged the taskbar's widgets yourself, alignment can't be set here any more; the page says so.
 
 ## Accent colour
 

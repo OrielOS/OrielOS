@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Loads the built Accessory apps and Accent colour settings modules the way Settings does, one
-// after another into one shared QML engine, and fails on any QML warning.
+// Loads the built settings modules the way Settings does, one after another into one shared QML
+// engine, and fails on any QML warning. Start and Taskbar can't reach a desktop here, so they show
+// that instead.
 
 #include <KPluginMetaData>
 #include <KQuickConfigModule>
@@ -51,6 +52,8 @@ private Q_SLOTS:
 
         QTest::newRow("accessories") << QStringLiteral("kcm_orielos_accessories") << QStringLiteral("Accessory Apps") << QStringLiteral("hardware");
         QTest::newRow("accent") << QStringLiteral("kcm_orielos_accent") << QStringLiteral("Accent Colour") << QStringLiteral("themes");
+        QTest::newRow("start") << QStringLiteral("kcm_orielos_start") << QStringLiteral("Start") << QStringLiteral("workspace");
+        QTest::newRow("taskbar") << QStringLiteral("kcm_orielos_taskbar") << QStringLiteral("Taskbar") << QStringLiteral("workspace");
     }
 
     void loadsThePage()
