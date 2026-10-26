@@ -7,9 +7,9 @@ Settings is where you change how OrielOS works. Open it with Windows + I, or cho
 The categories on the left come in the order you know from Windows:
 
 - **System**: Display, Night light, Sound, Notifications, Power & sleep and About.
-- **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers and Game controllers.
+- **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
-- **Personalisation**: Background, Themes (including dark mode) and Lock screen.
+- **Personalisation**: Background, Themes (including dark mode), Accent colour and Lock screen.
 - **Apps**: Default apps and Startup.
 - **Accounts**: Your info, with your password and other accounts.
 - **Time & language**: Date & time, and Language & region.
@@ -22,6 +22,14 @@ Choose a category to see its pages, then a page to open it. To search instead, t
 Some pages change things as soon as you choose them. Others show **Apply** and **Reset** at the bottom: Apply keeps your changes, and Reset puts back the settings you had. **Defaults** puts back OrielOS's own settings. If you leave a page, or close Settings, with changes you haven't applied, Settings asks whether to apply or discard them.
 
 Some changes, such as the date and time, ask for an administrator's password.
+
+## Accent colour
+
+**Personalisation > Accent colour** sets the colour of highlights, selected items and focus rings. Choose one of the colours and it applies straight away; **Use the theme's colour** goes back to the colour your theme came with. Light and dark mode are on the Themes page, and your accent stays when you switch between them.
+
+## Accessory apps
+
+Gaming mice, keyboards and RGB lighting are set up with apps from the Store: Solaar for Logitech mice, keyboards and their receivers, Piper for gaming mice, and OpenRGB for lighting. **Bluetooth & devices > Accessory apps** lists them. If one is installed, **Open** starts it; if not, **Get it from the Store** opens its page in the Store, where you choose whether to install it. OrielOS already has the system parts these apps need to reach your devices.
 
 ## From the update icon
 

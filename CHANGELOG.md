@@ -10,6 +10,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
   - Categories in the order Windows uses: System, Bluetooth & devices, Network & internet, Personalisation, Apps, Accounts, Time & language and Update, each with its pages.
   - Search finds pages by name and by the words people know from Windows, such as "wifi", "default apps" or "windows update".
   - The update tray icon opens Update in Settings.
+  - Accent colour, under Personalisation, sets the colour of highlights and selected items, which stays when you switch between light and dark mode.
+  - Accessory apps, under Bluetooth & devices, opens Solaar, Piper and OpenRGB, or their pages in the Store if they aren't installed.
 - OrielOS Update, a page in System Settings under System, holds everything about updates. Clicking the OrielOS updates icon in the system tray opens it.
   - It shows the version you're running and when OrielOS last checked for updates, and "Check for updates" checks straight away and shows what it found.
   - It pauses updates for one to five weeks or resumes them, and switches between the Stable and Testing channels.
