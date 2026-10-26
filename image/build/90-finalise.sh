@@ -190,7 +190,9 @@ plymouth-set-default-theme orielos
 
 kver="$(ls /usr/lib/modules)"
 dracut --no-hostonly --kver "$kver" --reproducible --zstd --add "ostree plymouth" -f "/usr/lib/modules/$kver/initramfs.img"
-lsinitrd "/usr/lib/modules/$kver/initramfs.img" | grep -q 'usr/share/plymouth/themes/orielos/watermark.png' ||
+# grep reads the whole listing: with -q it would stop at the match, lsinitrd would die of SIGPIPE,
+# and pipefail would count the pipeline as failed.
+lsinitrd "/usr/lib/modules/$kver/initramfs.img" | grep -F 'usr/share/plymouth/themes/orielos/watermark.png' >/dev/null ||
     splash_errors+=("the initramfs doesn't contain the OrielOS boot splash")
 if [[ "${#splash_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${splash_errors[@]}" >&2
