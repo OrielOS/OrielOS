@@ -4,8 +4,8 @@
 pragma ComponentBehavior: Bound
 
 // One screen while the picker shows: its windows, dimmed, and on the active window's screen the
-// layouts. Arrow keys or Tab move between areas, Enter or Space snaps, Escape or a click
-// elsewhere closes.
+// layouts. An arrow key moves to the nearest area that way, Tab and Shift+Tab step through the
+// areas in order, Enter or Space snaps, Escape or a click elsewhere closes.
 
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -22,6 +22,10 @@ FocusScope {
     readonly property bool showsLayouts: picker.effect.target !== null && picker.effect.target.output === picker.screen
     // Every area of every layout, in order, so the keyboard can step through them.
     readonly property var areas: picker.effect.layouts.reduce((all, layout) => all.concat(layout), [])
+    // Each layout's drawing, in grid units, and the space between two of them.
+    readonly property real tileWidth: 8
+    readonly property real tileHeight: 4.5
+    readonly property real tileSpacing: 1
 
     // The index in areas of each layout's first area.
     function firstArea(layoutIndex: int): int {
@@ -41,10 +45,40 @@ FocusScope {
         return layout;
     }
 
-    // Move to the first area of the next or previous layout.
-    function moveLayout(step: int) {
-        const count = picker.effect.layouts.length;
-        picker.effect.current = picker.firstArea((picker.layoutOf(picker.effect.current) + step + count) % count);
+    // An area as drawn, in grid units from the top left of the row of layouts.
+    function drawnArea(areaIndex: int): rect {
+        const area = picker.areas[areaIndex];
+        return Qt.rect(picker.layoutOf(areaIndex) * (picker.tileWidth + picker.tileSpacing) + area.x * picker.tileWidth,
+            area.y * picker.tileHeight, area.width * picker.tileWidth, area.height * picker.tileHeight);
+    }
+
+    // Highlight the nearest area in a direction (dx and dy are -1, 0 or 1), preferring areas in
+    // line with the highlighted one. Up and Down stay within the columns the highlighted area
+    // covers. Returns false if no area lies that way.
+    function moveTowards(dx: int, dy: int): bool {
+        const here = picker.drawnArea(picker.effect.current);
+        const from = Qt.point(here.x + here.width / 2, here.y + here.height / 2);
+        let best = -1;
+        let bestScore = Infinity;
+        for (let i = 0; i < picker.areas.length; ++i) {
+            const there = picker.drawnArea(i);
+            const to = Qt.point(there.x + there.width / 2, there.y + there.height / 2);
+            const along = (to.x - from.x) * dx + (to.y - from.y) * dy;
+            const besideHere = there.x < here.x + here.width && there.x + there.width > here.x;
+            if (along < 0.01 || (dy !== 0 && !besideHere)) {
+                continue;
+            }
+            const score = along + 2 * (Math.abs((to.x - from.x) * dy) + Math.abs((to.y - from.y) * dx));
+            if (score < bestScore) {
+                best = i;
+                bestScore = score;
+            }
+        }
+        if (best < 0) {
+            return false;
+        }
+        picker.effect.current = best;
+        return true;
     }
 
     focus: true
@@ -55,19 +89,28 @@ FocusScope {
         case Qt.Key_Escape:
             picker.effect.close();
             break;
-        case Qt.Key_Right:
         case Qt.Key_Tab:
             picker.effect.current = (picker.effect.current + 1) % count;
             break;
-        case Qt.Key_Left:
         case Qt.Key_Backtab:
             picker.effect.current = (picker.effect.current - 1 + count) % count;
             break;
+        // Past the last layout, Right comes back round to the first, and Left the other way.
+        case Qt.Key_Right:
+            if (!picker.moveTowards(1, 0)) {
+                picker.effect.current = 0;
+            }
+            break;
+        case Qt.Key_Left:
+            if (!picker.moveTowards(-1, 0)) {
+                picker.effect.current = count - 1;
+            }
+            break;
         case Qt.Key_Down:
-            picker.moveLayout(1);
+            picker.moveTowards(0, 1);
             break;
         case Qt.Key_Up:
-            picker.moveLayout(-1);
+            picker.moveTowards(0, -1);
             break;
         case Qt.Key_Return:
         case Qt.Key_Enter:
@@ -147,7 +190,7 @@ FocusScope {
             }
 
             RowLayout {
-                spacing: Kirigami.Units.gridUnit
+                spacing: Kirigami.Units.gridUnit * picker.tileSpacing
 
                 Repeater {
                     model: picker.effect.layouts
@@ -156,6 +199,8 @@ FocusScope {
                         required property var modelData
                         required property int index
 
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * picker.tileWidth
+                        Layout.preferredHeight: Kirigami.Units.gridUnit * picker.tileHeight
                         areas: modelData
                         firstIndex: picker.firstArea(index)
                         current: picker.effect.current

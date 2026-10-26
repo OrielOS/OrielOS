@@ -27,7 +27,7 @@ Settings is the KDE Plasma System Settings app for now. Process Manager, Screens
 
 ## Snap layouts
 
-Press Windows + Z to see four layouts for the window you're using: two halves, three thirds, two thirds beside one third, and four quarters. Click an area to move the window there. With the keyboard, the arrow keys or Tab move between the areas (Up and Down jump between layouts), and Enter or Space snaps the window; Escape closes the layouts without changing anything.
+Press Windows + Z to see four layouts for the window you're using: two halves, three thirds, two thirds beside one third, and four quarters. Click an area to move the window there. With the keyboard, the arrow keys move to the next area in that direction (Up and Down between the top and bottom quarters), Tab steps through every area, and Enter or Space snaps the window; Escape closes the layouts without changing anything.
 
 ## Changing a shortcut
 

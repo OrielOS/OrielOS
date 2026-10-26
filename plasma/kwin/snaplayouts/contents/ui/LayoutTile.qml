@@ -7,7 +7,6 @@ pragma ComponentBehavior: Bound
 // clicking it snaps the window there.
 
 import QtQuick
-import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 Item {
@@ -23,9 +22,6 @@ Item {
     signal chosen(var area)
 
     readonly property real gap: Kirigami.Units.smallSpacing
-
-    Layout.preferredWidth: Kirigami.Units.gridUnit * 8
-    Layout.preferredHeight: Kirigami.Units.gridUnit * 4.5
 
     Repeater {
         model: tile.areas
