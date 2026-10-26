@@ -9,6 +9,8 @@ Every image, font and sound file in OrielOS, with its author, source and licence
 | `splash/*.svg`, `splash/*.png` | OrielOS contributors | Original | CC BY-SA 4.0 |
 | `wallpapers/src/*.svg` | OrielOS contributors | Original | CC BY-SA 4.0 |
 | `wallpapers/OrielOS/**`, `wallpapers/OrielOS-Horizon/**` | OrielOS contributors | Rendered from `wallpapers/src/` | CC BY-SA 4.0 |
+| `sounds/src/generate.py`, `sounds/orielos/index.theme` | OrielOS contributors | Original | CC BY-SA 4.0 |
+| `sounds/orielos/stereo/*.oga` | OrielOS contributors | Synthesised by `sounds/src/generate.py` from sine waves, with no recordings or samples | CC BY-SA 4.0 |
 | `../.github/assets/readme-banner.png`, `../.github/assets/readme-banner-dark.png` | OrielOS contributors | Original | CC BY-SA 4.0 |
 
 ## Fonts

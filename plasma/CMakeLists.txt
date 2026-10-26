@@ -53,3 +53,7 @@ install(DIRECTORY
     ${PROJECT_SOURCE_DIR}/artwork/wallpapers/OrielOS
     ${PROJECT_SOURCE_DIR}/artwork/wallpapers/OrielOS-Horizon
     DESTINATION ${KDE_INSTALL_WALLPAPERDIR})
+
+# OrielOS's sound theme, which the image makes the default. It inherits Plasma's Ocean theme for
+# the sounds it doesn't have.
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/artwork/sounds/orielos DESTINATION ${KDE_INSTALL_SOUNDDIR})

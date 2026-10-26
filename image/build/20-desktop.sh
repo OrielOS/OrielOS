@@ -54,4 +54,8 @@ kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage or
 kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultLightLookAndFeel org.orielos.desktop
 kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultDarkLookAndFeel org.orielos.desktop.dark
 
+# OrielOS's own sounds (installed from artwork/ with the apps) for every user; Plasma's Ocean theme
+# plays any sound they don't have. 90-finalise.sh checks that the theme is installed.
+kwriteconfig6 --file /etc/xdg/kdeglobals --group Sounds --key Theme orielos
+
 dnf clean all
