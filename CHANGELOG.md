@@ -60,6 +60,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Changed
 
+- Window titles sit on the left of the title bar, next to the app's icon, as on Windows.
 - OrielOS no longer sends Fedora's anonymous weekly package count ("countme") when it checks repositories.
 
 - Pull requests that don't change the apps, such as documentation or website changes, no longer wait about two minutes for the app build and tests; the `apps` check still reports and passes. The Discord bot's tests run after a merge only when the bot changed.
