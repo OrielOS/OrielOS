@@ -164,6 +164,7 @@ fedora-bootc is set up for servers. `build/15-server-defaults.sh` changes that:
 
 - bootc's own automatic updates are off: `bootc-fetch-apply-updates.timer`, which downloads updates and reboots into them by itself, is disabled. OrielOS's update check stages updates and the desktop asks before restarting (see [Updates](#updates)).
 - The SSH server is off: `sshd.service` is disabled, so a desktop does not listen for SSH. `openssh-server` stays installed because systemd's vsock SSH socket, which `tests/boot-test.sh` uses, runs `sshd` without `sshd.service`.
+- The EFI system partition automount is masked: systemd's GPT generator adds `efi.automount` for the partition at `/efi`, which doesn't exist and can't be made on the read-only root, so the unit failed at every boot and left the system "degraded". bootupd and the boot menu's flags (see [Updates](#updates)) mount the partition themselves when they need it. The mask is a link to `/dev/null` in `/etc/systemd/system`, because units from generators take precedence over `/usr/lib/systemd/system`.
 - These packages are removed, freeing about 300 MB:
   - `kexec-tools`, `kdump-utils` and `makedumpfile`: crash dumps through kexec, which will be disabled at boot.
   - `NetworkManager-cloud-setup`, `WALinuxAgent-udev` and `cloud-utils-growpart`: network set-up from cloud metadata, Azure's agent rules and growing the root partition of cloud images.
