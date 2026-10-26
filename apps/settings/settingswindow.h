@@ -5,8 +5,6 @@
 
 #include "pagecatalogue.h"
 
-#include <KPluginMetaData>
-
 #include <QHash>
 #include <QWidget>
 
@@ -22,9 +20,6 @@ class QQmlEngine;
 class QStackedWidget;
 
 namespace OrielOSSettings {
-
-// A settings module's plugin, looked for where System Settings looks; invalid if it isn't installed.
-KPluginMetaData findModule(const QString &id);
 
 // The Settings window: search and the categories on the left; on the right, a category's pages,
 // the search results, or a page. Pages are Plasma settings modules, QML or Qt Widgets, loaded on

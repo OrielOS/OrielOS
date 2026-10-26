@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <optional>
+#include <utility>
 
 namespace OrielOSSettings {
 
@@ -60,8 +61,17 @@ public:
     // then anywhere in the title, then in the keywords, the category's name and the description.
     // Words match from their start, ignoring case and accents.
     QList<Page> search(const QString &query) const;
+    // The same, with each page's rank (as rank() gives it).
+    QList<std::pair<Page, int>> rankedSearch(const QString &query) const;
+    // How well a page matches the query, as search() orders them: 0 when its title starts with
+    // the query, 1 when every word is in its title, 2 in its title and keywords, 3 anywhere; -1
+    // when it doesn't match.
+    int rank(const Page &page, const QString &query) const;
 
 private:
+    // rank() for a query already split into normalised words.
+    int rank(const Page &page, const QStringList &queryWords) const;
+
     QList<Category> m_categories;
     QList<Page> m_pages;
 };
