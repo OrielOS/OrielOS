@@ -72,5 +72,6 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- A unit no longer fails at every start (`efi.automount`, the EFI system partition's automount), which made `systemctl is-system-running` report `degraded`.
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.
 - The Discord bot no longer cuts an emoji in half when it shortens a long title or release note.
