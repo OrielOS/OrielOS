@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Unit tests for orielos-update's check, pause, channel and going-back logic, undoing an update that
-# didn't start, removing the previous build, and the state file it writes for the desktop. Runs the
-# real script against a scratch directory (ORIELOS_UPDATE_ROOT) with stand-ins for bootc, skopeo,
-# busctl, systemctl, ostree and the boot menu's flag helper, so it needs no root, VM or network.
+# didn't start, removing the previous build, automatic app updates, and the state file it writes for
+# the desktop. Runs the real script against a scratch directory (ORIELOS_UPDATE_ROOT) with stand-ins
+# for bootc, skopeo, busctl, systemctl, ostree, flatpak and the boot menu's flag helper, so it needs
+# no root, VM or network.
 # Prints PASS/FAIL per case and exits 1 if any case fails.
 #
 # Usage: tests/unit/orielos-update-test.sh
@@ -125,6 +126,15 @@ SH
     cat >"$WORK/bin/systemctl" <<'SH'
 #!/usr/bin/env bash
 printf 'systemctl %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
+SH
+    cat >"$WORK/bin/flatpak" <<'SH'
+#!/usr/bin/env bash
+printf 'flatpak %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
+if [[ -e "$ORIELOS_TEST_STUB/flatpak-fails" ]]; then
+    echo "error: Unable to connect to dl.flathub.org" >&2
+    exit 1
+fi
+echo "Nothing to do."
 SH
     # ostree lists the booted deployment, then the previous one.
     cat >"$WORK/bin/ostree" <<'SH'
@@ -320,8 +330,9 @@ matches_contract() {
         and .result == "up-to-date" and (.message | type) == "string"
         and .running == {version: "44.1", digest: $d} and .staged == null
         and .previous == null and .rollbackQueued == false
-        and (keys | sort) == ["bootId", "channel", "checkedAt", "message", "pausedUntil", "previous", "result",
-            "rollbackQueued", "running", "staged"]
+        and .appUpdates == true and .appsUpdatedAt == null
+        and (keys | sort) == ["appUpdates", "appsUpdatedAt", "bootId", "channel", "checkedAt", "message", "pausedUntil",
+            "previous", "result", "rollbackQueued", "running", "staged"]
     ' "$WORK/root/var/lib/orielos/update/state.json" >/dev/null
 }
 
@@ -513,6 +524,53 @@ bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"
 with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
 run remove-previous
 check "remove-previous refuses while an update is staged" test "$RC" -eq 1
+#END
+
+#BEGIN Apps from the Store
+setup
+run refresh
+check "app updates are on by default" test "$(state .appUpdates)" == true -a "$(state .appsUpdatedAt)" == null
+
+setup
+run app-updates off
+check "app-updates off turns them off" test "$RC" -eq 0 -a "$(setting app_updates)" == off -a "$(state .appUpdates)" == false
+run pause 2
+check "pausing OS updates keeps app updates off" test "$(setting app_updates)" == off -a -n "$(setting paused_until)"
+run channel testing
+check "changing the channel keeps app updates off and the pause" \
+    test "$(setting app_updates)" == off -a "$(setting channel)" == testing -a -n "$(setting paused_until)"
+run apps
+check "apps does nothing while app updates are off" test "$RC" -eq 0 -a "$(state .appsUpdatedAt)" == null
+check "and runs no flatpak" not_called "flatpak"
+run app-updates on
+check "app-updates on turns them back on" test "$RC" -eq 0 -a "$(setting app_updates)" == on -a "$(state .appUpdates)" == true
+
+setup
+run apps
+check "apps updates every system-wide app and runtime without asking" called "flatpak update --system --noninteractive"
+check "apps records when the apps were updated" test "$RC" -eq 0 -a "$(state .appsUpdatedAt)" == "$(iso "$NOW")"
+run status
+check "status shows app updates and when they last ran" grep -qF "App updates: on, last updated $(iso "$NOW")" <<<"$OUT"
+
+setup
+: >"$WORK/stub/flatpak-fails"
+run apps
+check "a failed app update exits 1, so the service tries again" test "$RC" -eq 1
+check "and doesn't record an update" test ! -e "$WORK/root/var/lib/orielos/update/apps"
+
+setup
+printf 'u 1\n' >"$WORK/stub/metered"
+run apps
+check "apps skips a metered connection" test "$RC" -eq 0
+check "and runs no flatpak" not_called "flatpak"
+
+for value in "" yes 1; do
+    setup
+    # shellcheck disable=SC2086 # an empty value is meant to be left out
+    run app-updates $value
+    check "app-updates '$value' is refused with exit 2 and changes nothing" \
+        test "$RC" -eq 2 -a ! -e "$WORK/root/var/lib/orielos/update/settings"
+done
 #END
 
 printf '%d passed, %d failed\n' "$PASSED" "$FAILED"

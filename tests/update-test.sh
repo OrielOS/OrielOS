@@ -10,13 +10,15 @@
 # "Restart to update" in its menu and checks the new build runs. Then it opens Settings → Update by
 # clicking the tray icon, opens the same page in kcmshell6 and, with the keyboard (each button's
 # Alt mnemonic, and polkit's password prompt), checks for updates, pauses and resumes, switches to
-# the stable channel and back, and goes back to the previous version, restarting into it from the
-# page. Then it watches the boot
+# the stable channel and back, turns automatic app updates off and on, and goes back to the
+# previous version, restarting into it from the page. Then it watches the boot
 # menu on the serial console: hidden after a boot that reached the desktop, shown after one that
 # didn't (the display manager is turned off for it), where the test chooses the other version, and
 # shown again when Esc is pressed during the hidden second. It undoes an update that fails to
 # start, removes the previous build after 14 days, and last installs the update once more and
-# removes the previous version from Settings → Update. Prints PASS/FAIL per check.
+# removes the previous version from Settings → Update. Last, it moves Firefox, from the Store, back
+# a version and checks that the app update service brings it up to date only while app updates
+# are on. Prints PASS/FAIL per check.
 #
 # Usage: tests/update-test.sh --old IMAGE_OR_ARCHIVE --new ARCHIVE [--timeout SECONDS]
 #                             [--memory MIB] [--cpus N] [--results DIR] [--keep] [--help]
@@ -528,6 +530,19 @@ state_value() {
     vm_ssh jq -r "$(printf '%q' "$1")" /var/lib/orielos/update/state.json 2>/dev/null || true
 }
 
+# Wait up to <seconds> for no orielos-update to be running in the VM; the Update page keeps its
+# controls disabled until then: wait_for_idle <seconds>. Returns 1 if one still runs.
+wait_for_idle() {
+    local start=$SECONDS
+    while ((SECONDS - start < $1)); do
+        if vm_ssh '! pgrep -x orielos-update >/dev/null' 2>/dev/null; then
+            return 0
+        fi
+        sleep 2
+    done
+    return 1
+}
+
 # Wait up to <seconds> for a value in the VM's update state to become <value>, or, with "!=", to
 # stop being it: wait_for_state <jq filter> [!=] <value> <seconds>. Returns 1 if it doesn't.
 wait_for_state() {
@@ -682,6 +697,32 @@ step_update_settings() {
     else
         vm_qmp "shot:$RESULTS/settings-testing.png" || true
         fail "Choosing Testing on the page didn't switch back within 70 s (see settings-testing.png)"
+    fi
+
+    # Turning automatic app updates off and on needs no password. The page keeps its controls
+    # disabled while orielos-update runs, and the channel shows in the state file before it has
+    # finished, so wait for it to finish first.
+    local apps_off=0
+    wait_for_idle 60 || true
+    vm_qmp "wait:3" "keys:alt+a" || true
+    if wait_for_state .appUpdates false 60; then
+        apps_off=1
+        vm_qmp "wait:2" "shot:$RESULTS/settings-apps-off.png" || true
+        pass "Update apps automatically on the page turns app updates off, with no password (see settings-apps-off.png)"
+    else
+        vm_qmp "shot:$RESULTS/settings-apps-off.png" || true
+        fail "Update apps automatically on the page didn't turn app updates off within 60 s (see settings-apps-off.png)"
+    fi
+    if [[ "$apps_off" -eq 1 ]]; then
+        wait_for_idle 60 || true
+        vm_qmp "wait:3" "keys:alt+a" || true
+        if wait_for_state .appUpdates true 60; then
+            pass "Update apps automatically turns them back on"
+        else
+            fail "Update apps automatically didn't turn app updates back on within 60 s"
+        fi
+    else
+        fail "Update apps automatically turns them back on: not tried, since turning them off didn't work"
     fi
 
     # The question's default button is Cancel, so choose Go back by its mnemonic, then answer
@@ -1069,6 +1110,52 @@ step_remove_previous() {
     fi
 }
 
+# The installed commit of Firefox, from the Store, or nothing.
+firefox_commit() {
+    vm_ssh flatpak info --system --show-commit org.mozilla.firefox 2>/dev/null || true
+}
+
+# Firefox, which the first boot installed from Flathub, is moved back to the version before the
+# newest; the app update service must bring it up to date when app updates are on, and leave it
+# alone when they're off.
+step_app_updates() {
+    local latest older start
+    info "Step 17: apps from the Store update by themselves"
+    start=$SECONDS
+    until vm_ssh test -e /var/lib/orielos/flatpak-setup.done 2>/dev/null; do
+        if ((SECONDS - start > 600)); then
+            fail "Firefox wasn't installed from Flathub within 10 minutes, so app updates can't be tried"
+            return 1
+        fi
+        sleep 10
+    done
+    latest="$(firefox_commit)"
+    older="$(vm_ssh "flatpak remote-info --system flathub org.mozilla.firefox | sed -n 's/^ *Parent: *//p'" 2>/dev/null)" || true
+    if [[ -z "$latest" || -z "$older" ]] ||
+        ! SSH_TIMEOUT=1800 vm_ssh flatpak update --system --noninteractive --commit="$older" org.mozilla.firefox >>"$RESULTS/apps.txt" 2>&1 ||
+        [[ "$(firefox_commit)" != "$older" ]]; then
+        fail "Couldn't move Firefox back from ${latest:-an unknown commit} to the version before it (${older:-none}; see apps.txt)"
+        return 1
+    fi
+    pass "Firefox is moved back to the version before the newest (commit ${older:0:12}, newest ${latest:0:12})"
+
+    vm_ssh "orielos-update app-updates off && systemctl start orielos-app-update.service" >>"$RESULTS/apps.txt" 2>&1 || true
+    if [[ "$(firefox_commit)" == "$older" && "$(state_value .appUpdates)" == false ]]; then
+        pass "With app updates off, orielos-app-update.service leaves Firefox as it is"
+    else
+        fail "With app updates off, Firefox is at commit $(firefox_commit), not ${older:0:12} (see apps.txt)"
+    fi
+
+    vm_ssh orielos-update app-updates on >>"$RESULTS/apps.txt" 2>&1 || true
+    SSH_TIMEOUT=1800 vm_ssh systemctl start orielos-app-update.service >>"$RESULTS/apps.txt" 2>&1 || true
+    vm_ssh journalctl -u orielos-app-update.service --no-pager -n 30 >>"$RESULTS/apps.txt" 2>&1 || true
+    if [[ "$(firefox_commit)" == "$latest" && "$(state_value .appsUpdatedAt)" == 20* ]]; then
+        pass "With app updates on, orielos-app-update.service brings Firefox up to date and records when (apps updated at $(state_value .appsUpdatedAt))"
+    else
+        fail "With app updates on, Firefox is at commit $(firefox_commit), not the newest ${latest:0:12} (apps updated at $(state_value .appsUpdatedAt); see apps.txt)"
+    fi
+}
+
 step_stage_again() {
     local out rc=0
     info "Step 7: stage the rolled-back build again"
@@ -1146,7 +1233,7 @@ main() {
     if step_boot_old && step_user_data && step_copy && step_stage && step_update_boot &&
         step_rollback && step_stage_again && step_service_source && step_service_channel &&
         step_service_notify && step_service_restart && step_update_settings && step_boot_menu && step_undo_update &&
-        step_last_resort_and_removal && step_remove_previous; then
+        step_last_resort_and_removal && step_remove_previous && step_app_updates; then
         :
     else
         fail "The test stopped early; the remaining steps did not run"
