@@ -10,10 +10,11 @@
 # and peripheral udev rules and drivers) and that Fedora's countme reporting is off.
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
-# Last, it drives the Start menu with the keyboard over QMP (searching runs nothing, Enter opens
-# the first result, Menu then Enter pins an app), restarts the VM and checks the pin is kept, then
-# opens a recent file, takes screenshots of Recommended, each Tab stop and the account and power
-# menus, and unpins the app again.
+# Then it compares screenshots of the desktop and the open Start menu with the reference images in
+# tests/references/ (see tests/update-references.sh). Last, it drives the Start menu with the
+# keyboard over QMP (searching runs nothing, Enter opens the first result, Menu then Enter pins an
+# app), restarts the VM and checks the pin is kept, then opens a recent file, takes screenshots of
+# Recommended, each Tab stop and the account and power menus, and unpins the app again.
 # The VM's firmware has Universal Blue's driver-signing key enrolled, and the test checks that the
 # kernel trusts it. It also checks that the second boot is in the mode anti-cheat needs: kernel
 # lockdown, the IOMMU on, kexec disabled, the BPF LSM, no hibernation and only allowed module
@@ -537,7 +538,8 @@ PY
 }
 
 # Take the visual check's screenshots: the desktop alone, then the Start menu open on its home page.
-# Firefox is installed by then, so Recommended lists it. Win+E's Dolphin is closed first.
+# Firefox is installed by then and pinned on the taskbar and in Start. Win+E's Dolphin is closed
+# first.
 visual_shots() {
     stop_dolphin || true
     # Let the desktop settle after the window closes and any notification fades.
