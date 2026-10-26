@@ -76,14 +76,14 @@ fi
 # The update check stages builds in the background and records each boot's state for the update
 # tray icon and the Update settings page; both units are enabled here for the same reason as above. No update state may be in
 # the image: it belongs to each computer.
-systemctl enable orielos-update-check.timer orielos-update-state.service
+systemctl enable orielos-update-check.timer orielos-update-state.service orielos-app-update.timer
 update_errors=()
-for unit in orielos-update-check.timer orielos-update-state.service; do
+for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer; do
     if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
         update_errors+=("$unit is not enabled")
     fi
 done
-for cmd in skopeo pkexec busctl bootc jq; do
+for cmd in skopeo pkexec busctl bootc jq flatpak; do
     command -v "$cmd" >/dev/null || update_errors+=("$cmd, which orielos-update needs, is not installed")
 done
 for f in /usr/lib/orielos/update.conf /usr/share/polkit-1/actions/org.orielos.update.policy \

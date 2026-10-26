@@ -135,14 +135,16 @@ cleanup() {
 
 # Print how to start the TPM and boot the kept disk again with a window.
 print_boot_command() {
+    local proxy=()
     if [[ "${#BASE_ARGS[@]}" -eq 0 ]]; then return 0; fi
     printf 'To boot it again, start the TPM:\n  swtpm socket --tpm2 --tpmstate dir=%q --ctrl type=unixio,path=%q --daemon\n' \
         "$WORK/tpm" "$WORK/swtpm.sock"
     printf 'then run:\n '
     printf ' %q' qemu-system-x86_64 "${BASE_ARGS[@]}" -display gtk
     printf '\nand log in over SSH with:\n '
+    mapfile -t proxy < <(proxy_options)
     printf ' %q' ssh -i "$WORK/ssh_key" -F /dev/null -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-        -o ProxyUseFdpass=yes -o ProxyCommand="$SSH_PROXY vsock/$GUEST_CID 22" "root@vsock/$GUEST_CID"
+        "${proxy[@]}" "root@vsock/$GUEST_CID"
     printf '\n'
 }
 
@@ -185,8 +187,9 @@ find_firmware() {
     die "no Secure Boot capable OVMF firmware found (sudo apt install ovmf; Fedora: sudo dnf install edk2-ovmf)"
 }
 
-# Find systemd-ssh-proxy, make sure the host has vsock, create a key for this run and pick a
-# random guest CID. The key is handed to the VM as a systemd credential through SMBIOS.
+# Find systemd-ssh-proxy, or socat where systemd is older than 256 (as on GitHub's Ubuntu 24.04
+# runners), make sure the host has vsock, create a key for this run and pick a random guest CID.
+# The key is handed to the VM as a systemd credential through SMBIOS.
 setup_ssh() {
     local dir n
     for dir in /usr/lib/systemd /usr/libexec; do
@@ -195,8 +198,9 @@ setup_ssh() {
             break
         fi
     done
+    if [[ -z "$SSH_PROXY" ]] && command -v socat >/dev/null 2>&1; then SSH_PROXY=socat; fi
     [[ -n "$SSH_PROXY" ]] ||
-        die "systemd-ssh-proxy is not installed (it comes with systemd 256 or newer; tools/check-env.sh shows what is missing)"
+        die "neither systemd-ssh-proxy (systemd 256 or newer) nor socat is installed (tools/check-env.sh shows what is missing)"
     if [[ ! -e /dev/vhost-vsock ]]; then
         modprobe vhost_vsock 2>/dev/null || true
         [[ -e /dev/vhost-vsock ]] ||
@@ -210,8 +214,17 @@ setup_ssh() {
 # Print the ssh options for the VM, one per line, for ssh_to_vm.
 ssh_options() {
     printf '%s\n' -i "$WORK/ssh_key" -F /dev/null -o BatchMode=yes -o IdentitiesOnly=yes \
-        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 \
-        -o ProxyUseFdpass=yes -o "ProxyCommand=$SSH_PROXY vsock/$GUEST_CID 22"
+        -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5
+    proxy_options
+}
+
+# Print the ssh options that reach the VM's vsock port 22, one per line.
+proxy_options() {
+    if [[ "$SSH_PROXY" == socat ]]; then
+        printf '%s\n' -o "ProxyCommand=socat - VSOCK-CONNECT:$GUEST_CID:22"
+    else
+        printf '%s\n' -o ProxyUseFdpass=yes -o "ProxyCommand=$SSH_PROXY vsock/$GUEST_CID 22"
+    fi
 }
 
 # Run a command inside the VM as root over SSH through vsock: vm_ssh <command...>

@@ -233,6 +233,20 @@ bool UpdateSettings::canRemovePrevious() const
     return m_state.canRemovePrevious(m_bootId);
 }
 
+bool UpdateSettings::appUpdates() const
+{
+    return m_pendingAppUpdates.value_or(m_state.appUpdates());
+}
+
+QString UpdateSettings::appsUpdated() const
+{
+    if (!m_state.appsUpdatedAt().isValid()) {
+        return { };
+    }
+    return i18nc("@info %1 is a relative date and time", "Apps last updated: %1",
+        KFormat().formatRelativeDateTime(m_state.appsUpdatedAt().toLocalTime(), QLocale::ShortFormat));
+}
+
 QStringList UpdateSettings::pauseChoices() const
 {
     QStringList labels;
@@ -307,6 +321,15 @@ void UpdateSettings::removePrevious()
     run({ QStringLiteral("remove-previous") });
 }
 
+void UpdateSettings::setAppUpdates(bool on)
+{
+    if (m_busy || on == m_state.appUpdates()) {
+        return;
+    }
+    m_pendingAppUpdates = on;
+    run({ QStringLiteral("app-updates"), on ? QStringLiteral("on") : QStringLiteral("off") });
+}
+
 void UpdateSettings::restart()
 {
     m_environment.restart();
@@ -325,6 +348,7 @@ void UpdateSettings::onFinished(const QStringList &arguments, CommandRunner::Out
     const QString command = arguments.value(0);
     m_busy = false;
     m_pendingChannel.reset();
+    m_pendingAppUpdates.reset();
     if (command == QLatin1String("check-now") && outcome != CommandRunner::Outcome::Succeeded) {
         endPendingCheck();
     }

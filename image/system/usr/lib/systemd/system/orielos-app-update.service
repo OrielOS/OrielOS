@@ -1,0 +1,26 @@
+[Unit]
+Description=Update the apps from the Store
+Documentation=https://github.com/ncjsvr/OrielOS
+After=network-online.target
+Wants=network-online.target
+# A failure is tried again every 15 minutes, for as long as it takes, for example while offline.
+StartLimitIntervalSec=0
+
+[Service]
+# Started by orielos-app-update.timer. orielos-update skips the update when app updates are off
+# or the connection is metered. An app that is open keeps running its old version until it's
+# started again.
+Type=oneshot
+ExecStart=/usr/bin/orielos-update apps
+Restart=on-failure
+RestartSec=15min
+# Updating apps must not slow down whatever the user is doing, a game above all.
+Nice=19
+CPUSchedulingPolicy=idle
+IOSchedulingClass=idle
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+LockPersonality=true

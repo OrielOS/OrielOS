@@ -50,6 +50,10 @@ class UpdateSettings : public QObject
     // Whether going back and removing are offered; while busy they're offered but wait.
     Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY changed)
     Q_PROPERTY(bool canRemovePrevious READ canRemovePrevious NOTIFY changed)
+    // Apps from the Store update by themselves. While a change is running it is the chosen setting.
+    Q_PROPERTY(bool appUpdates READ appUpdates NOTIFY changed)
+    // When the apps were last updated, ready to show, or empty.
+    Q_PROPERTY(QString appsUpdated READ appsUpdated NOTIFY changed)
     // What went wrong with the last command, or empty.
     Q_PROPERTY(QString error READ error NOTIFY changed)
     // The pause lengths offered, from minPauseWeeks up.
@@ -93,6 +97,8 @@ public:
     QString previousAvailableUntil() const;
     bool canGoBack() const;
     bool canRemovePrevious() const;
+    bool appUpdates() const;
+    QString appsUpdated() const;
     QString error() const { return m_error; }
     QStringList pauseChoices() const;
     int minPauseWeeks() const { return OrielOSUpdates::minPauseWeeks; }
@@ -103,6 +109,7 @@ public:
     Q_INVOKABLE void setChannel(int channel);
     Q_INVOKABLE void goBack();
     Q_INVOKABLE void removePrevious();
+    Q_INVOKABLE void setAppUpdates(bool on);
     Q_INVOKABLE void restart();
     Q_INVOKABLE void clearError();
 
@@ -127,6 +134,8 @@ private:
     QString m_error;
     // A channel change that is running.
     std::optional<Channel> m_pendingChannel;
+    // An app updates change that is running.
+    std::optional<bool> m_pendingAppUpdates;
     // A check was asked for and the check unit hasn't started yet.
     bool m_checkPending = false;
     QDateTime m_checkedAtWhenAsked;

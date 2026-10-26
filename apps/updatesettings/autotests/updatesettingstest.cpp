@@ -301,6 +301,10 @@ private Q_SLOTS:
         QTest::newRow("channel") << upToDate() << QStringLiteral("testing") << QStringList { QStringLiteral("channel"), QStringLiteral("testing") };
         QTest::newRow("go back") << withPrevious(upToDate()) << QStringLiteral("go back") << QStringList { QStringLiteral("rollback") };
         QTest::newRow("remove") << withPrevious(upToDate()) << QStringLiteral("remove") << QStringList { QStringLiteral("remove-previous") };
+        QTest::newRow("app updates off") << upToDate() << QStringLiteral("apps off") << QStringList { QStringLiteral("app-updates"), QStringLiteral("off") };
+        QJsonObject appsOff = upToDate();
+        appsOff.insert(QStringLiteral("appUpdates"), false);
+        QTest::newRow("app updates on") << appsOff << QStringLiteral("apps on") << QStringList { QStringLiteral("app-updates"), QStringLiteral("on") };
     }
 
     void runsOrielosUpdate()
@@ -329,6 +333,8 @@ private Q_SLOTS:
         settings.setChannel(2);
         settings.goBack();
         settings.removePrevious();
+        // App updates are on already.
+        settings.setAppUpdates(true);
         QVERIFY(page.runner.calls.isEmpty());
 
         QJsonObject staged = withPrevious(upToDate());
@@ -369,6 +375,7 @@ private Q_SLOTS:
         QTest::newRow("channel") << upToDate() << QStringLiteral("testing") << QStringLiteral("Couldn't change the update settings: %1");
         QTest::newRow("go back") << withPrevious(upToDate()) << QStringLiteral("go back") << QStringLiteral("Couldn't go back to the previous version: %1");
         QTest::newRow("remove") << withPrevious(upToDate()) << QStringLiteral("remove") << QStringLiteral("Couldn't remove the previous version: %1");
+        QTest::newRow("app updates") << upToDate() << QStringLiteral("apps off") << QStringLiteral("Couldn't change the update settings: %1");
     }
 
     void reportsFailures()
@@ -408,6 +415,38 @@ private Q_SLOTS:
         page.write(testing);
         page.runner.finish(CommandRunner::Outcome::Succeeded);
         QCOMPARE(settings.channel(), 1);
+    }
+
+    void readsAppUpdates()
+    {
+        Page page(upToDate());
+        // A state file from before the setting existed: app updates are on, and none has run yet.
+        QVERIFY(page.settings->appUpdates());
+        QCOMPARE(page.settings->appsUpdated(), QString());
+
+        QJsonObject state = upToDate();
+        state.insert(QStringLiteral("appUpdates"), false);
+        state.insert(QStringLiteral("appsUpdatedAt"), QStringLiteral("2026-10-25T09:00:00Z"));
+        page.write(state);
+        QTRY_VERIFY(!page.settings->appUpdates());
+        QVERIFY(page.settings->appsUpdated().startsWith(QStringLiteral("Apps last updated: ")));
+    }
+
+    void showsTheChosenAppUpdatesWhileTheyChange()
+    {
+        Page page(upToDate());
+        UpdateSettings &settings = *page.settings;
+        settings.setAppUpdates(false);
+        QVERIFY(!settings.appUpdates());
+        page.runner.finish(CommandRunner::Outcome::Cancelled);
+        QVERIFY(settings.appUpdates());
+
+        settings.setAppUpdates(false);
+        QJsonObject off = upToDate();
+        off.insert(QStringLiteral("appUpdates"), false);
+        page.write(off);
+        page.runner.finish(CommandRunner::Outcome::Succeeded);
+        QVERIFY(!settings.appUpdates());
     }
 
     void checksUntilTheCheckUnitStops()
@@ -495,6 +534,10 @@ private:
             settings.goBack();
         } else if (invocation == QLatin1String("remove")) {
             settings.removePrevious();
+        } else if (invocation == QLatin1String("apps off")) {
+            settings.setAppUpdates(false);
+        } else if (invocation == QLatin1String("apps on")) {
+            settings.setAppUpdates(true);
         }
     }
 };

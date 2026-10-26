@@ -2,21 +2,24 @@
 # Builds the OrielOS image locally with rootful Podman from the inputs pinned in image/pins.env,
 # and exports a compressed OCI archive for test VMs.
 #
-# Usage: tools/build-image.sh [--pins FILE] [--date YYYYMMDD] [--output DIR] [--no-archive]
-#                             [--keep N] [--clean-only] [--help]
+# Usage: tools/build-image.sh [--pins FILE] [--date YYYYMMDD] [--number N] [--output DIR]
+#                             [--no-archive] [--keep N] [--clean-only] [--help]
 #   --pins FILE    pins file (default image/pins.env)
 #   --date DATE    build date used in the tag (default: today, UTC)
+#   --number N     the build's number on that date: 1 (the default) is tagged <major>.<date>,
+#                  and 2 or more <major>.<date>.<N>, as CI tags later builds of the same day
 #   --output DIR   where the archive goes (default /var/lib/orielos/builds)
 #   --no-archive   do not export an OCI archive
 #   --keep N       keep the newest N builds and remove older ones (default 3)
 #   --clean-only   only remove old builds, then exit
-# The image is tagged localhost/orielos:<fedora major>.<date> and localhost/orielos:latest.
+# The image is tagged localhost/orielos:<fedora major>.<date>[.<number>] and localhost/orielos:latest.
 # Runs as root; re-executes itself through sudo otherwise.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PINS="$ROOT/image/pins.env"
 DATE=""
+NUMBER=1
 OUTPUT="/var/lib/orielos/builds"
 ARCHIVE=1
 KEEP=3
@@ -34,7 +37,7 @@ die() {
 step() { printf '==> %s\n' "$1"; }
 
 usage() {
-    sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 check_pin() {
@@ -87,11 +90,12 @@ export_archive() {
     printf 'archive:        %s (%s)\n' "$file" "$(du -h "$file" | cut -f1)"
 }
 
-# Removes builds older than the newest $KEEP, judged by tag (<major>.<date> sorts by date).
+# Removes builds older than the newest $KEEP, judged by tag (<major>.<date>[.<number>] sorts by
+# date, then number).
 cleanup() {
     local major="$1" tags=() files=() t f n=0
     step "Removing builds older than the newest $KEEP"
-    mapfile -t tags < <(podman images --format '{{.Tag}}' "$REPO" | grep -E "^${major}\.[0-9]{8}$" | sort -ur || true)
+    mapfile -t tags < <(podman images --format '{{.Tag}}' "$REPO" | grep -E "^${major}\.[0-9]{8}(\.[0-9]+)?$" | sort -Vur || true)
     if [[ "${#tags[@]}" -gt "$KEEP" ]]; then
         for t in "${tags[@]:KEEP}"; do
             podman rmi "$REPO:$t" >/dev/null
@@ -117,11 +121,12 @@ main() {
     local original=("$@")
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --pins | --date | --output | --keep)
+            --pins | --date | --number | --output | --keep)
                 [[ $# -ge 2 ]] || die "$1 needs a value"
                 case "$1" in
                     --pins) PINS="$2" ;;
                     --date) DATE="$2" ;;
+                    --number) NUMBER="$2" ;;
                     --output) OUTPUT="$2" ;;
                     --keep) KEEP="$2" ;;
                 esac
@@ -148,6 +153,7 @@ main() {
     [[ "$KEEP" =~ ^[0-9]+$ ]] || die "--keep needs a number"
     if [[ -z "$DATE" ]]; then DATE="$(date -u +%Y%m%d)"; fi
     [[ "$DATE" =~ ^[0-9]{8}$ ]] || die "--date needs the form YYYYMMDD"
+    [[ "$NUMBER" =~ ^[1-9][0-9]*$ ]] || die "--number needs a whole number from 1"
 
     if [[ "$EUID" -ne 0 ]]; then
         command -v sudo >/dev/null 2>&1 || die "run this script as root (sudo is not installed)"
@@ -170,6 +176,7 @@ main() {
     fi
 
     local tag="$FEDORA_MAJOR.$DATE"
+    if [[ "$NUMBER" -gt 1 ]]; then tag="$tag.$NUMBER"; fi
     preflight
 
     # The app-builder stage is built and tagged first, as tools/test-apps.sh does. Untagged, its
