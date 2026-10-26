@@ -17,12 +17,17 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + . | Emoji picker |
 | Ctrl + Shift + Esc | Opens Process Manager, to see what's running and end a program that has stopped responding |
 | Windows + Left or Right arrow | Snaps the window to the left or right half of the screen |
+| Windows + Z | Snap layouts: choose where the window goes, such as a half, a third or a quarter of the screen |
 | Windows + Up arrow | Maximises the window |
 | Windows + Down arrow | Minimises the window |
 | Windows + PrtSc | Saves a screenshot of the whole screen to Pictures/Screenshots |
 | Alt + PrtSc | Captures the active window |
 
-Settings is the KDE Plasma System Settings app for now. Process Manager, Screenshot and Files are listed under those names in Start, and Start search also finds them by words such as "processes", "end task", "snip" and "print screen".
+Settings is OrielOS's Settings app (see [Settings](settings.md)). Process Manager, Screenshot, Files and Clipboard history are listed under those names in Start, and Start search also finds them by words such as "processes", "end task", "snip", "print screen" and "paste". Clipboard history in Start does the same as Windows + V.
+
+## Snap layouts
+
+Press Windows + Z to see four layouts for the window you're using: two halves, three thirds, two thirds beside one third, and four quarters. Click an area to move the window there. With the keyboard, the arrow keys move to the next area in that direction (Up and Down between the top and bottom quarters), Tab steps through every area, and Enter or Space snaps the window; Escape closes the layouts without changing anything.
 
 ## Changing a shortcut
 

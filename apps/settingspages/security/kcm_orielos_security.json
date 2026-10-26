@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Check that this PC meets what games with anti-cheat require: Secure Boot, the TPM, lockdown and signed drivers",
+        "Icon": "security-high",
+        "Name": "Device Security"
+    },
+    "X-KDE-Keywords": "security,secure boot,tpm,anti-cheat,anticheat,easy anti-cheat,lockdown,iommu,kexec,signed drivers,compliance",
+    "X-KDE-System-Settings-Parent-Category": "security-privacy",
+    "X-KDE-Weight": 10
+}

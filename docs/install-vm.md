@@ -2,7 +2,7 @@
 
 You can try OrielOS without touching your PC's own system by running it in a virtual machine. This guide shows how to build OrielOS, turn it into a virtual machine disk, and start it in QEMU on Linux or in VMware Workstation on Windows.
 
-OrielOS is in early development, so there is no download yet: you build the system yourself from the source code. It takes about half an hour the first time.
+OrielOS is in early development, so there is no download yet: you build the system yourself from the source code. It takes about half an hour the first time. [Known limitations](known-limitations.md) lists what it can't do yet.
 
 ## What you need
 
@@ -91,13 +91,14 @@ To check that Secure Boot is on, open the virtual machine's **Settings > Options
 
 ## What happens on first boot
 
-The first start takes under a minute. Then **Plasma Setup** opens with a "Welcome to Plasma Desktop" page. Click **Begin Setup**, and it asks, one page at a time, for:
+The first start takes under a minute. Then the setup opens over the OrielOS wallpaper, with a "Welcome to Plasma Desktop" page. Click **Begin Setup**, and it asks, one page at a time, for:
 
 1. your language;
 2. your keyboard layout;
-3. a network, if your PC uses Wi-Fi (a virtual machine is usually connected already);
+3. a network: a list of Wi-Fi networks if your PC has Wi-Fi, or otherwise whether its cable connection reaches the internet (a virtual machine is usually connected already);
 4. your time zone;
-5. your name, a user name and a password. This account is an administrator.
+5. when the computer goes to sleep and when the screen turns off, if you don't use it. It starts with sleep after 15 minutes and the screen off after 10;
+6. your name, a user name and a password. This account is an administrator.
 
 When you click **Finish**, Plasma Setup creates your account and shows the login screen. Log in with the password you chose. Plasma Setup does not appear again on later starts.
 
