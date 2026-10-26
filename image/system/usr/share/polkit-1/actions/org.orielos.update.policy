@@ -7,7 +7,8 @@ SPDX-FileCopyrightText: 2026 OrielOS contributors
 SPDX-License-Identifier: GPL-3.0-or-later
 
 What the Update settings page may ask orielos-update to do through pkexec. Anyone using the
-computer may pause, resume and check for updates without a password; changing which builds the
+computer may pause, resume and check for updates, and turn automatic app updates on or off,
+without a password; changing which builds the
 computer gets, going back to the previous version and removing it need an administrator. pkexec
 picks the action by the program and its first argument.
 -->
@@ -38,6 +39,18 @@ picks the action by the program and its first argument.
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">resume</annotate>
+  </action>
+
+  <action id="org.orielos.update.app-updates">
+    <description>Turn automatic updates of apps from the Store on or off</description>
+    <message>Authentication is needed to change automatic app updates</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">app-updates</annotate>
   </action>
 
   <action id="org.orielos.update.check">

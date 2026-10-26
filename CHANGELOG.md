@@ -6,6 +6,9 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Apps from the Store update by themselves, in the background, a few minutes after start-up and about every six hours, at low priority so they don't slow down a game.
+  - After an OrielOS update with a new NVIDIA driver, the matching graphics driver for Store apps arrives the same way, without opening the Store.
+  - **Update apps automatically** on the update settings page turns this off; the Store's Update button works either way. Apps aren't updated on a metered connection.
 - OrielOS Update, a page in System Settings under System, holds everything about updates. Clicking the OrielOS updates icon in the system tray opens it.
   - It shows the version you're running and when OrielOS last checked for updates, and "Check for updates" checks straight away and shows what it found.
   - It pauses updates for one to five weeks or resumes them, and switches between the Stable and Testing channels.
