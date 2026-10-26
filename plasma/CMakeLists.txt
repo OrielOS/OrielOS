@@ -9,15 +9,39 @@ find_package(Plasma 6.0 REQUIRED)
 # The Start menu widget.
 add_subdirectory(startmenu)
 
-# OrielOS's look-and-feel package, which lays out OrielOS's taskbar for new users.
-install(DIRECTORY look-and-feel/org.orielos.desktop
+# Snap layouts: a KWin effect that Win+Z opens, to snap the active window into a layout.
+install(DIRECTORY kwin/snaplayouts/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snaplayouts)
+
+# The first-run setup's network page, for computers without Wi-Fi, and its power page, as Plasma
+# Setup packages. image/build/41-first-run.sh puts every page in order and shows this logo on the
+# last one.
+install(DIRECTORY firstrun/network/
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.network)
+install(DIRECTORY firstrun/power/
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.power)
+install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash.png
+    DESTINATION ${KDE_INSTALL_DATADIR}/orielos/first-run RENAME finished-logo.png)
+
+# OrielOS's look-and-feel packages, which lay out OrielOS's taskbar for new users: OrielOS, in light
+# colours, and OrielOS Dark, which has the same layout script.
+install(DIRECTORY look-and-feel/org.orielos.desktop look-and-feel/org.orielos.desktop.dark
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
+install(DIRECTORY look-and-feel/org.orielos.desktop/contents/layouts
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/org.orielos.desktop.dark/contents)
+
+# OrielOS's colour schemes, which the look-and-feel packages choose.
+install(FILES color-schemes/OrielOSLight.colors color-schemes/OrielOSDark.colors
+    DESTINATION ${KDE_INSTALL_DATADIR}/color-schemes)
 
 # Update scripts move existing users' desktops to the current layout. Plasma runs each one once
 # per user, in file-name order, so the Start menu replaces the old launcher before the taskbar is
 # put in order.
-install(FILES updates/orielos-startmenu-1.js updates/orielos-taskbar-1.js
+install(FILES updates/orielos-startmenu-1.js updates/orielos-startmenu-2.js updates/orielos-taskbar-1.js
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/shells/org.kde.plasma.desktop/contents/updates)
+
+# The boot splash's logo, for the Plymouth theme in image/system/usr/share/plymouth/themes/orielos.
+install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash-white.png
+    DESTINATION ${KDE_INSTALL_DATADIR}/plymouth/themes/orielos RENAME watermark.png)
 
 # The Start button's icon: the OrielOS mark, drawn with wider gaps for taskbar sizes.
 install(FILES ${PROJECT_SOURCE_DIR}/artwork/icons/orielos-start.svg
@@ -29,3 +53,7 @@ install(DIRECTORY
     ${PROJECT_SOURCE_DIR}/artwork/wallpapers/OrielOS
     ${PROJECT_SOURCE_DIR}/artwork/wallpapers/OrielOS-Horizon
     DESTINATION ${KDE_INSTALL_WALLPAPERDIR})
+
+# OrielOS's sound theme, which the image makes the default. It inherits Plasma's Ocean theme for
+# the sounds it doesn't have.
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/artwork/sounds/orielos DESTINATION ${KDE_INSTALL_SOUNDDIR})

@@ -8,6 +8,7 @@ import org.kde.ki18n
 import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.plasmoid
 import org.kde.plasma.private.kicker as Kicker
+import "getstarted.js" as GetStarted
 
 // The Start menu's models and the actions its pages share: pinning, launching, context menus
 // and moving the keyboard focus between the pages' parts.
@@ -30,6 +31,11 @@ QtObject {
     readonly property int pinnedColumns: 6
     readonly property int pinnedRows: 3
     readonly property int recommendedLimit: 6
+    // What Recommended lists, set on Settings' Start page.
+    readonly property bool showRecentlyAdded: Plasmoid.configuration.showRecentlyAdded ?? true
+    readonly property bool showRecentFiles: Plasmoid.configuration.showRecentFiles ?? true
+    onShowRecentlyAddedChanged: state.rebuildRecommended()
+    onShowRecentFilesChanged: state.rebuildRecommended()
 
     // The root model is filled the first time the menu opens, as Kickoff does.
     property bool populated: false
@@ -97,15 +103,16 @@ QtObject {
         onCountChanged: state.rebuildRecommended()
     }
 
-    // The recommended list: newly installed apps first, then recent files. Each entry is
-    // { app: bool, id, display, decoration, subtitle }, where id is an app's favoriteId or a
-    // file's URL. Rows move as apps and files come and go, so they're looked up when needed.
+    // The recommended list: newly installed apps first, then recent files, then the Get started
+    // suggestions that aren't installed. Each entry is { app: bool, store: bool, id, display,
+    // decoration, subtitle }, where id is an app's favoriteId, a file's URL or, for a suggestion,
+    // its Flathub ID. Rows move as apps and files come and go, so they're looked up when needed.
     property var recommendedItems: []
 
     readonly property Kicker.RunnerModel runnerModel: Kicker.RunnerModel {
         appletInterface: state.plasmoidItem
         mergeResults: true
-        runners: ["krunner_services", "krunner_systemsettings", "baloosearch", "krunner_recentdocuments", "krunner_placesrunner", "krunner_appstream", "calculator", "unitconverter"]
+        runners: ["krunner_services", "krunner_orielos_settings", "baloosearch", "krunner_recentdocuments", "krunner_placesrunner", "krunner_appstream", "calculator", "unitconverter"]
         query: state.query
         onRequestUpdateQuery: newQuery => state.queryUpdateRequested(newQuery)
     }
@@ -244,6 +251,28 @@ QtObject {
         return -1;
     }
 
+    // Where Flatpak keeps the icons of Flathub's catalogue.
+    readonly property string flathubIcons: "/var/lib/flatpak/appstream/flathub/x86_64/active/icons/128x128"
+
+    // The desktop entry IDs of every installed app.
+    function installedAppIds(): var {
+        const ids = new Set();
+        const model = state.allAppsModel;
+        if (!model) {
+            return ids;
+        }
+        const role = model.KItemModels.KRoleNames.role("favoriteId");
+        for (let row = 0; row < model.count; ++row) {
+            ids.add(state.normaliseId(String(model.data(model.index(row, 0), role) ?? "")));
+        }
+        return ids;
+    }
+
+    function hideGetStarted() {
+        Plasmoid.configuration.getStartedHidden = true;
+        state.rebuildRecommended();
+    }
+
     function rebuildRecommended() {
         if (state.filteringNewApps) {
             return;
@@ -256,7 +285,7 @@ QtObject {
 
         const items = [];
         const newApps = state.newAppsModel;
-        for (let i = 0; i < newApps.count && items.length < state.recommendedLimit; ++i) {
+        for (let i = 0; state.showRecentlyAdded && i < newApps.count && items.length < state.recommendedLimit; ++i) {
             const sourceRow = newApps.mapToSource(newApps.index(i, 0)).row;
             items.push({
                 app: true,
@@ -266,7 +295,7 @@ QtObject {
                 subtitle: KI18n.i18nc("@info:status An app installed in the last few days", "Recently added"),
             });
         }
-        for (let row = 0; row < state.recentDocsModel.count && items.length < state.recommendedLimit; ++row) {
+        for (let row = 0; state.showRecentFiles && row < state.recentDocsModel.count && items.length < state.recommendedLimit; ++row) {
             items.push({
                 app: false,
                 id: String(state.recentDocsData(row, "url") ?? ""),
@@ -274,6 +303,26 @@ QtObject {
                 decoration: state.recentDocsData(row, "decoration") ?? "",
                 subtitle: String(state.recentDocsData(row, "description") ?? ""),
             });
+        }
+        if (!Plasmoid.configuration.getStartedHidden) {
+            const installed = state.installedAppIds();
+            for (const suggestion of GetStarted.apps) {
+                if (items.length >= state.recommendedLimit) {
+                    break;
+                }
+                if (installed.has(suggestion.id + ".desktop")) {
+                    continue;
+                }
+                items.push({
+                    app: false,
+                    store: true,
+                    id: suggestion.id,
+                    display: suggestion.name,
+                    // Flathub's own icon, once the Store has fetched Flathub's catalogue.
+                    decoration: "file://" + state.flathubIcons + "/" + suggestion.id + ".png",
+                    subtitle: KI18n.i18nc("@info An app the user can get from the Store", "Get it from the Store"),
+                });
+            }
         }
         state.recommendedItems = items;
     }
@@ -299,6 +348,12 @@ QtObject {
 
     function launchRecommended(item) {
         if (!item) {
+            return;
+        }
+        // A suggestion opens its page in the Store, which installs nothing until asked to.
+        if (item.store) {
+            Qt.openUrlExternally("appstream://" + item.id);
+            state.close();
             return;
         }
         if (item.app) {
@@ -417,6 +472,22 @@ QtObject {
 
     function openRecommendedMenu(entry, item: Item, x: real, y: real, fromKeyboard: bool) {
         if (!entry) {
+            return;
+        }
+        if (entry.store) {
+            state.contextMenu.show([
+                {
+                    text: KI18n.i18nc("@action:inmenu", "Open in the Store"),
+                    icon: "plasmadiscover",
+                    handler: () => state.launchRecommended(entry),
+                },
+                { separator: true },
+                {
+                    text: KI18n.i18nc("@action:inmenu Hide the list of suggested apps", "Hide these suggestions"),
+                    icon: "view-hidden",
+                    handler: () => state.hideGetStarted(),
+                },
+            ], item, x, y, fromKeyboard);
             return;
         }
         if (entry.app) {

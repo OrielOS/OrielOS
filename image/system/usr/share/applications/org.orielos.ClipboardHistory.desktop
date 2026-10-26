@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Clipboard history
+GenericName=Clipboard history
+Comment=Paste something you copied earlier
+Keywords=clipboard;paste;copy;history;
+Icon=klipper
+# The same as Win+V: Plasma's clipboard shows its history at the pointer.
+Exec=busctl --user call org.kde.kglobalaccel /component/plasmashell org.kde.kglobalaccel.Component invokeShortcut s show-on-mouse-pos
+Terminal=false
+Categories=Qt;KDE;Utility;

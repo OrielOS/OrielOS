@@ -12,6 +12,7 @@ You don't need to change anything:
 
 - **NTSYNC.** Windows games run through Proton use the kernel's own version of Windows' synchronisation objects, which makes many of them run more smoothly.
 - **Settings some games need.** The system allows the large number of memory maps some games use, and doesn't slow down older games that use a CPU instruction pattern the kernel would otherwise penalise.
+- **Performance power mode.** OrielOS starts in the Performance power mode, on mains power and on battery, and adds no power limits of its own. You can change it at any time from the battery and power icon in the system tray, and your choice is kept, also after updates. On a laptop, Performance means a shorter battery life and more fan noise.
 - **GameMode.** Games and launchers that support it can ask the system for full performance while they run.
 - **Compressed memory swap (zram)**, as Fedora sets it up, so the computer stays responsive when memory runs low.
 - **umu-launcher**, which OrielOS uses to run Windows programs with Proton.
@@ -38,6 +39,6 @@ The controller's battery level shows in the battery widget in the system tray.
 
 ## Mice, keyboards and lighting
 
-Apps for gaming mice, keyboards and lighting come from the Store too: Solaar for Logitech devices, Piper for configurable gaming mice, and OpenRGB for RGB lighting. The parts that have to be in the system, so these apps can reach your devices, are already there.
+Apps for gaming mice, keyboards and lighting come from the Store too: Solaar for Logitech devices, Piper for configurable gaming mice, and OpenRGB for RGB lighting. The parts that have to be in the system, so these apps can reach your devices, are already there. **Settings > Bluetooth & devices > Accessory apps** opens each one, or its page in the Store if it isn't installed.
 
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder).
