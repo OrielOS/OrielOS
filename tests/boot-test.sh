@@ -290,7 +290,7 @@ collect_over_ssh() {
 }
 
 # Print a shell script that reports the gaming defaults, one key=value per line: whether ntsync is
-# loaded, the two sysctl settings, transparent hugepages, zram swap, the gaming and peripheral
+# loaded, the two sysctl settings, transparent hugepages, zram swap, the power mode, the gaming and peripheral
 # packages, umu-launcher, the extra drivers and their signer, the PlayStation touchpad rule, and
 # Fedora's countme reporting.
 gaming_probe() {
@@ -301,6 +301,7 @@ echo "split_lock=$(sysctl -n kernel.split_lock_mitigate 2>&1)"
 echo "thp=$(cat /sys/kernel/mm/transparent_hugepage/enabled 2>&1)"
 echo "zram=$(swapon --show=NAME --noheadings 2>&1 | grep zram | paste -sd ' ' -)"
 echo "ananicy=$(rpm -q ananicy-cpp >/dev/null 2>&1 && echo installed)"
+echo "power=$(busctl get-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile 2>&1)"
 echo "missing=$(for p in gamemode umu-launcher steam-devices solaar-udev libratbag-ratbagd openrgb-udev-rules zram-generator-defaults; do rpm -q "$p" >/dev/null 2>&1 || printf '%s ' "$p"; done)"
 echo "umu=$(command -v umu-run)"
 echo "signers=$(for m in xone_gip hid_xpadneo hid_playstation ntsync; do printf '%s:%s ' "$m" "$(modinfo -F signer "$m" 2>/dev/null | head -n1)"; done)"
@@ -1029,18 +1030,19 @@ run_checks() {
         fail "Fedora's countme reporting is off: $no_ssh"
         hint "$ssh_hint"
     else
-        local ntsync map split thp zram ananicy missing umu signers rule
+        local ntsync map split thp zram ananicy power missing umu signers rule
         ntsync="$(gaming_value ntsync)"
         map="$(gaming_value map_count)"
         split="$(gaming_value split_lock)"
         thp="$(gaming_value thp)"
         zram="$(gaming_value zram)"
         ananicy="$(gaming_value ananicy)"
+        power="$(gaming_value power)"
         if [[ "$ntsync" == "loaded,/dev/ntsync" && "$map" == 1048576 && "$split" == 0 && "$thp" == *"[madvise]"* &&
-            -n "$zram" && -z "$ananicy" ]]; then
-            pass "Gaming defaults are set (ntsync loaded with /dev/ntsync; vm.max_map_count $map; kernel.split_lock_mitigate $split; transparent hugepages $thp; zram swap on $zram; no ananicy-cpp)"
+            -n "$zram" && -z "$ananicy" && "$power" == 's "performance"' ]]; then
+            pass "Gaming defaults are set (ntsync loaded with /dev/ntsync; vm.max_map_count $map; kernel.split_lock_mitigate $split; transparent hugepages $thp; zram swap on $zram; no ananicy-cpp; power mode $power)"
         else
-            fail "Gaming defaults are not all set (ntsync: ${ntsync:-not loaded}; vm.max_map_count: $map; kernel.split_lock_mitigate: $split; transparent hugepages: $thp; zram swap: ${zram:-none}; ananicy-cpp: ${ananicy:-not installed})"
+            fail "Gaming defaults are not all set (ntsync: ${ntsync:-not loaded}; vm.max_map_count: $map; kernel.split_lock_mitigate: $split; transparent hugepages: $thp; zram swap: ${zram:-none}; ananicy-cpp: ${ananicy:-not installed}; power mode: ${power:-no output})"
         fi
         missing="$(gaming_value missing)"
         umu="$(gaming_value umu)"

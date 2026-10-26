@@ -9,6 +9,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
   - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
   - GameMode, umu-launcher and Fedora's compressed memory swap (zram) are included.
+  - OrielOS starts in the Performance power mode, on mains and on battery, and keeps whichever mode you choose instead.
   - Steam from the Store reaches Xbox and PlayStation 4 and 5 controllers. The PlayStation touchpad doesn't move the desktop's pointer.
   - Solaar, Piper and OpenRGB from the Store can reach Logitech devices, gaming mice and RGB lighting.
   - A new "Games and controllers" page explains pairing controllers over Bluetooth.
