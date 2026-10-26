@@ -31,6 +31,11 @@ QtObject {
     readonly property int pinnedColumns: 6
     readonly property int pinnedRows: 3
     readonly property int recommendedLimit: 6
+    // What Recommended lists, set on Settings' Start page.
+    readonly property bool showRecentlyAdded: Plasmoid.configuration.showRecentlyAdded ?? true
+    readonly property bool showRecentFiles: Plasmoid.configuration.showRecentFiles ?? true
+    onShowRecentlyAddedChanged: state.rebuildRecommended()
+    onShowRecentFilesChanged: state.rebuildRecommended()
 
     // The root model is filled the first time the menu opens, as Kickoff does.
     property bool populated: false
@@ -107,7 +112,7 @@ QtObject {
     readonly property Kicker.RunnerModel runnerModel: Kicker.RunnerModel {
         appletInterface: state.plasmoidItem
         mergeResults: true
-        runners: ["krunner_services", "krunner_systemsettings", "baloosearch", "krunner_recentdocuments", "krunner_placesrunner", "krunner_appstream", "calculator", "unitconverter"]
+        runners: ["krunner_services", "krunner_orielos_settings", "baloosearch", "krunner_recentdocuments", "krunner_placesrunner", "krunner_appstream", "calculator", "unitconverter"]
         query: state.query
         onRequestUpdateQuery: newQuery => state.queryUpdateRequested(newQuery)
     }
@@ -280,7 +285,7 @@ QtObject {
 
         const items = [];
         const newApps = state.newAppsModel;
-        for (let i = 0; i < newApps.count && items.length < state.recommendedLimit; ++i) {
+        for (let i = 0; state.showRecentlyAdded && i < newApps.count && items.length < state.recommendedLimit; ++i) {
             const sourceRow = newApps.mapToSource(newApps.index(i, 0)).row;
             items.push({
                 app: true,
@@ -290,7 +295,7 @@ QtObject {
                 subtitle: KI18n.i18nc("@info:status An app installed in the last few days", "Recently added"),
             });
         }
-        for (let row = 0; row < state.recentDocsModel.count && items.length < state.recommendedLimit; ++row) {
+        for (let row = 0; state.showRecentFiles && row < state.recentDocsModel.count && items.length < state.recommendedLimit; ++row) {
             items.push({
                 app: false,
                 id: String(state.recentDocsData(row, "url") ?? ""),

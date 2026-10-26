@@ -4,7 +4,7 @@ Press the Windows key (Win), or click the Start button in the middle of the task
 
 ## Search
 
-Start typing as soon as Start opens. The results list apps, settings, files, apps in the Store, and quick calculations such as `12*7`, grouped by kind. Typing never opens anything by itself: press Enter to open the highlighted result (the first one, unless you moved with the Up and Down arrow keys), or click a result.
+Start typing as soon as Start opens. The results list apps, settings, files, apps in the Store, and quick calculations such as `12*7`, grouped by kind. Settings open in [Settings](settings.md), and know Windows' words for them, such as "wifi", "default apps" or "windows update". Typing never opens anything by itself: press Enter to open the highlighted result (the first one, unless you moved with the Up and Down arrow keys), or click a result.
 
 ## Pinned apps
 
@@ -21,7 +21,7 @@ Your pinned apps are saved with your account, so they stay the same after a rest
 
 ## Recommended
 
-Recommended shows apps you installed in the last three days, then files you opened recently. Click one to open it.
+Recommended shows apps you installed in the last three days, then files you opened recently. Click one to open it. To leave either out, go to **Settings > Personalisation > Start**.
 
 Until you hide them, Recommended also suggests apps to get started with: Steam, Heroic Games Launcher, Discord, Spotify, OBS Studio and Lutris. Each one says "Get it from the Store", and clicking it opens its page in the Store, where you choose whether to install it. An app leaves the list once it's installed. To hide the suggestions, right-click one (or press the Menu key on it) and choose **Hide these suggestions**.
 

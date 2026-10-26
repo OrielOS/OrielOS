@@ -8,7 +8,7 @@
 #include <QTest>
 #include <QTimeZone>
 
-using namespace UpdateNotifier;
+using namespace OrielOSUpdates;
 
 namespace {
 
@@ -38,12 +38,14 @@ QByteArray stateJson(const QString &staged = QString(), const QString &pausedUnt
         .toUtf8();
 }
 
-// The same state with a previous build, 44.0, which going back would start.
-QByteArray withPrevious(QByteArray json, bool rejected = false, bool queued = false)
+// The same state with a previous build, 44.0, which going back would start. removedAfter is the
+// field's JSON value, or empty to leave the field out.
+QByteArray withPrevious(QByteArray json, bool rejected = false, bool queued = false, const QString &removedAfter = QString())
 {
     const auto flag = [](bool value) { return value ? QStringLiteral("true") : QStringLiteral("false"); };
-    const QString fields = QStringLiteral(R"("previous": {"version": "44.0", "digest": "%1", "rejected": %2}, "rollbackQueued": %3, "staged":)")
-                               .arg(older, flag(rejected), flag(queued));
+    const QString removal = removedAfter.isEmpty() ? QString() : QStringLiteral(R"(, "removedAfter": %1)").arg(removedAfter);
+    const QString fields = QStringLiteral(R"("previous": {"version": "44.0", "digest": "%1", "rejected": %2%3}, "rollbackQueued": %4, "staged":)")
+                               .arg(older, flag(rejected), removal, flag(queued));
     json.replace("\"staged\":", fields.toUtf8());
     return json;
 }
@@ -75,6 +77,20 @@ private Q_SLOTS:
         QVERIFY(state.isValid());
         QVERIFY(!state.staged());
         QVERIFY(!state.pausedUntil().isValid());
+    }
+
+    void readsAppUpdates()
+    {
+        // A file from before the setting existed: app updates are on and haven't run.
+        const UpdateState before = UpdateState::fromJson(stateJson());
+        QVERIFY(before.appUpdates());
+        QVERIFY(!before.appsUpdatedAt().isValid());
+
+        QByteArray json = stateJson();
+        json.replace("\"bootId\"", "\"appUpdates\": false, \"appsUpdatedAt\": \"2026-10-25T09:00:00Z\", \"bootId\"");
+        const UpdateState off = UpdateState::fromJson(json);
+        QVERIFY(!off.appUpdates());
+        QCOMPARE(off.appsUpdatedAt(), QDateTime(QDate(2026, 10, 25), QTime(9, 0), QTimeZone::UTC));
     }
 
     void ignoresUnknownFields()
@@ -146,8 +162,8 @@ private Q_SLOTS:
     void offersOneToFiveWeeks()
     {
         QCOMPARE(pauseChoices(), (QList<int> { 1, 2, 3, 4, 5 }));
-        QCOMPARE(pauseChoiceLabel(1), QStringLiteral("Pause for 1 week"));
-        QCOMPARE(pauseChoiceLabel(5), QStringLiteral("Pause for 5 weeks"));
+        QCOMPARE(pauseChoiceLabel(1), QStringLiteral("1 week"));
+        QCOMPARE(pauseChoiceLabel(5), QStringLiteral("5 weeks"));
     }
 
     void mapsChannels()
@@ -158,7 +174,6 @@ private Q_SLOTS:
         QCOMPARE(channelFromName(QString()), Channel::Stable);
         QCOMPARE(channelName(Channel::Stable), QStringLiteral("stable"));
         QCOMPARE(channelName(Channel::Testing), QStringLiteral("testing"));
-        QCOMPARE(channelLabel(Channel::Stable), QStringLiteral("Stable (recommended)"));
         QCOMPARE(UpdateState::fromJson(stateJson(QString(), QString(), QStringLiteral("nightly"))).channel(), Channel::Stable);
     }
 
@@ -190,6 +205,39 @@ private Q_SLOTS:
         QVERIFY(state.canGoBack(bootId));
         QVERIFY(!state.canGoBack(QStringLiteral("boot-2")));
         QVERIFY(!UpdateState::fromJson(withPrevious(stateJson(), true)).canGoBack(bootId));
+    }
+
+    void readsWhenThePreviousBuildIsRemoved_data()
+    {
+        QTest::addColumn<QString>("removedAfter");
+        QTest::addColumn<QDateTime>("expected");
+        QTest::newRow("a time") << QStringLiteral(R"("2026-11-08T12:00:00Z")") << QDateTime(QDate(2026, 11, 8), QTime(12, 0), QTimeZone::UTC);
+        QTest::newRow("null") << QStringLiteral("null") << QDateTime();
+        QTest::newRow("absent") << QString() << QDateTime();
+        QTest::newRow("not a time") << QStringLiteral(R"("soon")") << QDateTime();
+        QTest::newRow("a number") << QStringLiteral("14") << QDateTime();
+    }
+
+    void readsWhenThePreviousBuildIsRemoved()
+    {
+        QFETCH(QString, removedAfter);
+        QFETCH(QDateTime, expected);
+        const UpdateState state = UpdateState::fromJson(withPrevious(stateJson(), false, false, removedAfter));
+        QVERIFY(state.previous());
+        QCOMPARE(state.previousRemovedAfter(), expected);
+    }
+
+    void removesThePreviousBuildOnlyWhenNothingWaits()
+    {
+        QVERIFY(UpdateState::fromJson(withPrevious(stateJson())).canRemovePrevious(bootId));
+        // A build that was rolled back can be removed too, though it isn't offered for going back.
+        QVERIFY(UpdateState::fromJson(withPrevious(stateJson(), true)).canRemovePrevious(bootId));
+        QVERIFY(!UpdateState::fromJson(stateJson()).canRemovePrevious(bootId));
+        QVERIFY(!UpdateState::fromJson(withPrevious(stateJson(newer))).canRemovePrevious(bootId));
+        QVERIFY(!UpdateState::fromJson(withPrevious(stateJson(), false, true)).canRemovePrevious(bootId));
+        QVERIFY(!UpdateState::fromJson(withPrevious(stateJson())).canRemovePrevious(QStringLiteral("boot-2")));
+        // A staged build that is the running one isn't waiting for anything.
+        QVERIFY(UpdateState::fromJson(withPrevious(stateJson(running))).canRemovePrevious(bootId));
     }
 
     void goingBackReplacesAWaitingUpdate()

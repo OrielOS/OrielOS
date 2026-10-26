@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fails the build unless every kernel module is signed by an allowed signer (image/module-signers.txt),
 # exactly one kernel is installed and the NVIDIA kernel module and driver are one version, 32-bit libraries included.
+# Then installs the signer list to /usr/share/orielos for Settings' Device security page.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -90,6 +91,9 @@ if [[ "${#errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${errors[@]}" >&2
     exit 1
 fi
+
+# Settings' Device security page checks the running system's modules against the same list.
+install -D -m 0644 "$signers_file" /usr/share/orielos/module-signers.txt
 
 printf 'kernel:         %s\n' "$kver"
 printf 'kmod-nvidia:    %s\n' "$driver"

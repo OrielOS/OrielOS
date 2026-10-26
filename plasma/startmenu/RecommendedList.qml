@@ -109,7 +109,19 @@ Item {
         anchors.centerIn: parent
         width: parent.width - Kirigami.Units.gridUnit * 4
         visible: grid.count === 0
-        text: KI18n.i18nc("@info:status", "Apps you install and files you open will appear here.")
+        text: {
+            const menu = recommended.menu;
+            if (!menu.showRecentlyAdded && !menu.showRecentFiles) {
+                return KI18n.i18nc("@info:status", "To see new apps and recent files here, turn them on in Settings, Personalisation, Start.");
+            }
+            if (!menu.showRecentFiles) {
+                return KI18n.i18nc("@info:status", "Apps you install will appear here.");
+            }
+            if (!menu.showRecentlyAdded) {
+                return KI18n.i18nc("@info:status", "Files you open will appear here.");
+            }
+            return KI18n.i18nc("@info:status", "Apps you install and files you open will appear here.");
+        }
         textFormat: Text.PlainText
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.Wrap
