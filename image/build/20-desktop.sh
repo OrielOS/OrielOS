@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs the KDE Plasma desktop listed in image/packages/desktop.txt, makes Flathub the
 # only Flatpak source, starts Plasma Setup on first boot and SDDM at every boot, makes OrielOS's
-# look-and-feel and sounds the defaults and sets the Plymouth boot splash.
+# look-and-feel the default and sets the Plymouth boot splash.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
