@@ -18,6 +18,8 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PINS="$ROOT/image/pins.env"
+# shellcheck source=lib/pins.sh
+source "$ROOT/tools/lib/pins.sh"
 DATE=""
 NUMBER=1
 OUTPUT="/var/lib/orielos/builds"
@@ -51,10 +53,15 @@ kernel_of() {
 }
 
 preflight() {
-    local akmods_kernel nvidia_kernel
-    step "Pulling the akmods images"
-    podman pull --quiet "$AKMODS_IMAGE" >/dev/null
-    podman pull --quiet "$AKMODS_NVIDIA_IMAGE" >/dev/null
+    local akmods_kernel nvidia_kernel var ref
+    # From OrielOS's copies where it has them (tools/lib/pins.sh): upstream registries drop old
+    # digests. Each pin then names the image that was pulled, with the same digest.
+    step "Pulling the pinned images"
+    for var in "${PINNED_IMAGES[@]}"; do
+        ref="$(pull_pin "${!var}")" || die "can't pull $var (${!var}) from OrielOS's copy or upstream"
+        printf -v "$var" '%s' "$ref"
+        step "$var: $ref"
+    done
     akmods_kernel="$(kernel_of "$AKMODS_IMAGE")"
     nvidia_kernel="$(kernel_of "$AKMODS_NVIDIA_IMAGE")"
     if [[ "$akmods_kernel" != "$nvidia_kernel" ]]; then

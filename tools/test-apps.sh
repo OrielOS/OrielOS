@@ -11,6 +11,8 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PINS="$ROOT/image/pins.env"
+# shellcheck source=lib/pins.sh
+source "$ROOT/tools/lib/pins.sh"
 TAG="localhost/orielos-app-builder"
 
 die() {
@@ -54,6 +56,8 @@ main() {
     [[ "$BUILDER_IMAGE" =~ @sha256:[0-9a-f]{64}$ ]] ||
         die "BUILDER_IMAGE in $PINS is not pinned by digest (expected name:tag@sha256:<64 hex digits>)"
 
+    # From OrielOS's copy where it has it (tools/lib/pins.sh): upstream registries drop old digests.
+    BUILDER_IMAGE="$(pull_pin "$BUILDER_IMAGE")" || die "can't pull $BUILDER_IMAGE from OrielOS's copy or upstream"
     step "Building and testing the apps in $BUILDER_IMAGE"
     if ! podman build --pull=missing -f "$ROOT/image/Containerfile" --target app-builder \
         --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" -t "$TAG" "$ROOT"; then
