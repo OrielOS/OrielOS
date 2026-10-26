@@ -31,8 +31,8 @@ public:
         std::function<void(const QString &url)> openUrl;
     };
 
-    // Installed means a Flatpak with that ID exports its desktop entry; apps start with flatpak run,
-    // and the Store opens appstream: links.
+    // Installed means a Flatpak with that ID exports its desktop entry; apps start from it, and the
+    // Store opens appstream: links.
     explicit StoreApps(QObject *parent = nullptr);
     explicit StoreApps(Environment environment, QObject *parent = nullptr);
 
