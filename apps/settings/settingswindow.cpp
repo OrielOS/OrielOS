@@ -3,6 +3,8 @@
 
 #include "settingswindow.h"
 
+#include "modules.h"
+
 #include <KCModule>
 #include <KCModuleLoader>
 #include <KLocalizedString>
@@ -26,31 +28,11 @@ namespace OrielOSSettings {
 
 namespace {
 
-// Where System Settings finds its modules: Plasma's QML and Qt Widgets ones, other Plasma ones,
-// and Info Center's, such as About.
-const QStringList moduleNamespaces {
-    QStringLiteral("plasma/kcms/systemsettings"),
-    QStringLiteral("plasma/kcms/systemsettings_qwidgets"),
-    QStringLiteral("plasma/kcms"),
-    QStringLiteral("plasma/kcms/kinfocenter"),
-};
-
 constexpr int idRole = Qt::UserRole;
 constexpr int kindRole = Qt::UserRole + 1;
 const QString pageKind = QStringLiteral("page");
 
 } // namespace
-
-KPluginMetaData findModule(const QString &id)
-{
-    for (const QString &space : moduleNamespaces) {
-        const KPluginMetaData metadata = KPluginMetaData::findPluginById(space, id);
-        if (metadata.isValid()) {
-            return metadata;
-        }
-    }
-    return { };
-}
 
 SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     : QWidget(parent)

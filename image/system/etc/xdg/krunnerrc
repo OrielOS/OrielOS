@@ -1,0 +1,5 @@
+# KRunner (Alt+Space) finds settings with OrielOS's runner, krunner_orielos_settings, which opens
+# Settings' own pages in Settings and every other settings module in System Settings. System
+# Settings' runner would list Settings' pages a second time and open them in System Settings.
+[Plugins]
+krunner_systemsettingsEnabled=false

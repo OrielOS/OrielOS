@@ -105,6 +105,11 @@ for f in /usr/share/applications/org.orielos.Settings.desktop /usr/share/kglobal
     grep -qxF 'X-KDE-Shortcuts=Meta+I' "$f" 2>/dev/null || update_errors+=("$f is missing or doesn't give Settings Win+I")
 done
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
+# Start's and KRunner's search open Settings' pages in Settings, through OrielOS's runner.
+[[ -r /usr/lib64/qt6/plugins/kf6/krunner/krunner_orielos_settings.so ]] || update_errors+=("the settings search runner, krunner_orielos_settings, is missing")
+if [[ "$(kreadconfig6 --file /etc/xdg/krunnerrc --group Plugins --key krunner_systemsettingsEnabled)" != "false" ]]; then
+    update_errors+=("/etc/xdg/krunnerrc does not turn off System Settings' search runner")
+fi
 if [[ -e /var/lib/orielos/update ]]; then
     update_errors+=("/var/lib/orielos/update exists in the image")
 fi

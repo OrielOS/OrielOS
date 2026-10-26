@@ -221,52 +221,66 @@ std::optional<Page> PageCatalogue::page(const QString &idOrModule) const
 
 QList<Page> PageCatalogue::search(const QString &query) const
 {
-    const QStringList queryWords = words(query);
-    if (queryWords.isEmpty()) {
-        return { };
-    }
-    const QString wholeQuery = queryWords.join(QLatin1Char(' '));
-
-    struct Match
-    {
-        int rank;
-        qsizetype order;
-    };
-    QList<std::pair<Match, Page>> matches;
-    for (qsizetype order = 0; order < m_pages.size(); ++order) {
-        const Page &page = m_pages.at(order);
-        const QStringList title = words(page.title);
-        QStringList named = title;
-        for (const QString &keyword : page.keywords) {
-            named += words(keyword);
-        }
-        QStringList everything = named;
-        if (const std::optional<Category> category = this->category(page.category)) {
-            everything += words(category->title);
-        }
-        everything += words(page.description);
-
-        int rank = -1;
-        if (title.join(QLatin1Char(' ')).startsWith(wholeQuery)) {
-            rank = 0;
-        } else if (prefixesAll(queryWords, title)) {
-            rank = 1;
-        } else if (prefixesAll(queryWords, named)) {
-            rank = 2;
-        } else if (prefixesAll(queryWords, everything)) {
-            rank = 3;
-        }
-        if (rank >= 0) {
-            matches.append({ { rank, order }, page });
-        }
-    }
-    std::stable_sort(matches.begin(), matches.end(), [](const auto &a, const auto &b) { return a.first.rank < b.first.rank; });
     QList<Page> out;
-    out.reserve(matches.size());
-    for (const auto &match : std::as_const(matches)) {
-        out.append(match.second);
+    for (const auto &match : rankedSearch(query)) {
+        out.append(match.first);
     }
     return out;
+}
+
+QList<std::pair<Page, int>> PageCatalogue::rankedSearch(const QString &query) const
+{
+    // The query is split once; Start's search runs this on every key.
+    const QStringList queryWords = words(query);
+    QList<std::pair<Page, int>> matches;
+    if (queryWords.isEmpty()) {
+        return matches;
+    }
+    for (const Page &page : m_pages) {
+        const int rank = this->rank(page, queryWords);
+        if (rank >= 0) {
+            matches.append({ page, rank });
+        }
+    }
+    // Equal matches keep the catalogue's order.
+    std::stable_sort(matches.begin(), matches.end(), [](const auto &a, const auto &b) { return a.second < b.second; });
+    return matches;
+}
+
+int PageCatalogue::rank(const Page &page, const QString &query) const
+{
+    return rank(page, words(query));
+}
+
+int PageCatalogue::rank(const Page &page, const QStringList &queryWords) const
+{
+    if (queryWords.isEmpty()) {
+        return -1;
+    }
+    // Each list is only built when the cheaper ones before it don't match.
+    const QStringList title = words(page.title);
+    if (title.join(QLatin1Char(' ')).startsWith(queryWords.join(QLatin1Char(' ')))) {
+        return 0;
+    }
+    if (prefixesAll(queryWords, title)) {
+        return 1;
+    }
+    QStringList named = title;
+    for (const QString &keyword : page.keywords) {
+        named += words(keyword);
+    }
+    if (prefixesAll(queryWords, named)) {
+        return 2;
+    }
+    QStringList everything = named;
+    if (const std::optional<Category> category = this->category(page.category)) {
+        everything += words(category->title);
+    }
+    everything += words(page.description);
+    if (prefixesAll(queryWords, everything)) {
+        return 3;
+    }
+    return -1;
 }
 
 } // namespace OrielOSSettings
