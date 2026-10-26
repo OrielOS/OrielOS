@@ -67,11 +67,11 @@ jobs:
           sudo chmod 1777 /mnt/tmp
           df -h / /mnt
 
+      # Every tool comes from Ubuntu's signed archive; nothing is installed unpinned from PyPI.
       - name: Install the tools for the smoke test
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q qemu-system-x86 qemu-utils ovmf swtpm swtpm-tools socat flatpak skopeo
-          sudo apt-get install -y -q python3-virt-firmware || sudo pip3 install --break-system-packages virt-firmware
+          sudo apt-get install -y -q qemu-system-x86 qemu-utils ovmf swtpm swtpm-tools socat flatpak skopeo python3-virt-firmware
           sudo modprobe kvm_intel || sudo modprobe kvm_amd || true
           sudo modprobe vhost_vsock
           ls -l /dev/kvm /dev/vhost-vsock
