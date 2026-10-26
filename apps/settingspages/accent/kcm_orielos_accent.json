@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Choose the colour of highlights, selected items and focus rings",
+        "Icon": "preferences-desktop-color",
+        "Name": "Accent Colour"
+    },
+    "X-KDE-Keywords": "accent,accent colour,accent color,colour,color,highlight,selection",
+    "X-KDE-System-Settings-Parent-Category": "themes",
+    "X-KDE-Weight": 40
+}

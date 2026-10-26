@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=OrielOS updates
-Comment=Tells you when an OrielOS update is ready, and lets you pause updates or change channel
+Comment=Tells you when an OrielOS update is ready or was undone, and opens the update settings
 Icon=system-software-update
 Exec=orielos-update-notifier
 NoDisplay=true

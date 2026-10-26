@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Installs the OrielOS image to a disk file, boots it under QEMU/KVM with Secure Boot, a software
 # TPM and a 1920x1080 screen, and saves a numbered set of screenshots that show what OrielOS looks
-# like: the boot splash, Plasma Setup's pages, the sign-in screen, the desktop, Start, Files, the
-# Store, Process Manager, Settings, Firefox, Screenshot, the overview, the lock screen (idle and
-# unlocking), the dark theme and the dark lock screen. It drives the VM with QMP mouse clicks and
-# key presses, as a person would, and uses SSH through a vsock device to wait for each step and
-# to close windows between screenshots.
+# like: the boot splash, Plasma Setup's pages, the sign-in screen, the desktop, Start, a setting
+# found from Start, Files, the Store, Process Manager, Settings and some of its pages, Firefox,
+# Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock
+# screen. It drives the VM with QMP mouse clicks and key presses, as a person would, and uses SSH
+# through a vsock device to wait for each step and to close windows between screenshots.
 # A screenshot that cannot be taken is reported as a WARN line and skipped.
 #
 # Usage: tests/screenshot-tour.sh [--image REF] [--keep] [--help]
@@ -36,7 +36,7 @@ TOUR_PASSWORD="orielos-tour"
 NEXT_X=1283
 NEXT_Y=883
 # The apps the tour opens; closed between screenshots.
-APPS="dolphin plasma-discover plasma-systemmonitor systemsettings firefox spectacle"
+APPS="dolphin plasma-discover plasma-systemmonitor orielos-settings systemsettings firefox spectacle"
 
 usage() {
     sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -137,15 +137,35 @@ PY
     fi
 }
 
-# Click Plasma Setup's Next button until the page stops changing or the account exists, saving
-# each new page as 03-setup-<n>.png from <n> on. Prints the next free number: next_pages <n>
+# Whether two frames show the same page: they differ in at most a few thousand bytes, such as a
+# text cursor blinking. Without Python, only identical frames count: same_page <frame> <frame>
+same_page() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        cmp -s "$1" "$2"
+        return
+    fi
+    python3 -I - "$1" "$2" <<'PY'
+import sys
+
+with open(sys.argv[1], "rb") as a, open(sys.argv[2], "rb") as b:
+    first, second = a.read(), b.read()
+if len(first) != len(second):
+    sys.exit(1)
+sys.exit(0 if sum(x != y for x, y in zip(first, second)) <= 5000 else 1)
+PY
+}
+
+# Click Plasma Setup's Next button, up to ten times, until the page stays the same or the account
+# exists, saving each new page as 03-setup-<n>.png from <n> on. Prints the next free number:
+# next_pages <n>
 next_pages() {
-    local n="$1" before after
-    while ((n < 9)); do
+    local n="$1" limit=$(($1 + 10)) before after
+    while ((n < limit)); do
         before="$(frame before)"
         vm_qmp "click:$NEXT_X,$NEXT_Y" wait:3 >/dev/null 2>&1 || true
         after="$(frame after)"
-        cmp -s "$before" "$after" && break
+        same_page "$before" "$after" && break
+        shot "03-setup-$n" >&2
         n=$((n + 1))
         vm_ssh "id $TOUR_USER" >/dev/null 2>&1 && break
     done
@@ -168,8 +188,11 @@ drive_setup() {
         shot 03-setup-1-language
         n="$(next_pages 2)"
         info "Typing the account on the user page"
+        # The password field's Show Password button takes a Tab of its own.
         vm_qmp "type:$TOUR_NAME" keys:tab keys:ctrl+a "type:$TOUR_USER" keys:tab \
-            "type:$TOUR_PASSWORD" keys:tab "type:$TOUR_PASSWORD" wait:2 >/dev/null 2>&1 || true
+            "type:$TOUR_PASSWORD" keys:tab keys:tab "type:$TOUR_PASSWORD" wait:2 >/dev/null 2>&1 || true
+        # The same page as the last one saved, with the account typed in.
+        shot "03-setup-$((n - 1))-account"
         next_pages "$((n + 1))" >/dev/null
         wait_until 30 "id $TOUR_USER" || true
     fi
@@ -249,6 +272,10 @@ desktop_tour() {
     press_and_shot 07-start-search 3 type:store
     vm_qmp keys:esc wait:1 keys:esc >/dev/null 2>&1 || true
     sleep 2
+    # A setting found from Start, which Enter opens in Settings.
+    press_and_shot 07-start-search-setting 3 keys:meta_l wait:2 "type:dark mode"
+    press_and_shot 07-start-search-setting-opened 10 keys:ret
+    close_apps
 
     press_and_shot 08-files 8 keys:meta_l+e
     close_apps
@@ -261,6 +288,24 @@ desktop_tour() {
     close_apps
 
     press_and_shot 11-settings 10 keys:meta_l+i
+    # OrielOS's own pages, opened in the same window.
+    in_session orielos-settings accent >/dev/null 2>&1 || warn "Could not open the Accent colour page"
+    sleep 5
+    shot 11-settings-accent
+    in_session orielos-settings accessories >/dev/null 2>&1 || warn "Could not open the Accessory apps page"
+    sleep 5
+    shot 11-settings-accessories
+    # Taskbar reads its settings from the running desktop.
+    in_session orielos-settings taskbar >/dev/null 2>&1 || warn "Could not open the Taskbar page"
+    sleep 5
+    shot 11-settings-taskbar
+    # Device security checks the running system; the VM has no IOMMU.
+    in_session orielos-settings device-security >/dev/null 2>&1 || warn "Could not open the Device security page"
+    sleep 8
+    shot 11-settings-security
+    in_session orielos-settings power-mode >/dev/null 2>&1 || warn "Could not open the Power mode page"
+    sleep 5
+    shot 11-settings-power-mode
     close_apps
 
     open_app 15 firefox flatpak run org.mozilla.firefox
@@ -284,7 +329,7 @@ desktop_tour() {
     vm_ssh loginctl unlock-sessions >/dev/null 2>&1 || true
     sleep 5
 
-    in_session plasma-apply-colorscheme BreezeDark >/dev/null 2>&1 || warn "Could not switch to the dark colour scheme"
+    in_session plasma-apply-colorscheme OrielOSDark >/dev/null 2>&1 || warn "Could not switch to the dark colour scheme"
     sleep 10
     press_and_shot 17-desktop-dark 3 keys:meta_l
     vm_qmp keys:esc >/dev/null 2>&1 || true

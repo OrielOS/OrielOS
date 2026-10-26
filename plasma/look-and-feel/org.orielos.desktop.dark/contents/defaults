@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# OrielOS Dark: the same as org.orielos.desktop, with OrielOS's dark colour scheme and Breeze's
+# dark icons. The OrielOS wallpaper shows its dark image, Nightfall, with a dark colour scheme.
+
+[kdeglobals][KDE]
+widgetStyle=Breeze
+
+[kdeglobals][General]
+ColorScheme=OrielOSDark
+
+[kdeglobals][Icons]
+Theme=breeze-dark
+
+[plasmarc][Theme]
+name=default
+
+[Wallpaper]
+Image=OrielOS
+
+[kcminputrc][Mouse]
+cursorTheme=breeze_cursors
+
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
+
+[ksplashrc][KSplash]
+Theme=org.kde.breeze.desktop

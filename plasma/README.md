@@ -5,8 +5,10 @@ OrielOS's layer for KDE Plasma: the taskbar, Start menu, shortcuts and look.
 Contains:
 
 - `startmenu/`: the Start menu, OrielOS's own Plasma widget (see [The Start menu](#the-start-menu)).
-- `look-and-feel/org.orielos.desktop/`: OrielOS's look-and-feel package, which sets up OrielOS's taskbar for new users.
+- `look-and-feel/org.orielos.desktop/` and `look-and-feel/org.orielos.desktop.dark/`: OrielOS's look-and-feel packages, light and dark, which set up OrielOS's taskbar for new users.
+- `color-schemes/`: OrielOS's colour schemes, OrielOS Light and OrielOS Dark (see [Colour schemes](#colour-schemes)).
 - `updates/`: desktop update scripts, which move existing users' desktops to the current layout.
+- `firstrun/`: OrielOS's pages for the first-run setup, Plasma Setup: `network/`, which shows a computer without Wi-Fi whether its cable connection reaches the internet, and `power/`, which asks when the computer sleeps and the screen turns off. They are Plasma Setup packages; `image/README.md` describes the whole setup and its page order.
 
 Will contain:
 
@@ -14,17 +16,29 @@ Will contain:
 
 `CMakeLists.txt` installs them with OrielOS's apps; `tools/test-apps.sh` builds them, and the image build copies them in.
 
-## The look-and-feel package
+## The look-and-feel packages
 
-A Plasma 6 look-and-feel package (a "global theme"), installed to `/usr/share/plasma/look-and-feel/org.orielos.desktop`:
+Two Plasma 6 look-and-feel packages ("global themes"), installed to `/usr/share/plasma/look-and-feel/`:
 
-- `metadata.json`: its id, `org.orielos.desktop`, and name, OrielOS.
-- `contents/defaults`: the settings applied when a user picks the theme in System Settings. For now they are Breeze's: Breeze colours, Plasma theme, icons, cursors and window decorations, with the OrielOS wallpaper (see [Wallpapers](#wallpapers)).
-- `contents/layouts/org.kde.plasma.desktop-layout.js`: the layout script (below).
+- `org.orielos.desktop`, named OrielOS, and `org.orielos.desktop.dark`, named OrielOS Dark.
+- `contents/defaults`: the settings applied when a user picks the theme in System Settings: OrielOS Light or OrielOS Dark colours, Breeze's or Breeze Dark's icons, and Breeze's widget style, Plasma theme, cursors and window decorations, with the OrielOS wallpaper (see [Wallpapers](#wallpapers)), which shows Nightfall with the dark colours.
+- `contents/layouts/org.kde.plasma.desktop-layout.js`: the layout script (below), the same file in both; `CMakeLists.txt` installs the light package's copy into the dark one.
 
 The lock screen, logout screen and splash screen come from Breeze, which Plasma falls back to when a look-and-feel package doesn't have its own.
 
-`image/build/20-desktop.sh` makes it the default for every user with `LookAndFeelPackage=org.orielos.desktop` in the `[KDE]` group of `/etc/xdg/kdeglobals`. `/etc/xdg` comes before Fedora's `kde-settings` profile on `XDG_CONFIG_DIRS`, so this overrides Fedora's look-and-feel. `image/build/90-finalise.sh` fails the build if the setting, the package, the Start button's icon or the wallpapers are missing.
+`image/build/20-desktop.sh` makes OrielOS the default for every user with `LookAndFeelPackage=org.orielos.desktop` in the `[KDE]` group of `/etc/xdg/kdeglobals`, and makes the two packages Plasma's light and dark choices for the Day-Night Cycle (`DefaultLightLookAndFeel` and `DefaultDarkLookAndFeel`). `/etc/xdg` comes before Fedora's `kde-settings` profile on `XDG_CONFIG_DIRS`, so this overrides Fedora's look-and-feel. `image/build/90-finalise.sh` fails the build if the settings, the packages, the colour schemes, the Start button's icon or the wallpapers are missing.
+
+## Colour schemes
+
+`color-schemes/OrielOSLight.colors` and `OrielOSDark.colors` are KDE colour schemes, installed to `/usr/share/color-schemes/`. They have the structure of Breeze's light and dark schemes (LGPL-2.0-or-later, so they keep that licence and Breeze's authors) with OrielOS's palette from its brand guidelines:
+
+- **Light:** Ink text (`#121A2E`), Slate for secondary text (`#5B6478`), Mist (`#F4F6FB`) for windows and white for views, and Oriel Blue (`#3A66F0`) for focus, links and the selection, with white selected text.
+- **Dark:** near-white text on cool dark greys drawn from Night (`#1A1F2E` windows, `#121622` views), Pane (`#6D97FA`) for focus, Glass (`#9CC2FF`) for links, and the same Oriel Blue selection.
+- **Both:** Night (`#0C1530`) for the complementary areas, such as on-screen displays.
+
+All text is at least 4.5:1 against its background: Ink on Mist is 16:1, Slate on Mist 5.5:1, white on Oriel Blue and Oriel Blue links on white 4.8:1; in the dark scheme, text on windows is 14.5:1, secondary text 6.5:1 and Glass links on views 9.9:1.
+
+Plasma Setup's Dark Theme switch still applies Breeze or Breeze Dark; the first-run setup's own pages replace it.
 
 ## The layout script
 
@@ -52,7 +66,7 @@ Pressing Win or clicking the Start button opens it:
 
 - **Search** on top. Typing lists apps, settings, files, Store results and calculations, but runs nothing: only Enter, or a click, opens a result.
 - **Pinned** apps in a grid, with an **All apps** list one click away.
-- **Recommended:** apps installed in the last three days, then recently opened files.
+- **Recommended:** apps installed in the last three days, then recently opened files, then the Get started suggestions, six entries at most. The suggestions are the Flathub apps listed in `startmenu/getstarted.js` that aren't installed (no desktop entry `<Flathub ID>.desktop` among the apps Kicker lists). Each opens `appstream://<Flathub ID>`, which the Store handles by showing the app's page; nothing is installed until the user chooses Install there. Their icons are Flathub's, from `/var/lib/flatpak/appstream/flathub/x86_64/active/icons/128x128/`, once the Store has fetched Flathub's catalogue, and the Store's icon until then. "Hide these suggestions" in an entry's context menu sets `getStartedHidden` in the widget's settings. The widget's `showRecentlyAdded` and `showRecentFiles` settings, both on by default, leave either out; Settings' Start page changes them.
 - **The account button** (picture and name) with Account settings, Lock, Switch user and Sign out, and **the power button** with Sleep, Restart and Shut down. There is no Hibernate: OrielOS doesn't offer hibernation.
 
 Right-click an app, or press the Menu key, to pin it to or unpin it from Start. Everything works from the keyboard.
@@ -84,14 +98,13 @@ OrielOS is the default in three places:
 - `[Wallpaper] Image=OrielOS` in `contents/defaults`. Plasma's image wallpaper shows the default look-and-feel's `[Wallpaper]` image on any desktop without an `Image` of its own, and System Settings applies it when a user picks the theme.
 - `/etc/xdg/kscreenlockerrc`, from `image/system/etc/xdg/`, sets the lock screen's wallpaper the same way. Fedora's `kde-settings` profile names Fedora's wallpaper there, and `/etc/xdg` comes first on `XDG_CONFIG_DIRS`.
 
-Plasma Setup's Dark Theme switch applies Fedora's dark look-and-feel instead (see `image/README.md`), so an account set up with it starts with Fedora's wallpaper on the desktop; the lock screen still shows OrielOS's.
-
 The login screen (SDDM) and the boot splash keep their own artwork for now.
 
 ## Update scripts
 
 The layout script only runs for new users. To change the desktop of users who already have one, a release adds an update script to `updates/`. Plasma installs them to `/usr/share/plasma/shells/org.kde.plasma.desktop/contents/updates/`, runs each script once per user when Plasma starts, and records the scripts it has run in `[Updates]` in `~/.config/plasmashellrc`, so a script never runs twice for the same user. Scripts use the same scripting API as the layout script, and what they `print` goes to `plasmashell`'s output. Plasma also runs them right after a layout script for a new user, so they must leave the current layout as it is.
 
+- `orielos-startmenu-2.js` pins OrielOS's Settings app in place of System Settings in a user's Start menu, when they had System Settings pinned; Start menus on the default pins are left alone, since the default now pins Settings.
 - `orielos-startmenu-1.js` replaces Plasma's launcher (Kickoff, Kicker or the application dashboard) on the default bottom panel with OrielOS's Start menu, in the same place. It keeps a custom launcher icon, replacing only Plasma's and Fedora's stock icons, and changes nothing on a panel that already has the Start menu. Plasma runs scripts in file-name order, so it runs before `orielos-taskbar-1.js`. The old launcher's pinned apps aren't carried over: the Start menu starts with OrielOS's default pins.
 - `orielos-taskbar-1.js` moves the default bottom panel to the taskbar's widget order. It acts only when the user has exactly one bottom panel and it holds a launcher and a task manager; otherwise it logs why and changes nothing. It reuses the widgets already on the panel, adds only missing ones and keeps any others, just before the system tray, so nothing is duplicated or lost. It replaces the launcher's icon only if it is one of Plasma's or Fedora's stock icons, and leaves the pinned apps alone. On a panel that is already in order it changes nothing.
 
