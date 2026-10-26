@@ -104,7 +104,8 @@ private Q_SLOTS:
         QCOMPARE(daemon->sets.size(), 1);
 
         Q_EMIT daemon->setFinished(true);
-        // It reads the daemon again, which reports the new mode.
+        // The new mode stays shown while it reads the daemon again.
+        QCOMPARE(power.active(), QStringLiteral("balanced"));
         QCOMPARE(daemon->reads, 2);
         daemon->answer(QStringLiteral("balanced"));
         QCOMPARE(power.active(), QStringLiteral("balanced"));

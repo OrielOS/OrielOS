@@ -109,6 +109,11 @@ PowerMode::PowerMode(PowerProfilesBackend *backend, QObject *parent)
         Q_EMIT changed();
     });
     connect(m_backend, &PowerProfilesBackend::setFinished, this, [this](bool ok) {
+        // The daemon took the new mode: show it until the next read says what it is, rather than
+        // the old one in between. Refused, the old one shows again.
+        if (ok) {
+            m_state.active = m_pending;
+        }
         m_pending.clear();
         m_error = ok ? QString() : i18nc("@info", "The power mode couldn't be changed.");
         Q_EMIT changed();
