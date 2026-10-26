@@ -16,7 +16,7 @@ install(DIRECTORY look-and-feel/org.orielos.desktop
 # Update scripts move existing users' desktops to the current layout. Plasma runs each one once
 # per user, in file-name order, so the Start menu replaces the old launcher before the taskbar is
 # put in order.
-install(FILES updates/orielos-startmenu-1.js updates/orielos-taskbar-1.js
+install(FILES updates/orielos-startmenu-1.js updates/orielos-startmenu-2.js updates/orielos-taskbar-1.js
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/shells/org.kde.plasma.desktop/contents/updates)
 
 # The Start button's icon: the OrielOS mark, drawn with wider gaps for taskbar sizes.

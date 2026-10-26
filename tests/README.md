@@ -8,7 +8,7 @@ Automated and manual checks for the image.
 
 1. **First boot.** The disk has no user account, so Plasma Setup, KDE's first-boot wizard, should start. The test checks that it did, takes `first-boot.png`, then finishes setup over SSH the way the wizard does (see [Finishing setup](#finishing-setup)) and restarts the VM.
 2. **Second boot.** Plasma Setup must not run again, and SDDM shows the login screen. The test checks the services, starts OrielOS's apps and logs the user that setup created in to the Plasma desktop.
-3. **Third boot.** Last, the test drives OrielOS's Start menu with the keyboard and pins an app, then restarts the VM once more to check that the pin is kept (see [Start menu](#start-menu)).
+3. **Third boot.** Last, the test drives OrielOS's Start menu with the keyboard and pins an app, then restarts the VM once more to check that the pin is kept, takes screenshots of the rest of the menu and unpins the app (see [Start menu](#start-menu)).
 
 The installation is left to the image's own install configuration, so the test also proves that the root filesystem is Btrfs with zstd compression.
 
@@ -18,9 +18,9 @@ tests/boot-test.sh --archive FILE           # loads an OCI archive from tools/bu
 tests/boot-test.sh --keep --timeout 300
 ```
 
-Run `tests/boot-test.sh --help` for all the options. It needs the tools that `tools/check-env.sh` checks for, and runs as root (it uses `sudo` when needed). A run takes about ten minutes, most of it the installation and the two boots. `--timeout` applies to each boot.
+Run `tests/boot-test.sh --help` for all the options. It needs the tools that `tools/check-env.sh` checks for, and runs as root (it uses `sudo` when needed). A run takes about ten minutes, most of it the installation and the two boots. `--timeout` applies to each boot. If SDDM has started but `graphical.target` isn't in the serial log a minute later, the wait for that boot ends there: on some builds, once agetty takes the serial console, systemd's later status lines are missing from it.
 
-It prints PASS or FAIL for twenty-nine checks, under a "First boot", a "Second boot", a "Store and Firefox", a "Start menu" and an "Anti-cheat boot mode" heading, and exits with status 0 only if all twenty-nine pass.
+It prints PASS or FAIL for thirty-two checks, under a "First boot", a "Second boot", a "Store and Firefox", a "Visual check", a "Start menu" and an "Anti-cheat boot mode" heading, and exits with status 0 only if all thirty-two pass.
 
 First boot:
 
@@ -50,23 +50,29 @@ Second boot, after finishing setup and restarting:
 21. The OrielOS wallpaper is set: in the same file, the desktop (the containment with an `activityId`; panels have none) has `Image=file:///usr/share/wallpapers/OrielOS/` in its `[Wallpaper][org.kde.image][General]` group, and `/usr/share/wallpapers/OrielOS/contents/images/3840x2160.jpg` exists in the VM. `desktop.png` should show Daybreak, the light image: a pale blue sky through a glass bay window above a warm sill.
 22. Windows shortcuts are set: in `orielostest`'s session, the test asks kglobalaccel over the user's D-Bus (`busctl --user -M orielostest@ call org.kde.kglobalaccel /kglobalaccel org.kde.KGlobalAccel action i <key code>`, or `globalShortcutsByKey` if `action` gives nothing) which action each shortcut in [docs/keyboard-shortcuts.md](../docs/keyboard-shortcuts.md) runs, and expects the component and action listed in `SHORTCUT_TABLE` in the script, for example `kwin` `Overview` for Win+Tab and `org.kde.plasma-systemmonitor.desktop` `_launch` for Ctrl+Shift+Esc. `kreadconfig6 --file kwinrc --group ModifierOnlyShortcuts --key Meta`, run as the user, must be empty (Plasma's default, Start) or name Plasma's `activateLauncherMenu`, and no shortcut may be the active one of two actions in the user's `~/.config/kglobalshortcutsrc`. The test then presses Win+E with QMP `send-key` and expects a `dolphin` process for the user within 20 s, and the menu entries of System Monitor, Spectacle and Dolphin must be named Process Manager, Screenshot and Files. The user's `~/.config/kglobalshortcutsrc` is saved as `kglobalshortcutsrc` in the results.
 
-Checks 3 to 19 read the second boot only: before restarting, the test notes how long the serial log is, and afterwards it reads from the new kernel's first line on, up to where the Start menu checks restart the VM again. Any other unit that failed to start on the second boot is reported as a WARN and does not fail the test. The times from power-on to SDDM and to Plasma Setup's wizard, the time from the restart to SDDM, the time until SSH answered, the output of `systemctl is-system-running` and the list of failed units are printed as INFO lines too.
+Checks 3 to 22 read the second boot only: before restarting, the test notes how long the serial log is, and afterwards it reads from the new kernel's first line on, up to where the Start menu checks restart the VM again. Any other unit that failed to start on the second boot is reported as a WARN and does not fail the test. The times from power-on to SDDM and to Plasma Setup's wizard, the time from the restart to SDDM, the time until SSH answered, the output of `systemctl is-system-running` and the list of failed units are printed as INFO lines too.
 
 Store and Firefox, after the second boot:
 
 23. Store is Discover with Flathub only: `flatpak remotes --system` lists only `flathub`, `/usr/share/applications/org.kde.discover.desktop` has `Name=Store`, and `/usr/lib64/qt6/plugins/discover/` holds only `flatpak-backend.so`, so Discover has no system-package, image or firmware backend.
 24. Firefox is installed on first boot: `/var/lib/orielos/flatpak-setup.done` exists (the test waits up to 10 minutes for it), `flatpak list --system --app --columns=application` contains `org.mozilla.firefox`, and `xdg-mime query default x-scheme-handler/https`, run as `orielostest` in a login shell, prints `org.mozilla.firefox.desktop`. The VM has user-mode networking with internet access through the host, so the download is real. It starts on the first boot, so the install is timed from the first power-on; the time and Firefox's version are printed as INFO lines. The test waits for it last, after the other checks, so the download runs alongside them. If the wait runs out, the last lines of the service's journal are printed.
 
+Visual check, once Firefox is installed (see [Visual check](#visual-check)):
+
+25. Visual check: the desktop matches its reference: `visual-desktop.png` matches `references/desktop.png`.
+26. Visual check: the Start menu matches its reference: `visual-start.png` matches `references/start.png`.
+
 Start menu, after every other second-boot check, because it restarts the VM (see [Start menu](#start-menu)):
 
-25. Start menu: typing a search runs nothing: after Win and `f`, `i`, `l`, no `dolphin` process starts for `orielostest` within 5 seconds. The menu is saved as `start-search.png`.
-26. Start menu: Enter opens the first result: Enter then starts `dolphin` for `orielostest` within 20 seconds.
-27. Start menu: pinning saves the app: after Win, `a`, `r`, `k`, the Menu key and Enter, the `favorites` key in the Start menu's `[Containments][N][Applets][M][Configuration][General]` group of `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc` contains `org.kde.ark.desktop` within 30 seconds. The file is saved as `start-appletsrc`, and the open context menu as `start-pin-menu.png`. The test presses QEMU's `compose` key, which is a PC keyboard's Menu key.
-28. Start menu: pins survive a restart: after restarting the VM and SDDM's autologin, the same key still contains `org.kde.ark.desktop`. The file is saved as `start-appletsrc-restart`, and the open menu as `start-pinned.png`, which should show Ark among the pinned apps.
+27. Start menu: typing a search runs nothing: after Win and `f`, `i`, `l`, no `dolphin` process starts for `orielostest` within 5 seconds. The menu is saved as `start-search.png`.
+28. Start menu: Enter opens the first result: Enter then starts `dolphin` for `orielostest` within 20 seconds.
+29. Start menu: pinning saves the app: after Win, `a`, `r`, `k`, the Menu key and Enter, the `favorites` key in the Start menu's `[Containments][N][Applets][M][Configuration][General]` group of `orielostest`'s `~/.config/plasma-org.kde.plasma.desktop-appletsrc` contains `org.kde.ark.desktop` within 30 seconds. The file is saved as `start-appletsrc`, and the open context menu as `start-pin-menu.png`. The test presses QEMU's `compose` key, which is a PC keyboard's Menu key.
+30. Start menu: pins survive a restart: after restarting the VM and SDDM's autologin, the same key still contains `org.kde.ark.desktop`. The file is saved as `start-appletsrc-restart`, and the open menu as `start-pinned.png`, which should show Ark among the pinned apps.
+31. Start menu: unpinning removes the app: after Win, `a`, `r`, `k`, the Menu key and Enter on the pinned Ark, the same key no longer contains `org.kde.ark.desktop` within 30 seconds. The file is saved as `start-appletsrc-unpinned`, and the open context menu, with "Unpin from Start" highlighted, as `start-unpin-menu.png`.
 
 Anti-cheat boot mode, on the second boot (see `image/README.md`):
 
-29. The boot is anti-cheat ready: `/proc/cmdline` contains `lockdown=integrity`, `intel_iommu=on` and `iommu.passthrough=0`; `/sys/kernel/security/lockdown` shows `[integrity]`; `/proc/sys/kernel/kexec_load_disabled` is `1`; `/sys/kernel/security/lsm` includes `bpf`; logind's `CanHibernate` (`busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate`) is not `yes`; and every module in `/proc/modules` has a `modinfo -F signer` value listed in `image/module-signers.txt`, which the test reads on the host. The lockdown state, the active LSMs and the number of loaded modules checked are printed as INFO lines, and a failure names the unsigned or unexpected modules. The VM has no virtual IOMMU, so `intel_iommu=on` finds no DMAR table there, which is harmless; the check reads the argument, not the hardware.
+32. The boot is anti-cheat ready: `/proc/cmdline` contains `lockdown=integrity`, `intel_iommu=on` and `iommu.passthrough=0`; `/sys/kernel/security/lockdown` shows `[integrity]`; `/proc/sys/kernel/kexec_load_disabled` is `1`; `/sys/kernel/security/lsm` includes `bpf`; logind's `CanHibernate` (`busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate`) is not `yes`; and every module in `/proc/modules` has a `modinfo -F signer` value listed in `image/module-signers.txt`, which the test reads on the host. The lockdown state, the active LSMs and the number of loaded modules checked are printed as INFO lines, and a failure names the unsigned or unexpected modules. The VM has no virtual IOMMU, so `intel_iommu=on` finds no DMAR table there, which is harmless; the check reads the argument, not the hardware.
 
 ### Finishing setup
 
@@ -94,7 +100,7 @@ On the second boot, after the login screenshot, the test logs the user that setu
 1. It writes `/etc/sddm.conf.d/99-boot-test-autologin.conf` with an `[Autologin]` section for that user and the Plasma Wayland session, `plasma.desktop` from `/usr/share/wayland-sessions/`.
 2. It restarts SDDM, which logs the user in.
 3. It waits up to 90 seconds for the session, then 15 seconds more for the desktop to draw, and takes `desktop.png`.
-4. It copies the user's Plasma layout, `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, for checks 16 to 18.
+4. It copies the user's Plasma layout, `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, for checks 19 to 21.
 
 Restarting SDDM stops it on purpose, so check 7 reads the console only up to the restart.
 
@@ -103,12 +109,35 @@ Restarting SDDM stops it on purpose, so check 7 reads the console only up to the
 After the other checks on the second boot, the test uses OrielOS's Start menu the way a person would, with keys sent over QMP `send-key`:
 
 1. It stops the `dolphin` that Win+E started (`pkill -u orielostest -x dolphin`) and waits for it to go.
-2. It presses Win alone, waits 2 seconds, types `f`, `i`, `l` about 0.3 seconds apart, waits 3 seconds and takes `start-search.png`. For check 22, no `dolphin` may start in the next 5 seconds: typing only lists results.
-3. It presses Enter, which runs the first result, Files, and waits up to 20 seconds for `dolphin` (check 23), then stops it again.
-4. It opens the menu again and types `ark`. Ark is not pinned by default. The Menu key opens the result's context menu with "Pin to Start" highlighted, so Enter pins it, and Escape closes the menu. Plasma saves widget settings a few seconds after they change, so the test reads the layout file for up to 30 seconds (check 24).
-5. It restarts the VM. The autologin written for the desktop login stays in `/etc/sddm.conf.d`, so SDDM logs `orielostest` straight back in; the test waits up to `--timeout` seconds for the session, reads the layout file again (check 25), opens the menu and takes `start-pinned.png`.
+2. It presses Win alone, waits 2 seconds, types `f`, `i`, `l` about 0.3 seconds apart, waits 3 seconds and takes `start-search.png`. For check 27, no `dolphin` may start in the next 5 seconds: typing only lists results.
+3. It presses Enter, which runs the first result, Files, and waits up to 20 seconds for `dolphin` (check 28), then stops it again.
+4. It opens the menu again and types `ark`. Ark is not pinned by default. The Menu key opens the result's context menu with "Pin to Start" highlighted, so Enter pins it, and Escape closes the menu. Plasma saves widget settings a few seconds after they change, so the test reads the layout file for up to 30 seconds (check 29).
+5. It restarts the VM. The autologin written for the desktop login stays in `/etc/sddm.conf.d`, so SDDM logs `orielostest` straight back in; the test waits up to `--timeout` seconds for the session, reads the layout file again (check 30), opens the menu and takes `start-pinned.png`.
+6. It writes `~/Documents/orielos-notes.txt` and tells the session's activity manager that an editor accessed it (`RegisterResourceEvent` on `org.kde.ActivityManager.Resources`, event 0), as KIO does when it opens a file in an app. It opens the menu and takes `start-recommended.png`, which should list the file under Recommended. Firefox isn't listed there as recently added: Plasma counts an app as new only when it appears after the session first lists the apps, and the first boot installs Firefox before the test user's first session.
+7. It presses Tab six times, taking `start-tab-1.png` to `start-tab-6.png`: the focus should go from the search field to All apps, the pinned apps, Recommended, the account button and the power button, then back to the search field.
+8. It opens the menu, presses Shift+Tab, which goes round to the power button, and Enter, and takes `start-power-menu.png`, which should offer Sleep, Restart and Shut down and no hibernation. Two Shift+Tabs and Enter give `start-account-menu.png`, with Account settings, Lock, Switch user and Sign out.
+9. It types `ark` again. Ark is pinned now, so the Menu key offers "Unpin from Start" first, and Enter unpins it (check 31).
 
 If a step cannot be done, because the VM stopped, SSH did not answer or the session did not start, the remaining Start menu checks fail with the reason. The other checks keep reading the second boot: the test puts back its SSH state and its part of the serial log after the restart.
+
+### Visual check
+
+Once Firefox is installed, the test closes the Dolphin that Win+E started, waits 10 seconds for the desktop to settle, takes `visual-desktop.png`, presses Win and takes `visual-start.png` 4 seconds later. Checks 25 and 26 compare them with the reference images in `references/`, using `lib/screens.py`, which needs Pillow:
+
+- A pixel counts as changed when any colour channel differs by more than 32 out of 255, which absorbs anti-aliasing and font rendering differences.
+- The areas in `references/desktop.mask` and `references/start.mask` are ignored: one `x y width height` rectangle per line, in pixels of the VM's 1280×800 screen. Both masks leave out the system tray, the clock and Show desktop. The Start menu's mask also leaves out Recommended's list: Firefox shows there as recently added when its installation ends after the session first lists the apps, which depends on how fast the download is.
+- A screenshot matches when at most 1 in 100 of the other pixels changed. That catches a moved panel, a missing taskbar, a different wallpaper or theme, or a Start menu laid out differently, but not one app more or less among the pinned ones, which the Start menu checks cover.
+
+When a check fails, `visual-desktop-diff.png` or `visual-start-diff.png` shows the screenshot dimmed, with the changed pixels in red and the ignored areas in blue.
+
+When a change to the desktop is intended, look at the new screenshots, then replace the references with them and commit the images with the change:
+
+```sh
+tests/update-references.sh tests/results/<run id>
+tests/update-references.sh tests/results/<run id> --only start
+```
+
+The script prints how much each new image differs from the one it replaces. It is the only way the references should change.
 
 ### Commands inside the VM
 
@@ -132,6 +161,7 @@ Results go to `tests/results/<run id>/` (ignored by git), or to the folder given
 - `start-search.png`: the Start menu listing the results for "fil".
 - `start-appletsrc` and `start-appletsrc-restart`: the test user's Plasma layout after pinning Ark, and again after the last restart.
 - `start-pinned.png`: the Start menu after the last restart, with Ark pinned.
+- `start-recommended.png`, `start-tab-1.png` to `start-tab-6.png`, `start-power-menu.png`, `start-account-menu.png` and `start-unpin-menu.png`: Recommended, the Tab order, the two menus and unpinning, for reading by eye. `start-appletsrc-unpinned` is the layout after unpinning.
 - `summary.txt`: the same lines as the test printed.
 
 The disk, the SSH key and the VM's other files live in `/var/lib/orielos/vm/<run id>` while the test runs and are deleted afterwards. With `--keep` they stay, and the test prints how to boot the disk again (setup is finished on it, so it starts at the login screen), with the same vsock device and key so SSH keeps working.
@@ -166,13 +196,19 @@ Then it tests the background update service, which normally gets builds from a r
     - The VM must restart into the new build, and this boot's `state.json` must say `up-to-date` with nothing staged.
     - `keepme.txt` must be unchanged.
 
-Then it goes back through the notifier and checks the boot menu:
+Then it uses the Update settings page, goes back from there and checks the boot menu:
 
-12. **Go back to the previous version.**
-    - `orielostest` gets a known password, because going back needs an administrator and polkit asks for theirs.
-    - The notifier's "Go back to the previous version…" item is clicked over the session bus. The question's default is Cancel, so the test presses Alt+G for "Go back", then types the password into polkit's prompt and presses Enter, all over QMP. `go-back-question.png` and `go-back-password.png` show both.
-    - `state.json` must then say `rollbackQueued`, and the new build must be in `rejected-digests`.
-    - The tray icon must be Active and offer "Restart to go back" (`go-back-ready.png`), which the test clicks. The VM must restart into the old build, with `keepme.txt` unchanged.
+12. **Settings → Update.** The test drives the page with the keyboard over QMP: every button and option has an Alt mnemonic, and the test types the password into polkit's prompt and presses Enter.
+    - `orielostest` gets a known password, because changing the channel and going back need an administrator and polkit asks for theirs.
+    - The notifier's menu must offer only "Open update settings" (and restarting, when there's something to restart for): no pause, channel, going back or checking.
+    - The test clicks the tray icon itself, calling `Activate` on its `org.kde.StatusNotifierItem` interface as the tray does. Settings must start with `orielos-settings kcm_orielos_update` within 60 s (`settings-page.png`).
+    - The test then closes Settings and opens the same page with `kcmshell6 kcm_orielos_update`, through `systemd-run --user` in `orielostest`'s session (`settings-window.png`). There the page is alone in its window, so no other control takes the keys: in System Settings, any letter no shortcut claims goes to the sidebar's search field.
+    - Alt+U, **Check for updates**: `state.json`'s `checkedAt` must change (`settings-checked.png`).
+    - Alt+P, **Pause updates** with the first choice: `pausedUntil` must be 7 days ahead (`settings-paused.png`). Alt+R, **Resume updates**: it must be `null` again.
+    - Alt+S, **Stable**, and the password (`channel-password.png`): the channel must be `stable` (`settings-stable.png`). Alt+T, **Testing**: it must be `testing` again; polkit may keep the authorisation, so the test types the password only if the channel hasn't changed after 10 s.
+    - Alt+A, **Update apps automatically**, once no `orielos-update` is running (the page disables its controls until then): `state.json` must say `appUpdates` false, with no password asked (`settings-apps-off.png`); Alt+A again turns it back on.
+    - Alt+G, **Go back to the previous version…**. The question's default is Cancel, so the test presses Alt+B for **Go back**, then types the password. `go-back-question.png` and `go-back-password.png` show both. `state.json` must then say `rollbackQueued`, and the new build must be in `rejected-digests`.
+    - The tray icon must be Active and offer "Restart to go back" (`go-back-ready.png`). The test presses Alt+N, **Restart now** on the page, and the VM must restart into the old build, with `keepme.txt` unchanged.
 13. **The boot menu.** The firmware copies GRUB's screen to the serial console, so the test reads it there. For each restart it watches the serial log from `systemctl reboot` until the kernel prints `Linux version`.
     - `/boot/grub2/grub.cfg` must include `12_orielos-menu.cfg`, and the boot entries must be `OrielOS <old version> (ostree:0)` and `OrielOS <new version> (ostree:1)`.
     - Within 120 s of the desktop starting, `orielos_boot_ok` must be `1` in `EFI/fedora/orielos-boot.env` on the EFI system partition.
@@ -188,17 +224,25 @@ Then it goes back through the notifier and checks the boot menu:
 15. **The last resort, and removing the previous build.**
     - The test sets the flags as they'd be if the kept build failed too (`orielos_boot_ok=0`, `orielos_trial=kept`). The next start must show the menu by itself, listing both builds and highlighting the old one (`boot-menu-last-resort.png`), and Enter must start the old build.
     - The test moves the running build's first start, in `/var/lib/orielos/update/running`, 15 days back and runs a check. The previous build must then be gone: bootc reports none, one boot entry is left, and `state.json` has no previous build.
+16. **Removing the previous version from Settings → Update.**
+    - The test forgets the new build's rejection, stages it with a check and restarts into it, so the old build is the previous one again, kept until a date 14 days on.
+    - The tray icon opens the page (`settings-previous.png`), and `state.json` must name the old build with its removal date. The test opens the page in `kcmshell6` again (`settings-previous-window.png`).
+    - Alt+M, **Remove the previous version…**, then Alt+E for **Remove** in the question, and the password (`remove-question.png`, `remove-password.png`). Within 180 s `state.json` must have no previous build, bootc must report none, and one boot entry must be left (`settings-removed.png`).
+17. **Apps from the Store update by themselves.**
+    - The test waits for the first boot's Firefox install, then moves Firefox back to the version before the newest: `flatpak update --commit` with the `Parent` that `flatpak remote-info` gives for the newest.
+    - With `orielos-update app-updates off`, `orielos-app-update.service` must leave Firefox as it is.
+    - With app updates on again, the service must bring Firefox to the newest commit, and `state.json` must say when, in `appsUpdatedAt`.
 
 ```sh
 tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
 tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
 ```
 
-`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about an hour: the installation, about fifteen restarts, copying the archive, importing it twice and several desktop logins.
+`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about an hour and a quarter: the installation, about sixteen restarts, copying the archive, importing it three times and several desktop logins.
 
 Each restart is started with `systemctl reboot` over SSH; the VM restarts in place. The test waits for SSH to go away and answer again, then checks that `/proc/sys/kernel/random/boot_id` changed. `--timeout` is how long it waits for SSH after power-on and after each restart.
 
-It prints PASS or FAIL for thirty-nine checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
+It prints PASS or FAIL for fifty-three checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
 
 Results go to `tests/results/<run id>/`, or to the folder given with `--results`. The run id is `update-<new build's tag>-<UTC time>`. The folder holds:
 
@@ -210,17 +254,37 @@ Results go to `tests/results/<run id>/`, or to the folder given with `--results`
 - `state-staged.json` and `state-updated.json`: `/var/lib/orielos/update/state.json` once the check service has staged the build, and after the restart.
 - `update-ready.png`: the desktop once the update is staged.
 - `notifier.txt`: the test user's processes and the journal's lines about the notifier, when it didn't start.
+- `settings-page.png`, `settings-window.png`, `settings-checked.png`, `settings-paused.png`, `channel-password.png` and `settings-stable.png`: the Update settings page as step 12 uses it, and polkit's prompt. `settings-resume.png` and `settings-testing.png` exist only if resuming or switching back failed. `settings.txt`: the test user's processes and the journal's lines about System Settings, when the page didn't open.
 - `go-back-question.png`, `go-back-password.png` and `go-back-ready.png`: the question, polkit's prompt, and the desktop once going back is queued. `bootc-status-go-back.json`, `bootc-status-went-back.json` and their `status-*.txt` files are taken after the prompt and after the restart.
+- `settings-previous.png`, `settings-previous-window.png`, `remove-question.png`, `remove-password.png` and `settings-removed.png`: step 16's page, question, prompt and the page once the previous version is removed.
 - `boot-menu-esc.png` and `boot-menu-last-resort.png`: the boot menu after Esc, and when it appears by itself. `update-undone.png`: the desktop after an update was undone. `boot-menu-unexpected.png` exists only if the menu appeared when it shouldn't have. `boot-entries.txt` lists the boot entries' titles and version keys at the start of step 13 and before each of its restarts. `bootc-status-boot-menu.json` and `bootc-status-boot-menu-esc.json` show which build started.
+- `settings-apps-off.png`: the page with app updates turned off. `apps.txt`: the output of step 17's commands and the app update service's journal.
 - `boot-success.txt`: the journal of the units that mark a boot as good, when the flag wasn't set.
 
 The work folder and `--keep` work as in the boot test.
+
+## Rollback test
+
+`rollback-test.sh` checks that an update which can't reach the desktop is undone without asking, as a new user would meet it: no boot menu, no prompt, and the computer back on the version that worked. The update test covers the same path among its other steps; this test does only that, in about half an hour. It uses the same VM as the boot test, with SSH over vsock:
+
+1. **Build A.** It installs build A, finishes setup (see [Finishing setup](#finishing-setup)) and turns on SDDM's autologin for `orielostest`. After the restart, A must run and the desktop must mark the boot as good (`orielos_boot_ok=1` in the boot menu's flags on the EFI system partition) within 120 seconds.
+2. **Stage build B.** It copies B's archive into the VM and stages it with `orielos-update stage`. bootc must report B as staged, with the manifest digest read from the archive, and the flags must put B on trial (`orielos_trial=1`). The test then sets `multi-user.target` as A's default, so B, whose `/etc` is merged from A's at the restart, never starts the display manager.
+3. **B fails twice.** B must start first, with no boot menu. Once it's running, the test puts A's own default back to `graphical.target` on disk. B must then start once more, with no menu and `orielos_fails=1`, and fail again.
+4. **A by itself.** The third start must be A, with no menu or prompt. `state.json` must say `went-back` with nothing queued, and B's digest must be in `rejected-digests`. A's desktop must mark the boot as good again, and the next restart must start A once more.
+
+For each restart the test watches the serial console, where the firmware copies GRUB's screen, from `systemctl reboot` until the kernel prints `Linux version`. If GRUB's menu appears, the test saves `boot-menu-unexpected.png` and the check fails.
+
+```sh
+tests/rollback-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
+```
+
+`--old` and `--new` take the same as in the update test. It prints PASS or FAIL for eight checks and stops at the first step that fails. Results go to `tests/results/rollback-<B's tag>-<UTC time>/`, or to the folder given with `--results`: `summary.txt`, `install.log`, `serial.log`, `stage.txt`, and `bootc-status-<step>.json` and `status-<step>.txt` after each start (`a`, `staged`, `b-first`, `b-second`, `undone` and `after`). The work folder and `--keep` work as in the boot test.
 
 ## Unit tests
 
 `unit/` holds quick tests for the shell tools that need no root, VM or network. `tools/lint.sh` runs every `unit/*-test.sh`, so CI runs them on every pull request.
 
-- `unit/orielos-update-test.sh` runs the real `orielos-update` against a scratch directory (`ORIELOS_UPDATE_ROOT`), with a fixed clock (`ORIELOS_UPDATE_NOW`). Stand-ins for `bootc`, `skopeo`, `busctl` and `systemctl` sit first on `PATH`, record their arguments and return prepared answers. It covers:
+- `unit/orielos-update-test.sh` runs the real `orielos-update` against a scratch directory (`ORIELOS_UPDATE_ROOT`), with a fixed clock (`ORIELOS_UPDATE_NOW`). Stand-ins for `bootc`, `skopeo`, `busctl`, `systemctl` and `flatpak` sit first on `PATH`, record their arguments and return prepared answers. It covers:
   - pausing for 1 and 5 weeks, refusing other lengths, checks while paused, a pause that has ended, and resuming;
   - the default channel, switching channel, keeping a pause when switching, and refusing unknown channels;
   - up-to-date, newer, already staged and rejected builds, an unreachable source, and metered connections;
@@ -229,6 +293,7 @@ The work folder and `--keep` work as in the boot test.
   - the previous build and whether it was rejected, `rollback` with and without a previous build, a check while going back is queued, and `refresh` after restarting into the previous build;
   - putting a staged build on trial, and taking it off when going back;
   - undoing an update after the boot loader fell back, at boot and through `undo-update`, and only then;
+  - automatic app updates: on by default, turning them off and on, keeping the setting when pausing or changing channel, updating apps with `flatpak` and recording when, doing nothing while they're off or the connection is metered, a failed update, and wrong usage;
   - when the previous build is removed: after 14 days, by the check only and even while paused, not while an update is staged or going back is queued, and through `remove-previous`.
 - `unit/boot-flags-test.sh` runs the boot menu's flag helper on a plain file (`ORIELOS_BOOT_FLAGS_FILE`), with stand-ins for `grub2-editenv` and `orielos-update`. It covers each command's effect on the flags, keeping the previous build after a fallback (and what's left when that fails), `status`, and wrong usage.
 
@@ -249,7 +314,7 @@ It needs the same tools as the boot test and runs as root. A run takes about eig
 
 ## Screenshot tour
 
-`screenshot-tour.sh` is not a test: it shows what OrielOS looks like. It installs the image the way the boot test does, but keeps the boot splash, and boots it with a 1920×1080 screen and a USB tablet. It catches the splash, clicks through Plasma Setup and types an account (`alex`) on its user page, restarts, signs in at the login screen once Firefox is installed, and then opens Start, Start search, Files, Store, Process Manager, Settings, Firefox, Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock screen with the same keys a person would use, sent with QMP `send-key`. Between screenshots it closes the windows over SSH. If a step cannot be driven, it prints a WARN line and goes on: if the wizard does not create the account, setup is finished over SSH as in the boot test, and if typing the password does not sign in, SDDM's autologin is used. The numbered screenshots go to `tests/results/tour-<image tag>-<UTC time>/`, with `00-contact-sheet.png` when Pillow or ImageMagick is installed. It takes about fifteen minutes; `--image` and `--keep` work as in the boot test.
+`screenshot-tour.sh` is not a test: it shows what OrielOS looks like. It installs the image the way the boot test does, but keeps the boot splash, and boots it with a 1920×1080 screen and a USB tablet. It catches the splash, clicks through Plasma Setup and types an account (`alex`) on its user page, restarts, signs in at the login screen once Firefox is installed, and then opens Start, Start search (for an app, and for a setting, which Enter opens in Settings), Files, Store, Process Manager, Settings (with its Accent colour, Accessory apps, Taskbar and Device security pages), Firefox, Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock screen with the same keys a person would use, sent with QMP `send-key`. Between screenshots it closes the windows over SSH. If a step cannot be driven, it prints a WARN line and goes on: if the wizard does not create the account, setup is finished over SSH as in the boot test, and if typing the password does not sign in, SDDM's autologin is used. The numbered screenshots go to `tests/results/tour-<image tag>-<UTC time>/`, with `00-contact-sheet.png` when Pillow or ImageMagick is installed. It takes about fifteen minutes; `--image` and `--keep` work as in the boot test.
 
 ```sh
 tests/screenshot-tour.sh

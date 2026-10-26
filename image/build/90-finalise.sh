@@ -73,25 +73,45 @@ if [[ "${#secure_boot_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
-# The update check stages builds in the background and records each boot's state for the desktop's
-# notifier; both units are enabled here for the same reason as above. No update state may be in
+# The update check stages builds in the background and records each boot's state for the update
+# tray icon and the Update settings page; both units are enabled here for the same reason as above. No update state may be in
 # the image: it belongs to each computer.
-systemctl enable orielos-update-check.timer orielos-update-state.service
+systemctl enable orielos-update-check.timer orielos-update-state.service orielos-app-update.timer
 update_errors=()
-for unit in orielos-update-check.timer orielos-update-state.service; do
+for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer; do
     if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
         update_errors+=("$unit is not enabled")
     fi
 done
-for cmd in skopeo pkexec busctl bootc jq; do
+for cmd in skopeo pkexec busctl bootc jq flatpak; do
     command -v "$cmd" >/dev/null || update_errors+=("$cmd, which orielos-update needs, is not installed")
 done
 for f in /usr/lib/orielos/update.conf /usr/share/polkit-1/actions/org.orielos.update.policy \
     /etc/xdg/autostart/org.orielos.UpdateNotifier.desktop /usr/share/applications/org.orielos.UpdateNotifier.desktop \
-    /usr/share/knotifications6/orielos-update-notifier.notifyrc; do
+    /usr/share/knotifications6/orielos-update-notifier.notifyrc \
+    /usr/lib64/qt6/plugins/plasma/kcms/systemsettings/kcm_orielos_update.so /usr/share/applications/kcm_orielos_update.desktop; do
     [[ -r "$f" ]] || update_errors+=("$f is missing")
 done
 [[ -x /usr/bin/orielos-update-notifier ]] || update_errors+=("the update notifier, /usr/bin/orielos-update-notifier, is missing")
+# Settings hosts the Update page; it has Win+I and Start's Settings entry, System Settings neither.
+[[ -x /usr/bin/orielos-settings ]] || update_errors+=("Settings, /usr/bin/orielos-settings, is missing")
+# OrielOS's own Settings pages besides Update.
+for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security; do
+    for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
+        [[ -r "$f" ]] || update_errors+=("$f is missing")
+    done
+done
+# Device security reads the accepted module signers from here.
+[[ -r /usr/share/orielos/module-signers.txt ]] || update_errors+=("/usr/share/orielos/module-signers.txt is missing")
+for f in /usr/share/applications/org.orielos.Settings.desktop /usr/share/kglobalaccel/org.orielos.Settings.desktop; do
+    grep -qxF 'X-KDE-Shortcuts=Meta+I' "$f" 2>/dev/null || update_errors+=("$f is missing or doesn't give Settings Win+I")
+done
+grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
+# Start's and KRunner's search open Settings' pages in Settings, through OrielOS's runner.
+[[ -r /usr/lib64/qt6/plugins/kf6/krunner/krunner_orielos_settings.so ]] || update_errors+=("the settings search runner, krunner_orielos_settings, is missing")
+if [[ "$(kreadconfig6 --file /etc/xdg/krunnerrc --group Plugins --key krunner_systemsettingsEnabled)" != "false" ]]; then
+    update_errors+=("/etc/xdg/krunnerrc does not turn off System Settings' search runner")
+fi
 if [[ -e /var/lib/orielos/update ]]; then
     update_errors+=("/var/lib/orielos/update exists in the image")
 fi
