@@ -27,6 +27,10 @@ settings/             orielos-settings, the Settings app
   pagecatalogue.h/.cpp  the categories and pages, and search (static library OrielOSSettingsCatalogue)
   settingswindow.h/.cpp  the window, which hosts Plasma's settings modules
   autotests/          Qt Test unit tests for the catalogue and search
+settingspages/       OrielOS's own Settings pages, each a Plasma settings module
+  accessories/        kcm_orielos_accessories, Accessory apps: StoreApps (QML module org.orielos.accessories) and its page
+  accent/             kcm_orielos_accent, Accent colour: AccentColour (QML module org.orielos.accent) and its page
+  autotests/          Qt Test unit tests for both models, and a test that loads both modules
 updatenotifier/       orielos-update-notifier, the update tray icon
   main.cpp            start-up, translations, --state and --boot-id-file
   updatenotifier.h/.cpp  the tray icon, its menu, the notifications and restarting
@@ -71,6 +75,14 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 - **Restarting.** The restart actions call `org.kde.Shutdown.logoutAndReboot`, so Plasma signs out cleanly before restarting.
 - **Clicking the icon** opens the Update settings page with `orielos-settings kcm_orielos_update`, passing the tray's activation token as `XDG_ACTIVATION_TOKEN` so the window gets the focus. Its menu has only "Restart to update" (or "Restart to go back") while there's something to restart for, and "Open update settings". Everything else is on the page.
 - **Testing.** `--state FILE` and `--boot-id-file FILE` point it at other files. The rules it follows are `OrielOSUpdateState`'s, which `updatestate/autotests/updatestatetest.cpp` covers: reading the state, when an update counts as waiting, pauses, the pause choices, the channels, going back, removing the previous build, an undone update and the tooltip texts.
+
+## OrielOS's own Settings pages
+
+`settingspages/` holds pages that Settings shows among Plasma's, built the same way as the Update page: each is a settings module made with `kcmutils_add_qml_kcm`, with its page and model in a static QML module of its own linked into it. Each needs its own QML module because Settings loads every page into one process, and a QML module can be registered only once there. Their strings are in the `orielos-settings-pages` translation domain.
+
+- **Accessory apps** (`kcm_orielos_accessories`, under Bluetooth & devices). `StoreApps` lists Solaar, Piper and OpenRGB, whose udev rules and ratbagd the image already has. An app counts as installed when its Flatpak desktop entry is on `XDG_DATA_DIRS`; **Open** starts it from its desktop entry through KIO (so it gets an activation token, and a failure shows a notification), and **Get it from the Store** opens its `appstream:` link in Discover, where the user decides whether to install it. It watches the applications folders on `XDG_DATA_DIRS`, so an app installed meanwhile changes to **Open**. Icons of apps that aren't installed come from Flathub's catalogue in `/var/lib/flatpak/appstream`.
+- **Accent colour** (`kcm_orielos_accent`, under Personalisation). `AccentColour` offers ten colours and the colour scheme's own selection colour. It records a choice as `AccentColor` in `kdeglobals` (or removes it for the scheme's own) and applies it with `plasma-apply-colorscheme --accent-color` (`transparent` for none), in its own process. `plasma-apply-colorscheme` recolours the scheme but doesn't record the accent, and applying a scheme later, as switching to dark mode does, keeps only a recorded one. It runs in its own process because Plasma's Colours module links GPL-2.0-only code, so Settings never loads it. It reads `AccentColor` and `ColorScheme` from `kdeglobals`, and follows changes made elsewhere, such as on the Themes page. Light and dark mode stay on the Themes page; the accent carries over between them.
+- **Testing.** `storeappstest` and `accentcolourtest` cover the models, with their own environment and command, and `pagesloadtest` loads both built modules the way Settings does, into one shared QML engine, and fails on any QML warning.
 
 ## The Update settings page
 
