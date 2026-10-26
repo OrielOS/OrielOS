@@ -45,6 +45,7 @@ private Q_SLOTS:
         QTest::newRow("start") << QStringLiteral("kcm_orielos_start") << QStringLiteral("Start") << QStringLiteral("workspace");
         QTest::newRow("taskbar") << QStringLiteral("kcm_orielos_taskbar") << QStringLiteral("Taskbar") << QStringLiteral("workspace");
         QTest::newRow("security") << QStringLiteral("kcm_orielos_security") << QStringLiteral("Device Security") << QStringLiteral("security-privacy");
+        QTest::newRow("power mode") << QStringLiteral("kcm_orielos_powermode") << QStringLiteral("Power Mode") << QStringLiteral("hardware");
     }
 
     void loadsThePage()
