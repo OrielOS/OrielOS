@@ -34,7 +34,8 @@ private Q_SLOTS:
         }
         QCOMPARE(categories,
             (QStringList { QStringLiteral("system"), QStringLiteral("devices"), QStringLiteral("network"), QStringLiteral("personalisation"),
-                QStringLiteral("apps"), QStringLiteral("accounts"), QStringLiteral("time"), QStringLiteral("update") }));
+                QStringLiteral("apps"), QStringLiteral("accounts"), QStringLiteral("time"), QStringLiteral("accessibility"), QStringLiteral("privacy"),
+                QStringLiteral("update") }));
     }
 
     void everyPageIsUniqueAndInACategory()
@@ -102,6 +103,11 @@ private Q_SLOTS:
         QTest::newRow("password") << QStringLiteral("password") << QStringLiteral("your-info");
         QTest::newRow("sleep") << QStringLiteral("sleep") << QStringLiteral("power");
         QTest::newRow("specs") << QStringLiteral("specs") << QStringLiteral("about");
+        QTest::newRow("secure boot") << QStringLiteral("secure boot") << QStringLiteral("device-security");
+        QTest::newRow("anti-cheat") << QStringLiteral("anti-cheat") << QStringLiteral("device-security");
+        QTest::newRow("sticky keys") << QStringLiteral("sticky keys") << QStringLiteral("accessibility");
+        QTest::newRow("magnifier") << QStringLiteral("magnifier") << QStringLiteral("zoom-and-colour-filters");
+        QTest::newRow("firewall") << QStringLiteral("firewall") << QStringLiteral("firewall");
     }
 
     void searchFindsWindowsTerms()

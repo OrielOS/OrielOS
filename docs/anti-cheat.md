@@ -12,6 +12,10 @@ Every time OrielOS starts:
 - **Security monitoring is available.** The kernel's built-in way to watch for tampering (the BPF security module) is on.
 - **The running system can't be swapped out.** Nothing can start a different system in place of the running one without a full restart.
 
+## Checking your PC
+
+OrielOS can only start this way if the PC's firmware lets it: Secure Boot, the TPM and the IOMMU are switched on or off there. To see whether your PC meets every requirement, open **Settings > Privacy & security > Device security**. Anything not met comes with what to change.
+
 ## Why there's no Hibernate
 
 Hibernate saves everything in memory to the disk and switches the PC off. Because the system is locked down, it can't safely read that saved memory back in, so OrielOS doesn't offer Hibernate.

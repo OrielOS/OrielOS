@@ -73,6 +73,8 @@ PageCatalogue PageCatalogue::standard()
     const QString apps = QStringLiteral("apps");
     const QString accounts = QStringLiteral("accounts");
     const QString time = QStringLiteral("time");
+    const QString accessibility = QStringLiteral("accessibility");
+    const QString privacy = QStringLiteral("privacy");
     const QString update = QStringLiteral("update");
 
     QList<Category> categories {
@@ -83,6 +85,8 @@ PageCatalogue PageCatalogue::standard()
         { apps, i18nc("@title Settings category", "Apps"), QStringLiteral("preferences-desktop-default-applications") },
         { accounts, i18nc("@title Settings category", "Accounts"), QStringLiteral("preferences-system-users") },
         { time, i18nc("@title Settings category", "Time & language"), QStringLiteral("preferences-system-time") },
+        { accessibility, i18nc("@title Settings category", "Accessibility"), QStringLiteral("preferences-desktop-accessibility") },
+        { privacy, i18nc("@title Settings category", "Privacy & security"), QStringLiteral("security-high") },
         { update, i18nc("@title Settings category", "Update"), QStringLiteral("system-software-update") },
     };
 
@@ -182,6 +186,44 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc("@info:keywords Search words for the Language & region page, separated by ;",
                 "language;region;locale;formats;date format;currency;units;keyboard layout")),
             QStringLiteral("kcm_regionandlang"), { } },
+        { QStringLiteral("accessibility"), accessibility, i18nc("@title Settings page", "Screen reader and keyboard"),
+            i18nc("@info", "Screen reader, sticky keys, slow keys, mouse keys and the visual bell"),
+            keywords(i18nc("@info:keywords Search words for the Screen reader and keyboard page, separated by ;",
+                "accessibility;screen reader;narrator;orca;sticky keys;slow keys;bounce keys;filter keys;mouse keys;visual bell;flash screen")),
+            QStringLiteral("kcm_access"), { } },
+        { QStringLiteral("zoom-and-colour-filters"), accessibility, i18nc("@title Settings page", "Zoom and colour filters"),
+            i18nc("@info", "Zoom, magnifier, colour-blindness correction and inverted colours"),
+            keywords(i18nc("@info:keywords Search words for the Zoom and colour filters page, separated by ;",
+                "zoom;magnifier;magnify;colour filters;color filters;colour blindness;color blindness;invert colours;invert colors;contrast")),
+            QStringLiteral("kcm_kwin_effects"), { } },
+        { QStringLiteral("on-screen-keyboard"), accessibility, i18nc("@title Settings page", "On-screen keyboard"),
+            i18nc("@info", "A keyboard on the screen, for touch screens"),
+            keywords(
+                i18nc("@info:keywords Search words for the On-screen keyboard page, separated by ;", "on-screen keyboard;virtual keyboard;touch keyboard;osk")),
+            QStringLiteral("kcm_virtualkeyboard"), { } },
+        { QStringLiteral("device-security"), privacy, i18nc("@title Settings page", "Device security"),
+            i18nc("@info", "Secure Boot, the TPM and what games with anti-cheat check"),
+            keywords(i18nc("@info:keywords Search words for the Device security page, separated by ;",
+                "device security;windows security;secure boot;tpm;anti-cheat;anticheat;easy anti-cheat;core isolation;iommu;signed drivers")),
+            QStringLiteral("kcm_orielos_security"), { } },
+        { QStringLiteral("firewall"), privacy, i18nc("@title Settings page", "Firewall"), i18nc("@info", "Allow or block connections to this PC"),
+            keywords(i18nc("@info:keywords Search words for the Firewall page, separated by ;", "firewall;ports;block;allow;network protection")),
+            QStringLiteral("kcm_firewall"), { } },
+        { QStringLiteral("app-permissions"), privacy, i18nc("@title Settings page", "App permissions"),
+            i18nc("@info", "What apps from the Store may use, such as your files, camera and microphone"),
+            keywords(i18nc("@info:keywords Search words for the App permissions page, separated by ;",
+                "app permissions;permissions;camera;microphone;location;files;flatpak;sandbox")),
+            QStringLiteral("kcm_app-permissions"), { } },
+        { QStringLiteral("activity-history"), privacy, i18nc("@title Settings page", "Activity history"),
+            i18nc("@info", "Whether recently opened files are remembered, and clearing them"),
+            keywords(i18nc("@info:keywords Search words for the Activity history page, separated by ;",
+                "activity history;history;recent files;recent documents;clear history;forget")),
+            QStringLiteral("kcm_recentFiles"), { } },
+        { QStringLiteral("diagnostics"), privacy, i18nc("@title Settings page", "Diagnostics & feedback"),
+            i18nc("@info", "What Plasma may send to KDE: nothing unless you choose"),
+            keywords(i18nc("@info:keywords Search words for the Diagnostics & feedback page, separated by ;",
+                "diagnostics;feedback;telemetry;usage data;statistics;privacy")),
+            QStringLiteral("kcm_feedback"), { } },
         { QStringLiteral("update"), update, i18nc("@title Settings page", "OrielOS Update"), i18nc("@info", "Updates, the update channel and going back"),
             keywords(i18nc("@info:keywords Search words for the Update page, separated by ;",
                 "update;updates;windows update;check for updates;upgrade;version;pause updates;roll back;go back")),

@@ -276,6 +276,10 @@ desktop_tour() {
     in_session orielos-settings taskbar >/dev/null 2>&1 || warn "Could not open the Taskbar page"
     sleep 5
     shot 11-settings-taskbar
+    # Device security checks the running system; the VM has no IOMMU.
+    in_session orielos-settings device-security >/dev/null 2>&1 || warn "Could not open the Device security page"
+    sleep 8
+    shot 11-settings-security
     close_apps
 
     open_app 15 firefox flatpak run org.mozilla.firefox
