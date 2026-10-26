@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Snap layouts: Windows + Z shows layouts for the window you're using (halves, thirds, two thirds beside one third, and quarters) and moves it into the area you click or choose with the arrow keys and Enter.
 - A "Known limitations" page lists what OrielOS can't do yet, such as running on real hardware or games whose publishers block Linux, and what it won't do by design, such as Hibernate.
 - The sign-in screen opens on the time over the OrielOS wallpaper, like a locked screen. Press a key or click, and the sign-in slides up into the middle; after a minute without input the time comes back. It offers Sleep, Restart and Shut down.
 - The boot splash shows the OrielOS logo on a black screen, with a spinner below it.

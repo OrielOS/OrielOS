@@ -278,6 +278,9 @@ desktop_tour() {
     close_apps
 
     press_and_shot 08-files 8 keys:meta_l+e
+    # Snap layouts over Files: the picker, then Files snapped into the right half with the keyboard.
+    press_and_shot 08-files-snap-layouts 3 keys:meta_l+z
+    press_and_shot 08-files-snapped 3 keys:right keys:ret
     close_apps
 
     open_app 15 plasma-discover plasma-discover

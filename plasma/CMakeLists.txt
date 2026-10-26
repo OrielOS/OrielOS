@@ -9,6 +9,9 @@ find_package(Plasma 6.0 REQUIRED)
 # The Start menu widget.
 add_subdirectory(startmenu)
 
+# Snap layouts: a KWin effect that Win+Z opens, to snap the active window into a layout.
+install(DIRECTORY kwin/snaplayouts/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snaplayouts)
+
 # The first-run setup's network page, for computers without Wi-Fi, and its power page, as Plasma
 # Setup packages. image/build/41-first-run.sh puts every page in order and shows this logo on the
 # last one.
