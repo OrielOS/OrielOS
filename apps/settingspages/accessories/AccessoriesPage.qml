@@ -24,14 +24,6 @@ KCM.SimpleKCM {
         translationDomain: "orielos-settings-pages"
     }
 
-    // An app installed from the Store while the page is open soon shows as installed.
-    Timer {
-        interval: 3000
-        repeat: true
-        running: root.visible
-        onTriggered: root.store.refresh()
-    }
-
     ColumnLayout {
         spacing: Kirigami.Units.largeSpacing
 

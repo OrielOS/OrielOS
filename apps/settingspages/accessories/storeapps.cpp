@@ -6,6 +6,8 @@
 #include <KLocalizedString>
 
 #include <QDesktopServices>
+#include <QDir>
+#include <QFileSystemWatcher>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QUrl>
@@ -30,6 +32,15 @@ StoreApps::StoreApps(QObject *parent)
                 },
           parent)
 {
+    // An app installed or removed in the Store adds or removes its desktop entry in one of these
+    // folders, so the page follows without polling, and only while it exists.
+    auto *watcher = new QFileSystemWatcher(this);
+    for (const QString &folder : QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation)) {
+        if (QDir(folder).exists()) {
+            watcher->addPath(folder);
+        }
+    }
+    connect(watcher, &QFileSystemWatcher::directoryChanged, this, &StoreApps::refresh);
 }
 
 StoreApps::StoreApps(Environment environment, QObject *parent)
