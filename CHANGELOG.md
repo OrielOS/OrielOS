@@ -105,6 +105,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- The firewall settings page no longer asks for a password as soon as it opens. Anyone can see the firewall's settings, and administrators change them without a password, as on Fedora's KDE edition.
 - A new installation names the computer `orielos` instead of `fedora`, on the network and in the terminal.
 - A unit no longer fails at every start (`efi.automount`, the EFI system partition's automount), which made `systemctl is-system-running` report `degraded`.
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Installs the KDE Plasma desktop listed in image/packages/desktop.txt, makes Flathub the
-# only Flatpak source, starts Plasma Setup on first boot and SDDM at every boot, makes OrielOS's
-# look-and-feel the default, with its light and dark versions for Plasma's Day-Night Cycle.
+# Installs the KDE Plasma desktop listed in image/packages/desktop.txt, gives firewalld the
+# polkit policy of Fedora's desktop editions, makes Flathub the only Flatpak source, starts Plasma
+# Setup on first boot and SDDM at every boot, makes OrielOS's look-and-feel the default, with its
+# light and dark versions for Plasma's Day-Night Cycle.
 # 90-finalise.sh sets the Plymouth boot splash.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
@@ -18,6 +19,18 @@ mapfile -t packages < <(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]
 [[ "${#packages[@]}" -gt 0 ]] || die "no packages found in $list"
 
 dnf -y install --setopt=install_weak_deps=False "${packages[@]}"
+
+# firewalld picks its polkit policy from os-release's VARIANT_ID when it is installed. fedora-bootc
+# names no desktop variant, so firewalld took the server policy, which asks for a password just to
+# read its settings: the Firewall settings page asked as soon as it opened. Use the policy that
+# Fedora's KDE edition gets: anyone may read the firewall's settings, and administrators (the
+# wheel group) change them without a password.
+polkit=/usr/share/polkit-1
+for choice in actions/org.fedoraproject.FirewallD1.desktop.policy.choice rules.d/org.fedoraproject.FirewallD1.desktop.rules.choice; do
+    [[ -f "$polkit/$choice" ]] || die "firewalld's desktop polkit policy, $polkit/$choice, is missing"
+done
+ln -sf org.fedoraproject.FirewallD1.desktop.policy.choice "$polkit/actions/org.fedoraproject.FirewallD1.policy"
+ln -sf org.fedoraproject.FirewallD1.desktop.rules.choice "$polkit/rules.d/org.fedoraproject.FirewallD1.rules"
 
 # Flathub is the only source of apps. Flatpak would add Fedora's own remote on first boot;
 # instead Flathub's remote file is installed where Flatpak reads its default remotes, without
