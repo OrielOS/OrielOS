@@ -75,6 +75,8 @@ When the computer starts, the boot menu stays out of sight. To open it, press Es
 
 Choosing a version in the boot menu starts it this once.
 
+On a computer that also has Windows, the boot menu shows for five seconds at every start and lists **Windows** after OrielOS's versions. Choose it with the arrow keys and Enter to start Windows; if you do nothing, OrielOS starts.
+
 The menu appears by itself only if both versions fail to start: after an update was undone, the previous version didn't reach the desktop either. It waits 30 seconds, then starts the highlighted version.
 
 ## In a terminal

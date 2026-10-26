@@ -106,12 +106,15 @@ fi
 # good, through a user unit enabled for every user here and a polkit rule that allows only that.
 systemctl --global enable orielos-mark-boot-success.service
 boot_menu_errors=()
-menu_snippet=/usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg
-if [[ ! -r "$menu_snippet" ]]; then
-    boot_menu_errors+=("the boot menu's GRUB snippet, $menu_snippet, is missing")
-elif ! grub2-script-check "$menu_snippet"; then
-    boot_menu_errors+=("grub2-script-check found errors in $menu_snippet")
-fi
+# 13_orielos-windows.cfg adds Windows to the menu, and shows it, on PCs that also have Windows.
+for menu_snippet in /usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg \
+    /usr/lib/bootupd/grub2-static/configs.d/13_orielos-windows.cfg; do
+    if [[ ! -r "$menu_snippet" ]]; then
+        boot_menu_errors+=("the boot menu's GRUB snippet, $menu_snippet, is missing")
+    elif ! grub2-script-check "$menu_snippet"; then
+        boot_menu_errors+=("grub2-script-check found errors in $menu_snippet")
+    fi
+done
 if [[ "$(systemctl --global is-enabled orielos-mark-boot-success.service 2>/dev/null)" != "enabled" ]]; then
     boot_menu_errors+=("orielos-mark-boot-success.service is not enabled for users")
 fi
