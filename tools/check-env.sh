@@ -141,6 +141,12 @@ check_commands() {
     check_command virt-fw-vars python3-virt-firmware python3-virt-firmware
     check_command losetup util-linux util-linux
     check_command ssh openssh-client openssh-clients
+    # The boot test's visual check compares screenshots with Pillow (tests/lib/screens.py).
+    if python3 -I -c 'import PIL' >/dev/null 2>&1; then
+        pass "Pillow is installed (for the visual check)"
+    else
+        fail "Pillow is not installed" "sudo apt install python3-pil   (Fedora: sudo dnf install python3-pillow)"
+    fi
 }
 
 check_firmware() {
