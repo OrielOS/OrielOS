@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Checks that no build tools are installed, that the first boot will run Plasma Setup, install
-# Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
+# Checks that no build tools are installed, that the first boot will run Plasma Setup with its
+# pages in OrielOS's order, install Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
 # users get the taskbar and the wallpapers, enables the background update check and the unit that
 # keeps the boot menu hidden after good boots, refreshes the icon cache, rebuilds the initramfs for
 # the installed kernel, removes build leftovers and lints the image.
@@ -31,6 +31,27 @@ if [[ "${#users[@]}" -gt 0 ]]; then
 fi
 if [[ "${#first_boot_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${first_boot_errors[@]}" >&2
+    exit 1
+fi
+
+# Plasma Setup's pages come in OrielOS's order (build/41-first-run.sh and plasma/firstrun), and the
+# power page has what it needs to save its choices.
+first_run_errors=()
+first_run_order="$(for f in /usr/share/plasma/packages/*/metadata.json; do
+    jq -r 'select(.KPackageStructure == "KDE/PlasmaSetup") | "\(."X-KDE-Weight") \(.KPlugin.Id)"' "$f"
+done | sort -n | cut -d' ' -f2 | paste -sd ' ' -)"
+first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.kde.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.account org.kde.plasmasetup.finished"
+if [[ "$first_run_order" != "$first_run_expected" ]]; then
+    first_run_errors+=("Plasma Setup's pages are in the wrong order: $first_run_order")
+fi
+[[ -x /usr/libexec/orielos/first-run-power ]] || first_run_errors+=("/usr/libexec/orielos/first-run-power is not executable")
+for f in /usr/share/polkit-1/actions/org.orielos.first-run.policy /usr/share/polkit-1/rules.d/49-orielos-first-run.rules \
+    /usr/lib/tmpfiles.d/orielos-first-run.conf /usr/lib64/qt6/qml/org/orielos/firstrun/qmldir \
+    /usr/share/plasma/packages/org.kde.plasmasetup.finished/contents/ui/konqi-calling.png; do
+    [[ -r "$f" ]] || first_run_errors+=("$f is missing")
+done
+if [[ "${#first_run_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${first_run_errors[@]}" >&2
     exit 1
 fi
 
@@ -73,30 +94,57 @@ if [[ "${#secure_boot_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
-# The update check stages builds in the background and records each boot's state for the desktop's
-# notifier; both units are enabled here for the same reason as above. No update state may be in
+# The update check stages builds in the background and records each boot's state for the update
+# tray icon and the Update settings page; both units are enabled here for the same reason as above. No update state may be in
 # the image: it belongs to each computer.
-systemctl enable orielos-update-check.timer orielos-update-state.service
+systemctl enable orielos-update-check.timer orielos-update-state.service orielos-app-update.timer
 update_errors=()
-for unit in orielos-update-check.timer orielos-update-state.service; do
+for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer; do
     if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
         update_errors+=("$unit is not enabled")
     fi
 done
-for cmd in skopeo pkexec busctl bootc jq; do
+for cmd in skopeo pkexec busctl bootc jq flatpak; do
     command -v "$cmd" >/dev/null || update_errors+=("$cmd, which orielos-update needs, is not installed")
 done
 for f in /usr/lib/orielos/update.conf /usr/share/polkit-1/actions/org.orielos.update.policy \
     /etc/xdg/autostart/org.orielos.UpdateNotifier.desktop /usr/share/applications/org.orielos.UpdateNotifier.desktop \
-    /usr/share/knotifications6/orielos-update-notifier.notifyrc; do
+    /usr/share/knotifications6/orielos-update-notifier.notifyrc \
+    /usr/lib64/qt6/plugins/plasma/kcms/systemsettings/kcm_orielos_update.so /usr/share/applications/kcm_orielos_update.desktop; do
     [[ -r "$f" ]] || update_errors+=("$f is missing")
 done
 [[ -x /usr/bin/orielos-update-notifier ]] || update_errors+=("the update notifier, /usr/bin/orielos-update-notifier, is missing")
+# Settings hosts the Update page; it has Win+I and Start's Settings entry, System Settings neither.
+[[ -x /usr/bin/orielos-settings ]] || update_errors+=("Settings, /usr/bin/orielos-settings, is missing")
+# OrielOS's own Settings pages besides Update.
+for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
+    kcm_orielos_powermode; do
+    for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
+        [[ -r "$f" ]] || update_errors+=("$f is missing")
+    done
+done
+# Device security reads the accepted module signers from here.
+[[ -r /usr/share/orielos/module-signers.txt ]] || update_errors+=("/usr/share/orielos/module-signers.txt is missing")
+for f in /usr/share/applications/org.orielos.Settings.desktop /usr/share/kglobalaccel/org.orielos.Settings.desktop; do
+    grep -qxF 'X-KDE-Shortcuts=Meta+I' "$f" 2>/dev/null || update_errors+=("$f is missing or doesn't give Settings Win+I")
+done
+grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
+# Start's and KRunner's search open Settings' pages in Settings, through OrielOS's runner.
+[[ -r /usr/lib64/qt6/plugins/kf6/krunner/krunner_orielos_settings.so ]] || update_errors+=("the settings search runner, krunner_orielos_settings, is missing")
+if [[ "$(kreadconfig6 --file /etc/xdg/krunnerrc --group Plugins --key krunner_systemsettingsEnabled)" != "false" ]]; then
+    update_errors+=("/etc/xdg/krunnerrc does not turn off System Settings' search runner")
+fi
 if [[ -e /var/lib/orielos/update ]]; then
     update_errors+=("/var/lib/orielos/update exists in the image")
 fi
 if [[ "${#update_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${update_errors[@]}" >&2
+    exit 1
+fi
+
+# The first start's power mode, Performance, comes from the shipped base profile (see 45-gaming.sh).
+if [[ "$(cat /etc/tuned/ppd_base_profile 2>/dev/null)" != performance ]]; then
+    printf 'error: /etc/tuned/ppd_base_profile does not start tuned-ppd in performance\n' >&2
     exit 1
 fi
 
@@ -134,9 +182,17 @@ taskbar_errors=()
 if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage)" != "$lnf" ]]; then
     taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf the default look-and-feel")
 fi
-if [[ ! -f "/usr/share/plasma/look-and-feel/$lnf/contents/layouts/org.kde.plasma.desktop-layout.js" ]]; then
-    taskbar_errors+=("the $lnf look-and-feel package or its layout script is not installed")
+for package in "$lnf" "$lnf.dark"; do
+    if [[ ! -f "/usr/share/plasma/look-and-feel/$package/contents/layouts/org.kde.plasma.desktop-layout.js" ]]; then
+        taskbar_errors+=("the $package look-and-feel package or its layout script is not installed")
+    fi
+done
+if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultDarkLookAndFeel)" != "$lnf.dark" ]]; then
+    taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf.dark the dark look-and-feel")
 fi
+for scheme in OrielOSLight OrielOSDark; do
+    [[ -r "/usr/share/color-schemes/$scheme.colors" ]] || taskbar_errors+=("the $scheme colour scheme is not installed")
+done
 if [[ ! -f /usr/share/icons/hicolor/scalable/apps/orielos-start.svg ]]; then
     taskbar_errors+=("the Start button's icon, orielos-start.svg, is not installed")
 fi
@@ -166,8 +222,30 @@ fi
 # and never find icons added after it was made, such as the Start button's.
 gtk-update-icon-cache --force --quiet /usr/share/icons/hicolor
 
+# The boot splash: OrielOS's Plymouth theme, with its logo from the app-builder stage and the spinner,
+# password and keyboard images from Plymouth's spinner theme. The initramfs below carries it.
+theme=/usr/share/plymouth/themes/orielos
+spinner=/usr/share/plymouth/themes/spinner
+for f in "$spinner"/throbber-*.png "$spinner"/animation-*.png "$spinner"/{bullet,capslock,entry,keyboard,keymap-render,lock}.png; do
+    install -m 0644 "$f" "$theme/"
+done
+splash_errors=()
+for f in orielos.plymouth watermark.png throbber-0001.png entry.png lock.png; do
+    [[ -s "$theme/$f" ]] || splash_errors+=("$theme/$f is missing")
+done
+plymouth-set-default-theme orielos
+[[ "$(plymouth-set-default-theme)" == orielos ]] || splash_errors+=("Plymouth's theme is $(plymouth-set-default-theme), not orielos")
+
 kver="$(ls /usr/lib/modules)"
 dracut --no-hostonly --kver "$kver" --reproducible --zstd --add "ostree plymouth" -f "/usr/lib/modules/$kver/initramfs.img"
+# grep reads the whole listing: with -q it would stop at the match, lsinitrd would die of SIGPIPE,
+# and pipefail would count the pipeline as failed.
+lsinitrd "/usr/lib/modules/$kver/initramfs.img" | grep -F 'usr/share/plymouth/themes/orielos/watermark.png' >/dev/null ||
+    splash_errors+=("the initramfs doesn't contain the OrielOS boot splash")
+if [[ "${#splash_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${splash_errors[@]}" >&2
+    exit 1
+fi
 
 dnf clean all
 rm -rf /var/cache/* /var/log/* /var/lib/dnf /tmp/* /run/dnf /run/sddm

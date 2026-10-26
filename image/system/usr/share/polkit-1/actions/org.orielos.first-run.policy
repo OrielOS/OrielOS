@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+What the first-run setup may do through pkexec: set the power settings new users start with.
+It runs as the plasma-setup user, which has no password, so 49-orielos-first-run.rules allows that
+user; anyone else needs an administrator. first-run-power itself refuses once the setup has
+finished.
+-->
+<policyconfig>
+  <vendor>OrielOS</vendor>
+  <vendor_url>https://github.com/ncjsvr/OrielOS</vendor_url>
+  <icon_name>preferences-system-power-management</icon_name>
+
+  <action id="org.orielos.first-run.power">
+    <description>Set the power settings new users start with</description>
+    <message>Authentication is needed to set the power settings new users start with</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/orielos/first-run-power</annotate>
+  </action>
+</policyconfig>

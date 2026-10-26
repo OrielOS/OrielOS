@@ -17,6 +17,7 @@ plasma_add_applet(org.orielos.startmenu
         AppTile.qml
         ListRow.qml
         PopupMenu.qml
+        getstarted.js
     RESOURCES
         main.xml
     GENERATE_APPLET_CLASS
