@@ -218,7 +218,10 @@ jobs:
           printf '%s' "${GITHUB_TOKEN}" | cosign login ghcr.io --username "${ACTOR}" --password-stdin
           skopeo copy --digestfile /tmp/digest "oci-archive:/tmp/image/orielos-${TAG}.ociarchive:${TAG}" "docker://${REPOSITORY}:${TAG}"
           digest="$(cat /tmp/digest)"
-          cosign sign --yes --key env://COSIGN_PRIVATE_KEY "${REPOSITORY}@${digest}"
+          # The classic signature format, attached as a sha256-<digest>.sig tag: installed computers
+          # check updates with containers/image (bootc, podman), which finds no signature in cosign 3's
+          # default bundle format and would refuse every update.
+          cosign sign --yes --new-bundle-format=false --use-signing-config=false --key env://COSIGN_PRIVATE_KEY "${REPOSITORY}@${digest}"
           if [ -s image/keys/orielos-cosign.pub ]; then
               cosign verify --key image/keys/orielos-cosign.pub "${REPOSITORY}@${digest}" >/dev/null
           fi
