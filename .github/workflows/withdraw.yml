@@ -1,0 +1,71 @@
+name: Withdraw
+
+# Takes a bad build off the testing channel by moving the testing tag back to an earlier build,
+# without rebuilding it: the same image, digest and signature. Run by hand by the maintainer.
+# Computers on testing stage that build at their next update check, whether they run the
+# withdrawn build, have it staged or never got it, because orielos-update stages whatever digest
+# the channel points to. The withdrawn build keeps its own tag, and the next build published from
+# main moves testing on again, so merge the fix or a revert after running this.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: Earlier build tag for testing to go back to, such as 44.20261025 or 44.20261026.2
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  REPOSITORY: ghcr.io/ncjsvr/orielos
+
+jobs:
+  withdraw:
+    name: withdraw
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: publish
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The input is checked before anything uses it, and only ever reaches the shell as an
+      # environment variable.
+      - name: Check the input
+        env:
+          BUILD: ${{ inputs.build }}
+        run: |
+          [[ "${BUILD}" =~ ^[0-9]+\.[0-9]{8}(\.[0-9]+)?$ ]] || { echo "::error::The build tag looks like 44.20261026 or 44.20261026.2"; exit 1; }
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Check the build is signed, then move testing back to it
+        env:
+          BUILD: ${{ inputs.build }}
+          ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -s image/keys/orielos-cosign.pub ] || { echo "::error::image/keys/orielos-cosign.pub is missing, so the signature can't be checked"; exit 1; }
+          digest="$(skopeo inspect --format '{{.Digest}}' "docker://${REPOSITORY}:${BUILD}")" ||
+              { echo "::error::There is no build ${BUILD} in ${REPOSITORY}"; exit 1; }
+          current="$(skopeo inspect --format '{{.Digest}}' "docker://${REPOSITORY}:testing")"
+          if [ "${digest}" = "${current}" ]; then
+              echo "::error::testing is already ${BUILD} (${digest})"
+              exit 1
+          fi
+          cosign verify --key image/keys/orielos-cosign.pub "${REPOSITORY}@${digest}" >/dev/null
+          printf '%s' "${GITHUB_TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
+          skopeo copy --preserve-digests "docker://${REPOSITORY}@${digest}" "docker://${REPOSITORY}:testing"
+          echo "::notice::testing is now ${BUILD} (${digest}); it was ${current}"
