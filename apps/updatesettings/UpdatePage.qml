@@ -254,6 +254,37 @@ KCM.SimpleKCM {
 
             Item {
                 Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Apps from the Store")
+            }
+
+            QQC2.CheckBox {
+                text: root.l10n.i18nc("@option:check", "Update &apps automatically")
+                checked: root.settings.appUpdates
+                enabled: !root.settings.busy
+                onClicked: {
+                    // The box shows the setting, which changes once orielos-update has saved it.
+                    root.settings.setAppUpdates(checked);
+                    checked = Qt.binding(() => root.settings.appUpdates);
+                }
+            }
+
+            QQC2.Label {
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+                text: root.l10n.i18nc("@info", "Apps update in the background; one that's open uses the new version the next time it starts. The Store's Update button works either way.")
+                font: Kirigami.Theme.smallFont
+                color: Kirigami.Theme.disabledTextColor
+                wrapMode: Text.Wrap
+            }
+
+            QQC2.Label {
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+                visible: text.length > 0
+                text: root.settings.appsUpdated
+                wrapMode: Text.Wrap
+            }
+
+            Item {
+                Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Previous version")
                 visible: root.settings.hasPrevious
             }

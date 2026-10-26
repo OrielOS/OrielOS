@@ -70,6 +70,8 @@ UpdateState UpdateState::fromJson(const QByteArray &json)
     state.m_previousRejected = previous.toObject().value(QLatin1String("rejected")).toBool();
     state.m_previousRemovedAfter = parseTime(previous.toObject().value(QLatin1String("removedAfter")));
     state.m_rollbackQueued = object.value(QLatin1String("rollbackQueued")).toBool();
+    state.m_appUpdates = object.value(QLatin1String("appUpdates")).toBool(true);
+    state.m_appsUpdatedAt = parseTime(object.value(QLatin1String("appsUpdatedAt")));
     return state;
 }
 

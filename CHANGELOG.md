@@ -6,6 +6,9 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Apps from the Store update by themselves, in the background, a few minutes after start-up and about every six hours, at low priority so they don't slow down a game.
+  - After an OrielOS update with a new NVIDIA driver, the matching graphics driver for Store apps arrives the same way, without opening the Store.
+  - **Update apps automatically** on the update settings page turns this off; the Store's Update button works either way. Apps aren't updated on a metered connection.
 - Settings, OrielOS's own settings app, opens with Windows + I and replaces System Settings in Start.
   - Categories in the order Windows uses: System, Bluetooth & devices, Network & internet, Personalisation, Apps, Accounts, Time & language and Update, each with its pages.
   - Search finds pages by name and by the words people know from Windows, such as "wifi", "default apps" or "windows update".
@@ -75,5 +78,6 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- A unit no longer fails at every start (`efi.automount`, the EFI system partition's automount), which made `systemctl is-system-running` report `degraded`.
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.
 - The Discord bot no longer cuts an emoji in half when it shortens a long title or release note.
