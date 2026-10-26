@@ -42,7 +42,7 @@ jobs:
               git diff --quiet HEAD^1 HEAD -- \
                   apps plasma artwork CMakeLists.txt VERSION \
                   image/Containerfile image/build/apps-builder.sh image/pins.env \
-                  .containerignore .gitattributes tools/test-apps.sh .github/workflows/apps.yml || rc=$?
+                  .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh .github/workflows/apps.yml || rc=$?
           fi
           case "${rc}" in
               0)

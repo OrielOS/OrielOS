@@ -1,0 +1,4 @@
+# Some tools source lib/pins.sh. Follow it, so shellcheck sees the functions and variables they
+# share with it.
+external-sources=true
+source-path=SCRIPTDIR

@@ -1,0 +1,56 @@
+name: Mirror
+
+# Copies every image pinned in image/pins.env to ghcr.io/ncjsvr/mirror with the same digest
+# (tools/mirror-pins.sh). Upstream registries stop serving old digests, Fedora's within about a
+# day, and the build tools fall back to these copies, so a pin keeps building after that.
+# Runs when the pins change on main or in a pull request from this repository (Renovate's), and
+# every day, so a pin is copied while its upstream registry still has it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - image/pins.env
+      - tools/mirror-pins.sh
+      - tools/lib/pins.sh
+      - .github/workflows/mirror.yml
+  pull_request:
+    paths:
+      - image/pins.env
+      - tools/mirror-pins.sh
+      - tools/lib/pins.sh
+      - .github/workflows/mirror.yml
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: mirror
+    # A fork's pull request gets no token that can write packages; its pins are copied once merged.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Log in to ghcr.io
+        env:
+          ACTOR: ${{ github.actor }}
+          TOKEN: ${{ github.token }}
+        run: printf '%s' "${TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
+
+      - name: Copy the pinned images
+        run: tools/mirror-pins.sh
