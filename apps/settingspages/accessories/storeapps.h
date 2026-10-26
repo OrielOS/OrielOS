@@ -38,7 +38,8 @@ public:
 
     QVariantList apps() const;
 
-    // Look again for installed apps, for example after one was installed from the Store.
+    // Look again for installed apps. The page does when an applications folder changes, as when an
+    // app is installed from the Store.
     Q_INVOKABLE void refresh();
     // Start the app if it's installed, or else open its page in the Store.
     Q_INVOKABLE void open(const QString &id);
