@@ -137,15 +137,35 @@ PY
     fi
 }
 
-# Click Plasma Setup's Next button until the page stops changing or the account exists, saving
-# each new page as 03-setup-<n>.png from <n> on. Prints the next free number: next_pages <n>
+# Whether two frames show the same page: they differ in at most a few thousand bytes, such as a
+# text cursor blinking. Without Python, only identical frames count: same_page <frame> <frame>
+same_page() {
+    if ! command -v python3 >/dev/null 2>&1; then
+        cmp -s "$1" "$2"
+        return
+    fi
+    python3 -I - "$1" "$2" <<'PY'
+import sys
+
+with open(sys.argv[1], "rb") as a, open(sys.argv[2], "rb") as b:
+    first, second = a.read(), b.read()
+if len(first) != len(second):
+    sys.exit(1)
+sys.exit(0 if sum(x != y for x, y in zip(first, second)) <= 5000 else 1)
+PY
+}
+
+# Click Plasma Setup's Next button, up to ten times, until the page stays the same or the account
+# exists, saving each new page as 03-setup-<n>.png from <n> on. Prints the next free number:
+# next_pages <n>
 next_pages() {
-    local n="$1" before after
-    while ((n < 9)); do
+    local n="$1" limit=$(($1 + 10)) before after
+    while ((n < limit)); do
         before="$(frame before)"
         vm_qmp "click:$NEXT_X,$NEXT_Y" wait:3 >/dev/null 2>&1 || true
         after="$(frame after)"
-        cmp -s "$before" "$after" && break
+        same_page "$before" "$after" && break
+        shot "03-setup-$n" >&2
         n=$((n + 1))
         vm_ssh "id $TOUR_USER" >/dev/null 2>&1 && break
     done
@@ -168,8 +188,11 @@ drive_setup() {
         shot 03-setup-1-language
         n="$(next_pages 2)"
         info "Typing the account on the user page"
+        # The password field's Show Password button takes a Tab of its own.
         vm_qmp "type:$TOUR_NAME" keys:tab keys:ctrl+a "type:$TOUR_USER" keys:tab \
-            "type:$TOUR_PASSWORD" keys:tab "type:$TOUR_PASSWORD" wait:2 >/dev/null 2>&1 || true
+            "type:$TOUR_PASSWORD" keys:tab keys:tab "type:$TOUR_PASSWORD" wait:2 >/dev/null 2>&1 || true
+        # The same page as the last one saved, with the account typed in.
+        shot "03-setup-$((n - 1))-account"
         next_pages "$((n + 1))" >/dev/null
         wait_until 30 "id $TOUR_USER" || true
     fi

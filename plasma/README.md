@@ -7,6 +7,7 @@ Contains:
 - `startmenu/`: the Start menu, OrielOS's own Plasma widget (see [The Start menu](#the-start-menu)).
 - `look-and-feel/org.orielos.desktop/`: OrielOS's look-and-feel package, which sets up OrielOS's taskbar for new users.
 - `updates/`: desktop update scripts, which move existing users' desktops to the current layout.
+- `firstrun/`: OrielOS's pages for the first-run setup, Plasma Setup: `network/`, which shows a computer without Wi-Fi whether its cable connection reaches the internet, and `power/`, which asks when the computer sleeps and the screen turns off. They are Plasma Setup packages; `image/README.md` describes the whole setup and its page order.
 
 Will contain:
 
@@ -83,8 +84,6 @@ OrielOS is the default in three places:
 - The layout script writes `Image=file:///usr/share/wallpapers/OrielOS/` to the `[Wallpaper][org.kde.image][General]` group of each new desktop, so a new user's `plasma-org.kde.plasma.desktop-appletsrc` names it.
 - `[Wallpaper] Image=OrielOS` in `contents/defaults`. Plasma's image wallpaper shows the default look-and-feel's `[Wallpaper]` image on any desktop without an `Image` of its own, and System Settings applies it when a user picks the theme.
 - `/etc/xdg/kscreenlockerrc`, from `image/system/etc/xdg/`, sets the lock screen's wallpaper the same way. Fedora's `kde-settings` profile names Fedora's wallpaper there, and `/etc/xdg` comes first on `XDG_CONFIG_DIRS`.
-
-Plasma Setup's Dark Theme switch applies Fedora's dark look-and-feel instead (see `image/README.md`), so an account set up with it starts with Fedora's wallpaper on the desktop; the lock screen still shows OrielOS's.
 
 The login screen (SDDM) and the boot splash keep their own artwork for now.
 

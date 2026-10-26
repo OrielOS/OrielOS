@@ -6,6 +6,11 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- The first-run setup asks what OrielOS needs, in this order: language, keyboard layout, network, time zone, power and your account.
+  - A new power page sets when the computer sleeps and when the screen turns off if it isn't being used, starting from sleep after 15 minutes and the screen off after 10. Your choice becomes the power settings every new account starts with.
+  - On a computer without Wi-Fi, the network page shows whether the cable connection reaches the internet, instead of being skipped.
+  - The setup no longer asks for screen scaling, a dark theme or the computer's name. The dark theme switch gave the new account Fedora's dark desktop instead of OrielOS's.
+  - The welcome screen shows the OrielOS wallpaper, and the last page shows the OrielOS logo.
 - OrielOS builds are published when changes merge.
   - Each change that affects the system is built on GitHub, started in a VM to check it reaches the sign-in screen in the mode anti-cheat needs with only signed drivers, signed, and published to ghcr.io as the new testing build.
   - A build is published only if Flathub has the NVIDIA driver extension that Store apps need for it.

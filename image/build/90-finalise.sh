@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Checks that no build tools are installed, that the first boot will run Plasma Setup, install
-# Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
+# Checks that no build tools are installed, that the first boot will run Plasma Setup with its
+# pages in OrielOS's order, install Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
 # users get the taskbar and the wallpapers, enables the background update check and the unit that
 # keeps the boot menu hidden after good boots, refreshes the icon cache, rebuilds the initramfs for
 # the installed kernel, removes build leftovers and lints the image.
@@ -31,6 +31,27 @@ if [[ "${#users[@]}" -gt 0 ]]; then
 fi
 if [[ "${#first_boot_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${first_boot_errors[@]}" >&2
+    exit 1
+fi
+
+# Plasma Setup's pages come in OrielOS's order (build/41-first-run.sh and plasma/firstrun), and the
+# power page has what it needs to save its choices.
+first_run_errors=()
+first_run_order="$(for f in /usr/share/plasma/packages/*/metadata.json; do
+    jq -r 'select(.KPackageStructure == "KDE/PlasmaSetup") | "\(."X-KDE-Weight") \(.KPlugin.Id)"' "$f"
+done | sort -n | cut -d' ' -f2 | paste -sd ' ' -)"
+first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.kde.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.account org.kde.plasmasetup.finished"
+if [[ "$first_run_order" != "$first_run_expected" ]]; then
+    first_run_errors+=("Plasma Setup's pages are in the wrong order: $first_run_order")
+fi
+[[ -x /usr/libexec/orielos/first-run-power ]] || first_run_errors+=("/usr/libexec/orielos/first-run-power is not executable")
+for f in /usr/share/polkit-1/actions/org.orielos.first-run.policy /usr/share/polkit-1/rules.d/49-orielos-first-run.rules \
+    /usr/lib/tmpfiles.d/orielos-first-run.conf /usr/lib64/qt6/qml/org/orielos/firstrun/qmldir \
+    /usr/share/plasma/packages/org.kde.plasmasetup.finished/contents/ui/konqi-calling.png; do
+    [[ -r "$f" ]] || first_run_errors+=("$f is missing")
+done
+if [[ "${#first_run_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${first_run_errors[@]}" >&2
     exit 1
 fi
 

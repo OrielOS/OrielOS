@@ -22,6 +22,9 @@ buildcheck/           orielos-buildcheck, the placeholder app
 updatestate/          the update state and its rules (static library OrielOSUpdateState)
   updatestate.h/.cpp  reads orielos-update's state file; shared by the tray icon and the page
   autotests/          Qt Test unit tests for the update state
+firstrun/             the QML module org.orielos.firstrun, for the first-run setup's power page
+  powersettings.h/.cpp  PowerSettings: the choices, saved through pkexec first-run-power
+  autotests/          Qt Test unit tests for PowerSettings
 settings/             orielos-settings, the Settings app
   main.cpp            start-up, one window per session, and the page to open
   pagecatalogue.h/.cpp  the categories and pages, and search (static library OrielOSSettingsCatalogue)

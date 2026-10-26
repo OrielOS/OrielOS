@@ -59,6 +59,10 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/40-apps.sh
 
+# hadolint ignore=DL3059
+RUN --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/41-first-run.sh
+
 # The system pieces games need. umu-launcher's RPM is pinned, with its digest, in image/pins.env.
 ARG UMU_LAUNCHER_RPM=must-be-set
 # hadolint ignore=DL3059
