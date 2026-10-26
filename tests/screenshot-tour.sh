@@ -284,7 +284,7 @@ desktop_tour() {
     vm_ssh loginctl unlock-sessions >/dev/null 2>&1 || true
     sleep 5
 
-    in_session plasma-apply-colorscheme BreezeDark >/dev/null 2>&1 || warn "Could not switch to the dark colour scheme"
+    in_session plasma-apply-colorscheme OrielOSDark >/dev/null 2>&1 || warn "Could not switch to the dark colour scheme"
     sleep 10
     press_and_shot 17-desktop-dark 3 keys:meta_l
     vm_qmp keys:esc >/dev/null 2>&1 || true
