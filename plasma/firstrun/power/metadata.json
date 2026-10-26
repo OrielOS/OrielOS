@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "KDE/PlasmaSetup",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Description": "Choose when the computer sleeps and when the screen turns off.",
+        "Id": "org.orielos.plasmasetup.power",
+        "License": "GPL-3.0-or-later",
+        "Name": "Power"
+    },
+    "NoDisplay": true,
+    "X-KDE-ParentApp": "org.kde.plasmasetup",
+    "X-KDE-Weight": 18
+}

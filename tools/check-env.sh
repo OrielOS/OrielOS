@@ -141,6 +141,12 @@ check_commands() {
     check_command virt-fw-vars python3-virt-firmware python3-virt-firmware
     check_command losetup util-linux util-linux
     check_command ssh openssh-client openssh-clients
+    # The boot test's visual check compares screenshots with Pillow (tests/lib/screens.py).
+    if python3 -I -c 'import PIL' >/dev/null 2>&1; then
+        pass "Pillow is installed (for the visual check)"
+    else
+        fail "Pillow is not installed" "sudo apt install python3-pil   (Fedora: sudo dnf install python3-pillow)"
+    fi
 }
 
 check_firmware() {
@@ -200,9 +206,11 @@ check_vsock() {
     done
     if [[ -n "$proxy" ]]; then
         pass "systemd-ssh-proxy is installed ($proxy)"
+    elif command -v socat >/dev/null 2>&1; then
+        pass "socat is installed, and stands in for systemd-ssh-proxy (systemd 256 or newer)"
     else
-        fail "systemd-ssh-proxy is not installed" \
-            "it comes with systemd 256 or newer (Ubuntu 24.10 or newer, Fedora 41 or newer)"
+        fail "neither systemd-ssh-proxy nor socat is installed" \
+            "systemd-ssh-proxy comes with systemd 256 or newer (Ubuntu 24.10 or newer, Fedora 41 or newer); otherwise sudo apt install socat"
     fi
 }
 

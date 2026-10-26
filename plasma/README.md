@@ -7,6 +7,7 @@ Contains:
 - `startmenu/`: the Start menu, OrielOS's own Plasma widget (see [The Start menu](#the-start-menu)).
 - `look-and-feel/org.orielos.desktop/`: OrielOS's look-and-feel package, which sets up OrielOS's taskbar for new users.
 - `updates/`: desktop update scripts, which move existing users' desktops to the current layout.
+- `firstrun/`: OrielOS's pages for the first-run setup, Plasma Setup: `network/`, which shows a computer without Wi-Fi whether its cable connection reaches the internet, and `power/`, which asks when the computer sleeps and the screen turns off. They are Plasma Setup packages; `image/README.md` describes the whole setup and its page order.
 
 Will contain:
 
@@ -52,7 +53,7 @@ Pressing Win or clicking the Start button opens it:
 
 - **Search** on top. Typing lists apps, settings, files, Store results and calculations, but runs nothing: only Enter, or a click, opens a result.
 - **Pinned** apps in a grid, with an **All apps** list one click away.
-- **Recommended:** apps installed in the last three days, then recently opened files.
+- **Recommended:** apps installed in the last three days, then recently opened files. The widget's `showRecentlyAdded` and `showRecentFiles` settings, both on by default, leave either out; Settings' Start page changes them.
 - **The account button** (picture and name) with Account settings, Lock, Switch user and Sign out, and **the power button** with Sleep, Restart and Shut down. There is no Hibernate: OrielOS doesn't offer hibernation.
 
 Right-click an app, or press the Menu key, to pin it to or unpin it from Start. Everything works from the keyboard.
@@ -84,14 +85,13 @@ OrielOS is the default in three places:
 - `[Wallpaper] Image=OrielOS` in `contents/defaults`. Plasma's image wallpaper shows the default look-and-feel's `[Wallpaper]` image on any desktop without an `Image` of its own, and System Settings applies it when a user picks the theme.
 - `/etc/xdg/kscreenlockerrc`, from `image/system/etc/xdg/`, sets the lock screen's wallpaper the same way. Fedora's `kde-settings` profile names Fedora's wallpaper there, and `/etc/xdg` comes first on `XDG_CONFIG_DIRS`.
 
-Plasma Setup's Dark Theme switch applies Fedora's dark look-and-feel instead (see `image/README.md`), so an account set up with it starts with Fedora's wallpaper on the desktop; the lock screen still shows OrielOS's.
-
 The login screen (SDDM) and the boot splash keep their own artwork for now.
 
 ## Update scripts
 
 The layout script only runs for new users. To change the desktop of users who already have one, a release adds an update script to `updates/`. Plasma installs them to `/usr/share/plasma/shells/org.kde.plasma.desktop/contents/updates/`, runs each script once per user when Plasma starts, and records the scripts it has run in `[Updates]` in `~/.config/plasmashellrc`, so a script never runs twice for the same user. Scripts use the same scripting API as the layout script, and what they `print` goes to `plasmashell`'s output. Plasma also runs them right after a layout script for a new user, so they must leave the current layout as it is.
 
+- `orielos-startmenu-2.js` pins OrielOS's Settings app in place of System Settings in a user's Start menu, when they had System Settings pinned; Start menus on the default pins are left alone, since the default now pins Settings.
 - `orielos-startmenu-1.js` replaces Plasma's launcher (Kickoff, Kicker or the application dashboard) on the default bottom panel with OrielOS's Start menu, in the same place. It keeps a custom launcher icon, replacing only Plasma's and Fedora's stock icons, and changes nothing on a panel that already has the Start menu. Plasma runs scripts in file-name order, so it runs before `orielos-taskbar-1.js`. The old launcher's pinned apps aren't carried over: the Start menu starts with OrielOS's default pins.
 - `orielos-taskbar-1.js` moves the default bottom panel to the taskbar's widget order. It acts only when the user has exactly one bottom panel and it holds a launcher and a task manager; otherwise it logs why and changes nothing. It reuses the widgets already on the panel, adds only missing ones and keeps any others, just before the system tray, so nothing is duplicated or lost. It replaces the launcher's icon only if it is one of Plasma's or Fedora's stock icons, and leaves the pinned apps alone. On a panel that is already in order it changes nothing.
 
