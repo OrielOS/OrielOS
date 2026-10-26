@@ -18,7 +18,7 @@ tests/boot-test.sh --archive FILE           # loads an OCI archive from tools/bu
 tests/boot-test.sh --keep --timeout 300
 ```
 
-Run `tests/boot-test.sh --help` for all the options. It needs the tools that `tools/check-env.sh` checks for, and runs as root (it uses `sudo` when needed). A run takes about ten minutes, most of it the installation and the two boots. `--timeout` applies to each boot.
+Run `tests/boot-test.sh --help` for all the options. It needs the tools that `tools/check-env.sh` checks for, and runs as root (it uses `sudo` when needed). A run takes about ten minutes, most of it the installation and the two boots. `--timeout` applies to each boot. If SDDM has started but `graphical.target` isn't in the serial log a minute later, the wait for that boot ends there: on some builds, once agetty takes the serial console, systemd's later status lines are missing from it.
 
 It prints PASS or FAIL for thirty checks, under a "First boot", a "Second boot", a "Store and Firefox", a "Start menu" and an "Anti-cheat boot mode" heading, and exits with status 0 only if all thirty pass.
 
