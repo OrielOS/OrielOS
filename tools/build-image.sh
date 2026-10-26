@@ -10,21 +10,24 @@
 #                  and 2 or more <major>.<date>.<N>, as CI tags later builds of the same day
 #   --output DIR   where the archive goes (default /var/lib/orielos/builds)
 #   --no-archive   do not export an OCI archive
-#   --keep N       keep the newest N builds and remove older ones (default 3)
+#   --keep N       keep the newest N builds and remove older ones (default 1)
 #   --clean-only   only remove old builds, then exit
 # The image is tagged localhost/orielos:<fedora major>.<date>[.<number>] and localhost/orielos:latest.
-# Runs as root; re-executes itself through sudo otherwise.
+# Runs as root; re-executes itself through sudo otherwise. Stops at once if another build or a VM
+# test is running.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PINS="$ROOT/image/pins.env"
 # shellcheck source=lib/pins.sh
 source "$ROOT/tools/lib/pins.sh"
+# shellcheck source=lib/lock.sh
+source "$ROOT/tools/lib/lock.sh"
 DATE=""
 NUMBER=1
 OUTPUT="/var/lib/orielos/builds"
 ARCHIVE=1
-KEEP=3
+KEEP=1
 CLEAN_ONLY=0
 REPO="localhost/orielos"
 # The kernel the akmods images carry, set by preflight. It replaces the ostree.linux label the
@@ -167,6 +170,8 @@ main() {
         exec sudo "${BASH_SOURCE[0]}" "${original[@]}"
     fi
     command -v podman >/dev/null 2>&1 || die "podman is not installed"
+    # One build or VM test at a time (tools/lib/lock.sh).
+    take_orielos_lock || exit 1
     [[ -r "$PINS" ]] || die "cannot read $PINS"
     # shellcheck source=/dev/null
     source "$PINS"

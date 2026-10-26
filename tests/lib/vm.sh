@@ -6,8 +6,10 @@
 # MOK_ENROL is 0. Sourced by tests/boot-test.sh, tests/update-test.sh,
 # tests/secure-boot-key-test.sh and tests/screenshot-tour.sh.
 #
-# The caller sets IMAGE, MEMORY, CPUS, KEEP, WORK, RESULTS and SUMMARY (and ARCHIVE for
-# load_archive) before using these functions, and installs cleanup as its EXIT trap.
+# The caller sets VM_ROOT, IMAGE, MEMORY, CPUS, KEEP, WORK, RESULTS and SUMMARY (and ARCHIVE for
+# load_archive) before using these functions, and installs cleanup as its EXIT trap. check_host
+# takes the lock in tools/lib/lock.sh, so one build or VM test runs at a time, and removes what
+# runs that were killed left behind.
 
 # Shared state; the tests read these too.
 # shellcheck disable=SC2034
@@ -36,9 +38,14 @@
     # The VM's screen size as <width>x<height>, or empty for the graphics card's default. With a
     # size, the VM also gets a USB tablet, so vm_qmp can click at a point on the screen.
     VM_SCREEN=""
+    # Images load_archive added to Podman, which cleanup removes again.
+    LOADED_IMAGES=()
     PASSED=0
     FAILED=0
 }
+
+# shellcheck source=/dev/null
+source "$ROOT/tools/lib/lock.sh"
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
     C_GREEN=$'\033[32m'
@@ -88,11 +95,36 @@ hint() {
 # Fail unless the host has what the VM tests need.
 check_host() {
     local cmd
-    for cmd in podman qemu-system-x86_64 swtpm python3 ssh ssh-keygen; do
+    for cmd in podman qemu-system-x86_64 swtpm python3 ssh ssh-keygen flock; do
         command -v "$cmd" >/dev/null 2>&1 || die "$cmd is not installed (tools/check-env.sh shows what is missing)"
     done
     [[ -r /dev/kvm && -w /dev/kvm ]] || die "/dev/kvm is not usable (tools/check-env.sh shows how to fix it)"
     find_firmware
+    take_orielos_lock || exit 1
+    remove_leftovers
+}
+
+# Remove the work folders of earlier runs that were killed before their cleanup ran. Disks kept
+# with --keep are marked and left for tools/clean.sh, and so is a folder whose VM still runs (a
+# VM started by hand holds no lock).
+remove_leftovers() {
+    local dir size pid
+    [[ -d "${VM_ROOT:?}" && "$VM_ROOT" == /* ]] || return 0
+    for dir in "$VM_ROOT"/*/; do
+        dir="${dir%/}"
+        [[ -d "$dir" && ! -L "$dir" ]] || continue
+        size="$(du -sh "$dir" 2>/dev/null | cut -f1)"
+        pid=""
+        if [[ -r "$dir/qemu.pid" ]]; then pid="$(cat "$dir/qemu.pid" 2>/dev/null || true)"; fi
+        if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+            info "VM folder in use by a running VM, left in place: $dir ($size)"
+        elif [[ -e "$dir/kept" ]]; then
+            info "Kept VM disk from an earlier run: $dir ($size); tools/clean.sh removes it"
+        else
+            rm -rf "${dir:?}"
+            info "Removed a VM folder left by an earlier run: ${dir##*/} ($size)"
+        fi
+    done
 }
 
 # Stop a daemon whose pid is in a file.
@@ -123,12 +155,18 @@ cleanup() {
         stop_pid "$WORK/qemu.pid"
         stop_pid "$WORK/swtpm.pid"
         if [[ "$KEEP" -eq 1 ]]; then
+            touch "$WORK/kept"
             printf 'Kept the disk: %s\n' "$WORK/disk.raw"
             print_boot_command
         else
             rm -f "$WORK/disk.raw"
             rm -rf "$WORK"
         fi
+    fi
+    # A kept disk boots without the image it was installed from.
+    if [[ "${#LOADED_IMAGES[@]}" -gt 0 ]]; then
+        podman rmi "${LOADED_IMAGES[@]}" >/dev/null 2>&1 || true
+        podman image prune -f >/dev/null 2>&1 || true
     fi
     exit "$rc"
 }
@@ -158,6 +196,7 @@ full_log() {
 load_archive() {
     local id
     [[ -r "$ARCHIVE" ]] || die "cannot read $ARCHIVE"
+    if ! podman image exists "$IMAGE"; then LOADED_IMAGES+=("$IMAGE"); fi
     info "Loading $ARCHIVE as $IMAGE"
     # skopeo creates only the requested tag; podman pull also tags the archive's own name.
     if command -v skopeo >/dev/null 2>&1; then
