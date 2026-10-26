@@ -21,7 +21,7 @@ Your pinned apps are saved with your account, so they stay the same after a rest
 
 ## Recommended
 
-Recommended shows apps you installed in the last three days, then files you opened recently. Click one to open it.
+Recommended shows apps you installed in the last three days, then files you opened recently. Click one to open it. To leave either out, go to **Settings > Personalisation > Start**.
 
 ## Your account and the power button
 

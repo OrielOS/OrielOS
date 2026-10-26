@@ -96,7 +96,7 @@ done
 # Settings hosts the Update page; it has Win+I and Start's Settings entry, System Settings neither.
 [[ -x /usr/bin/orielos-settings ]] || update_errors+=("Settings, /usr/bin/orielos-settings, is missing")
 # OrielOS's own Settings pages besides Update.
-for module in kcm_orielos_accessories kcm_orielos_accent; do
+for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done

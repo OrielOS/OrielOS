@@ -52,7 +52,7 @@ Pressing Win or clicking the Start button opens it:
 
 - **Search** on top. Typing lists apps, settings, files, Store results and calculations, but runs nothing: only Enter, or a click, opens a result.
 - **Pinned** apps in a grid, with an **All apps** list one click away.
-- **Recommended:** apps installed in the last three days, then recently opened files.
+- **Recommended:** apps installed in the last three days, then recently opened files. The widget's `showRecentlyAdded` and `showRecentFiles` settings, both on by default, leave either out; Settings' Start page changes them.
 - **The account button** (picture and name) with Account settings, Lock, Switch user and Sign out, and **the power button** with Sleep, Restart and Shut down. There is no Hibernate: OrielOS doesn't offer hibernation.
 
 Right-click an app, or press the Menu key, to pin it to or unpin it from Start. Everything works from the keyboard.

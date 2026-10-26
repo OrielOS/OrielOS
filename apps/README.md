@@ -33,6 +33,9 @@ settings/             orielos-settings, the Settings app
 settingspages/       OrielOS's own Settings pages, each a Plasma settings module
   accessories/        kcm_orielos_accessories, Accessory apps: StoreApps (QML module org.orielos.accessories) and its page
   accent/             kcm_orielos_accent, Accent colour: AccentColour (QML module org.orielos.accent) and its page
+  shell/              ShellSettings, which reads and changes Start's and the taskbar's settings in the running desktop
+  start/              kcm_orielos_start, Start: StartOptions (QML module org.orielos.start) and its page
+  taskbar/            kcm_orielos_taskbar, Taskbar: TaskbarOptions (QML module org.orielos.taskbar) and its page
   autotests/          Qt Test unit tests for both models, and a test that loads both modules
 updatenotifier/       orielos-update-notifier, the update tray icon
   main.cpp            start-up, translations, --state and --boot-id-file
@@ -95,7 +98,8 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 
 - **Accessory apps** (`kcm_orielos_accessories`, under Bluetooth & devices). `StoreApps` lists Solaar, Piper and OpenRGB, whose udev rules and ratbagd the image already has. An app counts as installed when its Flatpak desktop entry is on `XDG_DATA_DIRS`; **Open** starts it with `flatpak run`, and **Get it from the Store** opens its `appstream:` link in Discover, where the user decides whether to install it. The page looks again every three seconds while it's shown, so an app installed meanwhile changes to **Open**. Icons of apps that aren't installed come from Flathub's catalogue in `/var/lib/flatpak/appstream`.
 - **Accent colour** (`kcm_orielos_accent`, under Personalisation). `AccentColour` offers ten colours and the colour scheme's own selection colour, and applies a choice with `plasma-apply-colorscheme --accent-color`, in its own process: Plasma's Colours module links GPL-2.0-only code, so Settings never loads it. It reads `AccentColor` and `ColorScheme` from `kdeglobals`, and follows changes made elsewhere, such as on the Themes page. Light and dark mode stay on the Themes page; the accent carries over between them.
-- **Testing.** `storeappstest` and `accentcolourtest` cover the models, with their own environment and command, and `pagesloadtest` loads both built modules the way Settings does and fails on any QML warning.
+- **Start and Taskbar** (`kcm_orielos_start` and `kcm_orielos_taskbar`, under Personalisation). Both use `ShellSettings`, which runs a script in `plasmashell` through `org.kde.PlasmaShell.evaluateScript`. The script finds the panel with OrielOS's Start menu and the panel spacer just before Start (by the panel's saved `AppletOrder`), makes the one change asked for, and prints the settings as JSON. Desktop scripting writes a widget's setting through its configuration, so Start and the panel follow at once, as if the change had been made on the desktop. Start's `showRecentlyAdded` and `showRecentFiles` are the widget's own settings; left alignment turns off that spacer's `expanding`, so the spacer after the task manager fills the panel; auto-hide sets the panel's `hiding` to `autohide` or `none`. Without the spacer before Start the alignment is greyed out. One script runs at a time; a change shows at once on the page and goes back if it fails.
+- **Testing.** `storeappstest` and `accentcolourtest` cover the models, with their own environment and command. `shellsettingstest` runs the desktop script in a `QJSEngine` against a fake of Plasma's scripting API (panels, widgets, settings, the saved order, hiding), and the models against a fake desktop. `pagesloadtest` loads every built module the way Settings does and fails on any QML warning.
 
 ## The Update settings page
 
