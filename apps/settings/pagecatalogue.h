@@ -60,6 +60,10 @@ public:
     // then anywhere in the title, then in the keywords, the category's name and the description.
     // Words match from their start, ignoring case and accents.
     QList<Page> search(const QString &query) const;
+    // How well a page matches the query, as search() orders them: 0 when its title starts with
+    // the query, 1 when every word is in its title, 2 in its title and keywords, 3 anywhere; -1
+    // when it doesn't match.
+    int rank(const Page &page, const QString &query) const;
 
 private:
     QList<Category> m_categories;

@@ -105,7 +105,7 @@ QtObject {
     readonly property Kicker.RunnerModel runnerModel: Kicker.RunnerModel {
         appletInterface: state.plasmoidItem
         mergeResults: true
-        runners: ["krunner_services", "krunner_systemsettings", "baloosearch", "krunner_recentdocuments", "krunner_placesrunner", "krunner_appstream", "calculator", "unitconverter"]
+        runners: ["krunner_services", "krunner_orielos_settings", "baloosearch", "krunner_recentdocuments", "krunner_placesrunner", "krunner_appstream", "calculator", "unitconverter"]
         query: state.query
         onRequestUpdateQuery: newQuery => state.queryUpdateRequested(newQuery)
     }

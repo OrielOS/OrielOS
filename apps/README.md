@@ -25,8 +25,11 @@ updatestate/          the update state and its rules (static library OrielOSUpda
 settings/             orielos-settings, the Settings app
   main.cpp            start-up, one window per session, and the page to open
   pagecatalogue.h/.cpp  the categories and pages, and search (static library OrielOSSettingsCatalogue)
+  modules.h/.cpp      finding settings modules where System Settings does
+  settingssearch.h/.cpp  what Start and KRunner find: Settings' pages, then System Settings' other modules
+  runner/             krunner_orielos_settings, the search runner for Start and KRunner
   settingswindow.h/.cpp  the window, which hosts Plasma's settings modules
-  autotests/          Qt Test unit tests for the catalogue and search
+  autotests/          Qt Test unit tests for the catalogue, both searches and the runner
 settingspages/       OrielOS's own Settings pages, each a Plasma settings module
   accessories/        kcm_orielos_accessories, Accessory apps: StoreApps (QML module org.orielos.accessories) and its page
   accent/             kcm_orielos_accent, Accent colour: AccentColour (QML module org.orielos.accent) and its page
@@ -75,6 +78,16 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 - **Restarting.** The restart actions call `org.kde.Shutdown.logoutAndReboot`, so Plasma signs out cleanly before restarting.
 - **Clicking the icon** opens the Update settings page with `orielos-settings kcm_orielos_update`, passing the tray's activation token as `XDG_ACTIVATION_TOKEN` so the window gets the focus. Its menu has only "Restart to update" (or "Restart to go back") while there's something to restart for, and "Open update settings". Everything else is on the page.
 - **Testing.** `--state FILE` and `--boot-id-file FILE` point it at other files. The rules it follows are `OrielOSUpdateState`'s, which `updatestate/autotests/updatestatetest.cpp` covers: reading the state, when an update counts as waiting, pauses, the pause choices, the channels, going back, removing the previous build, an undone update and the tooltip texts.
+
+## Searching for settings from Start
+
+`krunner_orielos_settings` (`settings/runner/`) is a KRunner plugin, installed to `kf6/krunner`, that Start's search uses in place of System Settings' runner, `krunner_systemsettings`; `etc/xdg/krunnerrc` in the image turns System Settings' runner off in KRunner too. It searches with `SettingsSearch`:
+
+- **Settings' pages** come first, found by the same rules as Settings' own search field (`PageCatalogue::search`, with the Windows words), and open with `orielos-settings <page>`. Their subtext says where they are, such as "Settings › System".
+- **Every other module** System Settings lists (from `plasma/kcms/systemsettings` and `systemsettings_qwidgets`, with a category and not hidden) follows, found by its name, description and `X-KDE-Keywords`, and opens with `systemsettings <module>`. Modules Settings has a page for are left out, so nothing shows twice.
+- A page whose title matches gets a high category relevance in KRunner, above apps found only by their keywords; System Settings' modules get less. Commands start through `KIO::CommandLauncherJob`, so the window gets an activation token and comes to the front.
+- The modules are found once, when the runner loads; they only change with an OS update, which needs a restart.
+- **Testing.** `settingssearchtest` covers the search with made-up pages and modules; `settingsrunnertest` loads the built runner the way Start does, through `KRunner::AbstractRunnerTest`, and checks the commands it gives for OrielOS's pages and for Plasma's Fonts module.
 
 ## OrielOS's own Settings pages
 

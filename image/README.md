@@ -42,6 +42,7 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
   - `usr/libexec/orielos/secure-boot-key`, `usr/lib/systemd/system/orielos-secure-boot-key.service`, `usr/libexec/orielos/secure-boot-notify` and `etc/xdg/autostart/orielos-secure-boot-notify.desktop`: the Secure Boot key step (see [Secure Boot](#secure-boot)). The Containerfile copies `system/etc/` to `/etc`, which bootc keeps as the default configuration.
   - `etc/skel/.config/kglobalshortcutsrc`: the KWin shortcuts every new user starts with (see [Keyboard shortcuts](#keyboard-shortcuts)).
   - `etc/xdg/dolphinrc`: Files (Dolphin) opens a fresh window on the Home folder instead of restoring the last session's tabs.
+  - `etc/xdg/krunnerrc`: KRunner finds settings with OrielOS's runner, which opens Settings' pages in Settings, instead of System Settings' (see `apps/README.md`).
   - `etc/xdg/kscreenlockerrc`: the lock screen shows the OrielOS wallpaper instead of Fedora's (see [The taskbar](#the-taskbar)).
   - `usr/lib/modules-load.d/orielos-ntsync.conf`, `usr/lib/sysctl.d/60-orielos-gaming.conf` and `usr/lib/udev/rules.d/70-orielos-playstation-touchpad.rules`: the gaming defaults (see [Gaming](#gaming)).
   - `usr/lib/bootc/install/00-orielos.toml`: the install configuration, which makes every installation use a Btrfs root filesystem with zstd compression.

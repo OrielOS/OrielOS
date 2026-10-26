@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "modules.h"
 #include "pagecatalogue.h"
 #include "settingswindow.h"
 

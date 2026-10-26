@@ -17,6 +17,8 @@ The categories on the left come in the order you know from Windows:
 
 Choose a category to see its pages, then a page to open it. To search instead, type in **Find a setting** at the top (or press Ctrl+F). Search knows the names of the pages and the words people use for them, including Windows' own, such as "wifi", "default apps", "resolution" or "windows update". Press Enter to open the best match.
 
+You can also search from Start: type what you're looking for, such as "wifi" or "dark mode", and the setting opens in Settings. Settings that Settings doesn't have a page for yet, such as Fonts, still show up in Start's results and open in System Settings.
+
 ## Applying changes
 
 Some pages change things as soon as you choose them. Others show **Apply** and **Reset** at the bottom: Apply keeps your changes, and Reset puts back the settings you had. **Defaults** puts back OrielOS's own settings. If you leave a page, or close Settings, with changes you haven't applied, Settings asks whether to apply or discard them.
