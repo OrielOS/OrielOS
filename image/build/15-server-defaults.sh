@@ -2,6 +2,7 @@
 # Removes what fedora-bootc ships for servers and a desktop does not need, and switches off
 # automatic update reboots and the SSH server. Installs nothing. The same units are disabled
 # in system/usr/lib/systemd/system-preset/80-orielos.preset, so a preset run keeps them off.
+# Also masks the EFI system partition automount, which can't work on the read-only root.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -29,5 +30,15 @@ dnf -y remove "${remove[@]}"
 # Updates are staged and the user is asked before restarting, so no automatic update reboots.
 # openssh-server stays installed: systemd's vsock SSH socket uses sshd without sshd.service.
 systemctl disable bootc-fetch-apply-updates.timer sshd.service
+
+# systemd's GPT generator adds an automount for the EFI system partition at /efi, which doesn't
+# exist and can't be made on the read-only root, so it fails at every boot and leaves the system
+# "degraded". Nothing needs it there: bootupd and the boot menu's flags mount the partition
+# themselves. The mask is in /etc because generated units take precedence over /usr/lib.
+systemctl mask efi.automount
+if [[ "$(readlink /etc/systemd/system/efi.automount)" != /dev/null ]]; then
+    printf 'error: efi.automount is not masked\n' >&2
+    exit 1
+fi
 
 dnf clean all
