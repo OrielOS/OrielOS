@@ -1,0 +1,9 @@
+{
+    "KPlugin": {
+        "Description": "Finds pages in Settings, and the other settings in System Settings",
+        "EnabledByDefault": true,
+        "Icon": "preferences-system",
+        "Name": "Settings"
+    },
+    "X-Plasma-Runner-Min-Letter-Count": 2
+}

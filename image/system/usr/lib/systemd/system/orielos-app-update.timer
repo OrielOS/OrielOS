@@ -1,0 +1,15 @@
+[Unit]
+Description=Update the apps from the Store in the background
+Documentation=https://github.com/ncjsvr/OrielOS
+
+[Timer]
+# A few minutes after start-up, so an OS update that changed the NVIDIA driver soon gets the
+# matching Flatpak GL extension, then about every six hours. The random delay spreads computers
+# out, and Persistent catches up on an update missed while the computer was off.
+OnBootSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

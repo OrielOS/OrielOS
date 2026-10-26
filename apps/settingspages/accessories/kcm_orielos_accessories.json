@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Get the apps for gaming mice, keyboards and RGB lighting from the Store",
+        "Icon": "input-mouse",
+        "Name": "Accessory Apps"
+    },
+    "X-KDE-Keywords": "mouse,keyboard,lighting,rgb,logitech,gaming mouse,dpi,solaar,piper,openrgb,accessories,peripherals",
+    "X-KDE-System-Settings-Parent-Category": "hardware",
+    "X-KDE-Weight": 80
+}
