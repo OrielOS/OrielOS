@@ -530,6 +530,19 @@ state_value() {
     vm_ssh jq -r "$(printf '%q' "$1")" /var/lib/orielos/update/state.json 2>/dev/null || true
 }
 
+# Wait up to <seconds> for no orielos-update to be running in the VM; the Update page keeps its
+# controls disabled until then: wait_for_idle <seconds>. Returns 1 if one still runs.
+wait_for_idle() {
+    local start=$SECONDS
+    while ((SECONDS - start < $1)); do
+        if vm_ssh '! pgrep -x orielos-update >/dev/null' 2>/dev/null; then
+            return 0
+        fi
+        sleep 2
+    done
+    return 1
+}
+
 # Wait up to <seconds> for a value in the VM's update state to become <value>, or, with "!=", to
 # stop being it: wait_for_state <jq filter> [!=] <value> <seconds>. Returns 1 if it doesn't.
 wait_for_state() {
@@ -686,11 +699,12 @@ step_update_settings() {
         fail "Choosing Testing on the page didn't switch back within 70 s (see settings-testing.png)"
     fi
 
-    # Turning automatic app updates off and on needs no password. The channel shows in the state
-    # file before orielos-update has finished, and the page keeps its controls disabled until it
-    # has, so give it a moment first.
+    # Turning automatic app updates off and on needs no password. The page keeps its controls
+    # disabled while orielos-update runs, and the channel shows in the state file before it has
+    # finished, so wait for it to finish first.
     local apps_off=0
-    vm_qmp "wait:5" "keys:alt+a" || true
+    wait_for_idle 60 || true
+    vm_qmp "wait:3" "keys:alt+a" || true
     if wait_for_state .appUpdates false 60; then
         apps_off=1
         vm_qmp "wait:2" "shot:$RESULTS/settings-apps-off.png" || true
@@ -700,6 +714,7 @@ step_update_settings() {
         fail "Update apps automatically on the page didn't turn app updates off within 60 s (see settings-apps-off.png)"
     fi
     if [[ "$apps_off" -eq 1 ]]; then
+        wait_for_idle 60 || true
         vm_qmp "wait:3" "keys:alt+a" || true
         if wait_for_state .appUpdates true 60; then
             pass "Update apps automatically turns them back on"
