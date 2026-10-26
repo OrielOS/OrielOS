@@ -55,7 +55,7 @@ QList<Page> SettingsSearch::otherModules(const PageCatalogue &settings, const QL
 QList<SettingsResult> SettingsSearch::search(const QString &query) const
 {
     QList<SettingsResult> out;
-    for (const Page &page : m_settings.search(query)) {
+    for (const auto &[page, rank] : m_settings.rankedSearch(query)) {
         const std::optional<Category> category = m_settings.category(page.category);
         out.append({
             page.id,
@@ -63,18 +63,18 @@ QList<SettingsResult> SettingsSearch::search(const QString &query) const
             i18nc("@info Where a found setting opens: %1 is a category of Settings", "Settings › %1", category ? category->title : QString()),
             page.icon,
             { QStringLiteral("orielos-settings"), page.id },
-            m_settings.rank(page, query),
+            rank,
             true,
         });
     }
-    for (const Page &page : m_others.search(query)) {
+    for (const auto &[page, rank] : m_others.rankedSearch(query)) {
         out.append({
             page.module,
             page.title,
             i18nc("@info Where a found setting opens", "System Settings"),
             page.icon,
             { QStringLiteral("systemsettings"), page.module },
-            m_others.rank(page, query),
+            rank,
             false,
         });
     }

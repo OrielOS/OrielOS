@@ -150,18 +150,15 @@ ShellState ShellSettings::state() const
 void ShellSettings::reload()
 {
     m_queue.append(std::nullopt);
-    if (m_queue.size() == 1) {
-        runNext();
-    }
+    runNext();
 }
 
 void ShellSettings::change(Setting setting, bool value)
 {
     m_queue.append(Change { setting, value });
+    // The script starts first, so anything that reacts to changed() by changing more only queues.
+    runNext();
     Q_EMIT changed();
-    if (m_queue.size() == 1) {
-        runNext();
-    }
 }
 
 QString ShellSettings::script(std::optional<Change> change)
@@ -171,14 +168,16 @@ QString ShellSettings::script(std::optional<Change> change)
 
 void ShellSettings::runNext()
 {
-    if (m_queue.isEmpty()) {
+    if (m_running || m_queue.isEmpty()) {
         return;
     }
+    m_running = true;
     m_runner(script(m_queue.first()), [this](bool ok, const QString &output) { finish(ok, output); });
 }
 
 void ShellSettings::finish(bool ok, const QString &output)
 {
+    m_running = false;
     const std::optional<Change> job = m_queue.takeFirst();
     std::optional<ShellState> read = ok ? ShellState::fromJson(output) : std::nullopt;
     if (read) {
@@ -188,8 +187,8 @@ void ShellSettings::finish(bool ok, const QString &output)
         m_error = job ? i18nc("@info", "The change couldn't be made.") : i18nc("@info", "The taskbar's settings couldn't be read.");
     }
     m_ready = true;
-    Q_EMIT changed();
     runNext();
+    Q_EMIT changed();
 }
 
 void ShellSettings::apply(ShellState &state, const Change &change)

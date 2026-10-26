@@ -41,6 +41,14 @@ private:
         return QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
     }
 
+    // The AccentColor in kdeglobals, read afresh; invalid when there is none.
+    static QColor recordedAccent()
+    {
+        KSharedConfig::Ptr globals = KSharedConfig::openConfig(QStringLiteral("kdeglobals"));
+        globals->reparseConfiguration();
+        return KConfigGroup(globals, QStringLiteral("General")).readEntry("AccentColor", QColor());
+    }
+
     // kdeglobals with the scheme and, if valid, an accent.
     static void writeGlobals(const QString &scheme, const QColor &accent)
     {
@@ -112,6 +120,9 @@ private Q_SLOTS:
         QVERIFY(!accent.isBusy());
         QCOMPARE(runs(), QStringList { QStringLiteral("--accent-color #e0661b") });
         QVERIFY(accent.error().isEmpty());
+        // Recorded, so the next scheme applied keeps it, and shown as the one in use.
+        QCOMPARE(recordedAccent(), QColor(QStringLiteral("#e0661b")));
+        QCOMPARE(accent.current(), QColor(QStringLiteral("#e0661b")));
     }
 
     void goesBackToTheThemesColour()
@@ -122,7 +133,14 @@ private Q_SLOTS:
         QSignalSpy applied(&accent, &AccentColour::applied);
         accent.useThemeColour();
         QVERIFY(applied.wait());
-        QCOMPARE(runs(), QStringList { QStringLiteral("--accent-color #3daee9") });
+        // No accent recorded, and the scheme applied without one.
+        QCOMPARE(runs(), QStringList { QStringLiteral("--accent-color transparent") });
+        QVERIFY(!recordedAccent().isValid());
+        QVERIFY(!accent.current().isValid());
+
+        // Already the scheme's own: nothing to do.
+        accent.useThemeColour();
+        QVERIFY(!accent.isBusy());
     }
 
     void reportsAFailure()
@@ -136,6 +154,14 @@ private Q_SLOTS:
         QCOMPARE(applied.first().first().toBool(), false);
         QVERIFY(!accent.error().isEmpty());
         QVERIFY(!accent.current().isValid());
+        // The accent from before is back.
+        QVERIFY(!recordedAccent().isValid());
+
+        writeGlobals(QStringLiteral("TestScheme"), QColor(46, 157, 76));
+        accent.reload();
+        accent.choose(QColor(QStringLiteral("#d63a3a")));
+        QVERIFY(applied.wait());
+        QCOMPARE(recordedAccent(), QColor(46, 157, 76));
     }
 };
 
