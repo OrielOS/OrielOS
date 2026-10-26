@@ -2,10 +2,10 @@
 # Installs the OrielOS image to a disk file, boots it under QEMU/KVM with Secure Boot, a software
 # TPM and a 1920x1080 screen, and saves a numbered set of screenshots that show what OrielOS looks
 # like: the boot splash, Plasma Setup's pages, the sign-in screen, the desktop, Start, Files, the
-# Store, Process Manager, Settings, Firefox, Screenshot, the overview, the lock screen (idle and
-# unlocking), the dark theme and the dark lock screen. It drives the VM with QMP mouse clicks and
-# key presses, as a person would, and uses SSH through a vsock device to wait for each step and
-# to close windows between screenshots.
+# Store, Process Manager, Settings and two of its pages, Firefox, Screenshot, the overview, the
+# lock screen (idle and unlocking), the dark theme and the dark lock screen. It drives the VM with
+# QMP mouse clicks and key presses, as a person would, and uses SSH through a vsock device to wait
+# for each step and to close windows between screenshots.
 # A screenshot that cannot be taken is reported as a WARN line and skipped.
 #
 # Usage: tests/screenshot-tour.sh [--image REF] [--keep] [--help]
@@ -36,7 +36,7 @@ TOUR_PASSWORD="orielos-tour"
 NEXT_X=1283
 NEXT_Y=883
 # The apps the tour opens; closed between screenshots.
-APPS="dolphin plasma-discover plasma-systemmonitor systemsettings firefox spectacle"
+APPS="dolphin plasma-discover plasma-systemmonitor orielos-settings systemsettings firefox spectacle"
 
 usage() {
     sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -261,6 +261,13 @@ desktop_tour() {
     close_apps
 
     press_and_shot 11-settings 10 keys:meta_l+i
+    # OrielOS's own pages, opened in the same window.
+    in_session orielos-settings accent >/dev/null 2>&1 || warn "Could not open the Accent colour page"
+    sleep 5
+    shot 11-settings-accent
+    in_session orielos-settings accessories >/dev/null 2>&1 || warn "Could not open the Accessory apps page"
+    sleep 5
+    shot 11-settings-accessories
     close_apps
 
     open_app 15 firefox flatpak run org.mozilla.firefox

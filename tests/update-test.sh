@@ -7,12 +7,18 @@
 # it offers the new build as the testing channel of a local update source, checks that the stable
 # channel and a pause stage nothing and that the rolled-back build is skipped, logs the user in,
 # lets orielos-update-check.service stage the build, checks the notifier's tray icon, chooses
-# "Restart to update" in its menu and checks the new build runs. Then it goes back to the previous
-# version through the notifier's menu, answering its question and polkit's password prompt with
-# the keyboard, and restarts into it. Last, it watches the boot menu on the serial console: hidden
-# after a boot that reached the desktop, shown after one that didn't (the display manager is
-# turned off for it), where the test chooses the other version, and shown again when Esc is
-# pressed during the hidden second. Prints PASS/FAIL per check.
+# "Restart to update" in its menu and checks the new build runs. Then it opens Settings → Update by
+# clicking the tray icon, opens the same page in kcmshell6 and, with the keyboard (each button's
+# Alt mnemonic, and polkit's password prompt), checks for updates, pauses and resumes, switches to
+# the stable channel and back, turns automatic app updates off and on, and goes back to the
+# previous version, restarting into it from the page. Then it watches the boot
+# menu on the serial console: hidden after a boot that reached the desktop, shown after one that
+# didn't (the display manager is turned off for it), where the test chooses the other version, and
+# shown again when Esc is pressed during the hidden second. It undoes an update that fails to
+# start, removes the previous build after 14 days, and last installs the update once more and
+# removes the previous version from Settings → Update. Last, it moves Firefox, from the Store, back
+# a version and checks that the app update service brings it up to date only while app updates
+# are on. Prints PASS/FAIL per check.
 #
 # Usage: tests/update-test.sh --old IMAGE_OR_ARCHIVE --new ARCHIVE [--timeout SECONDS]
 #                             [--memory MIB] [--cpus N] [--results DIR] [--keep] [--help]
@@ -59,8 +65,11 @@ BOOTED_VERSION=""
 STAGED_DIGEST=""
 # The local update source the service steps use: an OCI directory with one tag per channel.
 SERVICE_SOURCE="/var/lib/orielos/test-source"
-# Going back asks for an administrator's password; the test user is one and gets this password.
+# Changing the channel, going back and removing the previous version ask for an administrator's
+# password; the test user is one and gets this password.
 TEST_PASSWORD="orielos-test-pass"
+# The Update settings page, a Plasma settings module that System Settings opens by its name.
+SETTINGS_MODULE="kcm_orielos_update"
 # Where this boot's output starts in the serial log, and what the boot menu showed (boot menu steps).
 SERIAL_MARK=0
 NOTIFIER_OUT=""
@@ -362,12 +371,16 @@ step_service_channel() {
 }
 
 # A script for the VM that reads the update notifier's tray icon as the test user over the
-# session bus: prints "notifier=<pid>", "item=<bus name>", "status=<Status property>", and with a
-# label (notifier_script "Restart to update") also clicks the menu item whose label starts with it,
-# the way the tray does. busctl takes explicit signatures and prints JSON, which jq reads.
+# session bus: prints "notifier=<pid>", "item=<bus name>", "status=<Status property>" and
+# "tooltip=<text>". With a label (notifier_script "Restart to update") it also prints the menu's
+# visible labels and clicks the item whose label starts with it, the way the tray does; a label
+# that starts no item only lists them. With "activate" as the second argument it clicks the icon
+# itself (notifier_script "" activate). busctl takes explicit signatures and prints JSON, which jq
+# reads.
 notifier_script() {
     cat <<SH
 label=$(printf '%q' "${1:-}")
+activate=$(printf '%q' "${2:-}")
 bus() { busctl --user -M $TEST_USER@ --json=short "\$@" 2>/dev/null; }
 # The kernel keeps only the first 15 characters of a process's name, so match the command line.
 pid="\$(pgrep -u $TEST_USER -f '(^|/)orielos-update-notifier( |\$)' | head -n1)"
@@ -394,6 +407,9 @@ echo "item=\$item"
 echo "status=\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Status | jq -r '.data')"
 # The tooltip is (icon name, icon pixmaps, title, text); the text says what the state file says.
 echo "tooltip=\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem ToolTip | jq -r '.data[3]')"
+if [ -n "\$activate" ]; then
+    bus call "\$item" "\$item_path" org.kde.StatusNotifierItem Activate ii 0 0 >/dev/null && echo activated=yes
+fi
 if [ -n "\$label" ]; then
     menu="\$(bus get-property "\$item" "\$item_path" org.kde.StatusNotifierItem Menu | jq -r '.data')"
     echo "menu=\$menu"
@@ -509,10 +525,97 @@ step_service_restart() {
     check_keepme "after updating through the notifier"
 }
 
-step_go_back() {
-    local out start queued=""
-    info "Step 12: go back to the previous version through the notifier"
-    # Going back needs an administrator's password, so the test user gets one to type.
+# Print a value from the VM's update state: state_value <jq filter>
+state_value() {
+    vm_ssh jq -r "$(printf '%q' "$1")" /var/lib/orielos/update/state.json 2>/dev/null || true
+}
+
+# Wait up to <seconds> for no orielos-update to be running in the VM; the Update page keeps its
+# controls disabled until then: wait_for_idle <seconds>. Returns 1 if one still runs.
+wait_for_idle() {
+    local start=$SECONDS
+    while ((SECONDS - start < $1)); do
+        if vm_ssh '! pgrep -x orielos-update >/dev/null' 2>/dev/null; then
+            return 0
+        fi
+        sleep 2
+    done
+    return 1
+}
+
+# Wait up to <seconds> for a value in the VM's update state to become <value>, or, with "!=", to
+# stop being it: wait_for_state <jq filter> [!=] <value> <seconds>. Returns 1 if it doesn't.
+wait_for_state() {
+    local filter="$1" negate=0 value seconds start now
+    if [[ "$2" == "!=" ]]; then
+        negate=1
+        shift
+    fi
+    value="$2"
+    seconds="$3"
+    start=$SECONDS
+    while ((SECONDS - start < seconds)); do
+        now="$(state_value "$filter")"
+        if [[ "$negate" -eq 0 && "$now" == "$value" ]] || [[ "$negate" -eq 1 && -n "$now" && "$now" != "$value" ]]; then
+            return 0
+        fi
+        sleep 2
+    done
+    return 1
+}
+
+# Click the notifier's tray icon and wait up to 60 s for System Settings to show the Update
+# settings page in the test user's session; then save a screenshot: open_update_settings <name>.
+# Returns 1 if the page doesn't open.
+open_update_settings() {
+    local out start
+    out="$(vm_ssh "$(notifier_script "" activate)" 2>&1)" || true
+    if [[ "$(service_value "$out" activated)" != yes ]]; then
+        info "Could not click the notifier's tray icon (${out//$'\n'/; })"
+        return 1
+    fi
+    start=$SECONDS
+    while ((SECONDS - start < 60)); do
+        if vm_ssh pgrep -u "$TEST_USER" -f "orielos-settings.*$SETTINGS_MODULE" >/dev/null 2>&1; then
+            # Let the page load and read the state before it's used.
+            vm_qmp "wait:8" "shot:$RESULTS/$1.png" || true
+            return 0
+        fi
+        sleep 2
+    done
+    vm_ssh "ps -u $TEST_USER -o pid,args; journalctl -b --no-pager | grep -i -E 'orielos-settings|kcm_orielos' | tail -n 40" \
+        >"$RESULTS/settings.txt" 2>&1 || true
+    return 1
+}
+
+# Close System Settings and open the same page on its own with kcmshell6, in the test user's
+# session, then save a screenshot: open_update_window <name>. The keyboard steps use this window,
+# where the page is alone and no other control takes the keys; in System Settings, a letter no
+# shortcut claims goes to the sidebar's search field. Returns 1 if the window doesn't start.
+open_update_window() {
+    local start
+    vm_ssh "pkill -u $TEST_USER -x orielos-settings; pkill -u $TEST_USER -x kcmshell6; sleep 2
+        systemd-run --user -M $TEST_USER@ --collect --quiet kcmshell6 $SETTINGS_MODULE" >/dev/null 2>&1 || true
+    start=$SECONDS
+    while ((SECONDS - start < 60)); do
+        if vm_ssh pgrep -u "$TEST_USER" -x kcmshell6 >/dev/null 2>&1; then
+            vm_qmp "wait:8" "shot:$RESULTS/$1.png" || true
+            return 0
+        fi
+        sleep 2
+    done
+    return 1
+}
+
+# Answer polkit's password prompt as the test user, after a screenshot of it: answer_password <name>
+answer_password() {
+    vm_qmp "wait:4" "shot:$RESULTS/$1.png" "type:$TEST_PASSWORD" "keys:ret" || true
+}
+
+step_update_settings() {
+    local out labels checked days
+    info "Step 12: use Settings → Update: check for updates, pause and resume, change channel and go back"
+    # Changing the channel and going back need an administrator's password, so the test user gets one.
     if ! vm_ssh "printf '%s:%s\n' $TEST_USER '$TEST_PASSWORD' | chpasswd" >/dev/null 2>&1; then
         fail "Could not set $TEST_USER's password for polkit's prompt"
         return 1
@@ -522,49 +625,139 @@ step_go_back() {
         fail "The update notifier did not start after the restart within 120 s (see notifier.txt)"
         return 1
     fi
-    out="$(vm_ssh "$(notifier_script "Go back to the previous version")" 2>&1)" || true
-    if [[ "$(service_value "$out" clicked)" != yes ]]; then
-        fail "Could not choose Go back to the previous version in the notifier's menu (${out//$'\n'/; })"
+    out="$(vm_ssh "$(notifier_script "(only list the menu)")" 2>&1)" || true
+    labels="$(service_value "$out" labels)"
+    labels="${labels//_/}"
+    if [[ "$labels" == *"Open update settings"* && "$labels" != *Pause* && "$labels" != *channel* &&
+        "$labels" != *"Go back"* && "$labels" != *"Check for updates"* ]]; then
+        pass "The notifier's menu only opens the update settings and restarts ($labels)"
+    else
+        fail "The notifier's menu still has more than restarting and opening the settings: ${labels:-nothing}"
+    fi
+
+    checked="$(state_value .checkedAt)"
+    if open_update_settings settings-page; then
+        pass "Clicking the notifier's tray icon opens Settings → Update ($SETTINGS_MODULE in System Settings; see settings-page.png)"
+    else
+        fail "Clicking the notifier's tray icon didn't open Settings → Update within 60 s (see settings.txt)"
         return 1
     fi
-    # The question's default button is Cancel, so choose Go back by its accelerator, then answer
-    # polkit's password prompt.
-    sleep 5
-    vm_qmp "shot:$RESULTS/go-back-question.png" "keys:alt+g" "wait:5" "shot:$RESULTS/go-back-password.png" \
-        "type:$TEST_PASSWORD" "keys:ret" || true
-    start=$SECONDS
-    while ((SECONDS - start < 120)); do
-        queued="$(vm_ssh jq -r .rollbackQueued /var/lib/orielos/update/state.json 2>/dev/null)" || true
-        [[ "$queued" == true ]] && break
-        sleep 3
-    done
-    read_status go-back
-    if [[ "$queued" == true ]] && vm_ssh grep -qF "$NEW_DIGEST" /var/lib/orielos/update/rejected-digests; then
-        pass "Going back through the notifier queues $OLD_VERSION and rejects $NEW_VERSION (see go-back-question.png, go-back-password.png)"
+    if ! open_update_window settings-window; then
+        fail "kcmshell6 $SETTINGS_MODULE didn't start in $TEST_USER's session within 60 s"
+        return 1
+    fi
+
+    vm_qmp "keys:alt+u" || true
+    if wait_for_state .checkedAt != "$checked" 180; then
+        vm_qmp "wait:3" "shot:$RESULTS/settings-checked.png" || true
+        pass "Check for updates on the page runs a check: $(state_value .result), \"$(state_value .message)\" (see settings-checked.png)"
     else
-        fail "Going back through the notifier didn't queue the previous build (rollbackQueued ${queued:-unknown}; see go-back-question.png, go-back-password.png)"
+        vm_qmp "shot:$RESULTS/settings-checked.png" || true
+        fail "Check for updates on the page didn't run a check within 180 s (see settings-checked.png)"
+    fi
+
+    vm_qmp "keys:alt+p" || true
+    if wait_for_state .pausedUntil != null 60; then
+        days="$(vm_ssh "echo \$(( (\$(date -d \"\$(jq -r .pausedUntil /var/lib/orielos/update/state.json)\" +%s) - \$(date +%s) + 43200) / 86400 ))" 2>/dev/null)" || true
+        vm_qmp "wait:3" "shot:$RESULTS/settings-paused.png" || true
+        if [[ "$days" == 7 ]]; then
+            pass "Pause updates on the page pauses them for a week, until $(state_value .pausedUntil) (see settings-paused.png)"
+        else
+            fail "Pause updates on the page paused them for ${days:-an unknown number of} days, not 7"
+        fi
+    else
+        vm_qmp "shot:$RESULTS/settings-paused.png" || true
+        fail "Pause updates on the page didn't pause them within 60 s (see settings-paused.png)"
+    fi
+    vm_qmp "keys:alt+r" || true
+    if wait_for_state .pausedUntil null 60; then
+        pass "Resume updates on the page ends the pause"
+    else
+        vm_qmp "shot:$RESULTS/settings-resume.png" || true
+        fail "Resume updates on the page didn't end the pause within 60 s (see settings-resume.png)"
+    fi
+
+    # The VM is on the testing channel since step 9. The first change asks for a password; polkit
+    # may keep the authorisation for the second one.
+    vm_qmp "keys:alt+s" || true
+    answer_password channel-password
+    if wait_for_state .channel stable 60; then
+        vm_qmp "wait:2" "shot:$RESULTS/settings-stable.png" || true
+        pass "Choosing Stable on the page asks for an administrator's password and switches the channel (see channel-password.png, settings-stable.png)"
+    else
+        vm_qmp "shot:$RESULTS/settings-stable.png" || true
+        fail "Choosing Stable on the page didn't switch the channel within 60 s (see channel-password.png, settings-stable.png)"
+    fi
+    vm_qmp "keys:alt+t" || true
+    if ! wait_for_state .channel testing 10; then
+        answer_password channel-password-again
+    fi
+    if wait_for_state .channel testing 60; then
+        pass "Choosing Testing on the page switches back"
+    else
+        vm_qmp "shot:$RESULTS/settings-testing.png" || true
+        fail "Choosing Testing on the page didn't switch back within 70 s (see settings-testing.png)"
+    fi
+
+    # Turning automatic app updates off and on needs no password. The page keeps its controls
+    # disabled while orielos-update runs, and the channel shows in the state file before it has
+    # finished, so wait for it to finish first.
+    local apps_off=0
+    wait_for_idle 60 || true
+    vm_qmp "wait:3" "keys:alt+a" || true
+    if wait_for_state .appUpdates false 60; then
+        apps_off=1
+        vm_qmp "wait:2" "shot:$RESULTS/settings-apps-off.png" || true
+        pass "Update apps automatically on the page turns app updates off, with no password (see settings-apps-off.png)"
+    else
+        vm_qmp "shot:$RESULTS/settings-apps-off.png" || true
+        fail "Update apps automatically on the page didn't turn app updates off within 60 s (see settings-apps-off.png)"
+    fi
+    if [[ "$apps_off" -eq 1 ]]; then
+        wait_for_idle 60 || true
+        vm_qmp "wait:3" "keys:alt+a" || true
+        if wait_for_state .appUpdates true 60; then
+            pass "Update apps automatically turns them back on"
+        else
+            fail "Update apps automatically didn't turn app updates back on within 60 s"
+        fi
+    else
+        fail "Update apps automatically turns them back on: not tried, since turning them off didn't work"
+    fi
+
+    # The question's default button is Cancel, so choose Go back by its mnemonic, then answer
+    # polkit's password prompt.
+    vm_qmp "keys:alt+g" "wait:3" "shot:$RESULTS/go-back-question.png" "keys:alt+b" || true
+    answer_password go-back-password
+    if wait_for_state .rollbackQueued true 120 && vm_ssh grep -qF "$NEW_DIGEST" /var/lib/orielos/update/rejected-digests; then
+        read_status go-back
+        pass "Going back on the page asks first, then for a password, queues $OLD_VERSION and rejects $NEW_VERSION (see go-back-question.png, go-back-password.png)"
+    else
+        read_status go-back
+        fail "Going back on the page didn't queue the previous build (see go-back-question.png, go-back-password.png)"
         return 1
     fi
     sleep 5
     vm_qmp "shot:$RESULTS/go-back-ready.png" || true
-    out="$(vm_ssh "$(notifier_script "Restart to go back")" 2>&1)" || true
-    if [[ "$(service_value "$out" status)" == *Active* && "$(service_value "$out" clicked)" == yes ]]; then
-        pass "The notifier asks for attention and offers Restart to go back (see go-back-ready.png)"
+    out="$(vm_ssh "$(notifier_script "(only list the menu)")" 2>&1)" || true
+    labels="$(service_value "$out" labels)"
+    if [[ "$(service_value "$out" status)" == *Active* && "${labels//_/}" == *"Restart to go back"* ]]; then
+        pass "The notifier asks for attention and offers Restart to go back, and the page offers Restart now (see go-back-ready.png)"
     else
         fail "The notifier didn't offer Restart to go back (${out//$'\n'/; }; see go-back-ready.png)"
-        return 1
     fi
+    vm_qmp "keys:alt+n" || true
     if ! wait_for_new_boot; then
-        fail "Restart to go back did not restart the VM within 300 s"
+        fail "Restart now on the page did not restart the VM within 300 s"
         return 1
     fi
     read_status went-back
     if [[ "$BOOTED_DIGEST" == "$OLD_DIGEST" ]]; then
-        pass "Restart to go back restarts into the previous build ($OLD_VERSION)"
+        pass "Restart now on the page restarts into the previous build ($OLD_VERSION)"
     else
-        fail "After Restart to go back, the VM runs ${BOOTED_VERSION:-unknown} (${BOOTED_DIGEST:-no digest}), not $OLD_VERSION"
+        fail "After Restart now, the VM runs ${BOOTED_VERSION:-unknown} (${BOOTED_DIGEST:-no digest}), not $OLD_VERSION"
     fi
-    check_keepme "after going back through the notifier"
+    check_keepme "after going back through Settings → Update"
 }
 
 # Print the boot menu's flags from the EFI system partition in the VM, one name=value per line, or
@@ -859,6 +1052,110 @@ step_last_resort_and_removal() {
     fi
 }
 
+step_remove_previous() {
+    local out entries removal
+    info "Step 16: install the update once more, then remove the previous version from Settings → Update"
+    vm_ssh orielos-update forget "$NEW_DIGEST" >>"$RESULTS/service.txt" 2>&1 || true
+    out="$(service_run check)"
+    read_status remove-staged
+    if [[ "$STAGED_DIGEST" != "$NEW_DIGEST" ]]; then
+        fail "Staging $NEW_VERSION once more staged ${STAGED_DIGEST:-nothing} (check result $(service_value "$out" result))"
+        return 1
+    fi
+    if ! restart_vm; then
+        fail "The VM did not come back after restarting into $NEW_VERSION"
+        return 1
+    fi
+    read_status remove-updated
+    if [[ "$BOOTED_DIGEST" != "$NEW_DIGEST" ]] || ! wait_for_notifier || ! wait_for_good_boot; then
+        fail "After restarting into $NEW_VERSION, it isn't running or its desktop didn't start (running ${BOOTED_VERSION:-unknown})"
+        return 1
+    fi
+    # Each build keeps its own /etc. The password from step 12 was set while the new build ran, and
+    # going back left it behind; this deployment was staged from the old build's /etc.
+    if ! vm_ssh "printf '%s:%s\n' $TEST_USER '$TEST_PASSWORD' | chpasswd" >/dev/null 2>&1; then
+        fail "Could not set $TEST_USER's password for polkit's prompt"
+        return 1
+    fi
+    removal="$(state_value .previous.removedAfter)"
+    if ! open_update_settings settings-previous; then
+        fail "Clicking the notifier's tray icon didn't open Settings → Update within 60 s (see settings.txt)"
+        return 1
+    fi
+    if [[ "$(state_value .previous.version)" == "$OLD_VERSION" && "$removal" == 20* ]]; then
+        pass "Settings → Update offers going back to $OLD_VERSION, kept until $removal (see settings-previous.png)"
+    else
+        fail "The state names no previous build to show: previous $(state_value .previous)"
+    fi
+    if ! open_update_window settings-previous-window; then
+        fail "kcmshell6 $SETTINGS_MODULE didn't start in $TEST_USER's session within 60 s"
+        return 1
+    fi
+
+    # Cancel has the focus in the question, so choose Remove by its mnemonic.
+    vm_qmp "keys:alt+m" "wait:3" "shot:$RESULTS/remove-question.png" "keys:alt+e" || true
+    answer_password remove-password
+    if wait_for_state .previous null 180; then
+        vm_qmp "wait:3" "shot:$RESULTS/settings-removed.png" || true
+        read_status removed-from-settings
+        entries="$(vm_ssh "ls /boot/loader/entries/ | wc -l" 2>/dev/null)" || true
+        if [[ -z "$(status_field rollback imageDigest)" && "$entries" == 1 ]]; then
+            pass "Removing the previous version on the page asks first, then for a password, and removes $OLD_VERSION; going back is no longer offered (see remove-question.png, remove-password.png, settings-removed.png)"
+        else
+            fail "After removing the previous version on the page: rollback $(status_field rollback version), $entries boot entries"
+        fi
+    else
+        vm_qmp "shot:$RESULTS/settings-removed.png" || true
+        fail "Removing the previous version on the page didn't remove it within 180 s (see remove-question.png, remove-password.png, settings-removed.png)"
+    fi
+}
+
+# The installed commit of Firefox, from the Store, or nothing.
+firefox_commit() {
+    vm_ssh flatpak info --system --show-commit org.mozilla.firefox 2>/dev/null || true
+}
+
+# Firefox, which the first boot installed from Flathub, is moved back to the version before the
+# newest; the app update service must bring it up to date when app updates are on, and leave it
+# alone when they're off.
+step_app_updates() {
+    local latest older start
+    info "Step 17: apps from the Store update by themselves"
+    start=$SECONDS
+    until vm_ssh test -e /var/lib/orielos/flatpak-setup.done 2>/dev/null; do
+        if ((SECONDS - start > 600)); then
+            fail "Firefox wasn't installed from Flathub within 10 minutes, so app updates can't be tried"
+            return 1
+        fi
+        sleep 10
+    done
+    latest="$(firefox_commit)"
+    older="$(vm_ssh "flatpak remote-info --system flathub org.mozilla.firefox | sed -n 's/^ *Parent: *//p'" 2>/dev/null)" || true
+    if [[ -z "$latest" || -z "$older" ]] ||
+        ! SSH_TIMEOUT=1800 vm_ssh flatpak update --system --noninteractive --commit="$older" org.mozilla.firefox >>"$RESULTS/apps.txt" 2>&1 ||
+        [[ "$(firefox_commit)" != "$older" ]]; then
+        fail "Couldn't move Firefox back from ${latest:-an unknown commit} to the version before it (${older:-none}; see apps.txt)"
+        return 1
+    fi
+    pass "Firefox is moved back to the version before the newest (commit ${older:0:12}, newest ${latest:0:12})"
+
+    vm_ssh "orielos-update app-updates off && systemctl start orielos-app-update.service" >>"$RESULTS/apps.txt" 2>&1 || true
+    if [[ "$(firefox_commit)" == "$older" && "$(state_value .appUpdates)" == false ]]; then
+        pass "With app updates off, orielos-app-update.service leaves Firefox as it is"
+    else
+        fail "With app updates off, Firefox is at commit $(firefox_commit), not ${older:0:12} (see apps.txt)"
+    fi
+
+    vm_ssh orielos-update app-updates on >>"$RESULTS/apps.txt" 2>&1 || true
+    SSH_TIMEOUT=1800 vm_ssh systemctl start orielos-app-update.service >>"$RESULTS/apps.txt" 2>&1 || true
+    vm_ssh journalctl -u orielos-app-update.service --no-pager -n 30 >>"$RESULTS/apps.txt" 2>&1 || true
+    if [[ "$(firefox_commit)" == "$latest" && "$(state_value .appsUpdatedAt)" == 20* ]]; then
+        pass "With app updates on, orielos-app-update.service brings Firefox up to date and records when (apps updated at $(state_value .appsUpdatedAt))"
+    else
+        fail "With app updates on, Firefox is at commit $(firefox_commit), not the newest ${latest:0:12} (apps updated at $(state_value .appsUpdatedAt); see apps.txt)"
+    fi
+}
+
 step_stage_again() {
     local out rc=0
     info "Step 7: stage the rolled-back build again"
@@ -935,8 +1232,8 @@ main() {
 
     if step_boot_old && step_user_data && step_copy && step_stage && step_update_boot &&
         step_rollback && step_stage_again && step_service_source && step_service_channel &&
-        step_service_notify && step_service_restart && step_go_back && step_boot_menu && step_undo_update &&
-        step_last_resort_and_removal; then
+        step_service_notify && step_service_restart && step_update_settings && step_boot_menu && step_undo_update &&
+        step_last_resort_and_removal && step_remove_previous && step_app_updates; then
         :
     else
         fail "The test stopped early; the remaining steps did not run"

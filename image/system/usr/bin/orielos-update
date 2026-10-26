@@ -4,7 +4,8 @@
 # running system. A build that was rolled back is recorded as rejected and is never staged
 # again, unless it is forgotten. A newly staged build is on trial until it reaches the desktop: if
 # it fails to twice, the boot loader starts the previous build, and undo-update keeps that one. The
-# previous build is removed 14 days after the running one first started.
+# previous build is removed 14 days after the running one first started. Apps from the Store
+# update by themselves too, unless that's turned off.
 #
 # Usage: orielos-update status
 #        orielos-update check
@@ -18,6 +19,8 @@
 #        orielos-update remove-previous
 #        orielos-update undo-update
 #        orielos-update forget DIGEST
+#        orielos-update app-updates on|off
+#        orielos-update apps
 #        orielos-update --help
 #   status     show the channel, the pause, the last check, the running build, the build staged
 #              for the next restart, the previous build and the rejected builds
@@ -38,6 +41,10 @@
 #              keep the running build, which the boot loader started in place of an update that
 #              failed to reach the desktop, and reject that update
 #   forget     remove DIGEST from the rejected builds, so it can be staged again
+#   app-updates
+#              turn automatic updates of apps from the Store on or off; they're on until turned off
+#   apps       update every app and runtime from the Store, unless app updates are off or the
+#              connection is metered; orielos-app-update.service runs it
 # The update source is set in /usr/lib/orielos/update.conf and can be overridden in
 # /etc/orielos/update.conf. The state for the desktop is in /var/lib/orielos/update/state.json.
 # Once the image carries OrielOS's signing key (/etc/pki/containers/orielos.pub), a registry build
@@ -53,6 +60,8 @@ PREFIX="${ORIELOS_UPDATE_ROOT:-}"
 STATE_DIR="$PREFIX/var/lib/orielos/update"
 REJECTED="$STATE_DIR/rejected-digests"
 SETTINGS="$STATE_DIR/settings"
+# When the apps from the Store were last brought up to date.
+APPS_STATE="$STATE_DIR/apps"
 STATE_FILE="$STATE_DIR/state.json"
 # The running build's digest and when it first started, for removing the previous build on time.
 RUNNING="$STATE_DIR/running"
@@ -72,7 +81,7 @@ die() {
 }
 
 usage() {
-    sed -n '2,46p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,53p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 need() {
@@ -124,6 +133,11 @@ channel_setting() {
     esac
 }
 
+# on or off: whether apps from the Store update by themselves. They do unless turned off.
+app_updates_setting() {
+    if [[ "$(value_of "$SETTINGS" app_updates)" == off ]]; then printf 'off\n'; else printf 'on\n'; fi
+}
+
 # The end of the pause as a UTC time, or nothing when updates aren't paused.
 paused_until_setting() {
     local until
@@ -131,12 +145,13 @@ paused_until_setting() {
     if [[ -n "$(epoch_of "$until")" ]]; then printf '%s\n' "$until"; fi
 }
 
-# Write the settings file whole and atomically: save_settings <channel> <paused until or "">
+# Write the settings file whole and atomically, keeping the app updates setting unless it's given:
+#   save_settings <channel> <paused until or ""> [on|off]
 save_settings() {
-    local tmp
+    local tmp apps="${3:-$(app_updates_setting)}"
     mkdir -p "$STATE_DIR"
     tmp="$(mktemp "$SETTINGS.XXXXXX")"
-    printf 'channel=%s\npaused_until=%s\n' "$1" "$2" >"$tmp"
+    printf 'channel=%s\npaused_until=%s\napp_updates=%s\n' "$1" "$2" "$apps" >"$tmp"
     chmod 0644 "$tmp"
     mv -f "$tmp" "$SETTINGS"
 }
@@ -280,6 +295,8 @@ write_state() {
         --argjson staged "$staged" \
         --argjson previous "$previous" \
         --argjson rollbackQueued "$queued" \
+        --argjson appUpdates "$([[ "$(app_updates_setting)" == on ]] && echo true || echo false)" \
+        --arg appsUpdatedAt "$(value_of "$APPS_STATE" updated_at)" \
         '{
             bootId: $bootId,
             channel: $channel,
@@ -290,7 +307,9 @@ write_state() {
             running: {version: $runningVersion, digest: $runningDigest},
             staged: $staged,
             previous: $previous,
-            rollbackQueued: $rollbackQueued
+            rollbackQueued: $rollbackQueued,
+            appUpdates: $appUpdates,
+            appsUpdatedAt: (if $appsUpdatedAt == "" then null else $appsUpdatedAt end)
         }' >"$tmp"
     chmod 0644 "$tmp"
     mv -f "$tmp" "$STATE_FILE"
@@ -351,6 +370,11 @@ cmd_status() {
     else
         printf 'Last check: never\n'
     fi
+    printf 'App updates: %s' "$(app_updates_setting)"
+    if [[ -n "$(value_of "$APPS_STATE" updated_at)" ]]; then
+        printf ', last updated %s' "$(value_of "$APPS_STATE" updated_at)"
+    fi
+    printf '\n'
     show "Running build" booted
     show "Staged for the next restart" staged
     show "Previous build" rollback
@@ -582,6 +606,48 @@ cmd_remove_previous() {
     printf 'The previous build is removed. Going back is no longer possible.\n'
 }
 
+cmd_app_updates() {
+    local setting="$1"
+    [[ "$setting" == on || "$setting" == off ]] || die "app-updates takes on or off" 2
+    need bootc jq
+    clear_ended_pause
+    save_settings "$(channel_setting)" "$(paused_until_setting)" "$setting"
+    load_status
+    refresh_state
+    if [[ "$setting" == on ]]; then
+        printf 'Apps from the Store update by themselves.\n'
+    else
+        printf "Apps from the Store don't update by themselves; the Store's Update button still updates them.\n"
+    fi
+}
+
+# Update the apps and runtimes installed from the Store (Flatpak, system-wide). A runtime's related
+# extensions come with it, among them Flathub's NVIDIA GL extension for the installed driver. A
+# failure exits 1, so the service tries again later.
+cmd_apps() {
+    local out
+    need flatpak bootc jq
+    if [[ "$(app_updates_setting)" == off ]]; then
+        printf 'Automatic app updates are off.\n'
+        return 0
+    fi
+    if metered; then
+        printf 'App updates are skipped on a metered connection.\n'
+        return 0
+    fi
+    if ! out="$(flatpak update --system --noninteractive 2>&1)"; then
+        die "couldn't update the apps: $(tail -n1 <<<"$out")"
+    fi
+    printf '%s\n' "$out"
+    mkdir -p "$STATE_DIR"
+    printf 'updated_at=%s\n' "$(iso_time "$(now)")" >"$APPS_STATE.new"
+    chmod 0644 "$APPS_STATE.new"
+    mv -f "$APPS_STATE.new" "$APPS_STATE"
+    load_status
+    refresh_state
+    printf 'Apps from the Store are up to date.\n'
+}
+
 # Print one blob of an OCI archive: archive_blob <file> <sha256:digest>
 archive_blob() {
     tar --occurrence=1 -xOf "$1" "blobs/sha256/${2#sha256:}"
@@ -679,10 +745,10 @@ main() {
             usage
             return 0
             ;;
-        status | check | check-now | resume | refresh | rollback | remove-previous | undo-update)
+        status | check | check-now | resume | refresh | rollback | remove-previous | undo-update | apps)
             [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2
             ;;
-        pause | channel | stage | forget) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
+        pause | channel | stage | forget | app-updates) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
         "")
             usage >&2
             exit 2
@@ -711,6 +777,8 @@ main() {
         remove-previous) cmd_remove_previous ;;
         undo-update) cmd_undo_update ;;
         forget) cmd_forget "$2" ;;
+        app-updates) cmd_app_updates "$2" ;;
+        apps) cmd_apps ;;
     esac
 }
 

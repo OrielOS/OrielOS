@@ -19,11 +19,28 @@ buildcheck/           orielos-buildcheck, the placeholder app
   main.cpp            start-up, translations and --self-test
   systeminfo.h/.cpp   the SystemInfo QML singleton
   qml/Main.qml        the window
+updatestate/          the update state and its rules (static library OrielOSUpdateState)
+  updatestate.h/.cpp  reads orielos-update's state file; shared by the tray icon and the page
+  autotests/          Qt Test unit tests for the update state
+settings/             orielos-settings, the Settings app
+  main.cpp            start-up, one window per session, and the page to open
+  pagecatalogue.h/.cpp  the categories and pages, and search (static library OrielOSSettingsCatalogue)
+  settingswindow.h/.cpp  the window, which hosts Plasma's settings modules
+  autotests/          Qt Test unit tests for the catalogue and search
+settingspages/       OrielOS's own Settings pages, each a Plasma settings module
+  accessories/        kcm_orielos_accessories, Accessory apps: StoreApps (QML module org.orielos.accessories) and its page
+  accent/             kcm_orielos_accent, Accent colour: AccentColour (QML module org.orielos.accent) and its page
+  autotests/          Qt Test unit tests for both models, and a test that loads both modules
 updatenotifier/       orielos-update-notifier, the update tray icon
   main.cpp            start-up, translations, --state and --boot-id-file
-  updatestate.h/.cpp  the update state and its rules (static library OrielOSUpdateState)
-  updatenotifier.h/.cpp  the tray icon, its menu, the notification and restarting
-  autotests/          Qt Test unit tests for the update state
+  updatenotifier.h/.cpp  the tray icon, its menu, the notifications and restarting
+updatesettings/       kcm_orielos_update, the Update settings page (a Plasma settings module)
+  updatesettings.h/.cpp  UpdateSettings, the page's model (QML module org.orielos.updatesettings)
+  updatecommands.h/.cpp  running orielos-update through pkexec, and following the check unit
+  UpdatePage.qml      the page; ConfirmationDialog.qml asks before going back or removing
+  kcmupdate.cpp       the settings module itself, and kcm_orielos_update.json, its metadata
+  ui/main.qml         what System Settings loads: just the page
+  autotests/          Qt Test unit tests for the model, and a test that loads the module
 ```
 
 Each app is a QML module (`qt_add_qml_module`) with the URI `org.orielos.<app>`. Unit tests go in an `autotests/` folder next to the code they test and are added with `ecm_add_test`. C++ follows the repository's `.clang-format`, and every source file starts with the `SPDX-FileCopyrightText` and `SPDX-License-Identifier` lines.
@@ -55,10 +72,39 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 - **What it reads.** It follows `/var/lib/orielos/update/state.json`, which `orielos-update` writes (see `image/README.md`). It watches the file and its folder, and also rereads them every five minutes. The file describes one boot, so the notifier trusts it only when its `bootId` matches `/proc/sys/kernel/random/boot_id`.
 - **The tray icon** (`KStatusNotifierItem`, "OrielOS updates") stays in the tray's hidden area until a build is staged for the next restart, or going back is queued, then turns Active. Its tooltip says what the last check found, until when updates are paused, or which version a restart goes back to.
 - **The notifications.** It shows the KNotification event `updateReady`, from `orielos-update-notifier.notifyrc`, once per staged build per session, with "Restart to update" and "Later", `goBackReady` once going back is queued, with "Restart to go back" and "Later", and `updateUndone` once per session after an update that didn't reach the desktop was undone, with orielos-update's message.
-- **Restarting.** Both restart actions call `org.kde.Shutdown.logoutAndReboot`, so Plasma signs out cleanly before restarting.
-- **The menu.** It checks for updates, pauses for 1 to 5 weeks, resumes, and switches between the stable and testing channels by running `pkexec /usr/bin/orielos-update ...`. polkit allows the first three without a password and asks for an administrator to change channel. A failure other than a cancelled password prompt shows the `settingsFailed` event.
-- **Going back.** "Go back to the previous version…" is shown while the state names a previous build that wasn't rejected and going back isn't queued yet. It asks first with `KMessageBox`, Cancel being the default, then runs `pkexec /usr/bin/orielos-update rollback`, for which polkit asks for an administrator.
-- **Testing.** `--state FILE` and `--boot-id-file FILE` point it at other files. `autotests/updatestatetest.cpp` covers reading the state, when an update counts as waiting, pauses, the pause choices, the channels, going back, an undone update and the tooltip texts.
+- **Restarting.** The restart actions call `org.kde.Shutdown.logoutAndReboot`, so Plasma signs out cleanly before restarting.
+- **Clicking the icon** opens the Update settings page with `orielos-settings kcm_orielos_update`, passing the tray's activation token as `XDG_ACTIVATION_TOKEN` so the window gets the focus. Its menu has only "Restart to update" (or "Restart to go back") while there's something to restart for, and "Open update settings". Everything else is on the page.
+- **Testing.** `--state FILE` and `--boot-id-file FILE` point it at other files. The rules it follows are `OrielOSUpdateState`'s, which `updatestate/autotests/updatestatetest.cpp` covers: reading the state, when an update counts as waiting, pauses, the pause choices, the channels, going back, removing the previous build, an undone update and the tooltip texts.
+
+## OrielOS's own Settings pages
+
+`settingspages/` holds pages that Settings shows among Plasma's, built the same way as the Update page: each is a settings module made with `kcmutils_add_qml_kcm`, with its page and model in a static QML module of its own linked into it. Each needs its own QML module because Settings loads every page into one process, and a QML module can be registered only once there. Their strings are in the `orielos-settings-pages` translation domain.
+
+- **Accessory apps** (`kcm_orielos_accessories`, under Bluetooth & devices). `StoreApps` lists Solaar, Piper and OpenRGB, whose udev rules and ratbagd the image already has. An app counts as installed when its Flatpak desktop entry is on `XDG_DATA_DIRS`; **Open** starts it from its desktop entry through KIO (so it gets an activation token, and a failure shows a notification), and **Get it from the Store** opens its `appstream:` link in Discover, where the user decides whether to install it. It watches the applications folders on `XDG_DATA_DIRS`, so an app installed meanwhile changes to **Open**. Icons of apps that aren't installed come from Flathub's catalogue in `/var/lib/flatpak/appstream`.
+- **Accent colour** (`kcm_orielos_accent`, under Personalisation). `AccentColour` offers ten colours and the colour scheme's own selection colour. It records a choice as `AccentColor` in `kdeglobals` (or removes it for the scheme's own) and applies it with `plasma-apply-colorscheme --accent-color` (`transparent` for none), in its own process. `plasma-apply-colorscheme` recolours the scheme but doesn't record the accent, and applying a scheme later, as switching to dark mode does, keeps only a recorded one. It runs in its own process because Plasma's Colours module links GPL-2.0-only code, so Settings never loads it. It reads `AccentColor` and `ColorScheme` from `kdeglobals`, and follows changes made elsewhere, such as on the Themes page. Light and dark mode stay on the Themes page; the accent carries over between them.
+- **Testing.** `storeappstest` and `accentcolourtest` cover the models, with their own environment and command, and `pagesloadtest` loads both built modules the way Settings does, into one shared QML engine, and fails on any QML warning.
+
+## The Update settings page
+
+`kcm_orielos_update` is a Plasma settings module. Settings hosts it as its Update page, `orielos-settings kcm_orielos_update` opens it there, and `kcmshell6 kcm_orielos_update` opens it on its own. `kcmutils_add_qml_kcm` builds it, installs it to `plasma/kcms/systemsettings` and generates its `kcm_orielos_update.desktop`. The page and its model are a static QML module, `org.orielos.updatesettings`, linked into it, so `qmllint` checks the page like every other QML module.
+
+- **What it shows.** `UpdateSettings` reads the same state file as the notifier, the same way: the running version, when updates were last checked and what the check found, whether an update is waiting or going back is queued (with **Restart now**), the pause, the channel, whether apps from the Store update by themselves and when they last did (`appUpdates`, `appsUpdatedAt`), and the previous build with the date it's removed after (`previous.removedAfter`).
+- **What it runs.** Every change runs `pkexec /usr/bin/orielos-update ...`, so the page holds no update logic of its own: `check-now`, `pause N` (1 to 5 weeks), `resume`, `app-updates on|off`, `channel stable|testing`, `rollback` and `remove-previous`. polkit (`org.orielos.update.policy`) allows the first four without a password, and asks for an administrator to change the channel, go back or remove the previous version. One command runs at a time; a dismissed password prompt changes nothing and shows nothing, and any other failure shows orielos-update's reason on the page. Going back and removing the previous version ask first, with Cancel as the default.
+- **Checking.** "Check for updates" starts `orielos-update-check.service`, which runs in the background. The page follows the unit's `ActiveState` from systemd over the system bus (`LoadUnit`, `Subscribe` and `PropertiesChanged`), so it also shows the timer's checks, and shows the result once the unit stops. A check that never starts stops being shown after 30 seconds.
+- **The keyboard.** Every button and option has an Alt mnemonic, each letter used once: Check for updates (U), Restart now (N), Pause updates (P), Resume updates (R), Stable (S), Testing (T), Update apps automatically (A), Go back to the previous version (G) and Remove the previous version (M), and Go back (B) and Remove (E) in the questions. C is left for `kcmshell6`'s Close button, where the VM test uses them. Keep them unique when adding options. A button's mnemonic is fixed when the button is made: showing it later, or changing its text, leaves the letter doing nothing. So a `Loader` makes a new Pause updates or Resume updates button each time a pause starts or ends.
+- **Translations.** The page translates through its own `KI18nContext` with the module's domain, `kcm_orielos_update`: System Settings' engine doesn't set up the `KI18n` singleton.
+- **Testing.** `autotests/updatesettingstest.cpp` runs the model against a scratch state file with stand-ins for the command runner and the check unit, and a fixed clock: what it shows, what each action runs and refuses, one command at a time, the error messages, the channel and app updates while they change, and checking. `autotests/kcmloadtest.cpp` loads the built module from the build's plugin folder the way System Settings does, with no system bus and no state file, and fails on any QML warning.
+
+## Settings
+
+`orielos-settings` is OrielOS's Settings app. Its window is Qt Widgets, as Plasma's System Settings is, so it can host both kinds of Plasma settings module: QML ones and older Qt Widgets ones.
+
+- **Pages.** `PageCatalogue::standard()` lists the categories in the order Windows Settings uses (System, Bluetooth & devices, Network & internet, Personalisation, Apps, Accounts, Time & language, Update), and under each the pages, each a settings module: Display is `kcm_kscreen`, Update is `kcm_orielos_update`, and so on. A page whose module isn't installed is left out, and so is a category left with none. A category with one page opens it straight away; the others show their pages first. Colours (`kcm_colors`) isn't hosted: it links a GPL-2.0-only library, which can't be combined with OrielOS's GPL-3.0-or-later code in one process.
+- **Hosting.** Each module is loaded on first use with `KCModuleLoader::loadModule()` into a `QStackedWidget`; every QML module shares one `QQmlEngine`. Modules are looked for where System Settings looks: `plasma/kcms/systemsettings`, `systemsettings_qwidgets`, `plasma/kcms` and `plasma/kcms/kinfocenter`. The window owns Apply, Reset and Defaults and shows the ones each module asks for (`buttons()`); before leaving a page with unsaved changes, or closing, it asks whether to apply or discard them.
+- **Search.** The field above the categories (Ctrl+F) searches page names and the words in each page's translatable keyword list, which include the names people know from Windows ("wifi", "default apps", "windows update", "specs"). Every word typed must start a word of the page; matches in the title come first. Enter opens the best match.
+- **Starting.** `orielos-settings [page]` opens a page by its ID (such as `display` or `update`), its module (such as `kcm_kscreen`) or a category. Settings runs once per session (`KDBusService::Unique`): starting it again, with Win+I or from the update tray icon, brings the window forward and opens the page asked for.
+- **Win+I and Start.** `org.orielos.Settings.desktop` has `X-KDE-Shortcuts=Meta+I`, and a copy in `/usr/share/kglobalaccel` registers it. `image/build/26-shortcuts.sh` takes Win+I from System Settings and hides it from Start, and the Start menu's default pins and `orielos-startmenu-2.js` pin Settings in its place. System Settings stays installed, because parts of Plasma open their pages in it.
+- **Testing.** `autotests/pagecataloguetest.cpp` covers the category order, the pages, leaving out missing modules, and search: Windows terms, titles before keywords, every word needed, and accents.
 
 ## The placeholder app
 
