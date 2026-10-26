@@ -10,7 +10,7 @@
 
 #include <optional>
 
-namespace UpdateNotifier {
+namespace OrielOSUpdates {
 
 // The update channels: every channel is a tag of the same OrielOS image.
 enum class Channel {
@@ -28,13 +28,14 @@ struct Build
 };
 
 // The desktop's view of OrielOS updates, read from the state file that orielos-update writes
-// (/var/lib/orielos/update/state.json). Everything here is pure: the current time and boot ID are
-// passed in, so the logic can be tested without a computer to update.
+// (/var/lib/orielos/update/state.json). The update tray icon and the Update settings page both
+// use it. Everything here is pure: the current time and boot ID are passed in, so the logic can be
+// tested without a computer to update.
 class UpdateState
 {
 public:
     // Parses the state file's contents. Empty, malformed or incomplete data gives an invalid state
-    // rather than an error: the notifier then simply has nothing to show.
+    // rather than an error: the desktop then simply has nothing to show.
     static UpdateState fromJson(const QByteArray &json);
     static UpdateState fromFile(const QString &path);
 
@@ -51,8 +52,15 @@ public:
     // The build that going back would start, and whether it was rolled back on this computer.
     std::optional<Build> previous() const { return m_previous; }
     bool previousRejected() const { return m_previousRejected; }
+    // When the previous build is removed, or an invalid time when that isn't known.
+    QDateTime previousRemovedAfter() const { return m_previousRemovedAfter; }
     // Someone chose to go back: the previous build starts at the next restart.
     bool rollbackQueued() const { return m_rollbackQueued; }
+    // Apps from the Store update by themselves; true unless turned off, or when the file is older
+    // than the setting.
+    bool appUpdates() const { return m_appUpdates; }
+    // When the apps were last brought up to date, or an invalid time when that isn't known.
+    QDateTime appsUpdatedAt() const { return m_appsUpdatedAt; }
 
     // The file describes one boot; after a restart it is stale until it is written again.
     bool isForThisBoot(const QString &currentBootId) const;
@@ -63,6 +71,9 @@ public:
     bool canGoBack(const QString &currentBootId) const;
     // Going back is queued: the previous build starts at the next restart.
     bool goingBack(const QString &currentBootId) const;
+    // There is a previous build, and nothing is waiting for the next restart that removing it would
+    // change: orielos-update refuses while a build is staged or going back is queued.
+    bool canRemovePrevious(const QString &currentBootId) const;
     // This start undid an update that failed to reach the desktop: the boot loader started the
     // previous build, which OrielOS kept. The message says which versions.
     bool updateUndone(const QString &currentBootId) const;
@@ -80,7 +91,10 @@ private:
     std::optional<Build> m_staged;
     std::optional<Build> m_previous;
     bool m_previousRejected = false;
+    QDateTime m_previousRemovedAfter;
     bool m_rollbackQueued = false;
+    bool m_appUpdates = true;
+    QDateTime m_appsUpdatedAt;
 };
 
 // Pauses last a whole number of weeks.
@@ -88,17 +102,16 @@ constexpr int minPauseWeeks = 1;
 constexpr int maxPauseWeeks = 5;
 
 QList<int> pauseChoices();
+// A pause's length as a list entry, such as "2 weeks".
 QString pauseChoiceLabel(int weeks);
 
-// The channel's name as orielos-update takes it, and as people read it in the menu.
+// The channel's name as orielos-update takes it. An unknown name counts as stable, the default.
 QString channelName(Channel channel);
-QString channelLabel(Channel channel);
-// An unknown name counts as stable, the default.
 Channel channelFromName(const QString &name);
 
-// The tray icon's tooltip for the current state.
+// What the last check found, or what a restart will do, in one line.
 QString statusText(const UpdateState &state, const QString &currentBootId, const QDateTime &now);
 // How a date is shown to people, in their own locale.
 QString displayDate(const QDateTime &time);
 
-} // namespace UpdateNotifier
+} // namespace OrielOSUpdates

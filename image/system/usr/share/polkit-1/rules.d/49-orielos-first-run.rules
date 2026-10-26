@@ -1,0 +1,12 @@
+// SPDX-FileCopyrightText: 2026 OrielOS contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Lets the first-run setup's power page save its choices. Plasma Setup runs as the plasma-setup
+// user, which has no password, and Plasma Setup's own rules allow its actions the same way. It
+// allows that user and this one action only; first-run-power refuses once the setup has finished.
+polkit.addRule(function (action, subject) {
+    if (action.id === "org.orielos.first-run.power" && subject.user === "plasma-setup") {
+        return polkit.Result.YES;
+    }
+    return polkit.Result.NOT_HANDLED;
+});

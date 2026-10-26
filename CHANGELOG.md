@@ -6,6 +6,45 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Snap layouts: Windows + Z shows layouts for the window you're using (halves, thirds, two thirds beside one third, and quarters) and moves it into the area you click or choose with the arrow keys and Enter.
+- A "Known limitations" page lists what OrielOS can't do yet, such as running on real hardware or games whose publishers block Linux, and what it won't do by design, such as Hibernate.
+- The sign-in screen opens on the time over the OrielOS wallpaper, like a locked screen. Press a key or click, and the sign-in slides up into the middle; after a minute without input the time comes back. It offers Sleep, Restart and Shut down.
+- The boot splash shows the OrielOS logo on a black screen, with a spinner below it.
+- OrielOS has its own colours: OrielOS Light, the default, and OrielOS Dark, built from OrielOS's palette with Oriel Blue for selections, focus and links. The OrielOS Dark global theme keeps the OrielOS taskbar, and Plasma's Day-Night Cycle switches between the two.
+- Start suggests apps to get started with under Recommended: Steam, Heroic Games Launcher, Discord, Spotify, OBS Studio and Lutris. Each opens its page in the Store, leaves the list once installed, and the suggestions can be hidden from an entry's menu.
+- Clipboard history is in Start, under that name: it shows what you copied recently, as Windows + V does. Files always shows its tab bar.
+- The first-run setup asks what OrielOS needs, in this order: language, keyboard layout, network, time zone, power and your account.
+  - A new power page sets when the computer sleeps and when the screen turns off if it isn't being used, starting from sleep after 15 minutes and the screen off after 10. Your choice becomes the power settings every new account starts with.
+  - On a computer without Wi-Fi, the network page shows whether the cable connection reaches the internet, instead of being skipped.
+  - The setup no longer asks for screen scaling, a dark theme or the computer's name. The dark theme switch gave the new account Fedora's dark desktop instead of OrielOS's.
+  - The welcome screen shows the OrielOS wallpaper, and the last page shows the OrielOS logo.
+- OrielOS builds are published when changes merge.
+  - Each change that affects the system is built on GitHub, started in a VM to check it reaches the sign-in screen in the mode anti-cheat needs with only signed drivers, signed, and published to ghcr.io as the new testing build.
+  - A build is published only if Flathub has the NVIDIA driver extension that Store apps need for it.
+  - Stable moves to a tested build by hand, without rebuilding it, with a release on GitHub.
+  - Once OrielOS's signing key is in place, computers check the signature of every update before preparing it.
+  - The pinned Fedora and driver images are refreshed every week, which is how Fedora's updates reach OrielOS.
+- Apps from the Store update by themselves, in the background, a few minutes after start-up and about every six hours, at low priority so they don't slow down a game.
+  - After an OrielOS update with a new NVIDIA driver, the matching graphics driver for Store apps arrives the same way, without opening the Store.
+  - **Update apps automatically** on the update settings page turns this off; the Store's Update button works either way. Apps aren't updated on a metered connection.
+- Settings, OrielOS's own settings app, opens with Windows + I and replaces System Settings in Start.
+  - Categories in the order Windows uses: System, Bluetooth & devices, Network & internet, Personalisation, Apps, Accounts, Time & language and Update, each with its pages.
+  - Search finds pages by name and by the words people know from Windows, such as "wifi", "default apps" or "windows update".
+  - The update tray icon opens Update in Settings.
+  - Settings found by Start's search, or KRunner's, open in Settings. Settings that Settings has no page for yet still open in System Settings.
+  - Accent colour, under Personalisation, sets the colour of highlights and selected items, which stays when you switch between light and dark mode.
+  - Accessory apps, under Bluetooth & devices, opens Solaar, Piper and OpenRGB, or their pages in the Store if they aren't installed.
+  - Start, under Personalisation, turns recently added apps and recent files in Start's Recommended section on and off.
+  - Taskbar, under Personalisation, centres the taskbar or aligns it to the left, and hides it automatically.
+  - Privacy & security, with Device security: a check that the PC meets what games with anti-cheat require (Secure Boot, the TPM, kernel lockdown, the BPF security module, no kernel switching, the IOMMU and signed drivers), saying what to change for anything that isn't met. It also has Firewall, App permissions, Activity history, and Diagnostics & feedback.
+  - Accessibility: Screen reader and keyboard, Zoom and colour filters, and On-screen keyboard.
+  - Power mode, under System: Performance, Balanced or Power saver, as in the tray's power icon.
+- OrielOS Update, a page in System Settings under System, holds everything about updates. Clicking the OrielOS updates icon in the system tray opens it.
+  - It shows the version you're running and when OrielOS last checked for updates, and "Check for updates" checks straight away and shows what it found.
+  - It pauses updates for one to five weeks or resumes them, and switches between the Stable and Testing channels.
+  - It shows until when the previous version is kept, and goes back to it or removes it now, after asking first.
+  - Changing the channel, going back and removing the previous version need an administrator's password. Every option works from the keyboard.
+  - The OrielOS updates icon now only tells you about updates: its menu offers restarting when there's something to restart for, and opening the page.
 - The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
   - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
   - GameMode, umu-launcher and Fedora's compressed memory swap (zram) are included.
@@ -15,14 +54,13 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
   - A new "Games and controllers" page explains pairing controllers over Bluetooth.
 - Going back to the previous version, and updates that undo themselves if they don't start.
   - If a new version fails to reach the desktop twice, the next start uses the previous version, keeps it and says so in a notification. There's no question to answer at startup.
-  - The OrielOS updates icon's menu offers "Go back to the previous version…". After you confirm and enter an administrator's password, "Restart to go back" starts the previous version, and the version you left isn't offered again.
-  - The previous version is kept for 14 days after an update, then removed; `orielos-update remove-previous` removes it sooner.
+  - OrielOS Update offers "Go back to the previous version…". After you confirm and enter an administrator's password, "Restart to go back" starts the previous version, and the version you left isn't offered again.
+  - The previous version is kept for 14 days after an update, then removed; "Remove the previous version…" in OrielOS Update, or `orielos-update remove-previous`, removes it sooner.
   - The boot menu stays hidden. Esc or Shift opens it at any start, and it appears by itself only if both versions fail to start.
   - Boot menu entries are named after OrielOS versions, such as "OrielOS 44.20261026", and the system now calls itself OrielOS, with links to OrielOS's website, discussions and issue tracker.
 - Updates now arrive by themselves.
   - OrielOS checks for a new version a while after start-up and then about every six hours, downloads it in the background and prepares it for the next restart. It never restarts on its own.
   - When a version is ready, a notification and the OrielOS updates icon in the system tray offer "Restart to update" and "Later".
-  - The tray icon's menu checks for updates, pauses them for one to five weeks or resumes them, and switches between the Stable and Testing channels. Changing channel needs an administrator.
   - Updates are skipped on metered connections, and a version you went back from isn't offered again.
 - orielos.org's footer shows OrielOS's OpenSSF Best Practices and OpenSSF Baseline badges, loaded live from bestpractices.dev so they always show the current levels.
 - orielos.org has "Share OrielOS" links for X, Bluesky, Reddit, Facebook and email, which contact those sites only when clicked, and every image on the page has alt text.
@@ -67,5 +105,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- A new installation names the computer `orielos` instead of `fedora`, on the network and in the terminal.
+- A unit no longer fails at every start (`efi.automount`, the EFI system partition's automount), which made `systemctl is-system-running` report `degraded`.
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.
 - The Discord bot no longer cuts an emoji in half when it shortens a long title or release note.

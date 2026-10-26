@@ -39,6 +39,6 @@ The controller's battery level shows in the battery widget in the system tray.
 
 ## Mice, keyboards and lighting
 
-Apps for gaming mice, keyboards and lighting come from the Store too: Solaar for Logitech devices, Piper for configurable gaming mice, and OpenRGB for RGB lighting. The parts that have to be in the system, so these apps can reach your devices, are already there.
+Apps for gaming mice, keyboards and lighting come from the Store too: Solaar for Logitech devices, Piper for configurable gaming mice, and OpenRGB for RGB lighting. The parts that have to be in the system, so these apps can reach your devices, are already there. **Settings > Bluetooth & devices > Accessory apps** opens each one, or its page in the Store if it isn't installed.
 
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder).
