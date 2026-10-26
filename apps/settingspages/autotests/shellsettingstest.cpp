@@ -259,6 +259,31 @@ private Q_SLOTS:
         QVERIFY(settings.state().autoHide);
     }
 
+    void copesWithChangesMadeFromItsOwnSignal()
+    {
+        FakeDesktop desktop;
+        ShellSettings settings(desktop.runner());
+        desktop.answer(true, defaultState);
+        bool asked = false;
+        connect(&settings, &ShellSettings::changed, &settings, [&]() {
+            if (!asked) {
+                asked = true;
+                settings.change(ShellSettings::Setting::AutoHide, true);
+            }
+        });
+        settings.change(ShellSettings::Setting::Centred, false);
+        // The first change's script runs; the one made from the signal waits for it.
+        QCOMPARE(desktop.calls.size(), 1);
+        QVERIFY(desktop.calls.first().script.contains(QLatin1String("spacer.writeConfig(\"expanding\", false)")));
+        QVERIFY(settings.state().autoHide);
+        desktop.answer(true, QStringLiteral(R"({"hasStart":true,"canAlign":true,"centred":false,"autoHide":false})"));
+        QCOMPARE(desktop.calls.size(), 1);
+        QVERIFY(desktop.calls.first().script.contains(QLatin1String("panel.hiding = true")));
+        desktop.answer(true, QStringLiteral(R"({"hasStart":true,"canAlign":true,"centred":false,"autoHide":true})"));
+        QVERIFY(desktop.calls.isEmpty());
+        QVERIFY(!settings.isBusy());
+    }
+
     void goesBackWhenAChangeFails()
     {
         FakeDesktop desktop;
