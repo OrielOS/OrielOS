@@ -4,9 +4,12 @@
 #include "settingssearch.h"
 
 #include <KIO/CommandLauncherJob>
+#include <KNotificationJobUiDelegate>
 #include <KRunner/AbstractRunner>
 #include <KRunner/QueryMatch>
 #include <KRunner/RunnerContext>
+
+#include <optional>
 
 namespace {
 
@@ -22,16 +25,22 @@ class SettingsRunner : public KRunner::AbstractRunner
 public:
     SettingsRunner(QObject *parent, const KPluginMetaData &metaData)
         : KRunner::AbstractRunner(parent, metaData)
-        // Settings modules only change with the OS, which needs a restart, so they're found once.
-        , m_search(SettingsSearch::installed())
     {
     }
 
-    // Runs on the runner's own thread; m_search isn't changed after construction.
+    // Runs on the runner's own thread, before any match: finding every settings module reads each
+    // one's metadata, which shouldn't hold up the thread that loads the runner. Modules only change
+    // with the OS, which needs a restart, so they're found once.
+    void init() override { m_search.emplace(SettingsSearch::installed()); }
+
+    // Runs on the runner's own thread too; m_search isn't changed after init().
     void match(KRunner::RunnerContext &context) override
     {
+        if (!m_search) {
+            return;
+        }
         QList<KRunner::QueryMatch> matches;
-        const QList<SettingsResult> results = m_search.search(context.query());
+        const QList<SettingsResult> results = m_search->search(context.query());
         for (qsizetype i = 0; i < results.size(); ++i) {
             const SettingsResult &result = results.at(i);
             KRunner::QueryMatch match(this);
@@ -64,11 +73,13 @@ public:
         auto *job = new KIO::CommandLauncherJob(command.first(), command.mid(1));
         // Names the app for the activation token, so its window comes to the front.
         job->setDesktopName(command.first() == QLatin1String("orielos-settings") ? QStringLiteral("org.orielos.Settings") : QStringLiteral("systemsettings"));
+        // A program that can't start says so in a notification.
+        job->setUiDelegate(new KNotificationJobUiDelegate(KJobUiDelegate::AutoErrorHandlingEnabled));
         job->start();
     }
 
 private:
-    const SettingsSearch m_search;
+    std::optional<SettingsSearch> m_search;
 };
 
 } // namespace

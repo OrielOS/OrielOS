@@ -86,7 +86,7 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 - **Settings' pages** come first, found by the same rules as Settings' own search field (`PageCatalogue::search`, with the Windows words), and open with `orielos-settings <page>`. Their subtext says where they are, such as "Settings › System".
 - **Every other module** System Settings lists (from `plasma/kcms/systemsettings` and `systemsettings_qwidgets`, with a category and not hidden) follows, found by its name, description and `X-KDE-Keywords`, and opens with `systemsettings <module>`. Modules Settings has a page for are left out, so nothing shows twice.
 - A page whose title matches gets a high category relevance in KRunner, above apps found only by their keywords; System Settings' modules get less. Commands start through `KIO::CommandLauncherJob`, so the window gets an activation token and comes to the front.
-- The modules are found once, when the runner loads; they only change with an OS update, which needs a restart.
+- The modules are found once, in the runner's `init()`, which KRunner runs on the runner's own thread before its first match; they only change with an OS update, which needs a restart. The query is split into words once per search, and a page's keywords and description are only looked at when its title doesn't match. A program that can't start says so in a notification (`KNotificationJobUiDelegate`).
 - **Testing.** `settingssearchtest` covers the search with made-up pages and modules; `settingsrunnertest` loads the built runner the way Start does, through `KRunner::AbstractRunnerTest`, and checks the commands it gives for OrielOS's pages and for Plasma's Fonts module.
 
 ## OrielOS's own Settings pages
