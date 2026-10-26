@@ -56,6 +56,11 @@ public:
     QDateTime previousRemovedAfter() const { return m_previousRemovedAfter; }
     // Someone chose to go back: the previous build starts at the next restart.
     bool rollbackQueued() const { return m_rollbackQueued; }
+    // Apps from the Store update by themselves; true unless turned off, or when the file is older
+    // than the setting.
+    bool appUpdates() const { return m_appUpdates; }
+    // When the apps were last brought up to date, or an invalid time when that isn't known.
+    QDateTime appsUpdatedAt() const { return m_appsUpdatedAt; }
 
     // The file describes one boot; after a restart it is stale until it is written again.
     bool isForThisBoot(const QString &currentBootId) const;
@@ -88,6 +93,8 @@ private:
     bool m_previousRejected = false;
     QDateTime m_previousRemovedAfter;
     bool m_rollbackQueued = false;
+    bool m_appUpdates = true;
+    QDateTime m_appsUpdatedAt;
 };
 
 // Pauses last a whole number of weeks.
