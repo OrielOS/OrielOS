@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- A "Known limitations" page lists what OrielOS can't do yet, such as running on real hardware or games whose publishers block Linux, and what it won't do by design, such as Hibernate.
 - The sign-in screen opens on the time over the OrielOS wallpaper, like a locked screen. Press a key or click, and the sign-in slides up into the middle; after a minute without input the time comes back. It offers Sleep, Restart and Shut down.
 - The boot splash shows the OrielOS logo on a black screen, with a spinner below it.
 - OrielOS has its own colours: OrielOS Light, the default, and OrielOS Dark, built from OrielOS's palette with Oriel Blue for selections, focus and links. The OrielOS Dark global theme keeps the OrielOS taskbar, and Plasma's Day-Night Cycle switches between the two.

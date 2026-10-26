@@ -2,7 +2,7 @@
 
 You can try OrielOS without touching your PC's own system by running it in a virtual machine. This guide shows how to build OrielOS, turn it into a virtual machine disk, and start it in QEMU on Linux or in VMware Workstation on Windows.
 
-OrielOS is in early development, so there is no download yet: you build the system yourself from the source code. It takes about half an hour the first time.
+OrielOS is in early development, so there is no download yet: you build the system yourself from the source code. It takes about half an hour the first time. [Known limitations](known-limitations.md) lists what it can't do yet.
 
 ## What you need
 
