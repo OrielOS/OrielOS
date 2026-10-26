@@ -6,10 +6,10 @@
 SPDX-FileCopyrightText: 2026 OrielOS contributors
 SPDX-License-Identifier: GPL-3.0-or-later
 
-What the desktop may ask orielos-update to do through pkexec. Anyone using the computer may pause,
-resume and check for updates without a password; changing which builds the computer gets, and going
-back to the previous version, need an administrator. pkexec picks the action by the program and its
-first argument.
+What the Update settings page may ask orielos-update to do through pkexec. Anyone using the
+computer may pause, resume and check for updates without a password; changing which builds the
+computer gets, going back to the previous version and removing it need an administrator. pkexec
+picks the action by the program and its first argument.
 -->
 <policyconfig>
   <vendor>OrielOS</vendor>
@@ -74,5 +74,17 @@ first argument.
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">rollback</annotate>
+  </action>
+
+  <action id="org.orielos.update.remove-previous">
+    <description>Remove the previous OrielOS version</description>
+    <message>Authentication is needed to remove the previous OrielOS version</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">remove-previous</annotate>
   </action>
 </policyconfig>

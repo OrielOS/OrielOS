@@ -6,6 +6,12 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- OrielOS Update, a page in System Settings under System, holds everything about updates. Clicking the OrielOS updates icon in the system tray opens it.
+  - It shows the version you're running and when OrielOS last checked for updates, and "Check for updates" checks straight away and shows what it found.
+  - It pauses updates for one to five weeks or resumes them, and switches between the Stable and Testing channels.
+  - It shows until when the previous version is kept, and goes back to it or removes it now, after asking first.
+  - Changing the channel, going back and removing the previous version need an administrator's password. Every option works from the keyboard.
+  - The OrielOS updates icon now only tells you about updates: its menu offers restarting when there's something to restart for, and opening the page.
 - The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
   - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
   - GameMode, umu-launcher and Fedora's compressed memory swap (zram) are included.
@@ -14,14 +20,13 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
   - A new "Games and controllers" page explains pairing controllers over Bluetooth.
 - Going back to the previous version, and updates that undo themselves if they don't start.
   - If a new version fails to reach the desktop twice, the next start uses the previous version, keeps it and says so in a notification. There's no question to answer at startup.
-  - The OrielOS updates icon's menu offers "Go back to the previous version…". After you confirm and enter an administrator's password, "Restart to go back" starts the previous version, and the version you left isn't offered again.
-  - The previous version is kept for 14 days after an update, then removed; `orielos-update remove-previous` removes it sooner.
+  - OrielOS Update offers "Go back to the previous version…". After you confirm and enter an administrator's password, "Restart to go back" starts the previous version, and the version you left isn't offered again.
+  - The previous version is kept for 14 days after an update, then removed; "Remove the previous version…" in OrielOS Update, or `orielos-update remove-previous`, removes it sooner.
   - The boot menu stays hidden. Esc or Shift opens it at any start, and it appears by itself only if both versions fail to start.
   - Boot menu entries are named after OrielOS versions, such as "OrielOS 44.20261026", and the system now calls itself OrielOS, with links to OrielOS's website, discussions and issue tracker.
 - Updates now arrive by themselves.
   - OrielOS checks for a new version a while after start-up and then about every six hours, downloads it in the background and prepares it for the next restart. It never restarts on its own.
   - When a version is ready, a notification and the OrielOS updates icon in the system tray offer "Restart to update" and "Later".
-  - The tray icon's menu checks for updates, pauses them for one to five weeks or resumes them, and switches between the Stable and Testing channels. Changing channel needs an administrator.
   - Updates are skipped on metered connections, and a version you went back from isn't offered again.
 - orielos.org's footer shows OrielOS's OpenSSF Best Practices and OpenSSF Baseline badges, loaded live from bestpractices.dev so they always show the current levels.
 - orielos.org has "Share OrielOS" links for X, Bluesky, Reddit, Facebook and email, which contact those sites only when clicked, and every image on the page has alt text.

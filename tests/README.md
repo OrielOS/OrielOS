@@ -196,13 +196,18 @@ Then it tests the background update service, which normally gets builds from a r
     - The VM must restart into the new build, and this boot's `state.json` must say `up-to-date` with nothing staged.
     - `keepme.txt` must be unchanged.
 
-Then it goes back through the notifier and checks the boot menu:
+Then it uses the Update settings page, goes back from there and checks the boot menu:
 
-12. **Go back to the previous version.**
-    - `orielostest` gets a known password, because going back needs an administrator and polkit asks for theirs.
-    - The notifier's "Go back to the previous version…" item is clicked over the session bus. The question's default is Cancel, so the test presses Alt+G for "Go back", then types the password into polkit's prompt and presses Enter, all over QMP. `go-back-question.png` and `go-back-password.png` show both.
-    - `state.json` must then say `rollbackQueued`, and the new build must be in `rejected-digests`.
-    - The tray icon must be Active and offer "Restart to go back" (`go-back-ready.png`), which the test clicks. The VM must restart into the old build, with `keepme.txt` unchanged.
+12. **Settings → Update.** The test drives the page with the keyboard over QMP: every button and option has an Alt mnemonic, and the test types the password into polkit's prompt and presses Enter.
+    - `orielostest` gets a known password, because changing the channel and going back need an administrator and polkit asks for theirs.
+    - The notifier's menu must offer only "Open update settings" (and restarting, when there's something to restart for): no pause, channel, going back or checking.
+    - The test clicks the tray icon itself, calling `Activate` on its `org.kde.StatusNotifierItem` interface as the tray does. System Settings must start with `kcm_orielos_update` within 60 s (`settings-page.png`).
+    - The test then closes System Settings and opens the same page with `kcmshell6 kcm_orielos_update`, through `systemd-run --user` in `orielostest`'s session (`settings-window.png`). There the page is alone in its window, so no other control takes the keys: in System Settings, any letter no shortcut claims goes to the sidebar's search field.
+    - Alt+U, **Check for updates**: `state.json`'s `checkedAt` must change (`settings-checked.png`).
+    - Alt+P, **Pause updates** with the first choice: `pausedUntil` must be 7 days ahead (`settings-paused.png`). Alt+R, **Resume updates**: it must be `null` again.
+    - Alt+S, **Stable**, and the password (`channel-password.png`): the channel must be `stable` (`settings-stable.png`). Alt+T, **Testing**: it must be `testing` again; polkit may keep the authorisation, so the test types the password only if the channel hasn't changed after 10 s.
+    - Alt+G, **Go back to the previous version…**. The question's default is Cancel, so the test presses Alt+B for **Go back**, then types the password. `go-back-question.png` and `go-back-password.png` show both. `state.json` must then say `rollbackQueued`, and the new build must be in `rejected-digests`.
+    - The tray icon must be Active and offer "Restart to go back" (`go-back-ready.png`). The test presses Alt+N, **Restart now** on the page, and the VM must restart into the old build, with `keepme.txt` unchanged.
 13. **The boot menu.** The firmware copies GRUB's screen to the serial console, so the test reads it there. For each restart it watches the serial log from `systemctl reboot` until the kernel prints `Linux version`.
     - `/boot/grub2/grub.cfg` must include `12_orielos-menu.cfg`, and the boot entries must be `OrielOS <old version> (ostree:0)` and `OrielOS <new version> (ostree:1)`.
     - Within 120 s of the desktop starting, `orielos_boot_ok` must be `1` in `EFI/fedora/orielos-boot.env` on the EFI system partition.
@@ -218,17 +223,21 @@ Then it goes back through the notifier and checks the boot menu:
 15. **The last resort, and removing the previous build.**
     - The test sets the flags as they'd be if the kept build failed too (`orielos_boot_ok=0`, `orielos_trial=kept`). The next start must show the menu by itself, listing both builds and highlighting the old one (`boot-menu-last-resort.png`), and Enter must start the old build.
     - The test moves the running build's first start, in `/var/lib/orielos/update/running`, 15 days back and runs a check. The previous build must then be gone: bootc reports none, one boot entry is left, and `state.json` has no previous build.
+16. **Removing the previous version from Settings → Update.**
+    - The test forgets the new build's rejection, stages it with a check and restarts into it, so the old build is the previous one again, kept until a date 14 days on.
+    - The tray icon opens the page (`settings-previous.png`), and `state.json` must name the old build with its removal date. The test opens the page in `kcmshell6` again (`settings-previous-window.png`).
+    - Alt+M, **Remove the previous version…**, then Alt+E for **Remove** in the question, and the password (`remove-question.png`, `remove-password.png`). Within 180 s `state.json` must have no previous build, bootc must report none, and one boot entry must be left (`settings-removed.png`).
 
 ```sh
 tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
 tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
 ```
 
-`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about an hour: the installation, about fifteen restarts, copying the archive, importing it twice and several desktop logins.
+`--old` takes an image in Podman or an OCI archive, which is loaded as `localhost/orielos-archive:<file name>` first; `--new` takes an OCI archive from `tools/build-image.sh`. Run `tests/update-test.sh --help` for all the options. It needs the same tools as the boot test and runs as root. A run takes about an hour and a quarter: the installation, about sixteen restarts, copying the archive, importing it three times and several desktop logins.
 
 Each restart is started with `systemctl reboot` over SSH; the VM restarts in place. The test waits for SSH to go away and answer again, then checks that `/proc/sys/kernel/random/boot_id` changed. `--timeout` is how long it waits for SSH after power-on and after each restart.
 
-It prints PASS or FAIL for thirty-nine checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
+It prints PASS or FAIL for forty-eight checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
 
 Results go to `tests/results/<run id>/`, or to the folder given with `--results`. The run id is `update-<new build's tag>-<UTC time>`. The folder holds:
 
@@ -240,7 +249,9 @@ Results go to `tests/results/<run id>/`, or to the folder given with `--results`
 - `state-staged.json` and `state-updated.json`: `/var/lib/orielos/update/state.json` once the check service has staged the build, and after the restart.
 - `update-ready.png`: the desktop once the update is staged.
 - `notifier.txt`: the test user's processes and the journal's lines about the notifier, when it didn't start.
+- `settings-page.png`, `settings-window.png`, `settings-checked.png`, `settings-paused.png`, `channel-password.png` and `settings-stable.png`: the Update settings page as step 12 uses it, and polkit's prompt. `settings-resume.png` and `settings-testing.png` exist only if resuming or switching back failed. `settings.txt`: the test user's processes and the journal's lines about System Settings, when the page didn't open.
 - `go-back-question.png`, `go-back-password.png` and `go-back-ready.png`: the question, polkit's prompt, and the desktop once going back is queued. `bootc-status-go-back.json`, `bootc-status-went-back.json` and their `status-*.txt` files are taken after the prompt and after the restart.
+- `settings-previous.png`, `settings-previous-window.png`, `remove-question.png`, `remove-password.png` and `settings-removed.png`: step 16's page, question, prompt and the page once the previous version is removed.
 - `boot-menu-esc.png` and `boot-menu-last-resort.png`: the boot menu after Esc, and when it appears by itself. `update-undone.png`: the desktop after an update was undone. `boot-menu-unexpected.png` exists only if the menu appeared when it shouldn't have. `boot-entries.txt` lists the boot entries' titles and version keys at the start of step 13 and before each of its restarts. `bootc-status-boot-menu.json` and `bootc-status-boot-menu-esc.json` show which build started.
 - `boot-success.txt`: the journal of the units that mark a boot as good, when the flag wasn't set.
 

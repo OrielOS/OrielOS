@@ -3,15 +3,11 @@
 
 #include "updatenotifier.h"
 
-#include <KGuiItem>
 #include <KLocalizedString>
-#include <KMessageBox>
 #include <KNotification>
-#include <KStandardGuiItem>
 #include <KStatusNotifierItem>
 
 #include <QAction>
-#include <QActionGroup>
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusPendingCall>
@@ -19,18 +15,15 @@
 #include <QFileInfo>
 #include <QMenu>
 #include <QProcess>
-#include <QScopedValueRollback>
+#include <QProcessEnvironment>
 
 namespace UpdateNotifier {
 
 namespace {
 
 constexpr auto iconName = "system-software-update";
-constexpr auto updateTool = "/usr/bin/orielos-update";
-// pkexec exits with these when the user cancels the password dialog or isn't allowed; neither is
-// worth a second message.
-constexpr int pkexecDismissed = 126;
-constexpr int pkexecNotAuthorised = 127;
+// The Update settings page, a Plasma settings module that System Settings opens by its name.
+constexpr auto settingsModule = "kcm_orielos_update";
 
 QString readBootId(const QString &path)
 {
@@ -57,13 +50,7 @@ Notifier::Notifier(const QString &statePath, const QString &bootIdPath, QObject 
     // Updates run as long as the computer does; there is nothing to quit.
     m_item->setStandardActionsEnabled(false);
     m_item->setContextMenu(buildMenu());
-    connect(m_item, &KStatusNotifierItem::activateRequested, this, [this] {
-        if (m_state.goingBack(m_bootId)) {
-            showGoBackNotification();
-        } else if (m_state.updateWaiting(m_bootId)) {
-            showReadyNotification();
-        }
-    });
+    connect(m_item, &KStatusNotifierItem::activateRequested, this, &Notifier::openSettings);
 
     // orielos-update replaces the file in one step, which drops it from the watch list, so the
     // folder is watched too and the file is added back after every change. A slow periodic read
@@ -94,7 +81,7 @@ void Notifier::watchStateFile()
 void Notifier::reload()
 {
     watchStateFile();
-    m_state = UpdateState::fromFile(m_statePath);
+    m_state = OrielOSUpdates::UpdateState::fromFile(m_statePath);
     updateItem();
     if (m_state.goingBack(m_bootId)) {
         if (m_state.previous()->digest != m_announcedGoBackDigest) {
@@ -113,68 +100,26 @@ QMenu *Notifier::buildMenu()
 
     m_restartAction = menu->addAction(QIcon::fromTheme(QStringLiteral("system-reboot")), i18nc("@action:inmenu", "Restart to update"));
     connect(m_restartAction, &QAction::triggered, this, &Notifier::restart);
-    menu->addSeparator();
+    m_restartSeparator = menu->addSeparator();
 
-    QAction *check = menu->addAction(QIcon::fromTheme(QStringLiteral("view-refresh")), i18nc("@action:inmenu", "Check for updates"));
-    connect(check, &QAction::triggered, this, [this] { runUpdateCommand({ QStringLiteral("check-now") }); });
-
-    m_goBackAction = menu->addAction(QIcon::fromTheme(QStringLiteral("edit-undo")), i18nc("@action:inmenu", "Go back to the previous version…"));
-    connect(m_goBackAction, &QAction::triggered, this, &Notifier::goBack);
-
-    m_pauseMenu = menu->addMenu(QIcon::fromTheme(QStringLiteral("media-playback-pause")), i18nc("@title:menu", "Pause updates"));
-    for (const int weeks : pauseChoices()) {
-        QAction *pause = m_pauseMenu->addAction(pauseChoiceLabel(weeks));
-        connect(pause, &QAction::triggered, this, [this, weeks] { runUpdateCommand({ QStringLiteral("pause"), QString::number(weeks) }); });
-    }
-
-    m_pausedLine = menu->addAction(QString());
-    m_pausedLine->setEnabled(false);
-    m_resumeAction = menu->addAction(QIcon::fromTheme(QStringLiteral("media-playback-start")), i18nc("@action:inmenu", "Resume updates"));
-    connect(m_resumeAction, &QAction::triggered, this, [this] { runUpdateCommand({ QStringLiteral("resume") }); });
-
-    QMenu *channelMenu = menu->addMenu(i18nc("@title:menu", "Update channel"));
-    m_channelGroup = new QActionGroup(channelMenu);
-    m_channelGroup->setExclusive(true);
-    m_stableAction = channelMenu->addAction(channelLabel(Channel::Stable));
-    m_testingAction = channelMenu->addAction(channelLabel(Channel::Testing));
-    for (QAction *action : { m_stableAction, m_testingAction }) {
-        action->setCheckable(true);
-        m_channelGroup->addAction(action);
-    }
-    connect(m_channelGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        const Channel chosen = action == m_testingAction ? Channel::Testing : Channel::Stable;
-        if (chosen != m_state.channel()) {
-            runUpdateCommand({ QStringLiteral("channel"), channelName(chosen) });
-        }
-        // Show the saved channel until orielos-update has written the new one.
-        updateItem();
-    });
+    QAction *settings = menu->addAction(QIcon::fromTheme(QLatin1String(iconName)), i18nc("@action:inmenu", "Open update settings"));
+    connect(settings, &QAction::triggered, this, &Notifier::openSettings);
 
     return menu;
 }
 
 void Notifier::updateItem()
 {
-    const QDateTime now = QDateTime::currentDateTimeUtc();
     const bool waiting = m_state.updateWaiting(m_bootId);
     const bool goingBack = m_state.goingBack(m_bootId);
-    const bool paused = m_state.isPaused(now);
 
     // Passive keeps the icon in the tray's hidden area until there is something to do.
     m_item->setStatus(waiting || goingBack ? KStatusNotifierItem::Active : KStatusNotifierItem::Passive);
-    m_item->setToolTipSubTitle(statusText(m_state, m_bootId, now));
+    m_item->setToolTipSubTitle(OrielOSUpdates::statusText(m_state, m_bootId, QDateTime::currentDateTimeUtc()));
 
     m_restartAction->setVisible(waiting || goingBack);
+    m_restartSeparator->setVisible(waiting || goingBack);
     m_restartAction->setText(goingBack ? i18nc("@action:inmenu", "Restart to go back") : i18nc("@action:inmenu", "Restart to update"));
-    m_goBackAction->setVisible(m_state.canGoBack(m_bootId));
-    m_pauseMenu->menuAction()->setVisible(!paused);
-    m_pausedLine->setVisible(paused);
-    m_resumeAction->setVisible(paused);
-    if (paused) {
-        m_pausedLine->setText(i18nc("@info %1 is a date", "Updates resume on %1", displayDate(m_state.pausedUntil())));
-    }
-    m_stableAction->setChecked(m_state.channel() == Channel::Stable);
-    m_testingAction->setChecked(m_state.channel() == Channel::Testing);
 }
 
 void Notifier::showReadyNotification()
@@ -182,7 +127,7 @@ void Notifier::showReadyNotification()
     if (m_readyNotification) {
         m_readyNotification->close();
     }
-    const Build staged = *m_state.staged();
+    const OrielOSUpdates::Build staged = *m_state.staged();
     m_announcedDigest = staged.digest;
 
     auto *notification = new KNotification(QStringLiteral("updateReady"), KNotification::Persistent);
@@ -203,7 +148,7 @@ void Notifier::showGoBackNotification()
     if (m_goBackNotification) {
         m_goBackNotification->close();
     }
-    const Build previous = *m_state.previous();
+    const OrielOSUpdates::Build previous = *m_state.previous();
     m_announcedGoBackDigest = previous.digest;
 
     auto *notification = new KNotification(QStringLiteral("goBackReady"), KNotification::Persistent);
@@ -232,38 +177,6 @@ void Notifier::showUndoneNotification()
     notification->sendEvent();
 }
 
-void Notifier::showErrorNotification(const QString &title, const QString &detail)
-{
-    auto *notification = new KNotification(QStringLiteral("settingsFailed"));
-    notification->setComponentName(QStringLiteral("orielos-update-notifier"));
-    notification->setIconName(QStringLiteral("dialog-error"));
-    notification->setTitle(title);
-    notification->setText(detail);
-    notification->sendEvent();
-}
-
-void Notifier::goBack()
-{
-    // The question runs its own event loop, so the menu can be opened and chosen again meanwhile.
-    if (m_askingToGoBack || !m_state.canGoBack(m_bootId)) {
-        return;
-    }
-    const QScopedValueRollback asking(m_askingToGoBack, true);
-    const QString previous = m_state.previous()->version;
-    const QString running = m_state.running().version;
-    // Cancel is the default button: going back replaces the whole system at the next restart.
-    const KMessageBox::ButtonCode answer = KMessageBox::questionTwoActions(nullptr,
-        i18nc("@info",
-            "OrielOS %1 starts after you restart. OrielOS %2, the version running now, won't be offered again; a newer version will be. "
-            "Your files and apps stay as they are.",
-            previous, running),
-        i18nc("@title:window", "Go back to the previous version"), KGuiItem(i18nc("@action:button", "&Go back"), QStringLiteral("edit-undo")),
-        KStandardGuiItem::cancel(), QString(), KMessageBox::Options(KMessageBox::Notify | KMessageBox::Dangerous));
-    if (answer == KMessageBox::PrimaryAction) {
-        runUpdateCommand({ QStringLiteral("rollback") });
-    }
-}
-
 void Notifier::restart()
 {
     // Plasma signs out cleanly, saving the session, then restarts; bootc finishes switching to the
@@ -273,28 +186,20 @@ void Notifier::restart()
     QDBusConnection::sessionBus().asyncCall(message);
 }
 
-void Notifier::runUpdateCommand(const QStringList &arguments)
+void Notifier::openSettings()
 {
-    auto *process = new QProcess(this);
-    process->setProgram(QStringLiteral("pkexec"));
-    process->setArguments(QStringList { QLatin1String(updateTool) } + arguments);
-    const QString title = arguments.value(0) == QLatin1String("rollback") ? i18nc("@title", "Couldn't go back to the previous version")
-                                                                          : i18nc("@title", "Couldn't change the update settings");
-    connect(process, &QProcess::finished, this, [this, process, title](int exitCode, QProcess::ExitStatus status) {
-        process->deleteLater();
-        if (status == QProcess::NormalExit && (exitCode == 0 || exitCode == pkexecDismissed || exitCode == pkexecNotAuthorised)) {
-            return;
-        }
-        const QString detail = QString::fromLocal8Bit(process->readAllStandardError()).section(QLatin1Char('\n'), 0, 0).trimmed();
-        showErrorNotification(title, detail.isEmpty() ? i18nc("@info", "orielos-update stopped with an error.") : detail);
-    });
-    connect(process, &QProcess::errorOccurred, this, [this, process, title](QProcess::ProcessError error) {
-        if (error == QProcess::FailedToStart) {
-            process->deleteLater();
-            showErrorNotification(title, i18nc("@info", "pkexec couldn't be started."));
-        }
-    });
-    process->start();
+    // System Settings opens the page in its own window, or in the window it already has. The tray
+    // passes an activation token with the click, so the window gets the focus.
+    QProcess process;
+    process.setProgram(QStringLiteral("systemsettings"));
+    process.setArguments({ QLatin1String(settingsModule) });
+    const QString token = m_item->providedToken();
+    if (!token.isEmpty()) {
+        QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+        environment.insert(QStringLiteral("XDG_ACTIVATION_TOKEN"), token);
+        process.setProcessEnvironment(environment);
+    }
+    process.startDetached();
 }
 
 } // namespace UpdateNotifier
