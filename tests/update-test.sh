@@ -1030,6 +1030,12 @@ step_remove_previous() {
         fail "After restarting into $NEW_VERSION, it isn't running or its desktop didn't start (running ${BOOTED_VERSION:-unknown})"
         return 1
     fi
+    # Each build keeps its own /etc. The password from step 12 was set while the new build ran, and
+    # going back left it behind; this deployment was staged from the old build's /etc.
+    if ! vm_ssh "printf '%s:%s\n' $TEST_USER '$TEST_PASSWORD' | chpasswd" >/dev/null 2>&1; then
+        fail "Could not set $TEST_USER's password for polkit's prompt"
+        return 1
+    fi
     removal="$(state_value .previous.removedAfter)"
     if ! open_update_settings settings-previous; then
         fail "Clicking the notifier's tray icon didn't open Settings → Update within 60 s (see settings.txt)"
