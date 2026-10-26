@@ -6,6 +6,8 @@ disable bootc-fetch-apply-updates.timer
 enable orielos-update-check.timer
 # Records each boot's update state before login, for the desktop's update notifier.
 enable orielos-update-state.service
+# Updates the apps from the Store in the background, unless that's turned off.
+enable orielos-app-update.timer
 # A desktop does not listen for SSH.
 disable sshd.service
 # No package-count reporting to Fedora (countme).
