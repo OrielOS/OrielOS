@@ -722,18 +722,18 @@ start_menu_restart() {
 }
 
 # A script for the VM that writes a text file in the test user's Documents and tells the session's
-# activity manager it was opened and closed, as an editor would, so the Start menu's Recommended
-# list has a recent file. Prints "recent=yes" when the activity manager took both events.
+# activity manager that an editor accessed it, as KIO does when it opens a file in an app, so the
+# Start menu's Recommended list has a recent file. Prints "recent=yes" when the activity manager
+# took the event. An Opened and a Closed event, sent this way, left the file with no type in the
+# activity manager's database, and Recommended lists only files with a type.
 start_recent_script() {
     local file="/home/$TEST_USER/Documents/orielos-notes.txt"
     cat <<SH
 runuser -u $TEST_USER -- sh -c 'mkdir -p /home/$TEST_USER/Documents && echo Notes >$file'
 bus() { busctl --user -M $TEST_USER@ "\$@" 2>/dev/null; }
-# RegisterResourceEvent(application, window id, URI, event): 1 is Opened, 3 is Closed.
+# RegisterResourceEvent(application, window id, URI, event): 0 is Accessed.
 if bus call org.kde.ActivityManager /ActivityManager/Resources org.kde.ActivityManager.Resources \
-    RegisterResourceEvent susu org.kde.kwrite 0 "file://$file" 1 >/dev/null &&
-    bus call org.kde.ActivityManager /ActivityManager/Resources org.kde.ActivityManager.Resources \
-        RegisterResourceEvent susu org.kde.kwrite 0 "file://$file" 3 >/dev/null; then
+    RegisterResourceEvent susu org.kde.kwrite 0 "file://$file" 0 >/dev/null; then
     echo recent=yes
 else
     echo recent=no
@@ -753,10 +753,9 @@ wait_for_ark_unpinned() {
     done
 }
 
-# The rest of the Start menu, after the restart: Recommended with a recent file (Firefox, installed
-# on the first boot, is recently added too), every stop in the Tab order, the account and power
-# menus, and unpinning Ark. The screenshots are for reading by eye; unpinning is checked in the
-# saved settings.
+# The rest of the Start menu, after the restart: Recommended with a recent file, every stop in the
+# Tab order, the account and power menus, and unpinning Ark. The screenshots are for reading by eye;
+# unpinning is checked in the saved settings.
 start_menu_more_checks() {
     local out i
     out="$(vm_ssh "$(start_recent_script)" 2>/dev/null)" || true
@@ -1331,7 +1330,7 @@ run_checks() {
         pass "Start menu: unpinning removes the app (favorites: $START_UNPIN_FAVORITES; see start-unpin-menu.png)"
     fi
     if [[ -n "$START_UNPINNED" ]]; then
-        info "Start menu, to read by eye: start-recommended.png (Firefox recently added, orielos-notes.txt opened; registered: ${START_RECENT:-no}), start-tab-1.png to start-tab-6.png (the Tab order), start-power-menu.png and start-account-menu.png"
+        info "Start menu, to read by eye: start-recommended.png (orielos-notes.txt under Recommended; registered: ${START_RECENT:-no}), start-tab-1.png to start-tab-6.png (the Tab order), start-power-menu.png and start-account-menu.png"
     fi
 
     info "Anti-cheat boot mode"
