@@ -158,6 +158,13 @@ if [[ "$(kreadconfig6 --file /etc/xdg/kscreenlockerrc --group Greeter --group Wa
     --group General --key Image)" != "file:///usr/share/wallpapers/OrielOS/" ]]; then
     taskbar_errors+=("/etc/xdg/kscreenlockerrc does not make OrielOS the lock screen wallpaper")
 fi
+# OrielOS's sound theme comes from the app-builder stage; 20-desktop.sh makes it the default.
+for f in index.theme stereo/desktop-login.oga stereo/message-new-instant.oga stereo/bell-window-system.oga; do
+    [[ -f "/usr/share/sounds/orielos/$f" ]] || taskbar_errors+=("the sound theme file /usr/share/sounds/orielos/$f is not installed")
+done
+if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group Sounds --key Theme)" != orielos ]]; then
+    taskbar_errors+=("/etc/xdg/kdeglobals does not make orielos the sound theme")
+fi
 if [[ "${#taskbar_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${taskbar_errors[@]}" >&2
     exit 1

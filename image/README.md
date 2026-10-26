@@ -65,6 +65,7 @@ More system configuration (sysctl settings, udev rules, systemd units) will be a
 - Discover with only its Flatpak backend. Flathub is the only source: Fedora's own Flatpak remote is never added, and Flathub's remote file from `fedora-flathub-remote` is installed in `/usr/share/flatpak/remotes.d` without Fedora's filter, so all of Flathub is available. Discover cannot add Fedora packages to the OS.
 - NetworkManager, PipeWire (with PulseAudio, ALSA and JACK compatibility) and WirePlumber, BlueZ, CUPS with its filters, firewalld and Flatpak.
 - Breeze icons, cursors and GTK theme, and the Noto fonts, with CJK and colour emoji.
+- OrielOS's own sound theme, `orielos` (from `artwork/sounds/`), as every user's default through `/etc/xdg/kdeglobals`. It inherits Plasma's Ocean theme, which plays any sound OrielOS's doesn't have.
 - Mesa's OpenGL, Vulkan and VA-API drivers, Intel's video decoding driver, and the GStreamer plugins for basic playback.
 - Guest support for QEMU/KVM and VMware (qemu-guest-agent, spice-vdagent, open-vm-tools-desktop), which does nothing on real hardware.
 
