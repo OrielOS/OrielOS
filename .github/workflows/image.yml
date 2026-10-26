@@ -75,6 +75,15 @@ jobs:
           sudo modprobe kvm_intel || sudo modprobe kvm_amd || true
           sudo modprobe vhost_vsock
           ls -l /dev/kvm /dev/vhost-vsock
+          # Ubuntu's AppArmor profile for swtpm lets it write only in libvirt's folders, so the VM's
+          # TPM socket and state, in /var/lib/orielos/vm (a bind mount of /mnt/vm), were refused.
+          # The profile's local include allows those two folders as well.
+          if [[ -f /etc/apparmor.d/usr.bin.swtpm ]]; then
+              sudo mkdir -p /etc/apparmor.d/local
+              printf 'owner /var/lib/orielos/vm/** rwk,\nowner /mnt/vm/** rwk,\n' |
+                  sudo tee -a /etc/apparmor.d/local/usr.bin.swtpm >/dev/null
+              sudo apparmor_parser -r /etc/apparmor.d/usr.bin.swtpm
+          fi
 
       # The first build of a UTC day is tagged <Fedora release>.<date>, and later ones that day
       # <Fedora release>.<date>.<n>, numbered after the tags already published.
