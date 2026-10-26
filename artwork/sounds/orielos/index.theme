@@ -1,0 +1,9 @@
+[Sound Theme]
+Name=OrielOS
+Comment=Soft glass chimes for OrielOS
+Inherits=ocean
+Directories=stereo
+Example=theme-demo
+
+[stereo]
+OutputProfile=stereo

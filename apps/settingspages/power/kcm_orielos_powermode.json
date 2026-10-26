@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Choose between Performance, Balanced and Power saver",
+        "Icon": "preferences-system-power-management",
+        "Name": "Power Mode"
+    },
+    "X-KDE-Keywords": "power mode,power profile,performance,balanced,power saver,battery saver,energy",
+    "X-KDE-System-Settings-Parent-Category": "hardware",
+    "X-KDE-Weight": 60
+}
