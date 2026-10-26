@@ -216,6 +216,7 @@ Games and their launchers come from the Store; the image carries only the system
   - `system/usr/lib/sysctl.d/60-orielos-gaming.conf` sets `vm.max_map_count = 1048576` (Fedora's own `10-map-count.conf` sets the same) and `kernel.split_lock_mitigate = 0`.
   - `zram-generator-defaults` gives Fedora's default zram swap.
   - Transparent hugepages stay at the kernel's `madvise`, and CPU mitigations stay on. The kernel's own scheduler is used, and there is no ananicy-cpp.
+  - **Performance is the default power mode**, on mains and on battery, with no power limits of OrielOS's own. `build/45-gaming.sh` sets tuned-ppd's `default=performance` in `/etc/tuned/ppd.conf` (its performance profile is TuneD's `throughput-performance`, and it only switches to a battery profile for balanced), and `system/etc/tuned/ppd_base_profile` holds `performance`. That file is what tuned-ppd reads first at every start, and it writes the mode chosen in the tray or Settings back to it, so a choice is kept across restarts and updates; without it, a first start would take TuneD's recommendation, usually balanced on a PC, before the default. PowerDevil switches profiles only if someone sets it to, and OrielOS doesn't.
 - **Packages.** `build/45-gaming.sh` installs:
   - GameMode;
   - `steam-devices`, the udev rules that let Steam from the Store reach controllers;

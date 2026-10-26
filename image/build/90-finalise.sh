@@ -142,6 +142,12 @@ if [[ "${#update_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
+# The first start's power mode, Performance, comes from the shipped base profile (see 45-gaming.sh).
+if [[ "$(cat /etc/tuned/ppd_base_profile 2>/dev/null)" != performance ]]; then
+    printf 'error: /etc/tuned/ppd_base_profile does not start tuned-ppd in performance\n' >&2
+    exit 1
+fi
+
 # The boot menu stays hidden, and an update that fails to reach the desktop twice is undone without
 # asking. bootupd adds OrielOS's GRUB snippet to the boot loader's configuration when OrielOS is
 # installed. Each desktop session then asks orielos-boot-success.service to mark the start as
