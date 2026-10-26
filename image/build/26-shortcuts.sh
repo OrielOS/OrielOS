@@ -2,8 +2,9 @@
 # Windows keyboard shortcuts and plain names for the system tools. Gives System Monitor
 # Ctrl+Shift+Esc, KRunner Win+R and Spectacle a Win+PrtSc action that saves a full screenshot
 # without a dialog, moves the Spectacle shortcuts those keys clash with, and renames System
-# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files. The KWin shortcuts
-# (Win+Tab and Win+Up/Down) are in system/etc/skel/.config/kglobalshortcutsrc.
+# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files. System Settings gives
+# Win+I and its place in Start to OrielOS's Settings app. The KWin shortcuts (Win+Tab and
+# Win+Up/Down) are in system/etc/skel/.config/kglobalshortcutsrc.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -88,9 +89,16 @@ EOF
 # Files: Dolphin. Win+E is Plasma's default.
 rename_entry "$apps/org.kde.dolphin.desktop" Dolphin Files "File manager" "$script"
 
+# Settings: OrielOS's own app (apps/settings) has Win+I and is Settings in Start, so System
+# Settings gives up both. It stays installed, because parts of Plasma open their pages in it.
+# kglobalaccel's entry for it is a link to the menu entry, so one change covers both.
+settings=$apps/systemsettings.desktop
+set_shortcuts "$settings" "Desktop Entry" "Tools,Meta+I" "Tools"
+[[ "$(head -n1 "$settings")" == "[Desktop Entry]" ]] || die "$settings doesn't start with [Desktop Entry]; update $script"
+sed -i '1a NoDisplay=true' "$settings"
+
 # Plasma's defaults that OrielOS keeps; fail if a package update moves one of them.
 grep -qxF 'X-KDE-Shortcuts=Meta+E' "$apps/org.kde.dolphin.desktop" || die "Dolphin is no longer on Meta+E; update $script"
-grep -qxF 'X-KDE-Shortcuts=Tools,Meta+I' "$apps/systemsettings.desktop" || die "System Settings is no longer on Meta+I; update $script"
 grep -qxF 'X-KDE-Shortcuts=Print,Meta+Shift+S' "$spectacle" || die "Spectacle is no longer on Meta+Shift+S; update $script"
 grep -q '^X-KDE-Shortcuts=Meta+\.,' "$apps/org.kde.plasma.emojier.desktop" || die "the emoji picker is no longer on Meta+.; update $script"
 

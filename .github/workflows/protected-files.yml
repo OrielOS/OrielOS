@@ -53,7 +53,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ "${AUTHOR}" = "${OWNER}" ] || [ "${AUTHOR}" = "dependabot[bot]" ]; then
+          # Dependabot updates the workflows' actions, and Renovate the digests in image/pins.env.
+          if [ "${AUTHOR}" = "${OWNER}" ] || [ "${AUTHOR}" = "dependabot[bot]" ] || [ "${AUTHOR}" = "renovate[bot]" ]; then
               echo "${AUTHOR} may change protected files."
               exit 0
           fi

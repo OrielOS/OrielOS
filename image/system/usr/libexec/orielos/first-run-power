@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Writes the power settings that every new user starts with, chosen on the first-run setup's power
+# page, to /etc/xdg/powerdevilrc. PowerDevil reads that file under each user's own settings, so a
+# user who changes power settings later keeps their own.
+#
+# Usage: first-run-power SLEEP_MINUTES SCREEN_OFF_MINUTES
+#   SLEEP_MINUTES       minutes without use before the computer sleeps, 1 to 1440, or 0 for never
+#   SCREEN_OFF_MINUTES  minutes without use before the screen turns off, 1 to 1440, or 0 for never
+# The same values go to PowerDevil's AC and Battery profiles; LowBattery keeps its own defaults.
+# Runs as root, through pkexec from the setup's plasma-setup user, and only until the setup has
+# finished (/etc/plasma-setup-done). Tests set ORIELOS_FIRST_RUN_ROOT to use another root folder.
+set -Eeuo pipefail
+
+ROOT_DIR="${ORIELOS_FIRST_RUN_ROOT:-}"
+CONFIG="$ROOT_DIR/etc/xdg/powerdevilrc"
+SETUP_DONE="$ROOT_DIR/etc/plasma-setup-done"
+# PowerDevil's actions when idle (PowerDevil::PowerButtonAction).
+NO_ACTION=0
+SLEEP=1
+
+die() {
+    printf 'first-run-power: %s\n' "$1" >&2
+    exit 2
+}
+
+usage() {
+    sed -n '6,8p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+# Print a number of minutes, or fail if it isn't 0 to 1440: minutes <value>
+minutes() {
+    if [[ ! "$1" =~ ^[0-9]{1,4}$ ]] || ((10#$1 > 1440)); then
+        die "minutes must be 0 to 1440, not '$1'"
+    fi
+    printf '%d\n' "$((10#$1))"
+}
+
+# Set one PowerDevil setting in a profile: set_key <profile> <group> <key> <value>
+set_key() {
+    kwriteconfig6 --file "$CONFIG" --group "$1" --group "$2" --key "$3" "$4"
+}
+
+main() {
+    local sleep screen profile
+    if [[ $# -ne 2 ]]; then
+        usage >&2
+        exit 2
+    fi
+    sleep="$(minutes "$1")"
+    screen="$(minutes "$2")"
+    [[ ! -e "$SETUP_DONE" ]] || die "the first-run setup has finished; change power settings in Settings"
+
+    mkdir -p "$(dirname "$CONFIG")"
+    for profile in AC Battery; do
+        if ((sleep > 0)); then
+            set_key "$profile" SuspendAndShutdown AutoSuspendAction "$SLEEP"
+            set_key "$profile" SuspendAndShutdown AutoSuspendIdleTimeoutSec "$((sleep * 60))"
+        else
+            set_key "$profile" SuspendAndShutdown AutoSuspendAction "$NO_ACTION"
+        fi
+        if ((screen > 0)); then
+            set_key "$profile" Display TurnOffDisplayWhenIdle true
+            set_key "$profile" Display TurnOffDisplayIdleTimeoutSec "$((screen * 60))"
+        else
+            set_key "$profile" Display TurnOffDisplayWhenIdle false
+        fi
+    done
+    chmod 0644 "$CONFIG"
+    printf 'first-run-power: new users sleep after %s and turn the screen off after %s\n' \
+        "$( ((sleep > 0)) && echo "$sleep min" || echo never)" "$( ((screen > 0)) && echo "$screen min" || echo never)"
+}
+
+main "$@"

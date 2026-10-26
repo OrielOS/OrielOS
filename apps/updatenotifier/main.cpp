@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     KLocalizedString::setApplicationDomain(QByteArrayLiteral(TRANSLATION_DOMAIN));
 
     KAboutData about(QStringLiteral("orielos-update-notifier"), i18nc("@title", "OrielOS updates"), QStringLiteral(ORIELOS_VERSION_STRING),
-        i18nc("@info", "Tells you when an OrielOS update is ready, and lets you pause updates or change channel."), KAboutLicense::GPL_V3,
+        i18nc("@info", "Tells you when an OrielOS update is ready or was undone, and opens the update settings."), KAboutLicense::GPL_V3,
         i18nc("@info:credit", "© 2026 OrielOS contributors"));
     about.setDesktopFileName(QStringLiteral("org.orielos.UpdateNotifier"));
     KAboutData::setApplicationData(about);
