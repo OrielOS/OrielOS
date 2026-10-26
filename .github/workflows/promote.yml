@@ -2,18 +2,15 @@ name: Promote
 
 # Moves the stable tag to a build that has been on testing, without rebuilding it: the same image,
 # digest and signature. Run by hand by the maintainer once the build has passed the real-hardware
-# checklist. It creates a GitHub Release with the version given, whose notes are the CHANGELOG's
-# Unreleased section, and opens a pull request that turns that section into the version's own.
+# checklist. Each build's version is its name, so the GitHub Release is named after the build and
+# tagged at the commit it was built from; its notes are the CHANGELOG's Unreleased section, and a
+# pull request turns that section into the version's own.
 
 on:
   workflow_dispatch:
     inputs:
       build:
-        description: Build tag to promote, such as 44.20261026 or 44.20261026.2
-        required: true
-        type: string
-      version:
-        description: Release version, such as v0.1.0
+        description: Build to promote, such as v0.0.7
         required: true
         type: string
 
@@ -43,17 +40,15 @@ jobs:
         with:
           persist-credentials: false
 
-      # The inputs are checked before anything uses them, and only ever reach the shell as
-      # environment variables.
-      - name: Check the inputs
+      # The input is checked before anything uses it, and only ever reaches the shell as an
+      # environment variable.
+      - name: Check the input
         env:
           BUILD: ${{ inputs.build }}
-          VERSION: ${{ inputs.version }}
         run: |
-          [[ "${BUILD}" =~ ^[0-9]+\.[0-9]{8}(\.[0-9]+)?$ ]] || { echo "::error::The build tag looks like 44.20261026 or 44.20261026.2"; exit 1; }
-          [[ "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version looks like v0.1.0"; exit 1; }
-          if git ls-remote --exit-code --tags origin "refs/tags/${VERSION}" >/dev/null; then
-              echo "::error::${VERSION} already exists"
+          [[ "${BUILD}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The build looks like v0.0.7"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/${BUILD}" >/dev/null; then
+              echo "::error::${BUILD} has already been released"
               exit 1
           fi
 
@@ -68,32 +63,34 @@ jobs:
         run: |
           [ -s image/keys/orielos-cosign.pub ] || { echo "::error::image/keys/orielos-cosign.pub is missing, so the signature can't be checked"; exit 1; }
           digest="$(skopeo inspect --format '{{.Digest}}' "docker://${REPOSITORY}:${BUILD}")"
+          # The commit the build was made from, which the release is tagged at.
+          revision="$(skopeo inspect --format '{{index .Labels "org.opencontainers.image.revision"}}' "docker://${REPOSITORY}@${digest}")"
+          [[ "${revision}" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::${BUILD} has no revision label, so its commit isn't known"; exit 1; }
           cosign verify --key image/keys/orielos-cosign.pub "${REPOSITORY}@${digest}" >/dev/null
           printf '%s' "${GITHUB_TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
           skopeo copy --preserve-digests "docker://${REPOSITORY}@${digest}" "docker://${REPOSITORY}:stable"
           echo "DIGEST=${digest}" >>"${GITHUB_ENV}"
+          echo "REVISION=${revision}" >>"${GITHUB_ENV}"
           echo "::notice::stable is now ${BUILD} (${digest})"
 
       - name: Write the release notes from the CHANGELOG
-        env:
-          BUILD: ${{ inputs.build }}
         run: |
           awk '/^## \[Unreleased\]/ {on = 1; next} on && /^## \[/ {exit} on' CHANGELOG.md >/tmp/notes.md
           [ -s /tmp/notes.md ] || { echo "::error::The CHANGELOG's Unreleased section is empty"; exit 1; }
-          printf '\nThis release is build %s, image digest %s. Computers on the stable channel update to it by themselves.\n' \
-              "${BUILD}" "${DIGEST}" >>/tmp/notes.md
+          printf '\nImage digest %s. Computers on the stable channel update to it by themselves.\n' \
+              "${DIGEST}" >>/tmp/notes.md
 
       - name: Create the release
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ inputs.build }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${VERSION}" --target "${GITHUB_SHA}" --title "OrielOS ${VERSION}" --notes-file /tmp/notes.md
+        run: gh release create "${VERSION}" --target "${REVISION}" --title "OrielOS ${VERSION}" --notes-file /tmp/notes.md
 
       # The Unreleased section becomes the release's own, under a new empty Unreleased heading, in
       # a pull request for the maintainer to merge.
       - name: Open a pull request for the CHANGELOG
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ inputs.build }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           branch="docs/changelog-${VERSION}"

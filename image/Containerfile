@@ -17,7 +17,7 @@ FROM ${BUILDER_IMAGE} AS app-builder
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/apps-builder.sh deps
 
-COPY CMakeLists.txt VERSION /src/
+COPY CMakeLists.txt /src/
 COPY apps/ /src/apps/
 COPY plasma/ /src/plasma/
 COPY artwork/ /src/artwork/
@@ -110,7 +110,7 @@ RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/90-finalise.sh
 
 # The version comes last. Every RUN after an ARG sees it, so declaring it earlier would make
-# builds of the same commit with another date tag rebuild every layer; here they differ only
+# builds of the same commit with another version rebuild every layer; here they differ only
 # in this last layer and the labels.
 ARG IMAGE_VERSION=must-be-set
 

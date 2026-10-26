@@ -15,7 +15,6 @@ qt_add_qml_module(orielos-buildcheck
 
 target_compile_definitions(orielos-buildcheck PRIVATE
     TRANSLATION_DOMAIN="orielos-buildcheck"
-    ORIELOS_VERSION_STRING="${PROJECT_VERSION}"
 )
 target_link_libraries(orielos-buildcheck PRIVATE
     OrielOS::Common

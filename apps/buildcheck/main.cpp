@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     KLocalizedString::setApplicationDomain(QByteArrayLiteral(TRANSLATION_DOMAIN));
 
-    KAboutData about(QStringLiteral("orielos-buildcheck"), i18nc("@title", "OrielOS Build Check"), QStringLiteral(ORIELOS_VERSION_STRING),
+    KAboutData about(QStringLiteral("orielos-buildcheck"), i18nc("@title", "OrielOS Build Check"), OrielOS::OsRelease::fromSystem().imageVersion(),
         i18nc("@info", "Checks that OrielOS apps build, install and start."), KAboutLicense::GPL_V3, i18nc("@info:credit", "© 2026 OrielOS contributors"));
     about.setDesktopFileName(QStringLiteral("org.orielos.BuildCheck"));
     KAboutData::setApplicationData(about);

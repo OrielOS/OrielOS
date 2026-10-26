@@ -2,7 +2,8 @@ name: Image
 
 # Builds the OS image when a change that affects it merges into main, or by hand: smoke-tests it in
 # a VM, checks that Flathub has the NVIDIA driver extension it needs, then publishes it to
-# ghcr.io/ncjsvr/orielos under its build tag, signs it with cosign and moves the testing tag to it.
+# ghcr.io/ncjsvr/orielos under its version (v0.0.1, v0.0.2, ...), signs it with cosign and moves the
+# testing tag to it.
 # A pull request that changes this workflow or the build script only builds: changes are booted
 # and update-tested locally before they merge, so pull requests don't smoke-test on GitHub, and
 # they never publish.
@@ -16,9 +17,9 @@ on:
       - image/**
       - plasma/**
       - CMakeLists.txt
-      - VERSION
       - .containerignore
       - tools/build-image.sh
+      - tools/next-version.sh
       - tests/smoke-test.sh
       - tests/lib/vm.sh
       - .github/workflows/image.yml
@@ -26,6 +27,7 @@ on:
   pull_request:
     paths:
       - tools/build-image.sh
+      - tools/next-version.sh
       - .github/workflows/image.yml
   workflow_dispatch:
 
@@ -117,35 +119,23 @@ jobs:
           path: ${{ runner.temp }}/apt-archives/*.deb
           key: ${{ steps.apt-key.outputs.key }}
 
-      # The first build of a UTC day is tagged <Fedora release>.<date>, and later ones that day
-      # <Fedora release>.<date>.<n>, numbered after the tags already published.
-      - name: Choose the build tag
+      # Each published build is the next version after the highest one in the registry
+      # (tools/next-version.sh): v0.0.1, v0.0.2 and on, rolling over after v0.0.10 to v0.1.0. A
+      # pull request's build gets the number the next publish would, but never publishes it. If
+      # the registry can't be read, the job stops rather than count from v0.0.1 again.
+      - name: Choose the version
         id: tag
         run: |
-          source image/pins.env
-          date="$(date -u +%Y%m%d)"
-          number=1
-          tag="${FEDORA_MAJOR}.${date}"
-          # Nothing is published yet when the repository has no tags at all.
-          tags="$(skopeo list-tags "docker://${REPOSITORY}" 2>/dev/null || echo '{"Tags": []}')"
-          while jq -e --arg t "${tag}" '.Tags | index($t)' <<<"${tags}" >/dev/null; do
-              number=$((number + 1))
-              tag="${FEDORA_MAJOR}.${date}.${number}"
-          done
-          # pins.env comes from the change being built, so its value is checked before it's used.
-          [[ "${tag}" =~ ^[0-9]+\.[0-9]{8}(\.[0-9]+)?$ ]] || { echo "::error::FEDORA_MAJOR in image/pins.env isn't a number"; exit 1; }
-          {
-              echo "date=${date}"
-              echo "number=${number}"
-              echo "tag=${tag}"
-          } >>"${GITHUB_OUTPUT}"
+          tags="$(skopeo list-tags "docker://${REPOSITORY}" | jq -r '.Tags[]')"
+          tag="$(tools/next-version.sh <<<"${tags}")"
+          [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::tools/next-version.sh gave '${tag}'"; exit 1; }
+          echo "tag=${tag}" >>"${GITHUB_OUTPUT}"
           echo "::notice::This build is ${tag}"
 
       - name: Build the image
         env:
-          DATE: ${{ steps.tag.outputs.date }}
-          NUMBER: ${{ steps.tag.outputs.number }}
-        run: sudo env TMPDIR=/mnt/tmp tools/build-image.sh --date "${DATE}" --number "${NUMBER}" --output /mnt/builds --keep 1
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: sudo env TMPDIR=/mnt/tmp tools/build-image.sh --version "${TAG}" --output /mnt/builds --keep 1
 
       # Flatpak apps need Flathub's GL extension for the image's NVIDIA driver version, or they
       # lose GPU acceleration after the update.
@@ -237,7 +227,7 @@ jobs:
         if: steps.key.outputs.ready == 'true'
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
-      # The build tag is pushed and signed first; testing moves to it only once the signature is
+      # The version tag is pushed and signed first; testing moves to it only once the signature is
       # there, so no computer on testing ever sees an unsigned build.
       - name: Publish, sign and move testing
         if: steps.key.outputs.ready == 'true'
@@ -250,6 +240,11 @@ jobs:
         run: |
           printf '%s' "${GITHUB_TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
           printf '%s' "${GITHUB_TOKEN}" | cosign login ghcr.io --username "${ACTOR}" --password-stdin
+          # A version names one build for good, so an existing tag is never pushed over.
+          if skopeo inspect --raw "docker://${REPOSITORY}:${TAG}" >/dev/null 2>&1; then
+              echo "::error::${REPOSITORY}:${TAG} already exists; versions are never reused"
+              exit 1
+          fi
           skopeo copy --digestfile /tmp/digest "oci-archive:/tmp/image/orielos-${TAG}.ociarchive:${TAG}" "docker://${REPOSITORY}:${TAG}"
           digest="$(cat /tmp/digest)"
           # The classic signature format, attached as a sha256-<digest>.sig tag: installed computers

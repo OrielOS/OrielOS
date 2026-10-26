@@ -24,7 +24,7 @@ PASSED=0
 FAILED=0
 SKIPPED=0
 # The files the app build reads, as in .github/workflows/apps.yml.
-APP_PATHS=(apps plasma artwork CMakeLists.txt VERSION image/Containerfile image/build/apps-builder.sh
+APP_PATHS=(apps plasma artwork CMakeLists.txt image/Containerfile image/build/apps-builder.sh
     image/pins.env .containerignore .gitattributes tools/test-apps.sh .github/workflows/apps.yml)
 CONVENTIONAL='^(feat|fix|docs|chore|test|build|ci|refactor|perf|style|revert)(\([a-z0-9._/-]+\))?!?: [^ ]'
 

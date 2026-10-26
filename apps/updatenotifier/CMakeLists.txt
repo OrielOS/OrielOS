@@ -9,9 +9,9 @@ find_package(KF6 6.0 REQUIRED COMPONENTS StatusNotifierItem Notifications DBusAd
 add_executable(orielos-update-notifier main.cpp updatenotifier.cpp updatenotifier.h)
 target_compile_definitions(orielos-update-notifier PRIVATE
     TRANSLATION_DOMAIN="orielos-update-notifier"
-    ORIELOS_VERSION_STRING="${PROJECT_VERSION}"
 )
 target_link_libraries(orielos-update-notifier PRIVATE
+    OrielOS::Common
     OrielOS::UpdateState
     Qt6::Widgets
     Qt6::DBus

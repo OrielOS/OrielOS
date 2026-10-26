@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to OrielOS are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and OrielOS uses [semantic versioning](https://semver.org/) for its releases; OS image builds are additionally tagged by Fedora release and date.
+All notable changes to OrielOS are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and every published OrielOS build has its own version, `vMAJOR.MINOR.PATCH`, one more than the build before. Versions before v0.0.1 were named by Fedora release and date.
 
 ## [Unreleased]
 
@@ -101,6 +101,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Changed
 
+- OrielOS has one version number for everything, starting at v0.0.1: every published build is the next one, rolling over from v0.0.10 to v0.1.0. About this System, the boot menu, Settings → Update and the apps' About dialogs show it, as in "OrielOS v0.0.7", in place of names such as "OrielOS 44.20261026". A stable release is named after the build it is.
 - Window titles sit on the left of the title bar, next to the app's icon, as on Windows.
 - OrielOS no longer sends Fedora's anonymous weekly package count ("countme") when it checks repositories.
 

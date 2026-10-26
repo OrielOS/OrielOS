@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "osrelease.h"
 #include "updatenotifier.h"
 
 #include <KAboutData>
@@ -17,7 +18,7 @@ int main(int argc, char *argv[])
     app.setQuitOnLastWindowClosed(false);
     KLocalizedString::setApplicationDomain(QByteArrayLiteral(TRANSLATION_DOMAIN));
 
-    KAboutData about(QStringLiteral("orielos-update-notifier"), i18nc("@title", "OrielOS updates"), QStringLiteral(ORIELOS_VERSION_STRING),
+    KAboutData about(QStringLiteral("orielos-update-notifier"), i18nc("@title", "OrielOS updates"), OrielOS::OsRelease::fromSystem().imageVersion(),
         i18nc("@info", "Tells you when an OrielOS update is ready or was undone, and opens the update settings."), KAboutLicense::GPL_V3,
         i18nc("@info:credit", "© 2026 OrielOS contributors"));
     about.setDesktopFileName(QStringLiteral("org.orielos.UpdateNotifier"));

@@ -53,6 +53,9 @@ public:
     /** VERSION_ID, or an empty string if it is not set. */
     QString versionId() const;
 
+    /** IMAGE_VERSION, OrielOS's own version such as v0.0.7, or "dev" if it is not set, as outside an OrielOS build. */
+    QString imageVersion() const;
+
 private:
     QHash<QString, QString> m_values;
     QString m_path;

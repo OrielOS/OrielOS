@@ -83,7 +83,7 @@ KCM.SimpleKCM {
                 QQC2.Label {
                     Layout.fillWidth: true
                     visible: root.settings.runningVersion.length > 0
-                    text: root.l10n.i18nc("@info %1 is a version such as 44.20261026", "OrielOS %1", root.settings.runningVersion)
+                    text: root.l10n.i18nc("@info %1 is a version such as v0.0.7", "OrielOS %1", root.settings.runningVersion)
                     wrapMode: Text.Wrap
                 }
             }

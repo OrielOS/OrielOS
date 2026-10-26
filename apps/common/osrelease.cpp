@@ -171,4 +171,10 @@ QString OsRelease::versionId() const
     return value(u"VERSION_ID");
 }
 
+QString OsRelease::imageVersion() const
+{
+    const QString version = value(u"IMAGE_VERSION");
+    return version.isEmpty() ? QStringLiteral("dev") : version;
+}
+
 } // namespace OrielOS
