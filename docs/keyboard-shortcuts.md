@@ -22,7 +22,7 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + PrtSc | Saves a screenshot of the whole screen to Pictures/Screenshots |
 | Alt + PrtSc | Captures the active window |
 
-Settings is OrielOS's Settings app (see [Settings](settings.md)). Process Manager, Screenshot and Files are listed under those names in Start, and Start search also finds them by words such as "processes", "end task", "snip" and "print screen".
+Settings is OrielOS's Settings app (see [Settings](settings.md)). Process Manager, Screenshot, Files and Clipboard history are listed under those names in Start, and Start search also finds them by words such as "processes", "end task", "snip", "print screen" and "paste". Clipboard history in Start does the same as Windows + V.
 
 ## Changing a shortcut
 

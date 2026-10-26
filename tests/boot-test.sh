@@ -474,7 +474,7 @@ read_shortcuts() {
     SHORTCUTS_OUT="$(vm_ssh "$(shortcut_probe)" 2>&1)" || true
     vm_ssh cat "/home/$TEST_USER/.config/kglobalshortcutsrc" >"$RESULTS/kglobalshortcutsrc" 2>/dev/null || true
     SHORTCUT_CLASHES="$(shortcut_clashes "$RESULTS/kglobalshortcutsrc" 2>/dev/null)" || true
-    TOOL_NAMES="$(vm_ssh "grep -m1 -h '^Name=' /usr/share/applications/org.kde.plasma-systemmonitor.desktop /usr/share/applications/org.kde.spectacle.desktop /usr/share/applications/org.kde.dolphin.desktop" 2>&1 | paste -sd ',' -)" || true
+    TOOL_NAMES="$(vm_ssh "grep -m1 -h '^Name=' /usr/share/applications/org.kde.plasma-systemmonitor.desktop /usr/share/applications/org.kde.spectacle.desktop /usr/share/applications/org.kde.dolphin.desktop /usr/share/applications/org.orielos.ClipboardHistory.desktop" 2>&1 | paste -sd ',' -)" || true
 }
 
 # Print each key that more than one action in a kglobalshortcutsrc file has as its active
@@ -1300,10 +1300,10 @@ run_checks() {
         fail "Windows shortcuts are set, but more than one action has the same shortcut: $(paste -sd ';' - <<<"$SHORTCUT_CLASHES")"
     elif [[ -z "$WIN_E_SECONDS" ]]; then
         fail "Windows shortcuts are set, but pressing Win+E over QMP did not start Dolphin within 20 s"
-    elif [[ "$TOOL_NAMES" != "Name=Process Manager,Name=Screenshot,Name=Files" ]]; then
-        fail "System Monitor, Spectacle and Dolphin do not have their OrielOS names (${TOOL_NAMES:-no output})"
+    elif [[ "$TOOL_NAMES" != "Name=Process Manager,Name=Screenshot,Name=Files,Name=Clipboard history" ]]; then
+        fail "System Monitor, Spectacle, Dolphin and the clipboard history do not have their OrielOS names in Start (${TOOL_NAMES:-no output})"
     else
-        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Process Manager, Screenshot and Files)"
+        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Process Manager, Screenshot, Files and Clipboard history)"
     fi
 
     info "Store and Firefox"
