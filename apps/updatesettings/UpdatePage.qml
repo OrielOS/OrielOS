@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+pragma ComponentBehavior: Bound
+
 // The Update settings page. Every button and option carries a mnemonic (Alt and the underlined
 // letter), each letter used once on the page and its dialogs, and not C, which kcmshell6's Close
 // button has. The rows have no form labels, which would take letters of their own; the section
@@ -145,8 +147,9 @@ KCM.SimpleKCM {
                 Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Pause updates")
             }
 
-            // One button pauses and resumes. A button that starts hidden inside a hidden row gets no
-            // working mnemonic when the row appears, but changing a button's text takes the new one.
+            // A button's mnemonic is fixed when the button is made: showing it later, or changing its
+            // text, leaves Alt and its letter doing nothing. So the loader makes a new Pause or Resume
+            // button each time the pause starts or ends.
             RowLayout {
                 spacing: Kirigami.Units.smallSpacing
 
@@ -165,16 +168,29 @@ KCM.SimpleKCM {
                     wrapMode: Text.Wrap
                 }
 
-                QQC2.Button {
-                    text: root.settings.paused ? root.l10n.i18nc("@action:button", "&Resume updates") : root.l10n.i18nc("@action:button", "&Pause updates")
-                    icon.name: root.settings.paused ? "media-playback-start" : "media-playback-pause"
-                    enabled: !root.settings.busy
-                    onClicked: {
-                        if (root.settings.paused) {
-                            root.settings.resume();
-                        } else {
-                            root.settings.pause(root.settings.minPauseWeeks + pauseLength.currentIndex);
-                        }
+                Loader {
+                    sourceComponent: root.settings.paused ? resumeButton : pauseButton
+                }
+
+                Component {
+                    id: pauseButton
+
+                    QQC2.Button {
+                        text: root.l10n.i18nc("@action:button", "&Pause updates")
+                        icon.name: "media-playback-pause"
+                        enabled: !root.settings.busy
+                        onClicked: root.settings.pause(root.settings.minPauseWeeks + pauseLength.currentIndex)
+                    }
+                }
+
+                Component {
+                    id: resumeButton
+
+                    QQC2.Button {
+                        text: root.l10n.i18nc("@action:button", "&Resume updates")
+                        icon.name: "media-playback-start"
+                        enabled: !root.settings.busy
+                        onClicked: root.settings.resume()
                     }
                 }
             }
