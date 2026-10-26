@@ -8,7 +8,7 @@ import org.kde.ki18n
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 
-// Newly installed apps and recent files, in two columns.
+// Newly installed apps, recent files and the Get started suggestions, in two columns.
 Item {
     id: recommended
 
@@ -49,6 +49,7 @@ Item {
             height: grid.cellHeight
             label: String(row.modelData.display ?? "")
             iconSource: row.modelData.decoration ?? ""
+            fallbackIcon: row.modelData.store ? "plasmadiscover" : "unknown"
             subtitle: String(row.modelData.subtitle ?? "")
             current: GridView.isCurrentItem && grid.activeFocus
 

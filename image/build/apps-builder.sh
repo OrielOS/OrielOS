@@ -28,10 +28,16 @@ deps() {
 }
 
 # Runs qmllint over every QML module with the import paths and resources CMake generated for
-# it. The generated all_qmllint target cannot fail on warnings, so this calls qmllint itself.
+# it. The generated all_qmllint target cannot fail on warnings, so this calls qmllint itself. A
+# module with only C++ types has no QML or JavaScript files to lint, and qmllint given none prints
+# its usage and fails, so such a module is skipped.
 lint_qml() {
     local qmllint=/usr/lib64/qt6/bin/qmllint rsp modules=0
     while IFS= read -r -d '' rsp; do
+        if ! grep -q -E '\.(qml|js|mjs)$' "$rsp"; then
+            step "Skipping ${rsp##*/}: no QML or JavaScript files"
+            continue
+        fi
         step "Running qmllint on ${rsp##*/}"
         "$qmllint" --max-warnings 0 "@$rsp"
         modules=$((modules + 1))

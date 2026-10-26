@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "KDE/PlasmaSetup",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Description": "Show whether a computer without Wi-Fi is connected by cable.",
+        "Id": "org.orielos.plasmasetup.network",
+        "License": "GPL-3.0-or-later",
+        "Name": "Network"
+    },
+    "NoDisplay": true,
+    "X-KDE-ParentApp": "org.kde.plasmasetup",
+    "X-KDE-Weight": 11
+}

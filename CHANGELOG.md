@@ -6,6 +6,20 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- On a PC that also has Windows, the boot menu lists Windows and shows for five seconds at every start. On other PCs it stays hidden as before.
+- OrielOS has its own sounds: soft glass chimes for signing in and out, notifications, questions, warnings and errors, plugging in devices and power, low battery and the volume keys. Any other sound comes from Plasma's Ocean theme.
+- Snap layouts: Windows + Z shows layouts for the window you're using (halves, thirds, two thirds beside one third, and quarters) and moves it into the area you click or choose with the arrow keys and Enter.
+- A "Known limitations" page lists what OrielOS can't do yet, such as running on real hardware or games whose publishers block Linux, and what it won't do by design, such as Hibernate.
+- The sign-in screen opens on the time over the OrielOS wallpaper, like a locked screen. Press a key or click, and the sign-in slides up into the middle; after a minute without input the time comes back. It offers Sleep, Restart and Shut down.
+- The boot splash shows the OrielOS logo on a black screen, with a spinner below it.
+- OrielOS has its own colours: OrielOS Light, the default, and OrielOS Dark, built from OrielOS's palette with Oriel Blue for selections, focus and links. The OrielOS Dark global theme keeps the OrielOS taskbar, and Plasma's Day-Night Cycle switches between the two.
+- Start suggests apps to get started with under Recommended: Steam, Heroic Games Launcher, Discord, Spotify, OBS Studio and Lutris. Each opens its page in the Store, leaves the list once installed, and the suggestions can be hidden from an entry's menu.
+- Clipboard history is in Start, under that name: it shows what you copied recently, as Windows + V does. Files always shows its tab bar.
+- The first-run setup asks what OrielOS needs, in this order: language, keyboard layout, network, time zone, power and your account.
+  - A new power page sets when the computer sleeps and when the screen turns off if it isn't being used, starting from sleep after 15 minutes and the screen off after 10. Your choice becomes the power settings every new account starts with.
+  - On a computer without Wi-Fi, the network page shows whether the cable connection reaches the internet, instead of being skipped.
+  - The setup no longer asks for screen scaling, a dark theme or the computer's name. The dark theme switch gave the new account Fedora's dark desktop instead of OrielOS's.
+  - The welcome screen shows the OrielOS wallpaper, and the last page shows the OrielOS logo.
 - OrielOS builds are published when changes merge.
   - Each change that affects the system is built on GitHub, started in a VM to check it reaches the sign-in screen in the mode anti-cheat needs with only signed drivers, signed, and published to ghcr.io as the new testing build.
   - A build is published only if Flathub has the NVIDIA driver extension that Store apps need for it.
@@ -36,6 +50,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
   - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
   - GameMode, umu-launcher and Fedora's compressed memory swap (zram) are included.
+  - OrielOS starts in the Performance power mode, on mains and on battery, and keeps whichever mode you choose instead.
   - Steam from the Store reaches Xbox and PlayStation 4 and 5 controllers. The PlayStation touchpad doesn't move the desktop's pointer.
   - Solaar, Piper and OpenRGB from the Store can reach Logitech devices, gaming mice and RGB lighting.
   - A new "Games and controllers" page explains pairing controllers over Bluetooth.
@@ -86,12 +101,16 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Changed
 
+- Window titles sit on the left of the title bar, next to the app's icon, as on Windows.
 - OrielOS no longer sends Fedora's anonymous weekly package count ("countme") when it checks repositories.
 
 - Pull requests that don't change the apps, such as documentation or website changes, no longer wait about two minutes for the app build and tests; the `apps` check still reports and passes. The Discord bot's tests run after a merge only when the bot changed.
 
 ### Fixed
 
+- About this System shows the OrielOS logo and the whole version, such as 44.20261026, instead of Fedora's logo.
+- The firewall settings page no longer asks for a password as soon as it opens. Anyone can see the firewall's settings, and administrators change them without a password, as on Fedora's KDE edition.
+- A new installation names the computer `orielos` instead of `fedora`, on the network and in the terminal.
 - A unit no longer fails at every start (`efi.automount`, the EFI system partition's automount), which made `systemctl is-system-running` report `degraded`.
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.
 - The Discord bot no longer cuts an emoji in half when it shortens a long title or release note.

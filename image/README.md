@@ -8,15 +8,18 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 - The `app-builder` stage: builds OrielOS's own apps on the pinned Fedora image (`BUILDER_IMAGE`), using `build/apps-builder.sh`. It copies in only `CMakeLists.txt`, `VERSION`, `apps/`, `plasma/` and `artwork/`, then configures, builds, runs the tests with `ctest`, runs `qmllint` over every QML module and installs to `/out`. A failing test or a `qmllint` warning fails the build. The final image copies in `/out/usr`, so no compiler, header or build tool reaches it. `tools/test-apps.sh` builds only this stage.
 - `build/10-kernel.sh`: replaces the base kernel with the Fedora CoreOS stable kernel, locks its version, and adds the signed xone, xpadneo, OpenRazer and v4l2loopback drivers.
 - `build/15-server-defaults.sh`: removes the parts of fedora-bootc that only make sense on servers and switches off its server behaviour (see [Server defaults](#server-defaults)). It installs nothing.
-- `build/20-desktop.sh`: installs the desktop from `packages/desktop.txt` without weak dependencies, makes Flathub the only Flatpak source, enables Plasma Setup for the first boot and SDDM for every boot, makes `graphical.target` the default, makes OrielOS's look-and-feel the default (see [The taskbar](#the-taskbar)) and sets the Plymouth theme.
+- `build/20-desktop.sh`: installs the desktop from `packages/desktop.txt` without weak dependencies, makes Flathub the only Flatpak source, enables Plasma Setup for the first boot and SDDM for every boot, makes `graphical.target` the default, makes OrielOS's look-and-feel the default, with OrielOS Dark as its dark version for Plasma's Day-Night Cycle (see [The taskbar](#the-taskbar)).
 - `packages/desktop.txt`: the desktop package list, one package per line, grouped under comment headings (see [The desktop](#the-desktop)). It is bind-mounted into the build like the scripts.
 - `build/25-store.sh`: turns Discover into the Store (see [The Store](#the-store)), removes its firmware backend and makes Firefox the default browser. It fails the build if a Discover desktop entry or the default-browser file is missing, or if any backend but Flatpak is left.
 - `build/26-shortcuts.sh`: the Windows keyboard shortcuts for apps and the Windows names of the system tools (see [Keyboard shortcuts](#keyboard-shortcuts)). It fails the build if a desktop entry it changes is missing or no longer has the shortcuts or name it expects, if a Plasma default that OrielOS relies on has moved, or if two desktop entries share a shortcut.
 - `build/desktop-entry.sh`: helpers sourced by `25-store.sh` and `26-shortcuts.sh`: `die`, and `rename_entry`, which renames a desktop entry, sets its `GenericName` and drops its translated names.
 - `build/27-lock-screen.sh`: installs `lockscreen/LockScreenUi.qml`, OrielOS's copy of Plasma's lock screen layout, over Plasma's own (see [The taskbar](#the-taskbar)). It fails the build unless Plasma's file is exactly the version the copy is based on, checked by its sha256.
+- `build/28-sign-in.sh`: installs OrielOS's SDDM theme, `orielos`: Breeze's theme with `sddm/orielos/Main.qml`, `metadata.desktop` and `theme.conf`, and makes it SDDM's theme in `/etc/sddm.conf.d/10-orielos-theme.conf`. It fails the build unless Breeze's `Main.qml` is exactly the version OrielOS's is based on, checked by its sha256.
+- `sddm/orielos/`: the sign-in screen's own files. `Main.qml` is Breeze's from sddm-breeze 6.7.5, changed to open on the time over the OrielOS wallpaper, to slide the sign-in up into the middle when a key is pressed or the screen clicked (not when the pointer moves), and to leave out Hibernate.
 - `lockscreen/`: `LockScreenUi.qml`, Plasma's lock screen layout from plasma-desktop 6.7.5 with one change: the time and date sit under the sill of the OrielOS wallpaper while the screen is idle, in ink on Daybreak and white on Nightfall, and fade out while the user unlocks.
 - `build/30-nvidia.sh`: NVIDIA's open kernel modules and the matching driver. It checks that the modules were built for the installed kernel and that the driver packages carry negativo17's signature.
 - `build/40-apps.sh`: the runtime libraries the apps need (Qt Quick, Kirigami, KI18n, KCoreAddons, KStatusNotifierItem, KNotifications and KDBusAddons for the update notifier, and KCMUtils and System Settings for the Settings app and its Update page). Plasma already pulls them in; listing them keeps the dependency explicit. It also installs what `orielos-update` uses: `tar`, `jq`, `skopeo` and polkit's `pkexec`.
+- `build/41-first-run.sh`: puts Plasma Setup's pages in OrielOS's order, removes its display and device-name pages and shows the OrielOS logo on its last page (see [First boot](#first-boot)). It fails the build unless every Plasma Setup file it changes is the version it was written for.
 - `build/45-gaming.sh`: the system pieces games and gaming peripherals need (see [Gaming](#gaming)). It takes the umu-launcher RPM's pin from `pins.env` as its argument.
 - `build/80-repos.sh`: disables every repository that is not Fedora's own, and switches off Fedora's countme reporting (see [Gaming](#gaming)).
 - `build/85-check-modules.sh`: runs after every package is installed and fails the build unless:
@@ -38,11 +41,16 @@ The OS image recipe. The image is built from Fedora's `fedora-bootc` base with r
 - `system/`: files copied into the image as they are, laid out like the filesystem. It holds:
   - `usr/lib/systemd/system/orielos-app-update.service` and `orielos-app-update.timer`: automatic updates of apps from the Store (see [The Store](#the-store)).
   - `usr/bin/orielos-update`, `usr/lib/orielos/update.conf`, `usr/lib/systemd/system/orielos-update-check.service`, `orielos-update-check.timer`, `orielos-update-state.service` and `usr/share/polkit-1/actions/org.orielos.update.policy`: the update command, its source, the background check, the per-boot state for the desktop and who may change the settings (see [Updates](#updates)).
-  - `usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg`, `usr/libexec/orielos/boot-flags`, `usr/lib/systemd/system/orielos-boot-success.service`, `usr/lib/systemd/user/orielos-mark-boot-success.service` and `usr/share/polkit-1/rules.d/50-orielos-boot-success.rules`: the boot menu, and undoing an update that doesn't start (see [The boot menu](#the-boot-menu)).
+  - `usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg`, `13_orielos-windows.cfg`, `usr/libexec/orielos/boot-flags`, `usr/lib/systemd/system/orielos-boot-success.service`, `usr/lib/systemd/user/orielos-mark-boot-success.service` and `usr/share/polkit-1/rules.d/50-orielos-boot-success.rules`: the boot menu, and undoing an update that doesn't start (see [The boot menu](#the-boot-menu)).
   - `usr/libexec/orielos/flatpak-setup` and `usr/lib/systemd/system/orielos-flatpak-setup.service`: the first-boot install of Firefox from Flathub (see [The Store](#the-store)).
+  - `usr/libexec/orielos/first-run-power`, `usr/share/polkit-1/actions/org.orielos.first-run.policy`, `usr/share/polkit-1/rules.d/49-orielos-first-run.rules` and `usr/lib/tmpfiles.d/orielos-first-run.conf`: the first-run setup's power page and welcome screen (see [First boot](#first-boot)).
   - `usr/libexec/orielos/secure-boot-key`, `usr/lib/systemd/system/orielos-secure-boot-key.service`, `usr/libexec/orielos/secure-boot-notify` and `etc/xdg/autostart/orielos-secure-boot-notify.desktop`: the Secure Boot key step (see [Secure Boot](#secure-boot)). The Containerfile copies `system/etc/` to `/etc`, which bootc keeps as the default configuration.
+  - `usr/share/applications/org.orielos.ClipboardHistory.desktop`: **Clipboard history** in Start, which shows Plasma's clipboard history at the pointer, as Win+V does, by asking kglobalaccel to run plasmashell's `show-on-mouse-pos` (see [Keyboard shortcuts](#keyboard-shortcuts)). Klipper's own entry has `NoDisplay=true` and runs `/usr/bin/false`; it only names the shortcuts' component.
   - `etc/skel/.config/kglobalshortcutsrc`: the KWin shortcuts every new user starts with (see [Keyboard shortcuts](#keyboard-shortcuts)).
-  - `etc/xdg/dolphinrc`: Files (Dolphin) opens a fresh window on the Home folder instead of restoring the last session's tabs.
+  - `etc/hostname`: the computer's name, `orielos`, until someone changes it. The `DEFAULT_HOSTNAME` that `build/95-version.sh` writes to `os-release` doesn't reach the initramfs, which dracut builds with only a few `os-release` fields, so early boot named the computer `fedora`, systemd's built-in default, and kept that name. A name in `/etc/hostname` replaces it once the root file system is up.
+  - `etc/xdg/breezerc`: window titles sit on the left of the title bar, next to the app's icon, as on Windows, instead of in the middle. Breeze's rounded corners stay on.
+  - `etc/xdg/kcm-about-distrorc`: About this System (in System Settings and Info Center) shows OrielOS's logo, which os-release's `LOGO=orielos-logo-icon` names (`build/95-version.sh`), and the whole build version. It replaces Fedora's file, which points the page at Fedora's logo; it must not set `LogoPath`, or that wins over os-release.
+  - `etc/xdg/dolphinrc`: Files (Dolphin) opens a fresh window on the Home folder instead of restoring the last session's tabs, and always shows its tab bar, as File Explorer does.
   - `etc/xdg/krunnerrc`: KRunner finds settings with OrielOS's runner, which opens Settings' pages in Settings, instead of System Settings' (see `apps/README.md`).
   - `etc/xdg/kscreenlockerrc`: the lock screen shows the OrielOS wallpaper instead of Fedora's (see [The taskbar](#the-taskbar)).
   - `usr/lib/modules-load.d/orielos-ntsync.conf`, `usr/lib/sysctl.d/60-orielos-gaming.conf` and `usr/lib/udev/rules.d/70-orielos-playstation-touchpad.rules`: the gaming defaults (see [Gaming](#gaming)).
@@ -60,13 +68,15 @@ More system configuration (sysctl settings, udev rules, systemd units) will be a
 `packages/desktop.txt` lists everything the desktop needs from Fedora's repositories. It is installed without weak dependencies, so the image holds only what is listed and what those packages strictly require; if something stops working because a recommended package is missing, add that package to the list. The list covers:
 
 - KDE Plasma on Wayland with KWin, Xwayland for X11 apps, and Fedora's Plasma defaults.
-- SDDM with the Breeze theme on a Wayland greeter, and its settings page.
+- SDDM on a Wayland greeter, with OrielOS's theme (below), and its settings page.
 - Plasma Setup, the first-boot wizard, with the Fedora look-and-feel and wallpapers it needs.
 - System Settings, power management, display, disk health, Thunderbolt, firewall, printing, Bluetooth, sound and network settings, including Wi-Fi, mobile broadband and the common VPN types.
 - The everyday system tools: Dolphin (named Files), Konsole (Terminal), Spectacle (named Screenshot), Plasma System Monitor (named Process Manager), Klipper (clipboard history, part of Plasma), System Settings, Discover, KInfoCenter and Ark (archive support in Dolphin).
 - Discover with only its Flatpak backend. Flathub is the only source: Fedora's own Flatpak remote is never added, and Flathub's remote file from `fedora-flathub-remote` is installed in `/usr/share/flatpak/remotes.d` without Fedora's filter, so all of Flathub is available. Discover cannot add Fedora packages to the OS.
 - NetworkManager, PipeWire (with PulseAudio, ALSA and JACK compatibility) and WirePlumber, BlueZ, CUPS with its filters, firewalld and Flatpak.
+- firewalld's polkit policy for Fedora's desktop editions, as Fedora's KDE edition has it: anyone may read the firewall's settings, and administrators (the `wheel` group) change them without a password. firewalld chooses its policy from os-release's `VARIANT_ID` when it is installed, and fedora-bootc names no desktop variant, so `20-desktop.sh` points `org.fedoraproject.FirewallD1.policy` and `org.fedoraproject.FirewallD1.rules` at the desktop choices itself. The firewall's own settings stay firewalld's standard ones, with the `public` zone.
 - Breeze icons, cursors and GTK theme, and the Noto fonts, with CJK and colour emoji.
+- OrielOS's own sound theme, `orielos` (from `artwork/sounds/`), as every user's default through `/etc/xdg/kdeglobals`. It inherits Plasma's Ocean theme, which plays any sound OrielOS's doesn't have.
 - Mesa's OpenGL, Vulkan and VA-API drivers, Intel's video decoding driver, and the GStreamer plugins for basic playback.
 - Guest support for QEMU/KVM and VMware (qemu-guest-agent, spice-vdagent, open-vm-tools-desktop), which does nothing on real hardware.
 
@@ -78,8 +88,8 @@ New users get a familiar taskbar: the Start button, with the OrielOS Start icon 
 
 - `build/20-desktop.sh` sets `LookAndFeelPackage=org.orielos.desktop` in the `[KDE]` group of `/etc/xdg/kdeglobals`. `/etc/xdg` comes before Fedora's `kde-settings` profile (`/usr/share/kde-settings/kde-profile/default/xdg`) on `XDG_CONFIG_DIRS`, which still sets Fedora's look-and-feel there, so OrielOS's wins without changing Fedora's files. `build/25-store.sh` adds the default browser to the same file.
 - Plasma runs the package's layout script when a user logs in for the first time, so it applies to every account created after installation, including the first one from Plasma Setup.
-- Plasma Setup's Dark Theme switch applies Fedora's dark look-and-feel, which the wizard passes on to the new account. That account's first desktop then starts from Fedora's layout, and OrielOS's update script `orielos-taskbar-1.js` moves its panel into the taskbar order straight away, with the OrielOS Start icon, but the panel keeps Fedora's floating style, the pager and the default pinned apps, and the desktop keeps Fedora's wallpaper. An OrielOS dark look-and-feel will replace this.
-- SDDM's login screen keeps Fedora's Breeze theme until OrielOS has its own.
+- Plasma Setup's display page, whose Dark Theme switch applied Fedora's dark look-and-feel and passed it on to the new account, isn't part of OrielOS's first-run setup (see [First boot](#first-boot)), so every new account starts from OrielOS's look-and-feel.
+- SDDM's sign-in screen is OrielOS's own theme, built on Breeze's: it opens on the time and date over the OrielOS wallpaper (Daybreak), like a locked screen. A key press or a click blurs the wallpaper and slides the sign-in up into the middle, and a minute without input brings the time back. The power buttons are Sleep, Restart and Shut down; there is no Hibernate. The other files are Breeze's, copied at build time, so they stay in step with Plasma; `build/28-sign-in.sh` stops the build when Breeze's `Main.qml` changes.
 - The lock screen shows the OrielOS wallpaper, from `system/etc/xdg/kscreenlockerrc`. Plasma 6 takes the lock screen's layout from its desktop shell package, which a look-and-feel package can't override, so `build/27-lock-screen.sh` replaces that package's `LockScreenUi.qml` with `lockscreen/LockScreenUi.qml`. The clock's position is worked out from the screen's shape: the wallpaper is scaled and cropped to fill the screen, so on screens wider than 16:9 the sill sits lower. When a Plasma update changes the original file, the build stops; rebase the copy on the new file and update the checksum in the script.
 - The image's files all have the same timestamp, so icon loaders would trust Fedora's `hicolor` icon cache and miss the Start button's icon; `build/90-finalise.sh` rebuilds the cache with `gtk-update-icon-cache`, and fails the build if the setting, the package, the icon, either wallpaper package or the lock screen's wallpaper setting is missing.
 
@@ -126,14 +136,34 @@ OrielOS's app store, Store, is KDE Discover under another name. Apps come only f
 
 ## First boot
 
-The image has no user account, and installing it with `bootc install` creates none. On first boot KDE's Plasma Setup wizard asks for the language, keyboard layout, network, time zone and the first user account, which becomes an administrator, then opens the login screen. Fedora sets up its KDE editions the same way, and OrielOS wires it up the way Fedora does:
+The image has no user account, and installing it with `bootc install` creates none. On first boot KDE's Plasma Setup wizard asks for the language, keyboard layout, network, time zone, power settings and the first user account, which becomes an administrator, then opens the login screen. Fedora sets up its KDE editions the same way, and OrielOS wires it up the way Fedora does:
 
 - `plasma-setup.service` is enabled, by `build/20-desktop.sh` and by `80-orielos.preset` (Fedora's own `90-default.preset` enables it too). It runs before SDDM on every boot until `/etc/plasma-setup-done` exists.
 - When it runs, it writes `/etc/sddm.conf.d/99-plasma-setup.conf`, which makes SDDM log in the `plasma-setup` system user (created from `sysusers.d`, with its home in `/run/plasma-setup`) to a Plasma session that starts only the wizard.
 - The wizard removes that autologin when it starts. When the user clicks Finish, it creates the account with a password and its own group, adds it to the groups in `/etc/xdg/plasmasetuprc` (`wheel`), copies the theme and display scaling chosen in the wizard to it, writes `/etc/plasma-setup-done` and logs out to the login screen.
 - It offers to create an account only when there is no regular user (UID 1000 to 60000) yet, and never runs again once the done marker exists.
 
-`build/90-finalise.sh` fails the build if `plasma-setup.service` is not enabled, if `/etc/plasma-setup-done` exists or if the image has a regular user. Plasma Setup looks as KDE and Fedora ship it for now; OrielOS's own styling will follow. `tests/boot-test.sh` checks both boots.
+`build/90-finalise.sh` fails the build if `plasma-setup.service` is not enabled, if `/etc/plasma-setup-done` exists or if the image has a regular user. `tests/boot-test.sh` checks both boots.
+
+### The first-run pages
+
+Plasma Setup shows every installed package of type `KDE/PlasmaSetup` that says it's available, in the order of each package's `X-KDE-Weight`. OrielOS adds two pages of its own, from `plasma/firstrun`, and `build/41-first-run.sh` changes the weights of Plasma Setup's pages in place. The pages, in order:
+
+| Weight | Page | From |
+|---|---|---|
+| 0 | Language | Plasma Setup |
+| 5 | Keyboard layout | Plasma Setup |
+| 10 | Network: the Wi-Fi networks, shown only when there is a wireless device | Plasma Setup |
+| 11 | Network: whether the cable connection reaches the internet, shown only when there is no wireless device | OrielOS (`org.orielos.plasmasetup.network`) |
+| 15 | Time zone | Plasma Setup |
+| 18 | Power: whether the computer sleeps when it isn't being used, after how long, and when the screen turns off | OrielOS (`org.orielos.plasmasetup.power`) |
+| 20 | Account: name, user name and password | Plasma Setup |
+| 200 | Finished | Plasma Setup, with the OrielOS logo instead of Konqi |
+
+- **Removed pages.** `build/41-first-run.sh` deletes Plasma Setup's display page (screen scaling and a Dark Theme switch, which applied Fedora's dark look-and-feel to the new account) and its device-name page. Plasma scales the screen by itself, and the computer keeps OrielOS's default name, `orielos`, which can be changed later in Settings.
+- **Checked before changing.** The script checks the sha256 of each page's `metadata.json` and of the finished page's `konqi-calling.png` against plasma-setup 6.7.5 and stops the build if any differ, so a Plasma update can't change the pages unnoticed: check the new files, then update the checksums. `build/90-finalise.sh` fails the build unless the installed pages come in the order above.
+- **The power page** starts from PowerDevil's own defaults on mains power: sleep after 15 minutes and turn the screen off after 10. Nothing is written unless a choice changes. Plasma Setup tells a page nothing when Next or Back leaves it, but hides it, so the page saves its choices then: its QML module, `org.orielos.firstrun` from `apps/firstrun`, runs `pkexec /usr/libexec/orielos/first-run-power <sleep minutes> <screen-off minutes>`, with 0 for never. The helper writes the same values to PowerDevil's `AC` and `Battery` profiles in `/etc/xdg/powerdevilrc`, which every user reads under their own settings; `LowBattery` keeps PowerDevil's defaults. The wizard runs as the `plasma-setup` user, which has no password: `49-orielos-first-run.rules` allows that user the `org.orielos.first-run.power` action without asking, as Plasma Setup's own rules allow its actions, and anyone else needs an administrator. The helper refuses once `/etc/plasma-setup-done` exists.
+- **The welcome screen** shows the OrielOS wallpaper. Plasma Setup looks for `wallpapers/Next/contents/images/5120x2880.png` (and `images_dark/` with a dark colour scheme) in the setup user's data folder before `/usr/share`, and `orielos-first-run.conf` links those names in `/run/plasma-setup/.local/share` to the OrielOS wallpaper's JPEG files, which Qt reads whatever their name. Its text, "Welcome to Plasma Desktop", is compiled into Plasma Setup, so it stays for now. "Powered by" and the finished page name `NAME` from `os-release`, which is OrielOS.
 
 ## Secure Boot
 
@@ -190,6 +220,7 @@ Games and their launchers come from the Store; the image carries only the system
   - `system/usr/lib/sysctl.d/60-orielos-gaming.conf` sets `vm.max_map_count = 1048576` (Fedora's own `10-map-count.conf` sets the same) and `kernel.split_lock_mitigate = 0`.
   - `zram-generator-defaults` gives Fedora's default zram swap.
   - Transparent hugepages stay at the kernel's `madvise`, and CPU mitigations stay on. The kernel's own scheduler is used, and there is no ananicy-cpp.
+  - **Performance is the default power mode**, on mains and on battery, with no power limits of OrielOS's own. `build/45-gaming.sh` sets tuned-ppd's `default=performance` in `/etc/tuned/ppd.conf` (its performance profile is TuneD's `throughput-performance`, and it only switches to a battery profile for balanced), and `system/etc/tuned/ppd_base_profile` holds `performance`. That file is what tuned-ppd reads first at every start, and it writes the mode chosen in the tray or Settings back to it, so a choice is kept across restarts and updates; without it, a first start would take TuneD's recommendation, usually balanced on a PC, before the default. PowerDevil switches profiles only if someone sets it to, and OrielOS doesn't.
 - **Packages.** `build/45-gaming.sh` installs:
   - GameMode;
   - `steam-devices`, the udev rules that let Steam from the Store reach controllers;
@@ -248,6 +279,8 @@ The update notifier in `apps/updatenotifier/` and the Update settings page in `a
 
 GRUB's menu stays hidden; Esc, or Shift held, during the hidden second shows it at any start. An update that fails to reach the desktop twice is undone without asking, and the menu appears by itself only if the previous build then fails too. bootupd builds the installed GRUB configuration from `/usr/lib/bootupd/grub2-static/` when OrielOS is installed, adding each file in `configs.d/` in order, so `12_orielos-menu.cfg` comes after Fedora's defaults (`timeout_style=menu`, `timeout=1`) and before `14_menu_show_once.cfg`, which still wins when set.
 
+**Windows.** On a PC that also has Windows, `13_orielos-windows.cfg` adds a Windows entry after OrielOS's and shows the menu for five seconds at every start. At each start GRUB looks for `/EFI/Microsoft/Boot/bootmgfw.efi` on every partition it can read (with `search --file`), so there's nothing to set up when installing, and the entry goes if Windows does. The entry chainloads Windows Boot Manager, which Secure Boot accepts because Microsoft signs it. When the menu is already showing after failed starts, its 30-second timeout stays. GRUB in BIOS mode never adds the entry.
+
 **The flags** are in `EFI/fedora/orielos-boot.env` on the EFI system partition, next to GRUB. They can't go in `/boot/grub2/grubenv`: `/boot` is on the Btrfs root, where GRUB can't write (small files are stored inline and compressed), and userspace mounts it read-only. GRUB's `${cmdpath}` is empty under shim, so the snippet takes the disk from `${root}` and looks for the file on its partitions.
 - `orielos_boot_ok`: GRUB writes `0` at every start, and the desktop sets `1`.
 - `orielos_trial`: `1` while a newly staged build hasn't reached the desktop, `fallback` once GRUB started the previous build in its place, `kept` once OrielOS kept that one, and `0` otherwise.
@@ -287,7 +320,7 @@ It also writes `/usr/lib/bootc/kargs.d/90-orielos-build.toml`, which adds `oriel
 
 ## Boot splash
 
-Plymouth shows a splash screen while the system starts, with Fedora's `bgrt` theme: the firmware's own logo with a spinner. `build/20-desktop.sh` sets the theme, `build/90-finalise.sh` adds Plymouth to the initramfs, and `system/usr/lib/bootc/kargs.d/10-orielos-splash.toml` adds the `rhgb quiet` kernel arguments, which hide kernel and service messages behind the splash.
+Plymouth shows a splash screen while the system starts and shuts down: OrielOS's own theme, the white OrielOS logo in the middle of a black screen with a spinner below, so the boot carries on from the firmware's black screen without a flash of colour. The theme file is `system/usr/share/plymouth/themes/orielos/orielos.plymouth` (Plymouth's two-step module); `plasma/CMakeLists.txt` installs `artwork/splash/orielos-splash-white.png` beside it as `watermark.png`, and `build/90-finalise.sh` copies the spinner, password and keyboard images from Plymouth's spinner theme into it, makes it the default, rebuilds the initramfs with it and fails the build if the initramfs doesn't contain the logo. `system/usr/lib/bootc/kargs.d/10-orielos-splash.toml` adds the `rhgb quiet` kernel arguments, which hide kernel and service messages behind the splash.
 
 ## Building
 

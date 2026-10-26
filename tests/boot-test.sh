@@ -114,6 +114,7 @@ SHORTCUT_TABLE=(
     "Ctrl+Shift+Esc|0x07000000|org.kde.plasma-systemmonitor.desktop|_launch"
     "Meta+Left|0x11000012|kwin|Window Quick Tile Left"
     "Meta+Right|0x11000014|kwin|Window Quick Tile Right"
+    "Meta+Z|0x1000005a|kwin|Snap Layouts"
     "Meta+Up|0x11000013|kwin|Window Maximize"
     "Meta+Down|0x11000015|kwin|Window Minimize"
     "Meta+Print|0x11000009|org.kde.spectacle.desktop|FullScreenToFile"
@@ -304,7 +305,7 @@ collect_over_ssh() {
 }
 
 # Print a shell script that reports the gaming defaults, one key=value per line: whether ntsync is
-# loaded, the two sysctl settings, transparent hugepages, zram swap, the gaming and peripheral
+# loaded, the two sysctl settings, transparent hugepages, zram swap, the power mode, the gaming and peripheral
 # packages, umu-launcher, the extra drivers and their signer, the PlayStation touchpad rule, and
 # Fedora's countme reporting.
 gaming_probe() {
@@ -315,6 +316,7 @@ echo "split_lock=$(sysctl -n kernel.split_lock_mitigate 2>&1)"
 echo "thp=$(cat /sys/kernel/mm/transparent_hugepage/enabled 2>&1)"
 echo "zram=$(swapon --show=NAME --noheadings 2>&1 | grep zram | paste -sd ' ' -)"
 echo "ananicy=$(rpm -q ananicy-cpp >/dev/null 2>&1 && echo installed)"
+echo "power=$(busctl get-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile 2>&1)"
 echo "missing=$(for p in gamemode umu-launcher steam-devices solaar-udev libratbag-ratbagd openrgb-udev-rules zram-generator-defaults; do rpm -q "$p" >/dev/null 2>&1 || printf '%s ' "$p"; done)"
 echo "umu=$(command -v umu-run)"
 echo "signers=$(for m in xone_gip hid_xpadneo hid_playstation ntsync; do printf '%s:%s ' "$m" "$(modinfo -F signer "$m" 2>/dev/null | head -n1)"; done)"
@@ -474,7 +476,7 @@ read_shortcuts() {
     SHORTCUTS_OUT="$(vm_ssh "$(shortcut_probe)" 2>&1)" || true
     vm_ssh cat "/home/$TEST_USER/.config/kglobalshortcutsrc" >"$RESULTS/kglobalshortcutsrc" 2>/dev/null || true
     SHORTCUT_CLASHES="$(shortcut_clashes "$RESULTS/kglobalshortcutsrc" 2>/dev/null)" || true
-    TOOL_NAMES="$(vm_ssh "grep -m1 -h '^Name=' /usr/share/applications/org.kde.plasma-systemmonitor.desktop /usr/share/applications/org.kde.spectacle.desktop /usr/share/applications/org.kde.dolphin.desktop" 2>&1 | paste -sd ',' -)" || true
+    TOOL_NAMES="$(vm_ssh "grep -m1 -h '^Name=' /usr/share/applications/org.kde.plasma-systemmonitor.desktop /usr/share/applications/org.kde.spectacle.desktop /usr/share/applications/org.kde.dolphin.desktop /usr/share/applications/org.orielos.ClipboardHistory.desktop" 2>&1 | paste -sd ',' -)" || true
 }
 
 # Print each key that more than one action in a kglobalshortcutsrc file has as its active
@@ -1153,18 +1155,19 @@ run_checks() {
         fail "Fedora's countme reporting is off: $no_ssh"
         hint "$ssh_hint"
     else
-        local ntsync map split thp zram ananicy missing umu signers rule
+        local ntsync map split thp zram ananicy power missing umu signers rule
         ntsync="$(gaming_value ntsync)"
         map="$(gaming_value map_count)"
         split="$(gaming_value split_lock)"
         thp="$(gaming_value thp)"
         zram="$(gaming_value zram)"
         ananicy="$(gaming_value ananicy)"
+        power="$(gaming_value power)"
         if [[ "$ntsync" == "loaded,/dev/ntsync" && "$map" == 1048576 && "$split" == 0 && "$thp" == *"[madvise]"* &&
-            -n "$zram" && -z "$ananicy" ]]; then
-            pass "Gaming defaults are set (ntsync loaded with /dev/ntsync; vm.max_map_count $map; kernel.split_lock_mitigate $split; transparent hugepages $thp; zram swap on $zram; no ananicy-cpp)"
+            -n "$zram" && -z "$ananicy" && "$power" == 's "performance"' ]]; then
+            pass "Gaming defaults are set (ntsync loaded with /dev/ntsync; vm.max_map_count $map; kernel.split_lock_mitigate $split; transparent hugepages $thp; zram swap on $zram; no ananicy-cpp; power mode $power)"
         else
-            fail "Gaming defaults are not all set (ntsync: ${ntsync:-not loaded}; vm.max_map_count: $map; kernel.split_lock_mitigate: $split; transparent hugepages: $thp; zram swap: ${zram:-none}; ananicy-cpp: ${ananicy:-not installed})"
+            fail "Gaming defaults are not all set (ntsync: ${ntsync:-not loaded}; vm.max_map_count: $map; kernel.split_lock_mitigate: $split; transparent hugepages: $thp; zram swap: ${zram:-none}; ananicy-cpp: ${ananicy:-not installed}; power mode: ${power:-no output})"
         fi
         missing="$(gaming_value missing)"
         umu="$(gaming_value umu)"
@@ -1300,10 +1303,10 @@ run_checks() {
         fail "Windows shortcuts are set, but more than one action has the same shortcut: $(paste -sd ';' - <<<"$SHORTCUT_CLASHES")"
     elif [[ -z "$WIN_E_SECONDS" ]]; then
         fail "Windows shortcuts are set, but pressing Win+E over QMP did not start Dolphin within 20 s"
-    elif [[ "$TOOL_NAMES" != "Name=Process Manager,Name=Screenshot,Name=Files" ]]; then
-        fail "System Monitor, Spectacle and Dolphin do not have their OrielOS names (${TOOL_NAMES:-no output})"
+    elif [[ "$TOOL_NAMES" != "Name=Process Manager,Name=Screenshot,Name=Files,Name=Clipboard history" ]]; then
+        fail "System Monitor, Spectacle, Dolphin and the clipboard history do not have their OrielOS names in Start (${TOOL_NAMES:-no output})"
     else
-        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Process Manager, Screenshot and Files)"
+        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Process Manager, Screenshot, Files and Clipboard history)"
     fi
 
     info "Store and Firefox"

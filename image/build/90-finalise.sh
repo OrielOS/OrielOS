@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Checks that no build tools are installed, that the first boot will run Plasma Setup, install
-# Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
+# Checks that no build tools are installed, that the first boot will run Plasma Setup with its
+# pages in OrielOS's order, install Firefox and queue Universal Blue's key for Secure Boot (and enables the latter two) and that new
 # users get the taskbar and the wallpapers, enables the background update check and the unit that
 # keeps the boot menu hidden after good boots, refreshes the icon cache, rebuilds the initramfs for
 # the installed kernel, removes build leftovers and lints the image.
@@ -31,6 +31,27 @@ if [[ "${#users[@]}" -gt 0 ]]; then
 fi
 if [[ "${#first_boot_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${first_boot_errors[@]}" >&2
+    exit 1
+fi
+
+# Plasma Setup's pages come in OrielOS's order (build/41-first-run.sh and plasma/firstrun), and the
+# power page has what it needs to save its choices.
+first_run_errors=()
+first_run_order="$(for f in /usr/share/plasma/packages/*/metadata.json; do
+    jq -r 'select(.KPackageStructure == "KDE/PlasmaSetup") | "\(."X-KDE-Weight") \(.KPlugin.Id)"' "$f"
+done | sort -n | cut -d' ' -f2 | paste -sd ' ' -)"
+first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.kde.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.account org.kde.plasmasetup.finished"
+if [[ "$first_run_order" != "$first_run_expected" ]]; then
+    first_run_errors+=("Plasma Setup's pages are in the wrong order: $first_run_order")
+fi
+[[ -x /usr/libexec/orielos/first-run-power ]] || first_run_errors+=("/usr/libexec/orielos/first-run-power is not executable")
+for f in /usr/share/polkit-1/actions/org.orielos.first-run.policy /usr/share/polkit-1/rules.d/49-orielos-first-run.rules \
+    /usr/lib/tmpfiles.d/orielos-first-run.conf /usr/lib64/qt6/qml/org/orielos/firstrun/qmldir \
+    /usr/share/plasma/packages/org.kde.plasmasetup.finished/contents/ui/konqi-calling.png; do
+    [[ -r "$f" ]] || first_run_errors+=("$f is missing")
+done
+if [[ "${#first_run_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${first_run_errors[@]}" >&2
     exit 1
 fi
 
@@ -121,18 +142,27 @@ if [[ "${#update_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
+# The first start's power mode, Performance, comes from the shipped base profile (see 45-gaming.sh).
+if [[ "$(cat /etc/tuned/ppd_base_profile 2>/dev/null)" != performance ]]; then
+    printf 'error: /etc/tuned/ppd_base_profile does not start tuned-ppd in performance\n' >&2
+    exit 1
+fi
+
 # The boot menu stays hidden, and an update that fails to reach the desktop twice is undone without
 # asking. bootupd adds OrielOS's GRUB snippet to the boot loader's configuration when OrielOS is
 # installed. Each desktop session then asks orielos-boot-success.service to mark the start as
 # good, through a user unit enabled for every user here and a polkit rule that allows only that.
 systemctl --global enable orielos-mark-boot-success.service
 boot_menu_errors=()
-menu_snippet=/usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg
-if [[ ! -r "$menu_snippet" ]]; then
-    boot_menu_errors+=("the boot menu's GRUB snippet, $menu_snippet, is missing")
-elif ! grub2-script-check "$menu_snippet"; then
-    boot_menu_errors+=("grub2-script-check found errors in $menu_snippet")
-fi
+# 13_orielos-windows.cfg adds Windows to the menu, and shows it, on PCs that also have Windows.
+for menu_snippet in /usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg \
+    /usr/lib/bootupd/grub2-static/configs.d/13_orielos-windows.cfg; do
+    if [[ ! -r "$menu_snippet" ]]; then
+        boot_menu_errors+=("the boot menu's GRUB snippet, $menu_snippet, is missing")
+    elif ! grub2-script-check "$menu_snippet"; then
+        boot_menu_errors+=("grub2-script-check found errors in $menu_snippet")
+    fi
+done
 if [[ "$(systemctl --global is-enabled orielos-mark-boot-success.service 2>/dev/null)" != "enabled" ]]; then
     boot_menu_errors+=("orielos-mark-boot-success.service is not enabled for users")
 fi
@@ -155,9 +185,17 @@ taskbar_errors=()
 if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage)" != "$lnf" ]]; then
     taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf the default look-and-feel")
 fi
-if [[ ! -f "/usr/share/plasma/look-and-feel/$lnf/contents/layouts/org.kde.plasma.desktop-layout.js" ]]; then
-    taskbar_errors+=("the $lnf look-and-feel package or its layout script is not installed")
+for package in "$lnf" "$lnf.dark"; do
+    if [[ ! -f "/usr/share/plasma/look-and-feel/$package/contents/layouts/org.kde.plasma.desktop-layout.js" ]]; then
+        taskbar_errors+=("the $package look-and-feel package or its layout script is not installed")
+    fi
+done
+if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultDarkLookAndFeel)" != "$lnf.dark" ]]; then
+    taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf.dark the dark look-and-feel")
 fi
+for scheme in OrielOSLight OrielOSDark; do
+    [[ -r "/usr/share/color-schemes/$scheme.colors" ]] || taskbar_errors+=("the $scheme colour scheme is not installed")
+done
 if [[ ! -f /usr/share/icons/hicolor/scalable/apps/orielos-start.svg ]]; then
     taskbar_errors+=("the Start button's icon, orielos-start.svg, is not installed")
 fi
@@ -179,6 +217,20 @@ if [[ "$(kreadconfig6 --file /etc/xdg/kscreenlockerrc --group Greeter --group Wa
     --group General --key Image)" != "file:///usr/share/wallpapers/OrielOS/" ]]; then
     taskbar_errors+=("/etc/xdg/kscreenlockerrc does not make OrielOS the lock screen wallpaper")
 fi
+# OrielOS's sound theme comes from the app-builder stage; 20-desktop.sh makes it the default.
+for f in index.theme stereo/desktop-login.oga stereo/message-new-instant.oga stereo/bell-window-system.oga; do
+    [[ -f "/usr/share/sounds/orielos/$f" ]] || taskbar_errors+=("the sound theme file /usr/share/sounds/orielos/$f is not installed")
+done
+if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group Sounds --key Theme)" != orielos ]]; then
+    taskbar_errors+=("/etc/xdg/kdeglobals does not make orielos the sound theme")
+fi
+# About this System shows the logo os-release names (95-version.sh sets LOGO=orielos-logo-icon), as
+# long as /etc/xdg/kcm-about-distrorc sets no LogoPath of its own.
+[[ -f /usr/share/icons/hicolor/scalable/apps/orielos-logo-icon.svg ]] ||
+    taskbar_errors+=("OrielOS's logo icon, orielos-logo-icon.svg, is not installed")
+if [[ -n "$(kreadconfig6 --file /etc/xdg/kcm-about-distrorc --group General --key LogoPath)" ]]; then
+    taskbar_errors+=("/etc/xdg/kcm-about-distrorc points About this System at another logo")
+fi
 if [[ "${#taskbar_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${taskbar_errors[@]}" >&2
     exit 1
@@ -187,8 +239,30 @@ fi
 # and never find icons added after it was made, such as the Start button's.
 gtk-update-icon-cache --force --quiet /usr/share/icons/hicolor
 
+# The boot splash: OrielOS's Plymouth theme, with its logo from the app-builder stage and the spinner,
+# password and keyboard images from Plymouth's spinner theme. The initramfs below carries it.
+theme=/usr/share/plymouth/themes/orielos
+spinner=/usr/share/plymouth/themes/spinner
+for f in "$spinner"/throbber-*.png "$spinner"/animation-*.png "$spinner"/{bullet,capslock,entry,keyboard,keymap-render,lock}.png; do
+    install -m 0644 "$f" "$theme/"
+done
+splash_errors=()
+for f in orielos.plymouth watermark.png throbber-0001.png entry.png lock.png; do
+    [[ -s "$theme/$f" ]] || splash_errors+=("$theme/$f is missing")
+done
+plymouth-set-default-theme orielos
+[[ "$(plymouth-set-default-theme)" == orielos ]] || splash_errors+=("Plymouth's theme is $(plymouth-set-default-theme), not orielos")
+
 kver="$(ls /usr/lib/modules)"
 dracut --no-hostonly --kver "$kver" --reproducible --zstd --add "ostree plymouth" -f "/usr/lib/modules/$kver/initramfs.img"
+# grep reads the whole listing: with -q it would stop at the match, lsinitrd would die of SIGPIPE,
+# and pipefail would count the pipeline as failed.
+lsinitrd "/usr/lib/modules/$kver/initramfs.img" | grep -F 'usr/share/plymouth/themes/orielos/watermark.png' >/dev/null ||
+    splash_errors+=("the initramfs doesn't contain the OrielOS boot splash")
+if [[ "${#splash_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${splash_errors[@]}" >&2
+    exit 1
+fi
 
 dnf clean all
 rm -rf /var/cache/* /var/log/* /var/lib/dnf /tmp/* /run/dnf /run/sddm
