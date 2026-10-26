@@ -22,6 +22,14 @@ KCM.SimpleKCM {
         translationDomain: "orielos-settings-pages"
     }
 
+    // Settings names the page above it, so the page's own title bar would only repeat the name.
+    // System Settings has no such heading, so the title bar stays there.
+    Component.onCompleted: {
+        if (Qt.application.name === "orielos-settings") {
+            globalToolBarStyle = Kirigami.ApplicationHeaderStyle.None;
+        }
+    }
+
     ColumnLayout {
         spacing: Kirigami.Units.largeSpacing
 
