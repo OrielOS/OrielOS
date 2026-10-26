@@ -64,7 +64,9 @@ PlasmaSetupComponents.SetupModule {
                     model: power.sleepChoices
                     textRole: "text"
                     valueRole: "minutes"
-                    currentIndex: indexOfValue(power.sleepAfterMinutes)
+                    // indexOfValue() only finds the choice once the model is filled, so the binding
+                    // reads count too and runs again then; on its own it stayed at -1, an empty box.
+                    currentIndex: count > 0 ? indexOfValue(power.sleepAfterMinutes) : -1
                     onActivated: power.sleepAfterMinutes = currentValue
                 }
 
@@ -73,7 +75,7 @@ PlasmaSetupComponents.SetupModule {
                     model: power.screenOffChoices
                     textRole: "text"
                     valueRole: "minutes"
-                    currentIndex: indexOfValue(power.screenOffAfterMinutes)
+                    currentIndex: count > 0 ? indexOfValue(power.screenOffAfterMinutes) : -1
                     onActivated: power.screenOffAfterMinutes = currentValue
                 }
             }
