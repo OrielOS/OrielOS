@@ -308,7 +308,7 @@ To set up signing, the maintainer runs `cosign generate-key-pair`, adds the priv
 
 `pins.env` holds the base image, the kernel image, the NVIDIA image and the Fedora image the apps are built on, each by digest, so two builds from the same commit use the same inputs. To update them, run `tools/update-pins.sh` to see what has changed, `tools/update-pins.sh --write` to apply it, review the kernel and NVIDIA versions it prints, build, boot-test and commit.
 
-Fedora's updates, security fixes included, reach installed computers only through a new build, so the digests are refreshed every week: Renovate (`renovate.json` in the repository root) opens one pull request on Monday mornings with every new digest for the same tags, signed off for the DCO check. It never moves a tag, such as to the next Fedora release. The pull request is built and tested locally like any other before it merges.
+Fedora's updates, security fixes included, reach installed computers only through a new build, so the digests are refreshed every day: Renovate (`renovate.json` in the repository root) keeps one pull request open with every new digest for the same tags, updated each morning and signed off for the DCO check. Fedora's registry stops serving old digests within days, so a pin left alone soon breaks the build. It never moves a tag, such as to the next Fedora release. The pull request is built and tested locally like any other before it merges.
 
 It also holds `UMU_LAUNCHER_RPM`, the umu-launcher RPM's download URL with the SHA-256 GitHub shows for that release asset (`<url>@sha256:<digest>`). `tools/update-pins.sh` leaves it alone: to update it, change the version in the URL, and the Fedora release (`fcNN`) when the base moves to a new one, then the digest.
 

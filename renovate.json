@@ -1,10 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Weekly refresh of the digests pinned in image/pins.env, which is how Fedora's updates reach OrielOS builds. GitHub Actions and the Discord bot's packages are left to Dependabot.",
+  "description": "Daily refresh of the digests pinned in image/pins.env (Fedora's registry drops old digests within days), which is how Fedora's updates reach OrielOS builds. GitHub Actions and the Discord bot's packages are left to Dependabot.",
   "extends": ["config:recommended"],
   "enabledManagers": ["custom.regex"],
   "timezone": "Europe/London",
-  "schedule": ["before 6am on monday"],
+  "schedule": ["before 6am"],
   "commitBody": "Signed-off-by: {{{gitAuthor}}}",
   "semanticCommits": "enabled",
   "customManagers": [
@@ -20,7 +20,7 @@
   ],
   "packageRules": [
     {
-      "description": "Refresh the digests together, in one pull request a week: the two akmods images must match the same kernel.",
+      "description": "Refresh the digests together, in one pull request: the two akmods images must match the same kernel.",
       "matchManagers": ["custom.regex"],
       "matchUpdateTypes": ["digest"],
       "groupName": "OS image inputs",
