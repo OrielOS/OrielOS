@@ -36,7 +36,7 @@ TOUR_PASSWORD="orielos-tour"
 NEXT_X=1283
 NEXT_Y=883
 # The apps the tour opens; closed between screenshots.
-APPS="dolphin plasma-discover plasma-systemmonitor systemsettings firefox spectacle"
+APPS="dolphin plasma-discover plasma-systemmonitor orielos-settings systemsettings firefox spectacle"
 
 usage() {
     sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
