@@ -108,6 +108,8 @@ private Q_SLOTS:
         QTest::newRow("sticky keys") << QStringLiteral("sticky keys") << QStringLiteral("accessibility");
         QTest::newRow("magnifier") << QStringLiteral("magnifier") << QStringLiteral("zoom-and-colour-filters");
         QTest::newRow("firewall") << QStringLiteral("firewall") << QStringLiteral("firewall");
+        QTest::newRow("best performance") << QStringLiteral("best performance") << QStringLiteral("power-mode");
+        QTest::newRow("battery saver") << QStringLiteral("battery saver") << QStringLiteral("power-mode");
     }
 
     void searchFindsWindowsTerms()

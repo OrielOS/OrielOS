@@ -26,6 +26,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
   - Taskbar, under Personalisation, centres the taskbar or aligns it to the left, and hides it automatically.
   - Privacy & security, with Device security: a check that the PC meets what games with anti-cheat require (Secure Boot, the TPM, kernel lockdown, the BPF security module, no kernel switching, the IOMMU and signed drivers), saying what to change for anything that isn't met. It also has Firewall, App permissions, Activity history, and Diagnostics & feedback.
   - Accessibility: Screen reader and keyboard, Zoom and colour filters, and On-screen keyboard.
+  - Power mode, under System: Performance, Balanced or Power saver, as in the tray's power icon.
 - OrielOS Update, a page in System Settings under System, holds everything about updates. Clicking the OrielOS updates icon in the system tray opens it.
   - It shows the version you're running and when OrielOS last checked for updates, and "Check for updates" checks straight away and shows what it found.
   - It pauses updates for one to five weeks or resumes them, and switches between the Stable and Testing channels.

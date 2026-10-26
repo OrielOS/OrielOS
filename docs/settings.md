@@ -6,7 +6,7 @@ Settings is where you change how OrielOS works. Open it with Windows + I, or cho
 
 The categories on the left come in the order you know from Windows:
 
-- **System**: Display, Night light, Sound, Notifications, Power & sleep and About.
+- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
 - **Personalisation**: Background, Themes (including dark mode), Accent colour, Lock screen, Start and Taskbar.
@@ -26,6 +26,10 @@ You can also search from Start: type what you're looking for, such as "wifi" or 
 Some pages change things as soon as you choose them. Others show **Apply** and **Reset** at the bottom: Apply keeps your changes, and Reset puts back the settings you had. **Defaults** puts back OrielOS's own settings. If you leave a page, or close Settings, with changes you haven't applied, Settings asks whether to apply or discard them.
 
 Some changes, such as the date and time, ask for an administrator's password.
+
+## Power mode
+
+**System > Power mode** chooses between **Performance**, **Balanced** and **Power saver**, the same choice as in the battery and power icon in the system tray. OrielOS starts in Performance, on mains power and on battery; whichever mode you choose is kept, also after restarts and updates. If the computer holds Performance back, for example because it's too hot, the page says so.
 
 ## Start and the taskbar
 
