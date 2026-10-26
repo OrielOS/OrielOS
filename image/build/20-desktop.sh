@@ -20,6 +20,18 @@ mapfile -t packages < <(sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]
 
 dnf -y install --setopt=install_weak_deps=False "${packages[@]}"
 
+# Wi-Fi and Bluetooth need firmware that only some of linux-firmware's subpackages carry, and
+# nothing in a virtual machine needs it, so the boot tests can't notice it missing. One file per
+# chip family: Intel Wi-Fi (AX211, AX200, BE200) and Bluetooth, Qualcomm/Atheros Wi-Fi and
+# Bluetooth, MediaTek MT7922, Realtek Wi-Fi and Bluetooth, and Broadcom.
+firmware=/usr/lib/firmware
+for pattern in \
+    'intel/iwlwifi/iwlwifi-so-a0-gf-a0-*' 'intel/iwlwifi/iwlwifi-cc-a0-*' 'intel/iwlwifi/iwlwifi-gl-*' \
+    'intel/ibt-0040-0041*' 'ath11k/WCN6855' 'ath12k/WCN7850' 'qca/htbtfw20.tlv*' \
+    'mediatek/WIFI_RAM_CODE_MT7922*' 'mediatek/BT_RAM_CODE_MT7922*' 'rtw89/*' 'rtl_bt/*' 'brcm/brcmfmac43*'; do
+    compgen -G "$firmware/$pattern" >/dev/null || die "no Wi-Fi or Bluetooth firmware matches $firmware/$pattern"
+done
+
 # firewalld picks its polkit policy from os-release's VARIANT_ID when it is installed. fedora-bootc
 # names no desktop variant, so firewalld took the server policy, which asks for a password just to
 # read its settings: the Firewall settings page asked as soon as it opened. Use the policy that

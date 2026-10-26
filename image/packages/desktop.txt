@@ -92,6 +92,33 @@ kpipewire
 alsa-sof-firmware
 alsa-ucm
 
+# Firmware for Wi-Fi and Bluetooth cards, so any common card works from the first boot: the
+# drivers are in the kernel, but most cards also need a firmware file from these packages.
+# linux-firmware (from the base image) recommends only some of them, and weak dependencies are
+# off, so each is listed: Intel Wi-Fi from the oldest cards to Wi-Fi 7, Intel Bluetooth,
+# Qualcomm/Atheros Wi-Fi and Bluetooth (atheros-firmware, which includes ath11k, ath12k and qca),
+# MediaTek, Realtek, Broadcom, NXP/Marvell, TI and old USB sticks (ZyDAS, Atmel). Also Intel's
+# laptop camera sensors and TV tuners. qcom-firmware is left out: it is for Arm Snapdragon
+# devices. 20-desktop.sh checks a firmware file for each chip family.
+linux-firmware
+iwlwifi-mvm-firmware
+iwlwifi-mld-firmware
+iwlwifi-dvm-firmware
+iwlegacy-firmware
+iwlbluetooth-firmware
+atheros-firmware
+mediatek-firmware
+mt7xxx-firmware
+realtek-firmware
+brcmfmac-firmware
+nxpwireless-firmware
+libertas-firmware
+tiwilink-firmware
+zd1211-firmware
+atmel-firmware
+intel-vsc-firmware
+dvb-firmware
+
 # Bluetooth, including sending files to and from phones.
 bluez
 bluez-obexd
