@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Centre the taskbar or align it to the left, and hide it automatically",
+        "Icon": "preferences-desktop-plasma",
+        "Name": "Taskbar"
+    },
+    "X-KDE-Keywords": "taskbar,panel,alignment,centre,center,left,auto-hide,autohide,hide",
+    "X-KDE-System-Settings-Parent-Category": "workspace",
+    "X-KDE-Weight": 61
+}

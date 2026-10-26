@@ -1,0 +1,110 @@
+name: Promote
+
+# Moves the stable tag to a build that has been on testing, without rebuilding it: the same image,
+# digest and signature. Run by hand by the maintainer once the build has passed the real-hardware
+# checklist. It creates a GitHub Release with the version given, whose notes are the CHANGELOG's
+# Unreleased section, and opens a pull request that turns that section into the version's own.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: Build tag to promote, such as 44.20261026 or 44.20261026.2
+        required: true
+        type: string
+      version:
+        description: Release version, such as v0.1.0
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  REPOSITORY: ghcr.io/ncjsvr/orielos
+
+jobs:
+  promote:
+    name: promote
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: publish
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The inputs are checked before anything uses them, and only ever reach the shell as
+      # environment variables.
+      - name: Check the inputs
+        env:
+          BUILD: ${{ inputs.build }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "${BUILD}" =~ ^[0-9]+\.[0-9]{8}(\.[0-9]+)?$ ]] || { echo "::error::The build tag looks like 44.20261026 or 44.20261026.2"; exit 1; }
+          [[ "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version looks like v0.1.0"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/${VERSION}" >/dev/null; then
+              echo "::error::${VERSION} already exists"
+              exit 1
+          fi
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Check the build is signed, then move stable to it
+        env:
+          BUILD: ${{ inputs.build }}
+          ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -s image/keys/orielos-cosign.pub ] || { echo "::error::image/keys/orielos-cosign.pub is missing, so the signature can't be checked"; exit 1; }
+          digest="$(skopeo inspect --format '{{.Digest}}' "docker://${REPOSITORY}:${BUILD}")"
+          cosign verify --key image/keys/orielos-cosign.pub "${REPOSITORY}@${digest}" >/dev/null
+          printf '%s' "${GITHUB_TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
+          skopeo copy --preserve-digests "docker://${REPOSITORY}@${digest}" "docker://${REPOSITORY}:stable"
+          echo "DIGEST=${digest}" >>"${GITHUB_ENV}"
+          echo "::notice::stable is now ${BUILD} (${digest})"
+
+      - name: Write the release notes from the CHANGELOG
+        env:
+          BUILD: ${{ inputs.build }}
+        run: |
+          awk '/^## \[Unreleased\]/ {on = 1; next} on && /^## \[/ {exit} on' CHANGELOG.md >/tmp/notes.md
+          [ -s /tmp/notes.md ] || { echo "::error::The CHANGELOG's Unreleased section is empty"; exit 1; }
+          printf '\nThis release is build %s, image digest %s. Computers on the stable channel update to it by themselves.\n' \
+              "${BUILD}" "${DIGEST}" >>/tmp/notes.md
+
+      - name: Create the release
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${VERSION}" --target "${GITHUB_SHA}" --title "OrielOS ${VERSION}" --notes-file /tmp/notes.md
+
+      # The Unreleased section becomes the release's own, under a new empty Unreleased heading, in
+      # a pull request for the maintainer to merge.
+      - name: Open a pull request for the CHANGELOG
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="docs/changelog-${VERSION}"
+          today="$(date -u +%Y-%m-%d)"
+          awk -v heading="## [${VERSION#v}] - ${today}" \
+              '!done && /^## \[Unreleased\]/ {print; print ""; print heading; done = 1; next} {print}' CHANGELOG.md >/tmp/CHANGELOG.md
+          mv /tmp/CHANGELOG.md CHANGELOG.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "${branch}"
+          git commit -s -am "docs: start the CHANGELOG's section for ${VERSION}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${branch}"
+          gh pr create --head "${branch}" --base main --title "docs: start the CHANGELOG's section for ${VERSION}" \
+              --body "The changes released as ${VERSION} move from Unreleased to their own section."
