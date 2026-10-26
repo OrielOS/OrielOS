@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Installs the OrielOS image to a disk file, boots it under QEMU/KVM with Secure Boot, a software
 # TPM and a 1920x1080 screen, and saves a numbered set of screenshots that show what OrielOS looks
-# like: the boot splash, Plasma Setup's pages, the sign-in screen, the desktop, Start, Files, the
-# Store, Process Manager, Settings and two of its pages, Firefox, Screenshot, the overview, the
-# lock screen (idle and unlocking), the dark theme and the dark lock screen. It drives the VM with
-# QMP mouse clicks and key presses, as a person would, and uses SSH through a vsock device to wait
-# for each step and to close windows between screenshots.
+# like: the boot splash, Plasma Setup's pages, the sign-in screen, the desktop, Start, a setting
+# found from Start, Files, the Store, Process Manager, Settings and two of its pages, Firefox,
+# Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock
+# screen. It drives the VM with QMP mouse clicks and key presses, as a person would, and uses SSH
+# through a vsock device to wait for each step and to close windows between screenshots.
 # A screenshot that cannot be taken is reported as a WARN line and skipped.
 #
 # Usage: tests/screenshot-tour.sh [--image REF] [--keep] [--help]
@@ -249,6 +249,10 @@ desktop_tour() {
     press_and_shot 07-start-search 3 type:store
     vm_qmp keys:esc wait:1 keys:esc >/dev/null 2>&1 || true
     sleep 2
+    # A setting found from Start, which Enter opens in Settings.
+    press_and_shot 07-start-search-setting 3 keys:meta_l wait:2 "type:dark mode"
+    press_and_shot 07-start-search-setting-opened 10 keys:ret
+    close_apps
 
     press_and_shot 08-files 8 keys:meta_l+e
     close_apps
