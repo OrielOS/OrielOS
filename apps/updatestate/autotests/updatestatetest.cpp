@@ -79,6 +79,20 @@ private Q_SLOTS:
         QVERIFY(!state.pausedUntil().isValid());
     }
 
+    void readsAppUpdates()
+    {
+        // A file from before the setting existed: app updates are on and haven't run.
+        const UpdateState before = UpdateState::fromJson(stateJson());
+        QVERIFY(before.appUpdates());
+        QVERIFY(!before.appsUpdatedAt().isValid());
+
+        QByteArray json = stateJson();
+        json.replace("\"bootId\"", "\"appUpdates\": false, \"appsUpdatedAt\": \"2026-10-25T09:00:00Z\", \"bootId\"");
+        const UpdateState off = UpdateState::fromJson(json);
+        QVERIFY(!off.appUpdates());
+        QCOMPARE(off.appsUpdatedAt(), QDateTime(QDate(2026, 10, 25), QTime(9, 0), QTimeZone::UTC));
+    }
+
     void ignoresUnknownFields()
     {
         QByteArray json = stateJson();

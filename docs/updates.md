@@ -41,6 +41,12 @@ OrielOS doesn't download updates over a metered connection, such as a phone hots
 
 Every option can be used from the keyboard: hold Alt to see each one's underlined letter.
 
+## Apps from the Store
+
+Apps you installed from the Store update by themselves too, in the background, a few minutes after you start the computer and then about every six hours. They update quietly and slowly enough not to slow down a game. An app that's open keeps its old version until you close and open it again. When an OrielOS update brings a new NVIDIA driver, games from the Store get the matching graphics driver for apps this way too, without opening the Store.
+
+To turn this off, clear **Update apps automatically** under **Apps from the Store** on the update settings page. The Store's own **Update** button still updates your apps whenever you choose. Apps aren't updated on a metered connection.
+
 ## If an update doesn't start
 
 You don't need to do anything. If a new version fails to reach the desktop twice in a row, for example because it stops partway through starting or the screen stays black, the next start uses the previous version instead. Once its desktop is up, OrielOS keeps that version, tells you in a notification that the update was undone, and doesn't offer the version that failed again until a newer one is published. There's no question to answer at startup.
@@ -97,6 +103,7 @@ sudo orielos-update resume          # end a pause
 sudo orielos-update channel testing # or stable
 sudo orielos-update rollback        # go back to the previous version at the next restart
 sudo orielos-update remove-previous # remove the previous version now
+sudo orielos-update app-updates off # stop apps from the Store updating by themselves (or on)
 ```
 
 ## Preparing a version yourself

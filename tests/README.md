@@ -176,6 +176,7 @@ Then it uses the Update settings page, goes back from there and checks the boot 
     - Alt+U, **Check for updates**: `state.json`'s `checkedAt` must change (`settings-checked.png`).
     - Alt+P, **Pause updates** with the first choice: `pausedUntil` must be 7 days ahead (`settings-paused.png`). Alt+R, **Resume updates**: it must be `null` again.
     - Alt+S, **Stable**, and the password (`channel-password.png`): the channel must be `stable` (`settings-stable.png`). Alt+T, **Testing**: it must be `testing` again; polkit may keep the authorisation, so the test types the password only if the channel hasn't changed after 10 s.
+    - Alt+A, **Update apps automatically**: `state.json` must say `appUpdates` false, with no password asked (`settings-apps-off.png`); Alt+A again turns it back on.
     - Alt+G, **Go back to the previous version…**. The question's default is Cancel, so the test presses Alt+B for **Go back**, then types the password. `go-back-question.png` and `go-back-password.png` show both. `state.json` must then say `rollbackQueued`, and the new build must be in `rejected-digests`.
     - The tray icon must be Active and offer "Restart to go back" (`go-back-ready.png`). The test presses Alt+N, **Restart now** on the page, and the VM must restart into the old build, with `keepme.txt` unchanged.
 13. **The boot menu.** The firmware copies GRUB's screen to the serial console, so the test reads it there. For each restart it watches the serial log from `systemctl reboot` until the kernel prints `Linux version`.
@@ -197,6 +198,10 @@ Then it uses the Update settings page, goes back from there and checks the boot 
     - The test forgets the new build's rejection, stages it with a check and restarts into it, so the old build is the previous one again, kept until a date 14 days on.
     - The tray icon opens the page (`settings-previous.png`), and `state.json` must name the old build with its removal date. The test opens the page in `kcmshell6` again (`settings-previous-window.png`).
     - Alt+M, **Remove the previous version…**, then Alt+E for **Remove** in the question, and the password (`remove-question.png`, `remove-password.png`). Within 180 s `state.json` must have no previous build, bootc must report none, and one boot entry must be left (`settings-removed.png`).
+17. **Apps from the Store update by themselves.**
+    - The test waits for the first boot's Firefox install, then moves Firefox back to the version before the newest: `flatpak update --commit` with the `Parent` that `flatpak remote-info` gives for the newest.
+    - With `orielos-update app-updates off`, `orielos-app-update.service` must leave Firefox as it is.
+    - With app updates on again, the service must bring Firefox to the newest commit, and `state.json` must say when, in `appsUpdatedAt`.
 
 ```sh
 tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
@@ -207,7 +212,7 @@ tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
 
 Each restart is started with `systemctl reboot` over SSH; the VM restarts in place. The test waits for SSH to go away and answer again, then checks that `/proc/sys/kernel/random/boot_id` changed. `--timeout` is how long it waits for SSH after power-on and after each restart.
 
-It prints PASS or FAIL for forty-eight checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
+It prints PASS or FAIL for fifty-three checks, one or more per step, and exits with status 0 only if all of them pass. If a step fails in a way that the later steps depend on, the test stops there and reports that as a failure too.
 
 Results go to `tests/results/<run id>/`, or to the folder given with `--results`. The run id is `update-<new build's tag>-<UTC time>`. The folder holds:
 
@@ -223,6 +228,7 @@ Results go to `tests/results/<run id>/`, or to the folder given with `--results`
 - `go-back-question.png`, `go-back-password.png` and `go-back-ready.png`: the question, polkit's prompt, and the desktop once going back is queued. `bootc-status-go-back.json`, `bootc-status-went-back.json` and their `status-*.txt` files are taken after the prompt and after the restart.
 - `settings-previous.png`, `settings-previous-window.png`, `remove-question.png`, `remove-password.png` and `settings-removed.png`: step 16's page, question, prompt and the page once the previous version is removed.
 - `boot-menu-esc.png` and `boot-menu-last-resort.png`: the boot menu after Esc, and when it appears by itself. `update-undone.png`: the desktop after an update was undone. `boot-menu-unexpected.png` exists only if the menu appeared when it shouldn't have. `boot-entries.txt` lists the boot entries' titles and version keys at the start of step 13 and before each of its restarts. `bootc-status-boot-menu.json` and `bootc-status-boot-menu-esc.json` show which build started.
+- `settings-apps-off.png`: the page with app updates turned off. `apps.txt`: the output of step 17's commands and the app update service's journal.
 - `boot-success.txt`: the journal of the units that mark a boot as good, when the flag wasn't set.
 
 The work folder and `--keep` work as in the boot test.
@@ -231,7 +237,7 @@ The work folder and `--keep` work as in the boot test.
 
 `unit/` holds quick tests for the shell tools that need no root, VM or network. `tools/lint.sh` runs every `unit/*-test.sh`, so CI runs them on every pull request.
 
-- `unit/orielos-update-test.sh` runs the real `orielos-update` against a scratch directory (`ORIELOS_UPDATE_ROOT`), with a fixed clock (`ORIELOS_UPDATE_NOW`). Stand-ins for `bootc`, `skopeo`, `busctl` and `systemctl` sit first on `PATH`, record their arguments and return prepared answers. It covers:
+- `unit/orielos-update-test.sh` runs the real `orielos-update` against a scratch directory (`ORIELOS_UPDATE_ROOT`), with a fixed clock (`ORIELOS_UPDATE_NOW`). Stand-ins for `bootc`, `skopeo`, `busctl`, `systemctl` and `flatpak` sit first on `PATH`, record their arguments and return prepared answers. It covers:
   - pausing for 1 and 5 weeks, refusing other lengths, checks while paused, a pause that has ended, and resuming;
   - the default channel, switching channel, keeping a pause when switching, and refusing unknown channels;
   - up-to-date, newer, already staged and rejected builds, an unreachable source, and metered connections;
@@ -240,6 +246,7 @@ The work folder and `--keep` work as in the boot test.
   - the previous build and whether it was rejected, `rollback` with and without a previous build, a check while going back is queued, and `refresh` after restarting into the previous build;
   - putting a staged build on trial, and taking it off when going back;
   - undoing an update after the boot loader fell back, at boot and through `undo-update`, and only then;
+  - automatic app updates: on by default, turning them off and on, keeping the setting when pausing or changing channel, updating apps with `flatpak` and recording when, doing nothing while they're off or the connection is metered, a failed update, and wrong usage;
   - when the previous build is removed: after 14 days, by the check only and even while paused, not while an update is staged or going back is queued, and through `remove-previous`.
 - `unit/boot-flags-test.sh` runs the boot menu's flag helper on a plain file (`ORIELOS_BOOT_FLAGS_FILE`), with stand-ins for `grub2-editenv` and `orielos-update`. It covers each command's effect on the flags, keeping the previous build after a fallback (and what's left when that fails), `status`, and wrong usage.
 
