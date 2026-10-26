@@ -556,12 +556,20 @@ stop_dolphin() {
 }
 
 # Print "favorites=<value>" for each OrielOS Start menu in a plasma-org.kde.plasma.desktop-appletsrc
-# file: the pinned apps in its [Configuration][General] group. Prints nothing if there is none.
+# file: the pinned apps in its [Configuration][General] group. Plasma leaves the setting out while
+# the pins are the defaults (unpinning the one app added removes it), so a missing setting prints
+# the default from the Start menu's main.xml. Prints nothing if there is no Start menu.
 #   start_favorites <file>
 start_favorites() {
-    python3 -I - "$1" <<'PY'
+    python3 -I - "$1" "$ROOT/plasma/startmenu/main.xml" <<'PY'
 import re
 import sys
+import xml.etree.ElementTree as ET
+
+default = ""
+for entry in ET.parse(sys.argv[2]).iter():
+    if entry.tag.endswith("entry") and entry.get("name") == "favorites":
+        default = next((d.text or "" for d in entry if d.tag.endswith("default")), "")
 
 groups = {}
 group = None
@@ -577,7 +585,7 @@ for line in open(sys.argv[1], encoding="utf-8"):
 
 for g, keys in groups.items():
     if len(g) == 4 and g[0] == "Containments" and g[2] == "Applets" and keys.get("plugin") == "org.orielos.startmenu":
-        print("favorites=" + groups.get(g + ("Configuration", "General"), {}).get("favorites", ""))
+        print("favorites=" + groups.get(g + ("Configuration", "General"), {}).get("favorites", default))
 PY
 }
 
