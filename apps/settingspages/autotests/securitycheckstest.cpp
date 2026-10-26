@@ -6,6 +6,8 @@
 
 #include <QDir>
 #include <QFile>
+#include <QSemaphore>
+#include <QSet>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -67,7 +69,16 @@ public:
 
     SecuritySources sources() const
     {
-        return { m_dir.path(), [signers = signers](const QString &module) { return signers.value(module); } };
+        return { m_dir.path(), [signers = signers, unreadable = unreadable, gate = gate](const QString &module) -> std::optional<QString> {
+                    if (gate) {
+                        gate->acquire();
+                        gate->release();
+                    }
+                    if (unreadable.contains(module)) {
+                        return std::nullopt;
+                    }
+                    return signers.value(module);
+                } };
     }
 
     // The check with this ID.
@@ -82,6 +93,10 @@ public:
     }
 
     QHash<QString, QString> signers;
+    // Modules whose signer couldn't be found out, as when modinfo fails.
+    QSet<QString> unreadable;
+    // When set, each signer lookup waits until the test releases it.
+    std::shared_ptr<QSemaphore> gate;
 
 private:
     QTemporaryDir m_dir;
@@ -215,19 +230,43 @@ private Q_SLOTS:
         QCOMPARE(check.result, Result::Met);
         QCOMPARE(check.explanation, QStringLiteral("The loaded driver is signed by Fedora or Universal Blue."));
 
+        // A driver whose signer couldn't be found out leaves the answer open, not failed.
+        system.write(QStringLiteral("proc/sys/kernel/tainted"), "0\n");
+        system.unreadable.insert(QStringLiteral("xone_gip"));
+        check = system.check(QStringLiteral("signed-drivers"));
+        QCOMPARE(check.result, Result::Unknown);
+        QCOMPARE(check.explanation, QStringLiteral("Who signed these drivers couldn't be found out: xone_gip."));
+        system.unreadable.clear();
+
         system.remove(QStringLiteral("usr/share/orielos/module-signers.txt"));
         QCOMPARE(system.check(QStringLiteral("signed-drivers")).result, Result::Unknown);
+    }
+
+    void stops()
+    {
+        FakeSystem system;
+        SecuritySources sources = system.sources();
+        sources.cancelled = []() { return true; };
+        for (const SecurityCheck &check : runSecurityChecks(sources)) {
+            if (check.id == QLatin1String("signed-drivers")) {
+                QCOMPARE(check.result, Result::Unknown);
+                QCOMPARE(check.explanation, QStringLiteral("The check was stopped."));
+            }
+        }
     }
 
     void runsOffTheGuiThread()
     {
         FakeSystem system;
         system.write(QStringLiteral("proc/sys/kernel/kexec_load_disabled"), "0\n");
+        // The run waits at its first driver until the test lets it go.
+        system.gate = std::make_shared<QSemaphore>(0);
         DeviceSecurity security(system.sources());
         QSignalSpy changed(&security, &DeviceSecurity::changed);
         QVERIFY(security.isRunning());
         // A second run while one is going is ignored.
         security.run();
+        system.gate->release();
         QVERIFY(changed.wait());
         QVERIFY(!security.isRunning());
         QVERIFY(!security.allMet());
@@ -239,8 +278,11 @@ private Q_SLOTS:
         QCOMPARE(checks.at(0).toMap().value(QStringLiteral("result")).toString(), QStringLiteral("met"));
 
         system.write(QStringLiteral("proc/sys/kernel/kexec_load_disabled"), "1\n");
+        // Close the gate again by taking back the token the last run left.
+        system.gate->acquire();
         security.run();
         QVERIFY(security.isRunning());
+        system.gate->release();
         QVERIFY(changed.wait());
         QVERIFY(security.allMet());
     }

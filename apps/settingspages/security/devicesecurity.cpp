@@ -18,6 +18,7 @@ DeviceSecurity::DeviceSecurity(SecuritySources sources, QObject *parent)
     : QObject(parent)
     , m_sources(std::move(sources))
 {
+    m_sources.cancelled = [cancelled = m_cancelled]() { return cancelled->load(); };
     connect(&m_watcher, &QFutureWatcher<QList<SecurityCheck>>::finished, this, [this]() {
         m_checks = m_watcher.result();
         Q_EMIT changed();
@@ -27,7 +28,9 @@ DeviceSecurity::DeviceSecurity(SecuritySources sources, QObject *parent)
 
 DeviceSecurity::~DeviceSecurity()
 {
-    // The checks only read; let a run that's still going finish rather than leave it behind.
+    // A run that's still going stops at its next module; it only reads, so it's waited for rather
+    // than left behind.
+    m_cancelled->store(true);
     m_watcher.waitForFinished();
 }
 

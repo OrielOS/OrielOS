@@ -10,6 +10,9 @@
 #include <QVariantList>
 #include <qqmlintegration.h>
 
+#include <atomic>
+#include <memory>
+
 namespace OrielOSSettingsPages {
 
 // The Device security page's self-test: whether this start meets each requirement of games with
@@ -43,6 +46,8 @@ Q_SIGNALS:
 
 private:
     SecuritySources m_sources;
+    // Set when the page goes, so a run still going stops at the next module.
+    std::shared_ptr<std::atomic_bool> m_cancelled = std::make_shared<std::atomic_bool>(false);
     QList<SecurityCheck> m_checks;
     QFutureWatcher<QList<SecurityCheck>> m_watcher;
 };
