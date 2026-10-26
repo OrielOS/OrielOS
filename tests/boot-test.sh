@@ -55,6 +55,8 @@ SUMMARY=""
 # The NVIDIA driver component packages; keep in step with image/build/85-check-modules.sh.
 NVIDIA_COMPONENTS='^(nvidia-driver(-.*)?|nvidia-kmod-common|nvidia-modprobe|nvidia-persistenced|nvidia-settings|nvidia-xconfig|nvidia-libXNVCtrl|libnvidia-.*|xorg-x11-nvidia) '
 SDDM_SECONDS=""
+# How long after SDDM starts to wait for graphical.target in the serial log.
+SDDM_GRACE=60
 # The serial log holds every boot; the checks read the current boot's part, from LOG_FROM on.
 # The Start menu checks restart the VM once more and then set LOG_UNTIL to the last line of the
 # second boot, so the other checks still read the second boot alone.
@@ -902,6 +904,13 @@ wait_for_sddm() {
             SDDM_SECONDS=$((SECONDS - BOOT_START))
         fi
         if [[ "$text" == *"Started sddm.service"* && "$text" == *"Reached target graphical.target"* ]]; then
+            return 0
+        fi
+        # Once agetty takes the serial console, its terminal queries (ESC[!p, OSC 3008) can come with
+        # systemd's later status lines missing from it, graphical.target's among them. SDDM has
+        # started by then, so a minute after it the wait ends rather than running out.
+        if [[ -n "$SDDM_SECONDS" ]] && ((SECONDS - BOOT_START - SDDM_SECONDS >= SDDM_GRACE)); then
+            info "SDDM started, but graphical.target isn't in the serial log $SDDM_GRACE s later; going on"
             return 0
         fi
         if ! vm_running; then
