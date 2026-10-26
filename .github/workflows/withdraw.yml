@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       build:
-        description: Earlier build tag for testing to go back to, such as 44.20261025 or 44.20261026.2
+        description: Earlier build for testing to go back to, such as v0.0.6
         required: true
         type: string
 
@@ -46,7 +46,7 @@ jobs:
         env:
           BUILD: ${{ inputs.build }}
         run: |
-          [[ "${BUILD}" =~ ^[0-9]+\.[0-9]{8}(\.[0-9]+)?$ ]] || { echo "::error::The build tag looks like 44.20261026 or 44.20261026.2"; exit 1; }
+          [[ "${BUILD}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The build looks like v0.0.6"; exit 1; }
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2

@@ -49,7 +49,6 @@ jobs:
             GOVERNANCE.md
             SECURITY.md
             SUPPORT.md
-            VERSION
         run: |
           set -euo pipefail
 

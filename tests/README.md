@@ -234,7 +234,7 @@ Then it uses the Update settings page, goes back from there and checks the boot 
     - With app updates on again, the service must bring Firefox to the newest commit, and `state.json` must say when, in `appsUpdatedAt`.
 
 ```sh
-tests/update-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
+tests/update-test.sh --old localhost/orielos:dev.1 --new /var/lib/orielos/builds/orielos-dev.2.ociarchive
 tests/update-test.sh --old OLD.ociarchive --new NEW.ociarchive --keep
 ```
 
@@ -275,7 +275,7 @@ The work folder and `--keep` work as in the boot test.
 For each restart the test watches the serial console, where the firmware copies GRUB's screen, from `systemctl reboot` until the kernel prints `Linux version`. If GRUB's menu appears, the test saves `boot-menu-unexpected.png` and the check fails.
 
 ```sh
-tests/rollback-test.sh --old localhost/orielos:44.20261025 --new /var/lib/orielos/builds/orielos-44.20261026.ociarchive
+tests/rollback-test.sh --old localhost/orielos:dev.1 --new /var/lib/orielos/builds/orielos-dev.2.ociarchive
 ```
 
 `--old` and `--new` take the same as in the update test. It prints PASS or FAIL for eight checks and stops at the first step that fails. Results go to `tests/results/rollback-<B's tag>-<UTC time>/`, or to the folder given with `--results`: `summary.txt`, `install.log`, `serial.log`, `stage.txt`, and `bootc-status-<step>.json` and `status-<step>.txt` after each start (`a`, `staged`, `b-first`, `b-second`, `undone` and `after`). The work folder and `--keep` work as in the boot test.
@@ -333,7 +333,7 @@ tests/screenshot-tour.sh
 6. No systemd unit failed.
 
 ```sh
-tests/smoke-test.sh --image localhost/orielos:44.20261026
+tests/smoke-test.sh --image localhost/orielos:dev.2
 ```
 
 It uses 4 GiB of memory by default and takes about ten minutes. `probe.txt` in the results holds what the VM reported. `--image`, `--archive`, `--results` and `--keep` work as in the boot test.

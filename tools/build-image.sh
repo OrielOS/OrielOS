@@ -2,17 +2,17 @@
 # Builds the OrielOS image locally with rootful Podman from the inputs pinned in image/pins.env,
 # and exports a compressed OCI archive for test VMs.
 #
-# Usage: tools/build-image.sh [--pins FILE] [--date YYYYMMDD] [--number N] [--output DIR]
+# Usage: tools/build-image.sh [--pins FILE] [--version VERSION] [--output DIR]
 #                             [--no-archive] [--keep N] [--clean-only] [--help]
-#   --pins FILE    pins file (default image/pins.env)
-#   --date DATE    build date used in the tag (default: today, UTC)
-#   --number N     the build's number on that date: 1 (the default) is tagged <major>.<date>,
-#                  and 2 or more <major>.<date>.<N>, as CI tags later builds of the same day
-#   --output DIR   where the archive goes (default /var/lib/orielos/builds)
-#   --no-archive   do not export an OCI archive
-#   --keep N       keep the newest N builds and remove older ones (default 1)
-#   --clean-only   only remove old builds, then exit
-# The image is tagged localhost/orielos:<fedora major>.<date>[.<number>] and localhost/orielos:latest.
+#   --pins FILE        pins file (default image/pins.env)
+#   --version VERSION  the build's version: vMAJOR.MINOR.PATCH for a build that is published, as
+#                      CI gives it (tools/next-version.sh), or dev.<n> (the default: one more than
+#                      the newest dev.<n> build here)
+#   --output DIR       where the archive goes (default /var/lib/orielos/builds)
+#   --no-archive       do not export an OCI archive
+#   --keep N           keep the newest N builds and remove older ones (default 1)
+#   --clean-only       only remove old builds, then exit
+# The image is tagged localhost/orielos:<version> and localhost/orielos:latest.
 # Runs as root; re-executes itself through sudo otherwise. Stops at once if another build or a VM
 # test is running.
 set -Eeuo pipefail
@@ -23,8 +23,7 @@ PINS="$ROOT/image/pins.env"
 source "$ROOT/tools/lib/pins.sh"
 # shellcheck source=lib/lock.sh
 source "$ROOT/tools/lib/lock.sh"
-DATE=""
-NUMBER=1
+VERSION=""
 OUTPUT="/var/lib/orielos/builds"
 ARCHIVE=1
 KEEP=1
@@ -100,12 +99,19 @@ export_archive() {
     printf 'archive:        %s (%s)\n' "$file" "$(du -h "$file" | cut -f1)"
 }
 
-# Removes builds older than the newest $KEEP, judged by tag (<major>.<date>[.<number>] sorts by
-# date, then number).
+# The local build after the newest dev.<n> one here: dev.1, dev.2 and so on.
+next_dev_version() {
+    local last
+    last="$(podman images --format '{{.Tag}}' "$REPO" | sed -n 's/^dev\.\([1-9][0-9]*\)$/\1/p' | sort -n | tail -n1)"
+    printf 'dev.%d\n' "$((${last:-0} + 1))"
+}
+
+# Removes builds older than the newest $KEEP, judged by when they were made, whatever their tags.
 cleanup() {
-    local major="$1" tags=() files=() t f n=0
+    local tags=() files=() t f n=0
     step "Removing builds older than the newest $KEEP"
-    mapfile -t tags < <(podman images --format '{{.Tag}}' "$REPO" | grep -E "^${major}\.[0-9]{8}(\.[0-9]+)?$" | sort -Vur || true)
+    mapfile -t tags < <(podman images --format '{{.CreatedAt}}|{{.Tag}}' "$REPO" | sort -r | cut -d'|' -f2 |
+        grep -v -x -e latest -e '<none>' || true)
     if [[ "${#tags[@]}" -gt "$KEEP" ]]; then
         for t in "${tags[@]:KEEP}"; do
             podman rmi "$REPO:$t" >/dev/null
@@ -114,7 +120,7 @@ cleanup() {
         done
     fi
     if [[ -d "$OUTPUT" ]]; then
-        mapfile -t files < <(find "$OUTPUT" -maxdepth 1 -name 'orielos-*.ociarchive' -printf '%f\n' | sort -r)
+        mapfile -t files < <(find "$OUTPUT" -maxdepth 1 -name 'orielos-*.ociarchive' -printf '%T@ %f\n' | sort -rn | cut -d' ' -f2)
         if [[ "${#files[@]}" -gt "$KEEP" ]]; then
             for f in "${files[@]:KEEP}"; do
                 rm -f "${OUTPUT:?}/$f"
@@ -131,12 +137,11 @@ main() {
     local original=("$@")
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --pins | --date | --number | --output | --keep)
+            --pins | --version | --output | --keep)
                 [[ $# -ge 2 ]] || die "$1 needs a value"
                 case "$1" in
                     --pins) PINS="$2" ;;
-                    --date) DATE="$2" ;;
-                    --number) NUMBER="$2" ;;
+                    --version) VERSION="$2" ;;
                     --output) OUTPUT="$2" ;;
                     --keep) KEEP="$2" ;;
                 esac
@@ -161,9 +166,9 @@ main() {
         esac
     done
     [[ "$KEEP" =~ ^[0-9]+$ ]] || die "--keep needs a number"
-    if [[ -z "$DATE" ]]; then DATE="$(date -u +%Y%m%d)"; fi
-    [[ "$DATE" =~ ^[0-9]{8}$ ]] || die "--date needs the form YYYYMMDD"
-    [[ "$NUMBER" =~ ^[1-9][0-9]*$ ]] || die "--number needs a whole number from 1"
+    if [[ -n "$VERSION" && ! "$VERSION" =~ ^(v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)|dev\.[1-9][0-9]*)$ ]]; then
+        die "--version needs the form v0.0.1 or dev.1"
+    fi
 
     if [[ "$EUID" -ne 0 ]]; then
         command -v sudo >/dev/null 2>&1 || die "run this script as root (sudo is not installed)"
@@ -175,7 +180,6 @@ main() {
     [[ -r "$PINS" ]] || die "cannot read $PINS"
     # shellcheck source=/dev/null
     source "$PINS"
-    [[ -n "${FEDORA_MAJOR:-}" ]] || die "FEDORA_MAJOR is not set in $PINS"
     check_pin BASE_IMAGE
     check_pin AKMODS_IMAGE
     check_pin AKMODS_NVIDIA_IMAGE
@@ -183,12 +187,15 @@ main() {
     check_pin UMU_LAUNCHER_RPM
 
     if [[ "$CLEAN_ONLY" -eq 1 ]]; then
-        cleanup "$FEDORA_MAJOR"
+        cleanup
         return 0
     fi
 
-    local tag="$FEDORA_MAJOR.$DATE"
-    if [[ "$NUMBER" -gt 1 ]]; then tag="$tag.$NUMBER"; fi
+    local tag="${VERSION:-$(next_dev_version)}" revision labels=()
+    # The commit the build is made from, for the image's revision label; a GitHub Release made
+    # from the build points at it. The checkout may belong to a user other than root.
+    revision="$(git -c safe.directory="$ROOT" -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
+    if [[ -n "$revision" ]]; then labels+=(--label "org.opencontainers.image.revision=$revision"); fi
     preflight
 
     # The app-builder stage is built and tagged first, as tools/test-apps.sh does. Untagged, its
@@ -207,12 +214,13 @@ main() {
         --build-arg "UMU_LAUNCHER_RPM=$UMU_LAUNCHER_RPM" \
         --build-arg "IMAGE_VERSION=$tag" \
         --label "ostree.linux=$KERNEL" \
+        "${labels[@]}" \
         -t "$REPO:$tag" "$ROOT"
     podman tag "$REPO:$tag" "$REPO:latest"
 
     report "$tag"
     if [[ "$ARCHIVE" -eq 1 ]]; then export_archive "$tag"; fi
-    cleanup "$FEDORA_MAJOR"
+    cleanup
     step "Done: $REPO:$tag"
 }
 

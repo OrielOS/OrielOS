@@ -24,7 +24,7 @@ tools/check-env.sh
 tools/build-image.sh --no-archive
 ```
 
-The build downloads Fedora and the NVIDIA driver, and prints the image's name at the end, for example `localhost/orielos:44.20261025`. The same image is also called `localhost/orielos:latest`.
+The build downloads Fedora and the NVIDIA driver, and prints the image's name at the end, for example `localhost/orielos:dev.1`. The same image is also called `localhost/orielos:latest`.
 
 ## 2. Make a virtual machine disk
 
@@ -58,7 +58,7 @@ qemu-system-x86_64 -accel kvm -machine q35,smm=on -cpu host -m 6144 -smp 4 \
     -global driver=cfi.pflash01,property=secure,value=on \
     -drive if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE_4M.secboot.fd,readonly=on \
     -drive if=pflash,format=raw,unit=1,file=orielos-vars.fd \
-    -drive file=/var/lib/orielos/vm-disks/orielos-44.20261025.qcow2,format=qcow2,if=virtio \
+    -drive file=/var/lib/orielos/vm-disks/orielos-dev.1.qcow2,format=qcow2,if=virtio \
     -device virtio-vga -display gtk \
     -audiodev pa,id=snd0 -device ich9-intel-hda -device hda-output,audiodev=snd0 \
     -netdev user,id=n0 -device virtio-net-pci,netdev=n0
@@ -73,10 +73,10 @@ With virt-manager instead: choose **Import existing disk image**, pick the `.qco
 On Windows with WSL2, `tools/vmware-vm.sh` sets the virtual machine up for you. VMware can only use files on the Windows drive, so give it a Windows folder:
 
 ```sh
-tools/vmware-vm.sh create --vmdk /var/lib/orielos/vm-disks/orielos-44.20261025.vmdk --dir 'C:\VMs'
+tools/vmware-vm.sh create --vmdk /var/lib/orielos/vm-disks/orielos-dev.1.vmdk --dir 'C:\VMs'
 ```
 
-It copies the disk to `C:\VMs\orielos-44.20261025` and creates a virtual machine there with UEFI and Secure Boot, 6 GB of memory, 4 processors, networking and sound. Open the `.vmx` file in that folder with VMware Workstation and press **Power on this virtual machine**.
+It copies the disk to `C:\VMs\orielos-dev.1` and creates a virtual machine there with UEFI and Secure Boot, 6 GB of memory, 4 processors, networking and sound. Open the `.vmx` file in that folder with VMware Workstation and press **Power on this virtual machine**.
 
 To set it up by hand instead:
 
@@ -109,7 +109,7 @@ OrielOS includes NVIDIA's driver, which only works with a real NVIDIA graphics c
 ## Removing the virtual machine
 
 - QEMU: delete the `.qcow2` file and `orielos-vars.fd`.
-- VMware Workstation: right-click the virtual machine and choose **Manage > Delete from Disk**, or run `tools/vmware-vm.sh delete --vmx 'C:\VMs\orielos-44.20261025\orielos-44.20261025.vmx'`.
+- VMware Workstation: right-click the virtual machine and choose **Manage > Delete from Disk**, or run `tools/vmware-vm.sh delete --vmx 'C:\VMs\orielos-dev.1\orielos-dev.1.vmx'`.
 - The disks made in step 2 stay in `/var/lib/orielos/vm-disks` until you delete them.
 
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder).

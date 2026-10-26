@@ -85,7 +85,7 @@ The two versions share every file that didn't change between them, so the previo
 
 ## The boot menu
 
-When the computer starts, the boot menu stays out of sight. To open it, press Esc once, or hold Shift, just after the computer's own start-up screen. It lists the versions on the computer by name, such as **OrielOS 44.20261026**, with the one that normally starts at the top. Use the arrow keys to choose one and press Enter. Pressing Esc again while the menu is showing closes it and leaves a `grub>` prompt instead; type `reboot` and press Enter to start again.
+When the computer starts, the boot menu stays out of sight. To open it, press Esc once, or hold Shift, just after the computer's own start-up screen. It lists the versions on the computer by name, such as **OrielOS v0.0.7**, with the one that normally starts at the top. Use the arrow keys to choose one and press Enter. Pressing Esc again while the menu is showing closes it and leaves a `grub>` prompt instead; type `reboot` and press Enter to start again.
 
 Choosing a version in the boot menu starts it this once.
 
@@ -113,7 +113,7 @@ sudo orielos-update app-updates off # stop apps from the Store updating by thems
 A version can also come as an archive file (`orielos-<version>.ociarchive`), made with `tools/build-image.sh`. Copy it to the computer, then in a terminal run:
 
 ```sh
-sudo orielos-update stage /path/to/orielos-44.20261026.ociarchive
+sudo orielos-update stage /path/to/orielos-v0.0.7.ociarchive
 ```
 
 This prepares the new version for the next restart. It takes a few minutes, and you can keep using the computer meanwhile; the running system isn't changed. Restart when you are ready, and the new version starts.

@@ -47,6 +47,7 @@ class OsReleaseTest : public QObject
 
 private Q_SLOTS:
     void parsesFedora();
+    void parsesOrielOS();
     void parsesValues_data();
     void parsesValues();
     void ignoresCommentsAndBlankLines();
@@ -67,6 +68,7 @@ void OsReleaseTest::parsesFedora()
     QCOMPARE(os.prettyName(), QStringLiteral("Fedora Linux 44 (Forty Four)"));
     QCOMPARE(os.id(), QStringLiteral("fedora"));
     QCOMPARE(os.versionId(), QStringLiteral("44"));
+    QCOMPARE(os.imageVersion(), QStringLiteral("dev"));
     QCOMPARE(os.value(u"NAME"), QStringLiteral("Fedora Linux"));
     QCOMPARE(os.value(u"VERSION_CODENAME"), QString());
     QCOMPARE(os.value(u"ANSI_COLOR"), QStringLiteral("0;38;2;60;110;180"));
@@ -74,6 +76,21 @@ void OsReleaseTest::parsesFedora()
     QCOMPARE(os.value(u"SUPPORT_END"), QStringLiteral("2027-05-19"));
     QCOMPARE(os.value(u"VARIANT_ID"), QString());
     QVERIFY(os.path().isEmpty());
+}
+
+// The lines image/build/95-version.sh writes over Fedora's.
+void OsReleaseTest::parsesOrielOS()
+{
+    const OsRelease os = OsRelease::fromString(u"ID=fedora\n"
+                                               u"VERSION_ID=44\n"
+                                               u"NAME=\"OrielOS\"\n"
+                                               u"VERSION=\"v0.0.7\"\n"
+                                               u"PRETTY_NAME=\"OrielOS v0.0.7\"\n"
+                                               u"IMAGE_ID=orielos\n"
+                                               u"IMAGE_VERSION=v0.0.7\n");
+    QCOMPARE(os.prettyName(), QStringLiteral("OrielOS v0.0.7"));
+    QCOMPARE(os.imageVersion(), QStringLiteral("v0.0.7"));
+    QCOMPARE(os.versionId(), QStringLiteral("44"));
 }
 
 void OsReleaseTest::parsesValues_data()

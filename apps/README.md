@@ -66,7 +66,7 @@ To run the same stage without building the whole image:
 tools/test-apps.sh
 ```
 
-It needs only Podman, works rootless, and is what CI runs on every pull request that changes a file the app build reads: `apps/`, `plasma/`, `artwork/`, `CMakeLists.txt`, `VERSION`, the image's `Containerfile`, `pins.env` and `build/apps-builder.sh`, or the script and workflow themselves. The list is in `.github/workflows/apps.yml`; add to it when the build starts reading another file.
+It needs only Podman, works rootless, and is what CI runs on every pull request that changes a file the app build reads: `apps/`, `plasma/`, `artwork/`, `CMakeLists.txt`, the image's `Containerfile`, `pins.env` and `build/apps-builder.sh`, or the script and workflow themselves. The list is in `.github/workflows/apps.yml`; add to it when the build starts reading another file.
 
 To build directly on a Fedora machine, install the packages listed in `image/build/apps-builder.sh`, then from the repository root:
 

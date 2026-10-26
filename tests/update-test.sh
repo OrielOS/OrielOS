@@ -23,7 +23,7 @@
 # Usage: tests/update-test.sh --old IMAGE_OR_ARCHIVE --new ARCHIVE [--timeout SECONDS]
 #                             [--memory MIB] [--cpus N] [--results DIR] [--keep] [--help]
 #   --old REF|FILE      the build to install first: an image in Podman (such as
-#                       localhost/orielos:44.20261025) or an OCI archive from tools/build-image.sh
+#                       localhost/orielos:dev.1) or an OCI archive from tools/build-image.sh
 #   --new FILE          the build to update to: an OCI archive from tools/build-image.sh
 #   --timeout SECONDS   time to wait for SSH after power-on and after each restart (default 600)
 #   --memory MIB        VM memory (default 6144)

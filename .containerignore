@@ -1,5 +1,5 @@
 # Keeps the image build context (the repository root) small. Only image/, apps/, plasma/,
-# artwork/, CMakeLists.txt and VERSION are used by image/Containerfile.
+# artwork/ and CMakeLists.txt are used by image/Containerfile.
 .git
 .github
 .cache

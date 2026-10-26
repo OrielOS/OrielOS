@@ -23,10 +23,10 @@ target_link_libraries(OrielOSSettingsCatalogue PUBLIC Qt6::Core KF6::I18n KF6::C
 add_executable(orielos-settings main.cpp settingswindow.cpp settingswindow.h)
 target_compile_definitions(orielos-settings PRIVATE
     TRANSLATION_DOMAIN="orielos-settings"
-    ORIELOS_VERSION_STRING="${PROJECT_VERSION}"
 )
 target_link_libraries(orielos-settings PRIVATE
     OrielOSSettingsCatalogue
+    OrielOS::Common
     Qt6::Widgets
     Qt6::Qml
     KF6::I18n

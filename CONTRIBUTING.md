@@ -26,7 +26,7 @@ Some files decide how the project is run, what the OS image trusts and what CI d
 - `.github/`: the workflows, the code owners (who also get the Maintainer role on Discord), Dependabot, the Sponsor button, and the issue and pull request templates.
 - `discord/`: the Discord bot, which runs with the bot's token.
 - `image/keys/`, `image/module-signers.txt` and `image/pins.env`: the package signing keys, the allowed kernel module signers, and the pinned inputs the image is built from.
-- `LICENSE`, `docs/LICENSE`, `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `SUPPORT.md` and `VERSION`.
+- `LICENSE`, `docs/LICENSE`, `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md` and `SUPPORT.md`.
 
 The check's list is in `.github/workflows/protected-files.yml`. Dependabot's dependency updates are allowed.
 

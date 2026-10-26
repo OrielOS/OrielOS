@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "modules.h"
+#include "osrelease.h"
 #include "pagecatalogue.h"
 #include "settingswindow.h"
 
@@ -20,7 +21,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     KLocalizedString::setApplicationDomain(QByteArrayLiteral(TRANSLATION_DOMAIN));
 
-    KAboutData about(QStringLiteral("orielos-settings"), i18nc("@title", "Settings"), QStringLiteral(ORIELOS_VERSION_STRING),
+    KAboutData about(QStringLiteral("orielos-settings"), i18nc("@title", "Settings"), OrielOS::OsRelease::fromSystem().imageVersion(),
         i18nc("@info", "Change how OrielOS works."), KAboutLicense::GPL_V3, i18nc("@info:credit", "© 2026 OrielOS contributors"));
     about.setDesktopFileName(QStringLiteral("org.orielos.Settings"));
     KAboutData::setApplicationData(about);
