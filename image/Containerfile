@@ -88,6 +88,12 @@ COPY --from=app-builder /out/etc/ /etc/
 RUN --mount=type=bind,source=image,target=/image \
     /image/build/85-check-modules.sh
 
+# Updates must be signed with OrielOS's key, once that key is in image/keys.
+# hadolint ignore=DL3059
+RUN --mount=type=bind,source=image/keys,target=/keys \
+    --mount=type=bind,source=image/build,target=/ctx \
+    /ctx/88-signing.sh
+
 # The boot security check makes sure every boot will meet the anti-cheat requirements.
 # hadolint ignore=DL3059
 RUN --mount=type=bind,source=image/build,target=/ctx \

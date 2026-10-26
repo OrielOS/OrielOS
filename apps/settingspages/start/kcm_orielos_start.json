@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Choose what Start shows under Recommended",
+        "Icon": "orielos-start",
+        "Name": "Start"
+    },
+    "X-KDE-Keywords": "start,start menu,recommended,recent,recent files,recently added,new apps",
+    "X-KDE-System-Settings-Parent-Category": "workspace",
+    "X-KDE-Weight": 60
+}
