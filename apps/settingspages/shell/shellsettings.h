@@ -81,6 +81,8 @@ private:
     ShellState m_confirmed;
     // The scripts to run, the first one running: a change, or a read.
     QList<std::optional<Change>> m_queue;
+    // Whether the first script in the queue is running.
+    bool m_running = false;
     bool m_ready = false;
     QString m_error;
 };

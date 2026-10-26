@@ -9,4 +9,5 @@ target_link_libraries(krunner_orielos_settings PRIVATE
     OrielOSSettingsCatalogue
     KF6::Runner
     KF6::KIOGui
+    KF6::JobWidgets
 )

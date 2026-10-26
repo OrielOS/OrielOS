@@ -91,8 +91,8 @@ void AccentColour::choose(const QColor &colour)
 
 void AccentColour::useThemeColour()
 {
-    if (m_themeColour.isValid()) {
-        apply(m_themeColour);
+    if (m_current.isValid()) {
+        apply(QColor());
     }
 }
 
@@ -102,11 +102,33 @@ void AccentColour::setCommandForTesting(const QString &program, const QStringLis
     m_arguments = arguments;
 }
 
+namespace {
+
+// Record the accent in kdeglobals, or remove it for the scheme's own; KConfigWatcher tells the
+// desktop.
+void writeAccent(const QColor &colour)
+{
+    KSharedConfig::Ptr globals = KSharedConfig::openConfig(QStringLiteral("kdeglobals"));
+    KConfigGroup general(globals, QStringLiteral("General"));
+    if (colour.isValid()) {
+        general.writeEntry("AccentColor", colour, KConfig::Notify);
+    } else {
+        general.deleteEntry("AccentColor", KConfig::Notify);
+    }
+    globals->sync();
+}
+
+} // namespace
+
 void AccentColour::apply(const QColor &colour)
 {
     if (m_process) {
         return;
     }
+    // plasma-apply-colorscheme recolours the scheme with the accent but doesn't record it, and the
+    // next scheme applied, for example by switching to dark mode, keeps only a recorded accent.
+    m_previous = m_current;
+    writeAccent(colour);
     m_pending = colour;
     m_error.clear();
     m_process = new QProcess(this);
@@ -117,7 +139,8 @@ void AccentColour::apply(const QColor &colour)
             finish(false);
         }
     });
-    m_process->start(m_program, m_arguments + QStringList { QStringLiteral("--accent-color"), colour.name(QColor::HexRgb) });
+    m_process->start(m_program,
+        m_arguments + QStringList { QStringLiteral("--accent-color"), colour.isValid() ? colour.name(QColor::HexRgb) : QStringLiteral("transparent") });
     Q_EMIT changed();
 }
 
@@ -127,6 +150,7 @@ void AccentColour::finish(bool ok)
     m_process = nullptr;
     m_pending = QColor();
     if (!ok) {
+        writeAccent(m_previous);
         m_error = i18nc("@info", "The accent colour couldn't be changed.");
     }
     reload();

@@ -42,8 +42,6 @@ KCM.SimpleKCM {
             enabled: root.options.available
 
             QQC2.ComboBox {
-                id: alignment
-
                 Kirigami.FormData.label: root.l10n.i18nc("@label:listbox", "Taskbar alignment:")
                 enabled: root.options.canAlign
                 model: [root.l10n.i18nc("@item:inlistbox Taskbar alignment", "Centre"), root.l10n.i18nc("@item:inlistbox Taskbar alignment", "Left")]
@@ -65,8 +63,6 @@ KCM.SimpleKCM {
             }
 
             QQC2.Switch {
-                id: autoHide
-
                 Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Behaviour:")
                 text: root.l10n.i18nc("@option:check", "Automatically hide the taskbar")
                 checked: root.options.autoHide

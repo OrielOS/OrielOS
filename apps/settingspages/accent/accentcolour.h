@@ -13,10 +13,11 @@
 
 namespace OrielOSSettingsPages {
 
-// The accent colour: highlights, selected items and focus rings. It's set with
-// plasma-apply-colorscheme --accent-color, in its own process, so Plasma's colours module, which
-// links GPL-2.0-only code, is never loaded into Settings. Light and dark mode stay with the Themes
-// page; the accent carries over between them.
+// The accent colour: highlights, selected items and focus rings. The choice is recorded as
+// AccentColor in kdeglobals, as Plasma's Colours module records it, and applied with
+// plasma-apply-colorscheme --accent-color in its own process, so that module, which links
+// GPL-2.0-only code, is never loaded into Settings. Light and dark mode stay with the Themes page;
+// applying a scheme there reads AccentColor, so the accent carries over between them.
 class AccentColour : public QObject
 {
     Q_OBJECT
@@ -43,7 +44,8 @@ public:
 
     // Use this colour as the accent.
     Q_INVOKABLE void choose(const QColor &colour);
-    // Go back to the colour scheme's own selection colour.
+    // Go back to the colour scheme's own selection colour: no AccentColor, and the scheme applied
+    // with the accent "transparent", which is how Plasma says none.
     Q_INVOKABLE void useThemeColour();
     // Read the settings again.
     Q_INVOKABLE void reload();
@@ -64,6 +66,8 @@ private:
     QColor m_themeColour;
     // The colour being applied, shown as chosen until plasma-apply-colorscheme ends.
     QColor m_pending;
+    // The AccentColor before the change, put back if it fails; invalid when there was none.
+    QColor m_previous;
     QProcess *m_process = nullptr;
     QString m_error;
     QString m_program;

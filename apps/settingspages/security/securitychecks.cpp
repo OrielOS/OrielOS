@@ -34,17 +34,25 @@ std::optional<QByteArray> readFile(const SecuritySources &sources, const QString
     return file.readAll();
 }
 
-QString defaultSigner(const QString &module)
+// Empty only when modinfo ran and found no signer; nothing when modinfo is missing, fails or hangs.
+std::optional<QString> defaultSigner(const QString &module)
 {
     QString modinfo = QStandardPaths::findExecutable(QStringLiteral("modinfo"));
     if (modinfo.isEmpty()) {
         modinfo = QStandardPaths::findExecutable(QStringLiteral("modinfo"), { QStringLiteral("/usr/sbin"), QStringLiteral("/sbin") });
     }
+    if (modinfo.isEmpty()) {
+        return std::nullopt;
+    }
     QProcess process;
     process.start(modinfo, { QStringLiteral("-F"), QStringLiteral("signer"), module });
     if (!process.waitForFinished(5000)) {
         process.kill();
-        return { };
+        process.waitForFinished();
+        return std::nullopt;
+    }
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+        return std::nullopt;
     }
     return QString::fromUtf8(process.readAllStandardOutput()).section(QLatin1Char('\n'), 0, 0).trimmed();
 }
@@ -185,16 +193,23 @@ SecurityCheck signedDrivers(const SecuritySources &sources)
     const auto signer = sources.moduleSigner ? sources.moduleSigner : defaultSigner;
     QStringList modules;
     QStringList others;
+    QStringList unknown;
     for (const QByteArray &line : loaded->split('\n')) {
         const QString name = QString::fromUtf8(line.left(line.indexOf(' ')).trimmed());
         if (name.isEmpty()) {
             continue;
         }
+        if (sources.cancelled && sources.cancelled()) {
+            check.explanation = i18nc("@info", "The check was stopped.");
+            return check;
+        }
         modules.append(name);
-        const QString by = signer(name);
-        if (!accepted.contains(by)) {
-            others.append(by.isEmpty() ? i18nc("@item %1 is a driver", "%1 (unsigned)", name)
-                                       : i18nc("@item %1 is a driver, %2 who signed it", "%1 (signed by %2)", name, by));
+        const std::optional<QString> by = signer(name);
+        if (!by) {
+            unknown.append(name);
+        } else if (!accepted.contains(*by)) {
+            others.append(by->isEmpty() ? i18nc("@item %1 is a driver", "%1 (unsigned)", name)
+                                        : i18nc("@item %1 is a driver, %2 who signed it", "%1 (signed by %2)", name, *by));
         }
     }
     // The kernel's taint flag E: an unsigned module was loaded since the start, even if it's gone.
@@ -208,6 +223,8 @@ SecurityCheck signedDrivers(const SecuritySources &sources)
     } else if (taint & unsignedModule) {
         check.result = Result::NotMet;
         check.explanation = i18nc("@info", "An unsigned driver was loaded since the PC started. Restart to clear it.");
+    } else if (!unknown.isEmpty()) {
+        check.explanation = i18nc("@info %1 is a list of drivers", "Who signed these drivers couldn't be found out: %1.", unknown.join(QStringLiteral(", ")));
     } else {
         check.result = Result::Met;
         check.explanation = i18ncp("@info", "The loaded driver is signed by Fedora or Universal Blue.",

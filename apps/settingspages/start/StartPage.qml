@@ -42,8 +42,6 @@ KCM.SimpleKCM {
             enabled: root.options.available
 
             QQC2.Switch {
-                id: recentlyAdded
-
                 Kirigami.FormData.label: root.l10n.i18nc("@title:group The Recommended section of Start", "Recommended:")
                 text: root.l10n.i18nc("@option:check", "Show recently added apps")
                 checked: root.options.showRecentlyAdded
@@ -55,8 +53,6 @@ KCM.SimpleKCM {
             }
 
             QQC2.Switch {
-                id: recentFiles
-
                 text: root.l10n.i18nc("@option:check", "Show recently opened files")
                 checked: root.options.showRecentFiles
                 onToggled: {

@@ -7,6 +7,7 @@
 #include <QString>
 
 #include <functional>
+#include <optional>
 
 namespace OrielOSSettingsPages {
 
@@ -33,9 +34,11 @@ struct SecuritySources
 {
     // The folder that sys, proc and usr are in.
     QString root = QStringLiteral("/");
-    // The signer of a loaded kernel module, as modinfo -F signer prints it; empty when unsigned.
-    // By default, runs modinfo.
-    std::function<QString(const QString &module)> moduleSigner;
+    // The signer of a loaded kernel module, as modinfo -F signer prints it: empty when it's
+    // unsigned, nothing when that couldn't be found out. By default, runs modinfo.
+    std::function<std::optional<QString>(const QString &module)> moduleSigner;
+    // Whether to stop: checked between modules, the slow part. Optional.
+    std::function<bool()> cancelled;
 };
 
 // Every requirement, in order: Secure Boot, the TPM and its measured-boot log, kernel lockdown, the
