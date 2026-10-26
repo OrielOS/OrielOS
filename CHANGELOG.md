@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- On a PC that also has Windows, the boot menu lists Windows and shows for five seconds at every start. On other PCs it stays hidden as before.
 - OrielOS has its own sounds: soft glass chimes for signing in and out, notifications, questions, warnings and errors, plugging in devices and power, low battery and the volume keys. Any other sound comes from Plasma's Ocean theme.
 - Snap layouts: Windows + Z shows layouts for the window you're using (halves, thirds, two thirds beside one third, and quarters) and moves it into the area you click or choose with the arrow keys and Enter.
 - A "Known limitations" page lists what OrielOS can't do yet, such as running on real hardware or games whose publishers block Linux, and what it won't do by design, such as Hibernate.
