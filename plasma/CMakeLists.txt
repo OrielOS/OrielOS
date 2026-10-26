@@ -9,6 +9,16 @@ find_package(Plasma 6.0 REQUIRED)
 # The Start menu widget.
 add_subdirectory(startmenu)
 
+# The first-run setup's network page, for computers without Wi-Fi, and its power page, as Plasma
+# Setup packages. image/build/41-first-run.sh puts every page in order and shows this logo on the
+# last one.
+install(DIRECTORY firstrun/network/
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.network)
+install(DIRECTORY firstrun/power/
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.power)
+install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash.png
+    DESTINATION ${KDE_INSTALL_DATADIR}/orielos/first-run RENAME finished-logo.png)
+
 # OrielOS's look-and-feel package, which lays out OrielOS's taskbar for new users.
 install(DIRECTORY look-and-feel/org.orielos.desktop
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)

@@ -24,6 +24,9 @@ updatenotifier/       orielos-update-notifier, the update tray icon
   updatestate.h/.cpp  the update state and its rules (static library OrielOSUpdateState)
   updatenotifier.h/.cpp  the tray icon, its menu, the notification and restarting
   autotests/          Qt Test unit tests for the update state
+firstrun/             the QML module org.orielos.firstrun, for the first-run setup's power page
+  powersettings.h/.cpp  PowerSettings: the choices, saved through pkexec first-run-power
+  autotests/          Qt Test unit tests for PowerSettings
 ```
 
 Each app is a QML module (`qt_add_qml_module`) with the URI `org.orielos.<app>`. Unit tests go in an `autotests/` folder next to the code they test and are added with `ecm_add_test`. C++ follows the repository's `.clang-format`, and every source file starts with the `SPDX-FileCopyrightText` and `SPDX-License-Identifier` lines.

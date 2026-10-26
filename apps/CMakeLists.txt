@@ -4,3 +4,4 @@
 add_subdirectory(common)
 add_subdirectory(buildcheck)
 add_subdirectory(updatenotifier)
+add_subdirectory(firstrun)

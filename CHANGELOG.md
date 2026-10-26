@@ -6,6 +6,11 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- The first-run setup asks what OrielOS needs, in this order: language, keyboard layout, network, time zone, power and your account.
+  - A new power page sets when the computer sleeps and when the screen turns off if it isn't being used, starting from sleep after 15 minutes and the screen off after 10. Your choice becomes the power settings every new account starts with.
+  - On a computer without Wi-Fi, the network page shows whether the cable connection reaches the internet, instead of being skipped.
+  - The setup no longer asks for screen scaling, a dark theme or the computer's name. The dark theme switch gave the new account Fedora's dark desktop instead of OrielOS's.
+  - The welcome screen shows the OrielOS wallpaper, and the last page shows the OrielOS logo.
 - The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
   - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
   - GameMode, umu-launcher and Fedora's compressed memory swap (zram) are included.

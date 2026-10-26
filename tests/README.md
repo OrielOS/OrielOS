@@ -230,6 +230,7 @@ The work folder and `--keep` work as in the boot test.
   - putting a staged build on trial, and taking it off when going back;
   - undoing an update after the boot loader fell back, at boot and through `undo-update`, and only then;
   - when the previous build is removed: after 14 days, by the check only and even while paused, not while an update is staged or going back is queued, and through `remove-previous`.
+- `unit/first-run-power-test.sh` runs the first-run setup's power helper in a scratch root folder (`ORIELOS_FIRST_RUN_ROOT`), with a stand-in for `kwriteconfig6`. It covers the settings written for sleep and the screen with a time or never, a second choice replacing the first, the longest wait, refusing once the setup has finished, and wrong arguments.
 - `unit/boot-flags-test.sh` runs the boot menu's flag helper on a plain file (`ORIELOS_BOOT_FLAGS_FILE`), with stand-ins for `grub2-editenv` and `orielos-update`. It covers each command's effect on the flags, keeping the previous build after a fallback (and what's left when that fails), `status`, and wrong usage.
 
 ## Secure Boot key test
