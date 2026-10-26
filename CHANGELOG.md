@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Start suggests apps to get started with under Recommended: Steam, Heroic Games Launcher, Discord, Spotify, OBS Studio and Lutris. Each opens its page in the Store, leaves the list once installed, and the suggestions can be hidden from an entry's menu.
 - Clipboard history is in Start, under that name: it shows what you copied recently, as Windows + V does. Files always shows its tab bar.
 - The first-run setup asks what OrielOS needs, in this order: language, keyboard layout, network, time zone, power and your account.
   - A new power page sets when the computer sleeps and when the screen turns off if it isn't being used, starting from sleep after 15 minutes and the screen off after 10. Your choice becomes the power settings every new account starts with.

@@ -26,5 +26,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <label>Whether Recommended lists recently opened files. Settings, Personalisation, Start, changes it.</label>
       <default>true</default>
     </entry>
+    <entry name="getStartedHidden" type="Bool">
+      <label>Whether the Get started suggestions under Recommended are hidden.</label>
+      <default>false</default>
+    </entry>
   </group>
 </kcfg>
