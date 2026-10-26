@@ -146,6 +146,7 @@ next_pages() {
         vm_qmp "click:$NEXT_X,$NEXT_Y" wait:3 >/dev/null 2>&1 || true
         after="$(frame after)"
         cmp -s "$before" "$after" && break
+        shot "03-setup-$n" >&2
         n=$((n + 1))
         vm_ssh "id $TOUR_USER" >/dev/null 2>&1 && break
     done
@@ -170,6 +171,8 @@ drive_setup() {
         info "Typing the account on the user page"
         vm_qmp "type:$TOUR_NAME" keys:tab keys:ctrl+a "type:$TOUR_USER" keys:tab \
             "type:$TOUR_PASSWORD" keys:tab "type:$TOUR_PASSWORD" wait:2 >/dev/null 2>&1 || true
+        # The same page as the last one saved, with the account typed in.
+        shot "03-setup-$((n - 1))-account"
         next_pages "$((n + 1))" >/dev/null
         wait_until 30 "id $TOUR_USER" || true
     fi
