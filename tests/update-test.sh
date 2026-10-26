@@ -686,20 +686,28 @@ step_update_settings() {
         fail "Choosing Testing on the page didn't switch back within 70 s (see settings-testing.png)"
     fi
 
-    # Turning automatic app updates off and on needs no password.
-    vm_qmp "keys:alt+a" || true
+    # Turning automatic app updates off and on needs no password. The channel shows in the state
+    # file before orielos-update has finished, and the page keeps its controls disabled until it
+    # has, so give it a moment first.
+    local apps_off=0
+    vm_qmp "wait:5" "keys:alt+a" || true
     if wait_for_state .appUpdates false 60; then
+        apps_off=1
         vm_qmp "wait:2" "shot:$RESULTS/settings-apps-off.png" || true
         pass "Update apps automatically on the page turns app updates off, with no password (see settings-apps-off.png)"
     else
         vm_qmp "shot:$RESULTS/settings-apps-off.png" || true
         fail "Update apps automatically on the page didn't turn app updates off within 60 s (see settings-apps-off.png)"
     fi
-    vm_qmp "keys:alt+a" || true
-    if wait_for_state .appUpdates true 60; then
-        pass "Update apps automatically turns them back on"
+    if [[ "$apps_off" -eq 1 ]]; then
+        vm_qmp "wait:3" "keys:alt+a" || true
+        if wait_for_state .appUpdates true 60; then
+            pass "Update apps automatically turns them back on"
+        else
+            fail "Update apps automatically didn't turn app updates back on within 60 s"
+        fi
     else
-        fail "Update apps automatically didn't turn app updates back on within 60 s"
+        fail "Update apps automatically turns them back on: not tried, since turning them off didn't work"
     fi
 
     # The question's default button is Cancel, so choose Go back by its mnemonic, then answer
