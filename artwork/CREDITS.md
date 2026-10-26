@@ -26,6 +26,7 @@ These are installed with OrielOS's own files but come from the projects named. O
 | Files | Used in | Author | Source | Licence |
 |---|---|---|---|---|
 | The spinner, password and keyboard images of Plymouth's spinner theme (`throbber-*.png`, `animation-*.png`, `bullet.png`, `capslock.png`, `entry.png`, `keyboard.png`, `keymap-render.png`, `lock.png`) | The boot splash, copied from Fedora's `plymouth-theme-spinner` package at build time | Jakub Steiner and the Plymouth authors | https://gitlab.freedesktop.org/plymouth/plymouth | GPL-2.0-or-later |
+| SDDM's Breeze theme (everything in `/usr/share/sddm/themes/orielos` but OrielOS's `Main.qml`, `metadata.desktop` and `theme.conf`, including the default avatar `faces/.face.icon`) | The sign-in screen, copied from Fedora's `sddm-breeze` package at build time | KDE's Plasma developers | https://invent.kde.org/plasma/plasma-desktop | LGPL-2.0-or-later |
 | `plasma/color-schemes/OrielOSLight.colors`, `OrielOSDark.colors` | OrielOS's colour schemes, with OrielOS's palette in Breeze's structure | Breeze's authors and OrielOS contributors | https://invent.kde.org/plasma/breeze | LGPL-2.0-or-later |
 
 ## What is not here

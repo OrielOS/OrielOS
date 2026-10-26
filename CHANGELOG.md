@@ -6,6 +6,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- The sign-in screen opens on the time over the OrielOS wallpaper, like a locked screen. Press a key or click, and the sign-in slides up into the middle; after a minute without input the time comes back. It offers Sleep, Restart and Shut down.
+- The boot splash shows the OrielOS logo on a black screen, with a spinner below it.
 - OrielOS has its own colours: OrielOS Light, the default, and OrielOS Dark, built from OrielOS's palette with Oriel Blue for selections, focus and links. The OrielOS Dark global theme keeps the OrielOS taskbar, and Plasma's Day-Night Cycle switches between the two.
 - The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
   - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
