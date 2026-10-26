@@ -109,6 +109,7 @@ SHORTCUT_TABLE=(
     "Ctrl+Shift+Esc|0x07000000|org.kde.plasma-systemmonitor.desktop|_launch"
     "Meta+Left|0x11000012|kwin|Window Quick Tile Left"
     "Meta+Right|0x11000014|kwin|Window Quick Tile Right"
+    "Meta+Z|0x1000005a|kwin|Snap Layouts"
     "Meta+Up|0x11000013|kwin|Window Maximize"
     "Meta+Down|0x11000015|kwin|Window Minimize"
     "Meta+Print|0x11000009|org.kde.spectacle.desktop|FullScreenToFile"

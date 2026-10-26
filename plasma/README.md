@@ -7,10 +7,7 @@ Contains:
 - `startmenu/`: the Start menu, OrielOS's own Plasma widget (see [The Start menu](#the-start-menu)).
 - `look-and-feel/org.orielos.desktop/`: OrielOS's look-and-feel package, which sets up OrielOS's taskbar for new users.
 - `updates/`: desktop update scripts, which move existing users' desktops to the current layout.
-
-Will contain:
-
-- KWin scripts, for example window snap layouts.
+- `kwin/snaplayouts/`: the snap layouts picker, a KWin effect (see [Snap layouts](#snap-layouts)).
 
 `CMakeLists.txt` installs them with OrielOS's apps; `tools/test-apps.sh` builds them, and the image build copies them in.
 
@@ -68,6 +65,17 @@ Right-click an app, or press the Menu key, to pin it to or unpin it from Start. 
 A Plasma update can change that API, so check the Start menu after every Plasma update; this one was written against Plasma 6.7.5.
 
 **Pinned apps** are kept in the widget's own settings, the `favorites` key in the user's `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, so they survive restarts and OS updates. `main.xml` holds the default pins: Files, Firefox, Store, Settings, Konsole, Process Manager and Screenshot. A pinned app that isn't installed yet, such as Firefox before the first-boot install finishes, stays in the list and shows up as soon as it's installed.
+
+## Snap layouts
+
+`kwin/snaplayouts/` is a KWin effect package, `orielos-snaplayouts`, installed to `/usr/share/kwin/effects/` and on by default. It's a QML scene effect (`SceneEffect`, `X-Plasma-API: declarativescript`), so while it shows it has the keyboard and the mouse, as KWin's overview does. Its `ShortcutHandler` registers Win+Z as the `kwin` component's "Snap Layouts" action, so it can be changed under Shortcuts like KWin's own.
+
+- **Opening.** Win+Z keeps the active window if it's a normal window that can be moved and resized and isn't full screen; otherwise nothing happens.
+- **Drawing.** A scene effect replaces the whole screen, so each screen's `Picker` draws that screen's windows as thumbnails (`WindowFilterModel`, as KWin's tiles editor does), dims them, and on the window's own screen shows the four layouts: halves, thirds, two thirds and one third, and quarters (`main.qml`'s `layouts`, as fractions of the usable area).
+- **Snapping.** The chosen area is worked out from `Workspace.clientArea(MaximizeArea, window)`, the screen without the taskbar; the window is unmaximised, taken out of any tile and given that `frameGeometry`. Win+arrows stay with Plasma's own quick tiling.
+- **Keys.** Arrows or Tab move between areas (Up and Down between layouts), Enter or Space snaps, Escape or a click outside closes.
+
+Strings are in the `orielos-snaplayouts` translation domain. The tour presses Win+Z over Files and saves the picker and the result.
 
 ## Wallpapers
 

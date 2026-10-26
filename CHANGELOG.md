@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Snap layouts: Windows + Z shows layouts for the window you're using (halves, thirds, two thirds beside one third, and quarters) and moves it into the area you click or choose with the arrow keys and Enter.
 - The system pieces games and gaming gear need, while the games and launchers themselves come from the Store.
   - Windows games run through Proton can use NTSYNC, and the system allows the memory maps some games need and doesn't slow down older games that split locks.
   - GameMode, umu-launcher and Fedora's compressed memory swap (zram) are included.

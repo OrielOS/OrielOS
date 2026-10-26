@@ -9,6 +9,9 @@ find_package(Plasma 6.0 REQUIRED)
 # The Start menu widget.
 add_subdirectory(startmenu)
 
+# Snap layouts: a KWin effect that Win+Z opens, to snap the active window into a layout.
+install(DIRECTORY kwin/snaplayouts/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snaplayouts)
+
 # OrielOS's look-and-feel package, which lays out OrielOS's taskbar for new users.
 install(DIRECTORY look-and-feel/org.orielos.desktop
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
