@@ -280,6 +280,9 @@ desktop_tour() {
     in_session orielos-settings device-security >/dev/null 2>&1 || warn "Could not open the Device security page"
     sleep 8
     shot 11-settings-security
+    in_session orielos-settings power-mode >/dev/null 2>&1 || warn "Could not open the Power mode page"
+    sleep 5
+    shot 11-settings-power-mode
     close_apps
 
     open_app 15 firefox flatpak run org.mozilla.firefox

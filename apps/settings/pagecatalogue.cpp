@@ -110,6 +110,10 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc(
                 "@info:keywords Search words for the Power & sleep page, separated by ;", "power;sleep;battery;screen off;turn off;lid;energy;power plan")),
             QStringLiteral("kcm_powerdevilprofilesconfig"), { } },
+        { QStringLiteral("power-mode"), system, i18nc("@title Settings page", "Power mode"), i18nc("@info", "Performance, Balanced or Power saver"),
+            keywords(i18nc("@info:keywords Search words for the Power mode page, separated by ;",
+                "power mode;power profile;performance;best performance;balanced;power saver;battery saver;energy saver")),
+            QStringLiteral("kcm_orielos_powermode"), { } },
         { QStringLiteral("about"), system, i18nc("@title Settings page", "About"), i18nc("@info", "This computer, its specifications and OrielOS's version"),
             keywords(i18nc("@info:keywords Search words for the About page, separated by ;",
                 "about;system information;specifications;specs;version;processor;memory;ram;graphics card;pc info")),
