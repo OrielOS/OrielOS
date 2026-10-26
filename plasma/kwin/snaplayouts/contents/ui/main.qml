@@ -40,9 +40,29 @@ SceneEffect {
         ],
     ]
 
-    // The window the picker was opened for. It's a KWin Window, which QML can't name as a type,
-    // and it becomes null if the window closes meanwhile.
-    property var target: null
+    // The window the picker was opened for. It's a KWin Window, which QML can't name as a type; as a
+    // QtObject property it becomes null when the window object goes.
+    property QtObject target: null
+    // The highlighted area, an index into all the layouts' areas. It's the effect's, not each
+    // screen's, so whichever screen KWin sends the keys to moves the highlight that shows.
+    property int current: 0
+
+    // If the window closes while the layouts show, there's nothing left to snap. KWin keeps a closed
+    // window's object for its closing animation, so its closed signal comes first.
+    onTargetChanged: {
+        if (effect.visible && !effect.target) {
+            effect.close();
+        }
+    }
+
+    Connections {
+        target: effect.target
+        ignoreUnknownSignals: true
+
+        function onClosed() {
+            effect.close();
+        }
+    }
 
     // Show the layouts for the active window, if it's one that can be moved and resized.
     function open() {
@@ -51,6 +71,7 @@ SceneEffect {
             return;
         }
         effect.target = window;
+        effect.current = 0;
         effect.visible = true;
     }
 

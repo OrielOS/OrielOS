@@ -74,6 +74,7 @@ A Plasma update can change that API, so check the Start menu after every Plasma 
 - **Drawing.** A scene effect replaces the whole screen, so each screen's `Picker` draws that screen's windows as thumbnails (`WindowFilterModel`, as KWin's tiles editor does), dims them, and on the window's own screen shows the four layouts: halves, thirds, two thirds and one third, and quarters (`main.qml`'s `layouts`, as fractions of the usable area).
 - **Snapping.** The chosen area is worked out from `Workspace.clientArea(MaximizeArea, window)`, the screen without the taskbar; the window is unmaximised, taken out of any tile and given that `frameGeometry`. Win+arrows stay with Plasma's own quick tiling.
 - **Keys.** Arrows or Tab move between areas (Up and Down between layouts), Enter or Space snaps, Escape or a click outside closes.
+- **One highlight.** The highlighted area belongs to the effect, not to each screen's `Picker`, so whichever screen KWin sends the keys to moves the highlight that shows. If the window closes while the layouts show, they close too.
 
 Strings are in the `orielos-snaplayouts` translation domain. The tour presses Win+Z over Files and saves the picker and the result.
 

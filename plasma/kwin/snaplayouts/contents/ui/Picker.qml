@@ -22,7 +22,6 @@ FocusScope {
     readonly property bool showsLayouts: picker.effect.target !== null && picker.effect.target.output === picker.screen
     // Every area of every layout, in order, so the keyboard can step through them.
     readonly property var areas: picker.effect.layouts.reduce((all, layout) => all.concat(layout), [])
-    property int current: 0
 
     // The index in areas of each layout's first area.
     function firstArea(layoutIndex: int): int {
@@ -45,7 +44,7 @@ FocusScope {
     // Move to the first area of the next or previous layout.
     function moveLayout(step: int) {
         const count = picker.effect.layouts.length;
-        picker.current = picker.firstArea((picker.layoutOf(picker.current) + step + count) % count);
+        picker.effect.current = picker.firstArea((picker.layoutOf(picker.effect.current) + step + count) % count);
     }
 
     focus: true
@@ -58,11 +57,11 @@ FocusScope {
             break;
         case Qt.Key_Right:
         case Qt.Key_Tab:
-            picker.current = (picker.current + 1) % count;
+            picker.effect.current = (picker.effect.current + 1) % count;
             break;
         case Qt.Key_Left:
         case Qt.Key_Backtab:
-            picker.current = (picker.current - 1 + count) % count;
+            picker.effect.current = (picker.effect.current - 1 + count) % count;
             break;
         case Qt.Key_Down:
             picker.moveLayout(1);
@@ -73,7 +72,7 @@ FocusScope {
         case Qt.Key_Return:
         case Qt.Key_Enter:
         case Qt.Key_Space:
-            picker.effect.snap(picker.areas[picker.current]);
+            picker.effect.snap(picker.areas[picker.effect.current]);
             break;
         default:
             return;
@@ -116,8 +115,6 @@ FocusScope {
     }
 
     Rectangle {
-        id: card
-
         anchors.horizontalCenter: parent.horizontalCenter
         y: Math.round(parent.height * 0.12)
         z: 10002
@@ -161,8 +158,8 @@ FocusScope {
 
                         areas: modelData
                         firstIndex: picker.firstArea(index)
-                        current: picker.current
-                        onHighlighted: areaIndex => picker.current = areaIndex
+                        current: picker.effect.current
+                        onHighlighted: areaIndex => picker.effect.current = areaIndex
                         onChosen: area => picker.effect.snap(area)
                     }
                 }
@@ -170,7 +167,7 @@ FocusScope {
 
             QQC2.Label {
                 Layout.alignment: Qt.AlignHCenter
-                text: picker.areas[picker.current]?.name ?? ""
+                text: picker.areas[picker.effect.current]?.name ?? ""
             }
         }
     }
