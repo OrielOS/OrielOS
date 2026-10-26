@@ -10,7 +10,7 @@
 # position-independent.
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Gui)
-find_package(KF6 6.0 REQUIRED COMPONENTS KCMUtils Config)
+find_package(KF6 6.0 REQUIRED COMPONENTS KCMUtils Config KIO Service JobWidgets)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
