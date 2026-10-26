@@ -3,12 +3,14 @@
 
 #include "storeapps.h"
 
+#include <KIO/ApplicationLauncherJob>
+#include <KIO/OpenUrlJob>
 #include <KLocalizedString>
+#include <KNotificationJobUiDelegate>
+#include <KService>
 
-#include <QDesktopServices>
 #include <QDir>
 #include <QFileSystemWatcher>
-#include <QProcess>
 #include <QStandardPaths>
 #include <QUrl>
 
@@ -27,8 +29,22 @@ StoreApps::StoreApps(QObject *parent)
                         // Flatpak exports an installed app's desktop entry to a folder on XDG_DATA_DIRS.
                         return !QStandardPaths::locate(QStandardPaths::ApplicationsLocation, id + QStringLiteral(".desktop")).isEmpty();
                     },
-                    [](const QString &id) { QProcess::startDetached(QStringLiteral("flatpak"), { QStringLiteral("run"), id }); },
-                    [](const QString &url) { QDesktopServices::openUrl(QUrl(url)); },
+                    // Through KIO, so the app gets an activation token and comes to the front, and a
+                    // failure says so in a notification.
+                    [](const QString &id) {
+                        const KService::Ptr service = KService::serviceByDesktopName(id);
+                        if (!service) {
+                            return;
+                        }
+                        auto *job = new KIO::ApplicationLauncherJob(service);
+                        job->setUiDelegate(new KNotificationJobUiDelegate(KJobUiDelegate::AutoErrorHandlingEnabled));
+                        job->start();
+                    },
+                    [](const QString &url) {
+                        auto *job = new KIO::OpenUrlJob(QUrl(url));
+                        job->setUiDelegate(new KNotificationJobUiDelegate(KJobUiDelegate::AutoErrorHandlingEnabled));
+                        job->start();
+                    },
                 },
           parent)
 {
