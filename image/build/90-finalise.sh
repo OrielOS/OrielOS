@@ -93,6 +93,12 @@ for f in /usr/lib/orielos/update.conf /usr/share/polkit-1/actions/org.orielos.up
     [[ -r "$f" ]] || update_errors+=("$f is missing")
 done
 [[ -x /usr/bin/orielos-update-notifier ]] || update_errors+=("the update notifier, /usr/bin/orielos-update-notifier, is missing")
+# Settings hosts the Update page; it has Win+I and Start's Settings entry, System Settings neither.
+[[ -x /usr/bin/orielos-settings ]] || update_errors+=("Settings, /usr/bin/orielos-settings, is missing")
+for f in /usr/share/applications/org.orielos.Settings.desktop /usr/share/kglobalaccel/org.orielos.Settings.desktop; do
+    grep -qxF 'X-KDE-Shortcuts=Meta+I' "$f" 2>/dev/null || update_errors+=("$f is missing or doesn't give Settings Win+I")
+done
+grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
 if [[ -e /var/lib/orielos/update ]]; then
     update_errors+=("/var/lib/orielos/update exists in the image")
 fi
