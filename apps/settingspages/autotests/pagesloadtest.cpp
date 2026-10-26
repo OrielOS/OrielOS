@@ -44,6 +44,7 @@ private Q_SLOTS:
         QTest::newRow("accent") << QStringLiteral("kcm_orielos_accent") << QStringLiteral("Accent Colour") << QStringLiteral("themes");
         QTest::newRow("start") << QStringLiteral("kcm_orielos_start") << QStringLiteral("Start") << QStringLiteral("workspace");
         QTest::newRow("taskbar") << QStringLiteral("kcm_orielos_taskbar") << QStringLiteral("Taskbar") << QStringLiteral("workspace");
+        QTest::newRow("security") << QStringLiteral("kcm_orielos_security") << QStringLiteral("Device Security") << QStringLiteral("security-privacy");
     }
 
     void loadsThePage()

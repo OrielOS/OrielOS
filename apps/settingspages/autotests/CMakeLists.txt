@@ -13,6 +13,12 @@ ecm_add_test(accentcolourtest.cpp
 
 # Runs the desktop script against a fake of Plasma's desktop scripting, and the models against a
 # fake desktop.
+# The anti-cheat self-test against a copy of a VM's files, recorded from the boot test.
+ecm_add_test(securitycheckstest.cpp
+    TEST_NAME securitycheckstest
+    LINK_LIBRARIES OrielOSSecurity Qt6::Test
+)
+
 ecm_add_test(shellsettingstest.cpp
     TEST_NAME shellsettingstest
     LINK_LIBRARIES OrielOSStart OrielOSTaskbar Qt6::Qml Qt6::Test
@@ -24,7 +30,7 @@ ecm_add_test(pagesloadtest.cpp
     TEST_NAME pagesloadtest
     LINK_LIBRARIES KF6::KCMUtilsQuick KF6::CoreAddons Qt6::Quick Qt6::Test
 )
-add_dependencies(pagesloadtest kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar)
+add_dependencies(pagesloadtest kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security)
 set_tests_properties(pagesloadtest PROPERTIES
     ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:kcm_orielos_accent>/../../..;QT_QPA_PLATFORM=offscreen"
 )
