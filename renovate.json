@@ -20,10 +20,11 @@
   ],
   "packageRules": [
     {
-      "description": "Refresh the digests together, in one pull request: the two akmods images must match the same kernel.",
+      "description": "Refresh the digests together, in one pull request: the two akmods images must match the same kernel. A digest refresh keeps the same tags, so it merges by itself once every required check passes, as Universal Blue's do; anything else waits for review.",
       "matchManagers": ["custom.regex"],
       "matchUpdateTypes": ["digest"],
       "groupName": "OS image inputs",
+      "automerge": true,
       "semanticCommitType": "build",
       "semanticCommitScope": null
     },
