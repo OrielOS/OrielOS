@@ -10,8 +10,11 @@
 # and peripheral udev rules and drivers) and that Fedora's countme reporting is off.
 # It also checks that the Store shows Flathub only and that
 # Firefox was installed from Flathub on first boot, waiting up to 10 minutes for the install.
-# Last, it drives the Start menu with the keyboard over QMP (searching runs nothing, Enter opens
-# the first result, Menu then Enter pins an app), restarts the VM and checks the pin is kept.
+# Then it compares screenshots of the desktop and the open Start menu with the reference images in
+# tests/references/ (see tests/update-references.sh). Last, it drives the Start menu with the
+# keyboard over QMP (searching runs nothing, Enter opens the first result, Menu then Enter pins an
+# app), restarts the VM and checks the pin is kept, then opens a recent file, takes screenshots of
+# Recommended, each Tab stop and the account and power menus, and unpins the app again.
 # The VM's firmware has Universal Blue's driver-signing key enrolled, and the test checks that the
 # kernel trusts it. It also checks that the second boot is in the mode anti-cheat needs: kernel
 # lockdown, the IOMMU on, kexec disabled, the BPF LSM, no hibernation and only allowed module
@@ -52,6 +55,8 @@ SUMMARY=""
 # The NVIDIA driver component packages; keep in step with image/build/85-check-modules.sh.
 NVIDIA_COMPONENTS='^(nvidia-driver(-.*)?|nvidia-kmod-common|nvidia-modprobe|nvidia-persistenced|nvidia-settings|nvidia-xconfig|nvidia-libXNVCtrl|libnvidia-.*|xorg-x11-nvidia) '
 SDDM_SECONDS=""
+# How long after SDDM starts to wait for graphical.target in the serial log.
+SDDM_GRACE=60
 # The serial log holds every boot; the checks read the current boot's part, from LOG_FROM on.
 # The Start menu checks restart the VM once more and then set LOG_UNTIL to the last line of the
 # second boot, so the other checks still read the second boot alone.
@@ -102,13 +107,14 @@ SHORTCUT_TABLE=(
     "Meta+L|0x1000004c|ksmserver|Lock Session"
     "Meta+D|0x10000044|kwin|Show Desktop"
     "Meta+Tab|0x11000001|kwin|Overview"
-    "Meta+I|0x10000049|systemsettings.desktop|_launch"
+    "Meta+I|0x10000049|org.orielos.Settings.desktop|_launch"
     "Meta+Shift+S|0x12000053|org.kde.spectacle.desktop|_launch"
     "Meta+V|0x10000056||show-on-mouse-pos"
     "Meta+.|0x1000002e|org.kde.plasma.emojier.desktop|_launch"
     "Ctrl+Shift+Esc|0x07000000|org.kde.plasma-systemmonitor.desktop|_launch"
     "Meta+Left|0x11000012|kwin|Window Quick Tile Left"
     "Meta+Right|0x11000014|kwin|Window Quick Tile Right"
+    "Meta+Z|0x1000005a|kwin|Snap Layouts"
     "Meta+Up|0x11000013|kwin|Window Maximize"
     "Meta+Down|0x11000015|kwin|Window Minimize"
     "Meta+Print|0x11000009|org.kde.spectacle.desktop|FullScreenToFile"
@@ -117,6 +123,10 @@ SHORTCUTS_OUT=""
 SHORTCUT_CLASHES=""
 TOOL_NAMES=""
 WIN_E_SECONDS=""
+# The visual check: 1 once visual-desktop.png and visual-start.png were taken, after Firefox's
+# install, so they can be compared with the references in tests/references/.
+VISUAL_TAKEN=0
+
 # OrielOS's Start menu, driven with the keyboard over QMP last, because it restarts the VM. Each
 # step's result is empty when the step was not reached; START_WHY says why the steps stopped.
 START_WHY=""
@@ -126,6 +136,11 @@ START_PINNED=""
 START_FAVORITES=""
 START_KEPT=""
 START_KEPT_FAVORITES=""
+# After the restart: whether a recently opened file was registered for Recommended, and whether
+# unpinning Ark removed it from the pinned apps.
+START_RECENT=""
+START_UNPINNED=""
+START_UNPIN_FAVORITES=""
 BT_ENABLED=""
 BT_ACTIVE=""
 SERVER_UNITS=""
@@ -290,7 +305,7 @@ collect_over_ssh() {
 }
 
 # Print a shell script that reports the gaming defaults, one key=value per line: whether ntsync is
-# loaded, the two sysctl settings, transparent hugepages, zram swap, the gaming and peripheral
+# loaded, the two sysctl settings, transparent hugepages, zram swap, the power mode, the gaming and peripheral
 # packages, umu-launcher, the extra drivers and their signer, the PlayStation touchpad rule, and
 # Fedora's countme reporting.
 gaming_probe() {
@@ -301,6 +316,7 @@ echo "split_lock=$(sysctl -n kernel.split_lock_mitigate 2>&1)"
 echo "thp=$(cat /sys/kernel/mm/transparent_hugepage/enabled 2>&1)"
 echo "zram=$(swapon --show=NAME --noheadings 2>&1 | grep zram | paste -sd ' ' -)"
 echo "ananicy=$(rpm -q ananicy-cpp >/dev/null 2>&1 && echo installed)"
+echo "power=$(busctl get-property org.freedesktop.UPower.PowerProfiles /org/freedesktop/UPower/PowerProfiles org.freedesktop.UPower.PowerProfiles ActiveProfile 2>&1)"
 echo "missing=$(for p in gamemode umu-launcher steam-devices solaar-udev libratbag-ratbagd openrgb-udev-rules zram-generator-defaults; do rpm -q "$p" >/dev/null 2>&1 || printf '%s ' "$p"; done)"
 echo "umu=$(command -v umu-run)"
 echo "signers=$(for m in xone_gip hid_xpadneo hid_playstation ntsync; do printf '%s:%s ' "$m" "$(modinfo -F signer "$m" 2>/dev/null | head -n1)"; done)"
@@ -460,7 +476,7 @@ read_shortcuts() {
     SHORTCUTS_OUT="$(vm_ssh "$(shortcut_probe)" 2>&1)" || true
     vm_ssh cat "/home/$TEST_USER/.config/kglobalshortcutsrc" >"$RESULTS/kglobalshortcutsrc" 2>/dev/null || true
     SHORTCUT_CLASHES="$(shortcut_clashes "$RESULTS/kglobalshortcutsrc" 2>/dev/null)" || true
-    TOOL_NAMES="$(vm_ssh "grep -m1 -h '^Name=' /usr/share/applications/org.kde.plasma-systemmonitor.desktop /usr/share/applications/org.kde.spectacle.desktop /usr/share/applications/org.kde.dolphin.desktop" 2>&1 | paste -sd ',' -)" || true
+    TOOL_NAMES="$(vm_ssh "grep -m1 -h '^Name=' /usr/share/applications/org.kde.plasma-systemmonitor.desktop /usr/share/applications/org.kde.spectacle.desktop /usr/share/applications/org.kde.dolphin.desktop /usr/share/applications/org.orielos.ClipboardHistory.desktop" 2>&1 | paste -sd ',' -)" || true
 }
 
 # Print each key that more than one action in a kglobalshortcutsrc file has as its active
@@ -525,6 +541,41 @@ PY
     done
 }
 
+# Take the visual check's screenshots: the desktop alone, then the Start menu open on its home page.
+# Firefox is installed by then and pinned on the taskbar and in Start. Win+E's Dolphin is closed
+# first.
+visual_shots() {
+    stop_dolphin || true
+    # Let the desktop settle after the window closes and any notification fades.
+    sleep 10
+    if vm_qmp "shot:$RESULTS/visual-desktop.png" keys:meta_l wait:4 "shot:$RESULTS/visual-start.png" keys:esc wait:2; then
+        VISUAL_TAKEN=1
+    fi
+}
+
+# Compare visual-<name>.png with tests/references/<name>.png, ignoring the areas listed in
+# tests/references/<name>.mask, and report the result: visual_check <name> <what it shows>
+visual_check() {
+    local name="$1" what="$2" reference="$ROOT/tests/references/$1.png" out rc=0
+    if [[ "$VISUAL_TAKEN" -ne 1 ]]; then
+        fail "Visual check: $what could not be checked (the screenshots were not taken)"
+        return 0
+    fi
+    if [[ ! -r "$reference" ]]; then
+        fail "Visual check: $what has no reference image, $reference"
+        hint "make one with tests/update-references.sh $RESULTS"
+        return 0
+    fi
+    out="$(python3 -I "$ROOT/tests/lib/screens.py" "$reference" "$RESULTS/visual-$name.png" \
+        --mask "$ROOT/tests/references/$name.mask" --diff "$RESULTS/visual-$name-diff.png" 2>&1)" || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        pass "Visual check: $what matches its reference ($out; see visual-$name.png)"
+    else
+        fail "Visual check: $what doesn't match its reference ($out; changed pixels in red in visual-$name-diff.png)"
+        hint "if the change is intended, update the reference with tests/update-references.sh $RESULTS"
+    fi
+}
+
 # Print "running" or "stopped" for the test user's Dolphin, or nothing if SSH does not answer.
 dolphin_state() {
     vm_ssh "if pgrep -u $TEST_USER -x dolphin >/dev/null; then echo running; else echo stopped; fi" 2>/dev/null || true
@@ -549,12 +600,20 @@ stop_dolphin() {
 }
 
 # Print "favorites=<value>" for each OrielOS Start menu in a plasma-org.kde.plasma.desktop-appletsrc
-# file: the pinned apps in its [Configuration][General] group. Prints nothing if there is none.
+# file: the pinned apps in its [Configuration][General] group. Plasma leaves the setting out while
+# the pins are the defaults (unpinning the one app added removes it), so a missing setting prints
+# the default from the Start menu's main.xml. Prints nothing if there is no Start menu.
 #   start_favorites <file>
 start_favorites() {
-    python3 -I - "$1" <<'PY'
+    python3 -I - "$1" "$ROOT/plasma/startmenu/main.xml" <<'PY'
 import re
 import sys
+import xml.etree.ElementTree as ET
+
+default = ""
+for entry in ET.parse(sys.argv[2]).iter():
+    if entry.tag.endswith("entry") and entry.get("name") == "favorites":
+        default = next((d.text or "" for d in entry if d.tag.endswith("default")), "")
 
 groups = {}
 group = None
@@ -570,7 +629,7 @@ for line in open(sys.argv[1], encoding="utf-8"):
 
 for g, keys in groups.items():
     if len(g) == 4 and g[0] == "Containments" and g[2] == "Applets" and keys.get("plugin") == "org.orielos.startmenu":
-        print("favorites=" + groups.get(g + ("Configuration", "General"), {}).get("favorites", ""))
+        print("favorites=" + groups.get(g + ("Configuration", "General"), {}).get("favorites", default))
 PY
 }
 
@@ -703,6 +762,66 @@ start_menu_restart() {
     fi
     if [[ "$START_KEPT_FAVORITES" == *org.kde.ark.desktop* ]]; then START_KEPT="yes"; fi
     vm_qmp keys:meta_l wait:3 "shot:$RESULTS/start-pinned.png" keys:esc || true
+    start_menu_more_checks
+}
+
+# A script for the VM that writes a text file in the test user's Documents and tells the session's
+# activity manager that an editor accessed it, as KIO does when it opens a file in an app, so the
+# Start menu's Recommended list has a recent file. Prints "recent=yes" when the activity manager
+# took the event. An Opened and a Closed event, sent this way, left the file with no type in the
+# activity manager's database, and Recommended lists only files with a type.
+start_recent_script() {
+    local file="/home/$TEST_USER/Documents/orielos-notes.txt"
+    cat <<SH
+runuser -u $TEST_USER -- sh -c 'mkdir -p /home/$TEST_USER/Documents && echo Notes >$file'
+bus() { busctl --user -M $TEST_USER@ "\$@" 2>/dev/null; }
+# RegisterResourceEvent(application, window id, URI, event): 0 is Accessed.
+if bus call org.kde.ActivityManager /ActivityManager/Resources org.kde.ActivityManager.Resources \
+    RegisterResourceEvent susu org.kde.kwrite 0 "file://$file" 0 >/dev/null; then
+    echo recent=yes
+else
+    echo recent=no
+fi
+SH
+}
+
+# Wait up to 30 s for Ark to leave the Start menu's pinned apps, keeping the last reading in
+# START_UNPIN_FAVORITES and start-appletsrc-unpinned. Returns 1 if it stays.
+wait_for_ark_unpinned() {
+    local start=$SECONDS
+    while true; do
+        START_UNPIN_FAVORITES="$(read_start_favorites start-appletsrc-unpinned)" || START_UNPIN_FAVORITES=""
+        [[ -n "$START_UNPIN_FAVORITES" && "$START_UNPIN_FAVORITES" != *org.kde.ark.desktop* ]] && return 0
+        ((SECONDS - start < 30)) && vm_running || return 1
+        sleep 3
+    done
+}
+
+# The rest of the Start menu, after the restart: Recommended with a recent file, every stop in the
+# Tab order, the account and power menus, and unpinning Ark. The screenshots are for reading by eye;
+# unpinning is checked in the saved settings.
+start_menu_more_checks() {
+    local out i
+    out="$(vm_ssh "$(start_recent_script)" 2>/dev/null)" || true
+    START_RECENT="$(sed -n 's/^recent=//p' <<<"$out")"
+    vm_qmp keys:meta_l wait:3 "shot:$RESULTS/start-recommended.png" || true
+    # Tab from the search field visits All apps, the pinned apps, Recommended, the account and the
+    # power button, then comes back to the search field.
+    for i in 1 2 3 4 5 6; do
+        vm_qmp keys:tab wait:1 "shot:$RESULTS/start-tab-$i.png" || true
+    done
+    # Shift+Tab from the search field goes round to the power button; Enter opens its menu.
+    vm_qmp keys:esc wait:2 keys:meta_l wait:3 keys:shift+tab wait:1 keys:ret wait:2 \
+        "shot:$RESULTS/start-power-menu.png" keys:esc wait:1 keys:esc wait:2 || true
+    vm_qmp keys:meta_l wait:3 keys:shift+tab wait:1 keys:shift+tab wait:1 keys:ret wait:2 \
+        "shot:$RESULTS/start-account-menu.png" keys:esc wait:1 keys:esc wait:2 || true
+    # Ark is pinned, so the Menu key offers "Unpin from Start" first.
+    START_UNPINNED="no"
+    if vm_qmp keys:meta_l wait:2 keys:a wait:0.3 keys:r wait:0.3 keys:k wait:3 \
+        keys:compose wait:1 "shot:$RESULTS/start-unpin-menu.png" keys:ret wait:2 keys:esc wait:5 &&
+        wait_for_ark_unpinned; then
+        START_UNPINNED="yes"
+    fi
 }
 
 # Copy the test user's Plasma layout to plasma-appletsrc in the results and read its panels:
@@ -787,6 +906,13 @@ wait_for_sddm() {
             SDDM_SECONDS=$((SECONDS - BOOT_START))
         fi
         if [[ "$text" == *"Started sddm.service"* && "$text" == *"Reached target graphical.target"* ]]; then
+            return 0
+        fi
+        # Once agetty takes the serial console, its terminal queries (ESC[!p, OSC 3008) can come with
+        # systemd's later status lines missing from it, graphical.target's among them. SDDM has
+        # started by then, so a minute after it the wait ends rather than running out.
+        if [[ -n "$SDDM_SECONDS" ]] && ((SECONDS - BOOT_START - SDDM_SECONDS >= SDDM_GRACE)); then
+            info "SDDM started, but graphical.target isn't in the serial log $SDDM_GRACE s later; going on"
             return 0
         fi
         if ! vm_running; then
@@ -1029,18 +1155,19 @@ run_checks() {
         fail "Fedora's countme reporting is off: $no_ssh"
         hint "$ssh_hint"
     else
-        local ntsync map split thp zram ananicy missing umu signers rule
+        local ntsync map split thp zram ananicy power missing umu signers rule
         ntsync="$(gaming_value ntsync)"
         map="$(gaming_value map_count)"
         split="$(gaming_value split_lock)"
         thp="$(gaming_value thp)"
         zram="$(gaming_value zram)"
         ananicy="$(gaming_value ananicy)"
+        power="$(gaming_value power)"
         if [[ "$ntsync" == "loaded,/dev/ntsync" && "$map" == 1048576 && "$split" == 0 && "$thp" == *"[madvise]"* &&
-            -n "$zram" && -z "$ananicy" ]]; then
-            pass "Gaming defaults are set (ntsync loaded with /dev/ntsync; vm.max_map_count $map; kernel.split_lock_mitigate $split; transparent hugepages $thp; zram swap on $zram; no ananicy-cpp)"
+            -n "$zram" && -z "$ananicy" && "$power" == 's "performance"' ]]; then
+            pass "Gaming defaults are set (ntsync loaded with /dev/ntsync; vm.max_map_count $map; kernel.split_lock_mitigate $split; transparent hugepages $thp; zram swap on $zram; no ananicy-cpp; power mode $power)"
         else
-            fail "Gaming defaults are not all set (ntsync: ${ntsync:-not loaded}; vm.max_map_count: $map; kernel.split_lock_mitigate: $split; transparent hugepages: $thp; zram swap: ${zram:-none}; ananicy-cpp: ${ananicy:-not installed})"
+            fail "Gaming defaults are not all set (ntsync: ${ntsync:-not loaded}; vm.max_map_count: $map; kernel.split_lock_mitigate: $split; transparent hugepages: $thp; zram swap: ${zram:-none}; ananicy-cpp: ${ananicy:-not installed}; power mode: ${power:-no output})"
         fi
         missing="$(gaming_value missing)"
         umu="$(gaming_value umu)"
@@ -1176,10 +1303,10 @@ run_checks() {
         fail "Windows shortcuts are set, but more than one action has the same shortcut: $(paste -sd ';' - <<<"$SHORTCUT_CLASHES")"
     elif [[ -z "$WIN_E_SECONDS" ]]; then
         fail "Windows shortcuts are set, but pressing Win+E over QMP did not start Dolphin within 20 s"
-    elif [[ "$TOOL_NAMES" != "Name=Process Manager,Name=Screenshot,Name=Files" ]]; then
-        fail "System Monitor, Spectacle and Dolphin do not have their OrielOS names (${TOOL_NAMES:-no output})"
+    elif [[ "$TOOL_NAMES" != "Name=Process Manager,Name=Screenshot,Name=Files,Name=Clipboard history" ]]; then
+        fail "System Monitor, Spectacle, Dolphin and the clipboard history do not have their OrielOS names in Start (${TOOL_NAMES:-no output})"
     else
-        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Process Manager, Screenshot and Files)"
+        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Process Manager, Screenshot, Files and Clipboard history)"
     fi
 
     info "Store and Firefox"
@@ -1213,6 +1340,10 @@ run_checks() {
         info "Firefox was installed $FIREFOX_SECONDS s after the first power-on (version ${FIREFOX_VERSION:-unknown})"
     fi
 
+    info "Visual check, against tests/references/"
+    visual_check desktop "the desktop"
+    visual_check start "the Start menu"
+
     info "Start menu, last, because it restarts the VM"
     skipped="could not be checked: ${START_WHY:-the VM did not reach the desktop of $TEST_USER}"
     if [[ -z "$START_SEARCH_RAN" ]]; then
@@ -1245,6 +1376,17 @@ run_checks() {
         fail "Start menu: pins do not survive a restart (${START_WHY:-favorites after the restart: ${START_KEPT_FAVORITES:-none}}; see start-appletsrc-restart)"
     else
         pass "Start menu: pins survive a restart (favorites after the restart: $START_KEPT_FAVORITES; see start-pinned.png)"
+    fi
+
+    if [[ -z "$START_UNPINNED" ]]; then
+        fail "Start menu: unpinning removes the app: $skipped"
+    elif [[ "$START_UNPINNED" != "yes" ]]; then
+        fail "Start menu: Menu then Enter on the pinned Ark did not remove it within 30 s (favorites: ${START_UNPIN_FAVORITES:-none}; see start-unpin-menu.png, start-appletsrc-unpinned)"
+    else
+        pass "Start menu: unpinning removes the app (favorites: $START_UNPIN_FAVORITES; see start-unpin-menu.png)"
+    fi
+    if [[ -n "$START_UNPINNED" ]]; then
+        info "Start menu, to read by eye: start-recommended.png (orielos-notes.txt under Recommended; registered: ${START_RECENT:-no}), start-tab-1.png to start-tab-6.png (the Tab order), start-power-menu.png and start-account-menu.png"
     fi
 
     info "Anti-cheat boot mode"
@@ -1405,6 +1547,7 @@ main() {
         fi
         # Last, so the download runs alongside the other checks; most of the time it is done.
         if vm_running && [[ "$SSH_OK" -eq 1 ]]; then wait_for_firefox; fi
+        if vm_running && [[ "$SSH_OK" -eq 1 && -n "$SESSION_SECONDS" ]]; then visual_shots; fi
         # After everything else on the second boot, because it restarts the VM.
         start_menu_checks
     fi

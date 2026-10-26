@@ -17,7 +17,9 @@ deps() {
         qt6-qtbase-devel qt6-qtdeclarative-devel \
         kf6-kirigami-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
         libplasma-devel kf6-kconfig-devel \
-        kf6-kstatusnotifieritem-devel kf6-knotifications-devel kf6-kdbusaddons-devel kf6-kwidgetsaddons-devel
+        kf6-kstatusnotifieritem-devel kf6-knotifications-devel kf6-kdbusaddons-devel \
+        kf6-kcmutils-devel kf6-kwidgetsaddons-devel kf6-kwindowsystem-devel \
+        kf6-kio-devel kf6-kjobwidgets-devel kf6-kservice-devel kf6-krunner-devel
     # The QML modules the Start menu imports, so qmllint can check it: Plasma's private menu
     # models come with plasma-workspace.
     dnf -y install --setopt=install_weak_deps=False \
@@ -26,10 +28,16 @@ deps() {
 }
 
 # Runs qmllint over every QML module with the import paths and resources CMake generated for
-# it. The generated all_qmllint target cannot fail on warnings, so this calls qmllint itself.
+# it. The generated all_qmllint target cannot fail on warnings, so this calls qmllint itself. A
+# module with only C++ types has no QML or JavaScript files to lint, and qmllint given none prints
+# its usage and fails, so such a module is skipped.
 lint_qml() {
     local qmllint=/usr/lib64/qt6/bin/qmllint rsp modules=0
     while IFS= read -r -d '' rsp; do
+        if ! grep -q -E '\.(qml|js|mjs)$' "$rsp"; then
+            step "Skipping ${rsp##*/}: no QML or JavaScript files"
+            continue
+        fi
         step "Running qmllint on ${rsp##*/}"
         "$qmllint" --max-warnings 0 "@$rsp"
         modules=$((modules + 1))
