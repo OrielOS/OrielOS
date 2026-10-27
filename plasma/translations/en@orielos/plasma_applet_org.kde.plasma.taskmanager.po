@@ -1,0 +1,22 @@
+# OrielOS's wording for Plasma's Task Manager widget, which OrielOS calls the taskbar. Only the
+# strings OrielOS changes are here; Plasma's own text, or the language's translation, covers the
+# rest. image/system/etc/xdg/plasma-workspace/env/orielos-wording.sh puts this catalogue first
+# when the desktop's first language is English.
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+msgid ""
+msgstr ""
+"Project-Id-Version: orielos\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "action:inmenu"
+msgid "&Pin to Task Manager"
+msgstr "&Pin to taskbar"
+
+msgctxt "action:inmenu"
+msgid "Unpin from Task Manager"
+msgstr "Unpin from taskbar"

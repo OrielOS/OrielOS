@@ -231,6 +231,43 @@ fi
 if [[ -n "$(kreadconfig6 --file /etc/xdg/kcm-about-distrorc --group General --key LogoPath)" ]]; then
     taskbar_errors+=("/etc/xdg/kcm-about-distrorc points About this System at another logo")
 fi
+# OrielOS's wording for Plasma's widgets, such as "Pin to taskbar", comes from the app-builder
+# stage as catalogues for en@orielos, which the session's environment script puts first for
+# English. A catalogue only works while the widget still has every string it translates: Plasma
+# builds a widget's text into its plugin, as UTF-16. If Plasma rewords one, update
+# plasma/translations to match.
+wording=/usr/share/locale/en@orielos/LC_MESSAGES
+[[ -r /etc/xdg/plasma-workspace/env/orielos-wording.sh ]] ||
+    taskbar_errors+=("/etc/xdg/plasma-workspace/env/orielos-wording.sh, which applies OrielOS's wording, is missing")
+[[ -f "$wording/plasma_applet_org.kde.plasma.taskmanager.mo" ]] ||
+    taskbar_errors+=("OrielOS's wording for the taskbar, $wording/plasma_applet_org.kde.plasma.taskmanager.mo, is not installed")
+for catalogue in "$wording"/plasma_applet_*.mo; do
+    [[ -f "$catalogue" ]] || continue
+    applet="$(basename "$catalogue" .mo)"
+    applet="/usr/lib64/qt6/plugins/plasma/applets/${applet#plasma_applet_}.so"
+    if ! missing="$(python3 -I - "$catalogue" "$applet" <<'PY'
+import os, struct, sys
+
+catalogue, applet = sys.argv[1:]
+if not os.path.isfile(applet):
+    print(f"{catalogue} rewords {applet}, which is not installed")
+    sys.exit()
+plugin = open(applet, "rb").read()
+data = open(catalogue, "rb").read()
+count, originals = struct.unpack("<2I", data[8:16])
+for i in range(count):
+    length, offset = struct.unpack("<2I", data[originals + 8 * i:originals + 8 * i + 8])
+    text = data[offset:offset + length].decode().split("\x04")[-1]
+    if text and text.encode("utf-16-le") not in plugin:
+        print(f"{applet} no longer has the text {text!r} that {catalogue} rewords")
+PY
+    )"; then
+        taskbar_errors+=("could not check $catalogue against $applet")
+    fi
+    while IFS= read -r line; do
+        [[ -z "$line" ]] || taskbar_errors+=("$line")
+    done <<<"$missing"
+done
 if [[ "${#taskbar_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${taskbar_errors[@]}" >&2
     exit 1
