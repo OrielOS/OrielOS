@@ -31,7 +31,7 @@ export const DEFAULT_IMAGE = {
 // The guides index, in reading order. A guide not listed here goes into "More".
 export const GUIDE_GROUPS = [
   { title: "Get started", slugs: ["install", "install-vm", "status", "known-limitations"] },
-  { title: "Everyday use", slugs: ["desktop", "start-menu", "keyboard-shortcuts", "settings", "apps", "updates", "help"] },
+  { title: "Everyday use", slugs: ["desktop", "start-menu", "keyboard-shortcuts", "settings", "apps", "windows-programs", "updates", "help"] },
   { title: "Gaming", slugs: ["games-and-controllers", "anti-cheat", "secure-boot"] },
 ];
 

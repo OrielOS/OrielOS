@@ -137,6 +137,14 @@ fi
 if [[ -e /var/lib/orielos/update ]]; then
     update_errors+=("/var/lib/orielos/update exists in the image")
 fi
+# Run this app opens Windows programs (40-apps.sh makes it the default), through umu-launcher.
+[[ -x /usr/bin/orielos-run-app ]] || update_errors+=("Run this app, /usr/bin/orielos-run-app, is missing")
+[[ -r /usr/share/applications/org.orielos.RunApp.desktop ]] || update_errors+=("org.orielos.RunApp.desktop is missing")
+for type in application/x-ms-dos-executable application/x-msi; do
+    grep -qxF "$type=org.orielos.RunApp.desktop" /usr/share/applications/mimeapps.list ||
+        update_errors+=("Run this app isn't the default for $type")
+done
+command -v umu-run >/dev/null || update_errors+=("umu-run, which Run this app runs programs with, is missing")
 if [[ "${#update_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${update_errors[@]}" >&2
     exit 1

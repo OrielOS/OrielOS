@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Run this app: double-clicking a Windows program (`.exe` or `.msi`) shows the file and the website it came from and asks first, then runs it through GE-Proton in a Windows set-up of its own. The shortcuts its installer makes appear in Start, and a program that isn't an installer can be added to Start. [Windows programs](docs/windows-programs.md) explains it.
 - The sign-in screen shows your account and the password box over the OrielOS wallpaper as soon as it appears, with the time and date above, and stays that way until you sign in. It offers Sleep, Restart and Shut down.
 - A [Status](docs/status.md) page in the user docs lists what works today, what doesn't work yet and what's planned. The updates guide no longer says that no versions are published.
 - orielos.org has more pages, still with no JavaScript, cookies or trackers:

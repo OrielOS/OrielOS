@@ -6,7 +6,6 @@ Will contain:
 
 - Settings.
 - Game Settings.
-- Run this app, which runs Windows `.exe` and `.msi` programs through Proton.
 
 ## Layout
 
@@ -45,6 +44,14 @@ settingspages/       OrielOS's own Settings pages, each a Plasma settings module
 updatenotifier/       orielos-update-notifier, the update tray icon
   main.cpp            start-up, translations, --state and --boot-id-file
   updatenotifier.h/.cpp  the tray icon, its menu, the notifications and restarting
+runapp/               orielos-run-app, Run this app: opens Windows programs (.exe and .msi)
+  runapp.h/.cpp       prefix names, the download's source, the umu-launcher command, reading
+                      Windows shortcuts and writing Start entries (static library OrielOSRunApp)
+  runner.h/.cpp       Runner, the window's model: runs the program and adds its Start entries
+  main.cpp            start-up, --launch (what Start entries run) and --self-test
+  qml/Main.qml        the window: confirm, running, and what was added to Start
+  org.orielos.RunApp.desktop  the handler for Windows programs, hidden from Start
+  autotests/          Qt Test unit tests for the library, with shortcuts built byte by byte
 updatesettings/       kcm_orielos_update, the Update settings page (a Plasma settings module)
   updatesettings.h/.cpp  UpdateSettings, the page's model (QML module org.orielos.updatesettings)
   updatecommands.h/.cpp  running orielos-update through pkexec, and following the check unit
