@@ -146,11 +146,16 @@ PATCHES = [
         '"productVersion": get_product_version().upper()',
         '"productVersion": get_product_version()',
     )], ""),
+    # The module makes its checker, with the list of checks, when it's imported, so the new
+    # check goes before the classes rather than at the end.
     ("modules/storage/checker/utils.py", [(
+        "\n\nclass StorageCheckerReport:\n",
+        BITLOCKER_CHECK + "\n\nclass StorageCheckerReport:\n",
+    ), (
         "        self.add_check(verify_lvm_destruction)\n",
         "        self.add_check(verify_lvm_destruction)\n"
         "        self.add_check(verify_orielos_bitlocker)\n",
-    )], BITLOCKER_CHECK),
+    )], ""),
 ]
 
 
