@@ -27,11 +27,19 @@ export function decodeEntities(value) {
   return String(value).replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => ENTITIES[entity]);
 }
 
-// The text of some HTML, without its tags. Any stray angle bracket goes too, so
-// nothing tag-like survives before the entities are decoded; callers escape the
-// result again wherever it goes back into HTML.
+// The text of some HTML, without its tags. Everything from a "<" to the next ">"
+// goes, and no angle bracket survives, so nothing tag-like is left before the
+// entities are decoded; callers escape the result again wherever it goes back
+// into HTML.
 export function htmlToText(html) {
-  return decodeEntities(String(html).replace(/<[^>]*>/g, "").replace(/[<>]/g, ""));
+  let text = "";
+  let inTag = false;
+  for (const char of String(html)) {
+    if (char === "<") inTag = true;
+    else if (char === ">") inTag = false;
+    else if (!inTag) text += char;
+  }
+  return decodeEntities(text);
 }
 
 // GitHub's heading anchors: lower case, punctuation dropped, spaces to hyphens.
