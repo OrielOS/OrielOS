@@ -3,9 +3,9 @@ name: Promote
 # Moves the stable tag to a build that has been on testing, without rebuilding it: the same image,
 # digest and signature. Run by hand by the maintainer once the build has passed the real-hardware
 # checklist. Each build's version is its name, so the GitHub Release is named after the build and
-# tagged at the commit it was built from; its notes are the CHANGELOG's Unreleased section at that
-# commit, and a branch for the maintainer turns that part into the version's own section. The
-# installer workflow then attaches OrielOS.iso to the release.
+# tagged at the commit it was built from. Its notes say how to get it, then give the CHANGELOG's
+# Unreleased section at that commit, and a branch for the maintainer turns that part into the
+# version's own section. The installer workflow then attaches OrielOS.iso to the release.
 
 on:
   workflow_dispatch:
@@ -82,9 +82,18 @@ jobs:
         run: |
           git show "${REVISION}:CHANGELOG.md" | awk '/^## \[Unreleased\]/ {on = 1; next} on && /^## \[/ {exit} on' >/tmp/released.md
           grep -q '[^[:space:]]' /tmp/released.md || { echo "::error::The CHANGELOG's Unreleased section was empty at ${REVISION}"; exit 1; }
-          cp /tmp/released.md /tmp/notes.md
-          printf '\nImage digest %s. Computers on the stable channel update to it by themselves.\n' \
-              "${DIGEST}" >>/tmp/notes.md
+          {
+              cat <<EOF
+          **Stable release.**
+
+          - **New to OrielOS?** Download \`OrielOS.iso\` below and follow [Install OrielOS](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/main/docs/install.md), or get it from [orielos.org](https://orielos.org).
+          - **Already running OrielOS?** There's nothing to download: it arrives by itself. To get it now, open Settings → Update and choose Check for updates.
+          - **Want new versions sooner?** Switch to the testing channel in Settings → Update.
+
+          EOF
+              cat /tmp/released.md
+              printf '\nImage digest %s.\n' "${DIGEST}"
+          } >/tmp/notes.md
 
       - name: Create the release
         env:

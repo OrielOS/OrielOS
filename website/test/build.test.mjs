@@ -39,7 +39,7 @@ test("renders a release without an installer", () => {
   const release = { name: "OrielOS 1.0", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1.0", iso: null };
   const html = renderPage(template, { contributors: [], release });
   assert.doesNotMatch(html, leftovers);
-  assert.match(html, /OrielOS 1\.0 is out\./);
+  assert.match(html, /OrielOS 1\.0, the stable version, is out\./);
   assert.match(html, /Follow on GitHub/);
   assert.doesNotMatch(html, /In early development/);
   assert.doesNotMatch(html, /Download the installer/);
@@ -58,6 +58,8 @@ test("renders a release with its installer", () => {
   assert.ok(html.includes(`href="${iso.url}"`));
   assert.ok(html.includes(release.url));
   assert.ok(html.includes("Installer, 1.2 GB."));
+  assert.match(html, /switch to the testing channel in Settings/);
+  assert.ok(html.includes("docs/install.md"));
   assert.ok(html.includes(`<code translate="no">${iso.sha256}</code>`));
   assert.doesNotMatch(html, /Nothing to download yet/);
   assert.doesNotMatch(html, /Follow on GitHub/);
