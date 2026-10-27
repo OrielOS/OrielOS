@@ -3,9 +3,9 @@ name: Promote
 # Moves the stable tag to a build that has been on testing, without rebuilding it: the same image,
 # digest and signature. Run by hand by the maintainer once the build has passed the real-hardware
 # checklist. Each build's version is its name, so the GitHub Release is named after the build and
-# tagged at the commit it was built from; its notes are the CHANGELOG's Unreleased section, and a
-# pull request turns that section into the version's own. The installer workflow then attaches
-# OrielOS.iso to the release.
+# tagged at the commit it was built from; its notes are the CHANGELOG's Unreleased section at that
+# commit, and a branch for the maintainer turns that part into the version's own section. The
+# installer workflow then attaches OrielOS.iso to the release.
 
 on:
   workflow_dispatch:
@@ -34,13 +34,14 @@ jobs:
     permissions:
       contents: write
       packages: write
-      pull-requests: write
       actions: write
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The release notes are read from the commit the build was made from.
+          fetch-depth: 0
 
       # The input is checked before anything uses it, and only ever reaches the shell as an
       # environment variable.
@@ -75,10 +76,13 @@ jobs:
           echo "REVISION=${revision}" >>"${GITHUB_ENV}"
           echo "::notice::stable is now ${BUILD} (${digest})"
 
+      # The notes are the Unreleased section as it was at the commit the build was made from:
+      # anything merged after that isn't in the release.
       - name: Write the release notes from the CHANGELOG
         run: |
-          awk '/^## \[Unreleased\]/ {on = 1; next} on && /^## \[/ {exit} on' CHANGELOG.md >/tmp/notes.md
-          [ -s /tmp/notes.md ] || { echo "::error::The CHANGELOG's Unreleased section is empty"; exit 1; }
+          git show "${REVISION}:CHANGELOG.md" | awk '/^## \[Unreleased\]/ {on = 1; next} on && /^## \[/ {exit} on' >/tmp/released.md
+          grep -q '[^[:space:]]' /tmp/released.md || { echo "::error::The CHANGELOG's Unreleased section was empty at ${REVISION}"; exit 1; }
+          cp /tmp/released.md /tmp/notes.md
           printf '\nImage digest %s. Computers on the stable channel update to it by themselves.\n' \
               "${DIGEST}" >>/tmp/notes.md
 
@@ -96,22 +100,23 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run installer.yml --repo "${GITHUB_REPOSITORY}" --ref main
 
-      # The Unreleased section becomes the release's own, under a new empty Unreleased heading, in
-      # a pull request for the maintainer to merge.
-      - name: Open a pull request for the CHANGELOG
+      # What the release contains moves from Unreleased to the release's own section; changes merged
+      # after the build's commit stay under Unreleased (tools/release-changelog.sh). It goes on a
+      # branch for the maintainer to open a pull request from: GitHub doesn't let Actions open one,
+      # and a pull request opened with GITHUB_TOKEN wouldn't run the required checks.
+      - name: Put the CHANGELOG's new section on a branch
         env:
           VERSION: ${{ inputs.build }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           branch="docs/changelog-${VERSION}"
-          today="$(date -u +%Y-%m-%d)"
-          awk -v heading="## [${VERSION#v}] - ${today}" \
-              '!done && /^## \[Unreleased\]/ {print; print ""; print heading; done = 1; next} {print}' CHANGELOG.md >/tmp/CHANGELOG.md
+          tools/release-changelog.sh CHANGELOG.md /tmp/released.md "${VERSION}" "$(date -u +%Y-%m-%d)" >/tmp/CHANGELOG.md
           mv /tmp/CHANGELOG.md CHANGELOG.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "${branch}"
           git commit -s -am "docs: start the CHANGELOG's section for ${VERSION}"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${branch}"
-          gh pr create --head "${branch}" --base main --title "docs: start the CHANGELOG's section for ${VERSION}" \
-              --body "The changes released as ${VERSION} move from Unreleased to their own section."
+          url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...${branch}?expand=1"
+          echo "::notice::Open a pull request for the CHANGELOG: ${url}"
+          printf 'Open a pull request for the CHANGELOG: %s\n' "${url}" >>"${GITHUB_STEP_SUMMARY}"
