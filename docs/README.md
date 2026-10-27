@@ -18,10 +18,11 @@ Contains:
 - [Secure Boot and your drivers](secure-boot.md): the one-time blue screen that lets the NVIDIA driver and other drivers load, and the firmware update warning.
 - [Games and controllers](games-and-controllers.md): what OrielOS sets up for games, pairing Xbox and PlayStation controllers, and apps for gaming mice and lighting.
 - [Games with anti-cheat](anti-cheat.md): why OrielOS always starts in the mode that games with anti-cheat need, and why there's Sleep but no Hibernate.
+- [Windows programs](windows-programs.md): running a Windows `.exe` or `.msi` with Run this app, its Start entries, and removing a program.
 
 Will contain:
 
-- Guides for running Windows programs and for each game's settings.
+- Guides for each game's settings.
 
 Need help? Ask in the [Q&A](https://github.com/ncjsvr/OrielOS/discussions/categories/q-a) category of GitHub Discussions, or chat on [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA).
 

@@ -23,3 +23,20 @@ dnf -y install --setopt=install_weak_deps=False skopeo polkit
 dnf -y install --setopt=install_weak_deps=False tar jq
 
 dnf clean all
+
+# Run this app (apps/runapp) opens Windows programs, before any user exists. Its desktop file comes
+# from the app-builder stage later; 90-finalise.sh checks it's there.
+mimeapps=/usr/share/applications/mimeapps.list
+[[ -f "$mimeapps" ]] || {
+    echo "error: $mimeapps does not exist" >&2
+    exit 1
+}
+grep -q '^\[Default Applications\]$' "$mimeapps" || {
+    echo "error: $mimeapps has no [Default Applications] section" >&2
+    exit 1
+}
+for type in application/x-ms-dos-executable application/x-msdownload application/vnd.microsoft.portable-executable \
+    application/x-msi application/x-dosexec; do
+    sed -i "/^${type//\//\\/}=/d" "$mimeapps"
+    sed -i "/^\[Default Applications\]$/a ${type}=org.orielos.RunApp.desktop" "$mimeapps"
+done
