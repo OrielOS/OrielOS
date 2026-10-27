@@ -7,7 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { checkPages, loadPartials, readHead, sumsFrom } from "../build.mjs";
-import { decodeEntities } from "../markdown.mjs";
+import { htmlToText } from "../markdown.mjs";
 import {
   DEFAULT_IMAGE,
   applyIncludes,
@@ -45,6 +45,22 @@ import {
 const read = (relative) => readFile(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
 const partials = await loadPartials();
 const layout = await read("../templates/page.html");
+
+// Visible text of each FAQ section. The structured data sits outside these
+// sections, so the comparison is against the page copy.
+function sectionTexts(html) {
+  const texts = [];
+  let from = 0;
+  for (;;) {
+    const start = html.indexOf("<section", from);
+    if (start < 0) break;
+    const end = html.indexOf("</section>", start);
+    assert.ok(end > start);
+    texts.push(htmlToText(html.slice(start, end)));
+    from = end + "</section>".length;
+  }
+  return texts;
+}
 
 // A page through the shared layout, as the build makes it.
 const layoutPage = (details) =>
@@ -596,31 +612,36 @@ test("the FAQ page's structured data repeats the answers on the page", async () 
   const release = { name: "OrielOS v0.0.7", version: "v0.0.7", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v0.0.7", iso: null };
   const rendered = (data) => {
     const body = renderPage(item.body, data);
-    return layoutPage({
-      title: item.title,
-      description: item.description,
-      url: "https://orielos.org/faq/",
-      content: contentPageContent(item, body),
-    });
+    return {
+      body,
+      html: layoutPage({
+        title: item.title,
+        description: item.description,
+        url: "https://orielos.org/faq/",
+        content: contentPageContent(item, body),
+      }),
+    };
   };
-  const html = rendered({ release });
+  const { body, html } = rendered({ release });
   assert.doesNotThrow(() => checkPages([{ file: "faq/index.html", url: "https://orielos.org/faq/", html }]));
   const data = JSON.parse(readHead(html).scripts.find((script) => script.type === "application/ld+json").body);
   assert.equal(data["@type"], "FAQPage");
   assert.equal(data.url, "https://orielos.org/faq/");
-  const text = decodeEntities(html.replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, "")).replace(/\s+/g, " ");
+  const texts = sectionTexts(body);
   assert.equal(data.mainEntity.length, 8);
-  for (const question of data.mainEntity) {
+  assert.equal(texts.length, data.mainEntity.length);
+  for (const [question, text] of data.mainEntity.map((question, index) => [question, texts[index]])) {
     assert.equal(question["@type"], "Question");
     assert.equal(question.acceptedAnswer["@type"], "Answer");
     assert.ok(text.includes(question.name), question.name);
     assert.ok(text.includes(question.acceptedAnswer.text), question.name);
   }
-  assert.match(text, /The current stable release is v0\.0\.7/);
+  assert.match(texts[1], /The current stable release is v0\.0\.7/);
   const offline = rendered({});
-  const offlineData = JSON.parse(readHead(offline).scripts.find((script) => script.type === "application/ld+json").body);
+  const offlineData = JSON.parse(readHead(offline.html).scripts.find((script) => script.type === "application/ld+json").body);
   assert.match(offlineData.mainEntity[1].acceptedAnswer.text, /An installer will be published with the first stable release/);
-  assert.doesNotMatch(offline, /\{\{release\.version\}\}/);
+  assert.match(sectionTexts(offline.body)[1], /An installer will be published with the first stable release/);
+  assert.doesNotMatch(offline.html, /\{\{release\.version\}\}/);
 });
 
 test("the credits page includes the artwork credits from artwork/CREDITS.md", async () => {
