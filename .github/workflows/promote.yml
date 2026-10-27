@@ -3,9 +3,11 @@ name: Promote
 # Moves the stable tag to a build that has been on testing, without rebuilding it: the same image,
 # digest and signature. Run by hand by the maintainer once the build has passed the real-hardware
 # checklist. Each build's version is its name, so the GitHub Release is named after the build and
-# tagged at the commit it was built from. Its notes say how to get it, then give the CHANGELOG's
-# Unreleased section at that commit, and a branch for the maintainer turns that part into the
-# version's own section. The installer workflow then attaches OrielOS.iso to the release.
+# tagged at the commit it was built from: the build's testing pre-release (the Testing release
+# workflow) becomes the stable release. Its notes say how to get it and which testing builds it
+# brings together, then give the CHANGELOG's Unreleased section at that commit, and a branch for
+# the maintainer turns that part into the version's own section. The installer workflow then
+# attaches OrielOS.iso to the release.
 
 on:
   workflow_dispatch:
@@ -45,15 +47,26 @@ jobs:
 
       # The input is checked before anything uses it, and only ever reaches the shell as an
       # environment variable.
+      # A build's tag may already exist for its testing pre-release; only a stable release, or a
+      # tag with no release at all, stops it.
       - name: Check the input
         env:
           BUILD: ${{ inputs.build }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           [[ "${BUILD}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The build looks like v0.0.7"; exit 1; }
-          if git ls-remote --exit-code --tags origin "refs/tags/${BUILD}" >/dev/null; then
+          prerelease="$(gh release view "${BUILD}" --json isPrerelease --jq .isPrerelease 2>/dev/null || true)"
+          if [ "${prerelease}" = "false" ]; then
               echo "::error::${BUILD} has already been released"
               exit 1
           fi
+          if [ -z "${prerelease}" ] && git ls-remote --exit-code --tags origin "refs/tags/${BUILD}" >/dev/null; then
+              echo "::error::${BUILD} has a tag but no release, so it isn't a build to promote"
+              exit 1
+          fi
+          echo "TESTING_RELEASE=${prerelease}" >>"${GITHUB_ENV}"
+          # The stable version before this one, to list the testing builds in between.
+          echo "PREVIOUS_STABLE=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)" >>"${GITHUB_ENV}"
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -78,20 +91,37 @@ jobs:
 
       # The notes are the Unreleased section as it was at the commit the build was made from:
       # anything merged after that isn't in the release.
+      # The testing builds it brings together are the published versions after the previous stable
+      # one, up to this one. Links to the guides get the repository's address, at the build's commit.
       - name: Write the release notes from the CHANGELOG
+        env:
+          BUILD: ${{ inputs.build }}
         run: |
           git show "${REVISION}:CHANGELOG.md" | awk '/^## \[Unreleased\]/ {on = 1; next} on && /^## \[/ {exit} on' >/tmp/released.md
           grep -q '[^[:space:]]' /tmp/released.md || { echo "::error::The CHANGELOG's Unreleased section was empty at ${REVISION}"; exit 1; }
+          base="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          mapfile -t builds < <(skopeo list-tags "docker://${REPOSITORY}" | jq -r '.Tags[]' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V |
+              awk -v from="${PREVIOUS_STABLE}" -v to="${BUILD}" 'from == "" || on { print } $0 == from { on = 1 } $0 == to { exit }')
+          links=()
+          for build in "${builds[@]}"; do
+              links+=("[${build}](${base}/releases/tag/${build})")
+          done
+          includes=""
+          if [ "${#links[@]}" -gt 1 ]; then
+              last="${links[-1]}"
+              unset 'links[-1]'
+              includes=" It brings together the testing builds $(IFS=,; printf '%s' "${links[*]}" | sed 's/,/, /g') and ${last}."
+          fi
           {
               cat <<EOF
-          **Stable release.**
+          **Stable release, $(date -u '+%-d %B %Y').**${includes}
 
           - **New to OrielOS?** Download \`OrielOS.iso\` below and follow [Install OrielOS](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/main/docs/install.md), or get it from [orielos.org](https://orielos.org).
           - **Already running OrielOS?** There's nothing to download: it arrives by itself. To get it now, open Settings → Update and choose Check for updates.
           - **Want new versions sooner?** Switch to the testing channel in Settings → Update.
 
           EOF
-              cat /tmp/released.md
+              sed -E "s#\]\(([A-Za-z0-9_./-]+\.md(\#[A-Za-z0-9_-]+)?)\)#](${base}/blob/${REVISION}/\1)#g" /tmp/released.md
               printf '\nImage digest %s.\n' "${DIGEST}"
           } >/tmp/notes.md
 
@@ -99,7 +129,12 @@ jobs:
         env:
           VERSION: ${{ inputs.build }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${VERSION}" --target "${REVISION}" --title "OrielOS ${VERSION}" --notes-file /tmp/notes.md
+        run: |
+          if [ "${TESTING_RELEASE}" = "true" ]; then
+              gh release edit "${VERSION}" --prerelease=false --latest --title "OrielOS ${VERSION}" --notes-file /tmp/notes.md
+          else
+              gh release create "${VERSION}" --target "${REVISION}" --title "OrielOS ${VERSION}" --notes-file /tmp/notes.md
+          fi
 
       # A release made with GITHUB_TOKEN starts no other workflows, so the installer workflow is
       # started by hand: it attaches OrielOS.iso and SHA256SUMS to this release, the latest one,

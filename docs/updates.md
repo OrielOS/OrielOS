@@ -36,10 +36,19 @@ OrielOS doesn't download updates over a metered connection, such as a phone hots
   - **Stable**, the default, gets versions that people have already used on the testing channel and that have passed checks on real hardware.
   - **Testing** gets new versions sooner, as soon as they pass OrielOS's automatic tests. Something may break now and then; you can always go back. If a testing version turns out to be bad, OrielOS takes it back, and computers on testing return to the earlier version at their next update check.
 
-  Changing the channel asks for an administrator's password, and takes effect at the next check.
+  Changing the channel asks for an administrator's password, and takes effect at the next check. To see what each version brings, see [What's in each version](#whats-in-each-version).
 - **Previous version**, while the computer keeps one: the date it's kept until, **Go back to the previous version…** (see [Going back yourself](#going-back-yourself)) and **Remove the previous version…** (see [How long the previous version is kept](#how-long-the-previous-version-is-kept)). Both ask for an administrator's password.
 
 Every option can be used from the keyboard: hold Alt to see each one's underlined letter.
+
+## What's in each version
+
+Every version has notes on [orielos.org's release notes](https://orielos.org/releases/) and on [GitHub's releases page](https://github.com/ncjsvr/OrielOS/releases):
+
+- **Testing builds** are marked Testing. Each one lists what's new since the build before it, so if you're on the testing channel you can see what the latest update brought. Each also says which stable version includes it, once there is one. A build that was taken back is marked Withdrawn.
+- **Stable versions** list everything that's new since the previous stable version, and which testing builds they bring together.
+
+The download page names the newest testing build when it's newer than the stable version. Testing builds don't appear in the news feed, which follows stable versions only.
 
 ## Apps from the Store
 

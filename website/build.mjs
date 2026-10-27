@@ -11,9 +11,10 @@
 // pages/, all with the header and footer in templates/. The contributors list
 // and the latest release, with its installer ISO, come from GitHub's REST
 // API. Avatars are downloaded so visitors' browsers only contact our own
-// domain. Pre-releases are left out: GitHub's "latest" is the newest full
-// release. Finally it checks every page's title, description, canonical link
-// and link preview for search engines, and writes the sitemap.
+// domain. The download is GitHub's "latest", the newest full (stable) release;
+// pre-releases are the testing builds, shown in the release notes. Finally it
+// checks every page's title, description, canonical link and link preview for
+// search engines, and writes the sitemap.
 
 import { execFileSync } from "node:child_process";
 import { closeSync, existsSync, openSync, readSync } from "node:fs";
@@ -40,6 +41,7 @@ import {
   postHtml,
   postImage,
   postsFrom,
+  latestTesting,
   releaseEntry,
   releaseHtml,
   releasesContent,
@@ -70,7 +72,7 @@ const MAX_TITLE = 70;
 const MAX_DESCRIPTION = 160;
 const AVATAR_CONCURRENCY = 8;
 const FALLBACK_AVATAR = "favicon.svg";
-const RELEASES_SHOWN = 30;
+const RELEASES_SHOWN = 100;
 // Sections in the site's main navigation that a page can belong to.
 const NAV_SECTIONS = new Set(["download", "guides", "news"]);
 
@@ -623,7 +625,8 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
   });
   const entries = [
     ...posts.map((post) => postEntry(post, postHtml(post, { forFeed: true, imageSize }))),
-    ...releases.map((item) => releaseEntry(item, releaseHtml(item))),
+    // Testing builds come often, so the feed follows stable versions only.
+    ...releases.filter((item) => !item.testing).map((item) => releaseEntry(item, releaseHtml(item))),
   ];
   await write("news/feed.xml", atomFeed(entries));
 
@@ -632,12 +635,12 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
   note("releases/index.html", ["CHANGELOG.md", ...layoutSources], releases[0]?.publishedAt?.slice(0, 10) ?? null);
   await page("releases/index.html", {
     title: "Release notes · OrielOS",
-    description: "What changed in each OrielOS release, newest first, with links to every version and its installer on GitHub.",
+    description: "What changed in each OrielOS version, newest first: every testing build and every stable version, with links to them and the installer on GitHub.",
     content: releasesContent(releases),
   });
 
   // Pages from pages/.
-  const data = { contributors, release, sums, news: posts };
+  const data = { contributors, release, sums, news: posts, testing: latestTesting(releases) };
   const artworkCredits = artworkCreditsHtml(await readFile(path.join(artworkDir, "CREDITS.md"), "utf8"));
   const contentPages = contentPagesFrom(await readSources(pagesDir, [".html", ".md"]));
   for (const item of contentPages) {

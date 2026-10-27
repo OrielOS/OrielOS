@@ -19,6 +19,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - The home page's "Where it stands" shows the roadmap, from the first builds to version 1 and beyond, and the newest news.
 - Two new guides: [The desktop](docs/desktop.md) (the taskbar, the system tray, snapping windows, Files, screenshots and Process Manager) and [Getting help](docs/help.md). The install, Secure Boot, Start, apps, Settings and anti-cheat guides show screenshots.
 - [Status](docs/status.md#hardware-verified) lists the hardware OrielOS has been verified on: so far, an NVIDIA GeForce RTX 4050 Laptop GPU.
+- Every testing build has its own release notes, on GitHub and on orielos.org, saying what's new since the build before it and, once there is one, which stable version includes it. Each stable version's notes name the testing builds it brings together, a build that was taken back is marked Withdrawn, and the download page names the newest testing build. [What's in each version](docs/updates.md#whats-in-each-version) explains it.
 
 ### Changed
 
