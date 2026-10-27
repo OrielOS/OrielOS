@@ -1,0 +1,10 @@
+[Unit]
+Description=Make GE-Proton the default for Windows games in Steam from the Store
+Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/games-and-controllers.md
+
+[Service]
+# Started by orielos-steam-default-proton.timer. It changes Steam's settings only while Steam is
+# closed and only once, and never replaces a default the user chose (see the script).
+Type=oneshot
+ExecStart=/usr/libexec/orielos/steam-default-proton
+Nice=19

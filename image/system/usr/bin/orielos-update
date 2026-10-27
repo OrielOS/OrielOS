@@ -62,6 +62,9 @@ REJECTED="$STATE_DIR/rejected-digests"
 SETTINGS="$STATE_DIR/settings"
 # When the apps from the Store were last brought up to date.
 APPS_STATE="$STATE_DIR/apps"
+# Steam from the Store, and Flathub's GE-Proton extension for it.
+STEAM_APP=com.valvesoftware.Steam
+GE_PROTON=com.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable
 STATE_FILE="$STATE_DIR/state.json"
 # The running build's digest and when it first started, for removing the previous build on time.
 RUNNING="$STATE_DIR/running"
@@ -639,6 +642,15 @@ cmd_apps() {
         die "couldn't update the apps: $(tail -n1 <<<"$out")"
     fi
     printf '%s\n' "$out"
+    # GE-Proton is the default for Windows games: Steam from the Store gets Flathub's GE-Proton
+    # extension, which flatpak doesn't install with Steam by itself, and each user's Steam is set to
+    # it by /usr/libexec/orielos/steam-default-proton. Updates then keep it current.
+    if flatpak info --system "$STEAM_APP" >/dev/null 2>&1 && ! flatpak info --system "$GE_PROTON" >/dev/null 2>&1; then
+        printf 'Installing GE-Proton for Steam\n'
+        if ! out="$(flatpak install --system --noninteractive flathub "$GE_PROTON" 2>&1)"; then
+            die "couldn't install GE-Proton for Steam: $(tail -n1 <<<"$out")"
+        fi
+    fi
     mkdir -p "$STATE_DIR"
     printf 'updated_at=%s\n' "$(iso_time "$(now)")" >"$APPS_STATE.new"
     chmod 0644 "$APPS_STATE.new"

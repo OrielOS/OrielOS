@@ -6,6 +6,21 @@ OrielOS comes ready for games. You install the game launchers you want from the 
 
 Install Steam, Heroic Games Launcher, Lutris or another launcher from the Store (see [Installing apps](apps.md)). OrielOS doesn't preinstall any of them.
 
+## GE-Proton for Windows games in Steam
+
+Windows games run on OrielOS through Proton, a compatibility layer. OrielOS makes **GE-Proton** Steam's default: a community build of Valve's Proton that carries newer fixes, and plays many in-game videos and cutscenes that Valve's build can't.
+
+- When you install Steam from the Store, OrielOS also installs GE-Proton for it, the next time it updates your apps (a few minutes after you start the computer, then about every six hours). It's about 570 MB, and it then updates with your other apps.
+- The next time Steam is closed after that, OrielOS sets GE-Proton as Steam's default for Windows games, once. It doesn't change anything while Steam is open, because Steam saves its settings when it closes.
+- If Steam already had a default you chose, OrielOS leaves it as it is.
+
+Your own choices always win:
+
+- **For one game:** in Steam, right-click the game, choose **Properties → Compatibility**, tick **Force the use of a specific Steam Play compatibility tool** and pick a version, such as Valve's Proton if a game misbehaves with GE-Proton.
+- **For every game:** in Steam, open **Settings → Compatibility** and choose the tool under **Default compatibility tool**.
+
+OrielOS sets the default only once, so it never undoes a choice you make later.
+
 ## What OrielOS sets up for games
 
 You don't need to change anything:

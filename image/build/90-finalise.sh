@@ -186,6 +186,22 @@ if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
+# GE-Proton is the default for Windows games: orielos-update installs it next to Steam from the
+# Store, and this timer sets it as each user's Steam default, once, while Steam is closed.
+systemctl --global enable orielos-steam-default-proton.timer
+if [[ "$(systemctl --global is-enabled orielos-steam-default-proton.timer 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-steam-default-proton.timer is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/steam-default-proton ]] || {
+    printf 'error: /usr/libexec/orielos/steam-default-proton is not executable\n' >&2
+    exit 1
+}
+command -v python3 >/dev/null || {
+    printf 'error: python3, which steam-default-proton runs on, is not installed\n' >&2
+    exit 1
+}
+
 # New users get the taskbar from OrielOS's look-and-feel package, which 20-desktop.sh makes the
 # default; the package and the Start button's icon come from the app-builder stage.
 lnf=org.orielos.desktop

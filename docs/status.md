@@ -42,6 +42,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 - **The Store** installs apps from Flathub; Firefox arrives on the first start. See [Installing apps](apps.md). Checked on the laptop, and in virtual machines.
 - **Steam from the Store** sees the NVIDIA graphics card. Checked on the laptop.
+- **GE-Proton is Steam's default** for Windows games: OrielOS installs it with Steam and sets it once, keeping any default you chose. See [Games and controllers](games-and-controllers.md#ge-proton-for-windows-games-in-steam).
 
 ### Games and drivers
 
@@ -63,8 +64,8 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 ## Planned
 
+- **Game Settings**: an app for per-game settings, such as the Proton version, the FPS overlay and HDR, for Steam and Heroic games.
 - **Known apps in Run this app**: the Store version offered first when there is one, and tested set-ups for launchers such as Battle.net, the EA app and Ubisoft Connect.
-- **Game Settings**: an app for per-game settings, with GE-Proton as the default way to run games for Windows.
 - **Will it run?**: check whether a game works on Linux before you buy it.
 - **An FPS overlay** you turn on with a shortcut.
 - **A Gaming page in Settings.**
