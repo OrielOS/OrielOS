@@ -16,6 +16,9 @@ import {
   nextLink,
   pageUrl,
   readHead,
+  datesFromGitLog,
+  gitLastModified,
+  newestDate,
   releaseFrom,
   renderPage,
   sitemapXml,
@@ -126,11 +129,15 @@ test("releaseFrom validates the URL and falls back to the tag", () => {
   const repo = "ncjsvr/OrielOS";
   assert.deepEqual(
     releaseFrom({ name: "One", tag_name: "v1", html_url: "https://evil.example/x" }, repo),
-    { name: "One", url: "https://github.com/ncjsvr/OrielOS/releases/latest", iso: null },
+    { name: "One", version: "v1", url: "https://github.com/ncjsvr/OrielOS/releases/latest", iso: null },
   );
   assert.deepEqual(
     releaseFrom({ name: "", tag_name: "v1", html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1" }, repo),
-    { name: "v1", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1", iso: null },
+    { name: "v1", version: "v1", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1", iso: null },
+  );
+  assert.equal(
+    releaseFrom({ name: "One", tag_name: "not a version", html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/x" }, repo).version,
+    "",
   );
 });
 
@@ -188,6 +195,7 @@ function page({ url = "https://orielos.org/", title = "A page", description = "W
 <meta property="og:url" content="${url}">
 <meta property="og:image" content="https://orielos.org/images/open-graph.png">
 <meta property="og:image:alt" content="A picture">
+<meta name="twitter:site" content="@BuiltByNath">
 ${head}</head><body>${body}</body></html>`;
 }
 
@@ -198,12 +206,48 @@ test("the home page passes the search checks", () => {
   const html = renderPage(template, { contributors: [], release: null });
   assert.doesNotThrow(() => checkPages([{ file: "index.html", url: "https://orielos.org/", html }]));
   const { scripts, titles } = readHead(html);
-  assert.equal(titles[0], "OrielOS: a Linux desktop tuned for gaming and development");
+  assert.equal(titles[0], "OrielOS: a free Linux desktop for gaming and development");
+  const { meta } = readHead(html);
+  assert.equal(meta["twitter:site"], "@BuiltByNath");
+  assert.equal(
+    meta.description,
+    "OrielOS is a free, open-source Linux desktop for gaming and development. Steam and Proton, rollback updates, no telemetry. Early: the installer isn’t out yet.",
+  );
   const data = JSON.parse(scripts.find((script) => script.type === "application/ld+json").body);
   const site = data["@graph"].find((node) => node["@type"] === "WebSite");
   assert.equal(site.name, "OrielOS");
   assert.equal(site.url, "https://orielos.org/");
+  const app = data["@graph"].find((node) => node["@type"] === "SoftwareApplication");
+  assert.equal(app.name, "OrielOS");
+  assert.equal(app.applicationCategory, "OperatingSystem");
+  assert.equal(app.operatingSystem, "Linux");
+  assert.equal(app.softwareVersion, undefined);
+  assert.equal(app.license, "https://www.gnu.org/licenses/gpl-3.0.html");
+  assert.deepEqual(app.offers, { "@type": "Offer", price: "0", priceCurrency: "USD" });
+  assert.equal(app.downloadUrl, "https://orielos.org/download/");
+  assert.deepEqual(app.publisher, { "@id": "https://orielos.org/#organization" });
+  assert.equal(
+    data["@graph"].find((node) => node["@type"] === "Organization").description,
+    "A free Linux desktop for gaming and development. Open source, no telemetry, and you can install it now.",
+  );
+  assert.match(html, /<h1 id="hero-title">A Linux desktop for gaming and development<\/h1>/);
   assert.equal(isNoindex(html), false);
+});
+
+test("the home page uses the release's version in its description and structured data", () => {
+  const html = renderPage(template, {
+    contributors: [],
+    release: { name: "OrielOS v0.0.7", version: "v0.0.7", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v0.0.7", iso: null },
+  });
+  assert.doesNotMatch(html, leftovers);
+  const description = readHead(html).meta.description;
+  assert.equal(
+    description,
+    "OrielOS is a free, open-source Linux desktop for gaming and development. Steam and Proton, rollback updates, no telemetry. Early: v0.0.7 on NVIDIA RTX PCs.",
+  );
+  assert.ok(description.length <= 160, description.length);
+  const data = JSON.parse(readHead(html).scripts.find((script) => script.type === "application/ld+json").body);
+  assert.equal(data["@graph"].find((node) => node["@type"] === "SoftwareApplication").softwareVersion, "v0.0.7");
 });
 
 test("the not-found page is kept out of search", async () => {
@@ -225,6 +269,7 @@ test("checkPages reports each missing or wrong part", () => {
     /og:url should be/,
   );
   assert.throws(() => check(page().replace(/<meta property="og:image:alt"[^>]*>/, "")), /needs og:image:alt/);
+  assert.throws(() => check(page().replace(/<meta name="twitter:site"[^>]*>/, "")), /twitter:site/);
   assert.throws(
     () => check(page().replace("https://orielos.org/images", "https://example.com/images")),
     /og:image should be on https:\/\/orielos\.org/,
@@ -336,6 +381,41 @@ test("sitemapXml sorts and escapes the addresses", () => {
   assert.match(xml, /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
   const locs = [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((match) => match[1]);
   assert.deepEqual(locs, ["https://orielos.org/", "https://orielos.org/?a=1&amp;b=2", "https://orielos.org/news/"]);
+  assert.doesNotMatch(xml, /lastmod/);
+});
+
+test("sitemapXml adds a lastmod date when a page has one", () => {
+  const xml = sitemapXml([
+    { url: "https://orielos.org/faq/", lastmod: "2026-10-27" },
+    { url: "https://orielos.org/", lastmod: "not-a-date" },
+    "https://orielos.org/news/",
+  ]);
+  assert.match(xml, /<url><loc>https:\/\/orielos.org\/faq\/<\/loc><lastmod>2026-10-27<\/lastmod><\/url>/);
+  assert.match(xml, /<url><loc>https:\/\/orielos.org\/<\/loc><\/url>/);
+  assert.match(xml, /<url><loc>https:\/\/orielos.org\/news\/<\/loc><\/url>/);
+});
+
+test("datesFromGitLog keeps the newest commit date of each file", () => {
+  const dates = datesFromGitLog("2026-10-27\n\nwebsite/pages/faq.html\nwebsite/public/index.html\n\n2026-10-01\n\nwebsite/public/index.html\ndocs/install.md\n");
+  assert.equal(dates.get("website/pages/faq.html"), "2026-10-27");
+  assert.equal(dates.get("website/public/index.html"), "2026-10-27");
+  assert.equal(dates.get("docs/install.md"), "2026-10-01");
+  assert.equal(newestDate([dates.get("docs/install.md"), dates.get("website/pages/faq.html"), undefined]), "2026-10-27");
+  assert.equal(newestDate([]), null);
+});
+
+test("gitLastModified asks git for the files and ignores dates it didn't ask for", () => {
+  const seen = [];
+  const dates = gitLastModified(["website/pages/faq.html", "website/pages/faq.html", "-not-a-file"], {
+    root: "/repo",
+    run: (args, cwd) => {
+      seen.push({ args, cwd });
+      return "2026-10-27\n\nwebsite/pages/faq.html\nsecret.txt\n";
+    },
+  });
+  assert.deepEqual(seen, [{ args: ["log", "--format=%cs", "--name-only", "--", "website/pages/faq.html"], cwd: "/repo" }]);
+  assert.deepEqual([...dates], [["website/pages/faq.html", "2026-10-27"]]);
+  assert.equal(gitLastModified(["website/missing.html"], { run: () => { throw new Error("no git"); } }).size, 0);
 });
 
 test("robots.txt allows every crawler and names the sitemap", async () => {

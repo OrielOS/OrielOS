@@ -148,12 +148,20 @@ export function stripLeadingComment(text) {
   return String(text).replace(/^\s*<!--[\s\S]*?-->\s*/, "").trimEnd();
 }
 
+// A release tag safe to drop into HTML and into JSON-LD, such as v0.0.7.
+export function safeVersion(value) {
+  return typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._+-]*$/.test(value) ? value : "";
+}
+
 // Fills page.html: {{title}}, {{description}}, {{url}}, {{og.type}},
-// {{og.title}}, {{image.url}} and {{image.alt}} with escaped text, and
-// <!-- head --> and <!-- content --> with HTML. It runs once over the layout,
-// so nothing inside the content is ever read as a placeholder.
+// {{og.title}}, {{image.url}}, {{image.alt}}, {{image.width}} and
+// {{image.height}} with escaped text, and <!-- head --> and <!-- content -->
+// with HTML. It runs once over the layout, so nothing inside the content is
+// ever read as a placeholder. Width and height are left out when the picture
+// has no size, rather than published empty.
 export function renderLayout(layout, partials, page) {
   const image = page.image ?? DEFAULT_IMAGE;
+  const hasSize = Boolean(image.width && image.height);
   const values = {
     title: page.title,
     description: page.description,
@@ -162,12 +170,11 @@ export function renderLayout(layout, partials, page) {
     "og.title": page.ogTitle ?? page.title,
     "image.url": image.url,
     "image.alt": image.alt,
+    "image.width": hasSize ? String(image.width) : "",
+    "image.height": hasSize ? String(image.height) : "",
   };
-  const size = image.width && image.height
-    ? `<meta property="og:image:width" content="${image.width}">\n<meta property="og:image:height" content="${image.height}">\n`
-    : "";
-  const head = `${size}${page.head ?? ""}`.trimEnd();
-  return applyIncludes(layout, partials, { current: page.current ?? "" }).replace(
+  const head = (page.head ?? "").trimEnd();
+  let html = applyIncludes(layout, partials, { current: page.current ?? "" }).replace(
     /\{\{([a-z.]+)\}\}|<!-- (head|content) -->/g,
     (marker, key, slot) => {
       if (slot === "head") return head;
@@ -176,6 +183,13 @@ export function renderLayout(layout, partials, page) {
       return escapeHtml(values[key]);
     },
   );
+  if (!hasSize) {
+    html = html.replace(
+      /\n<meta property="og:image:width" content="">\n<meta property="og:image:height" content="">/,
+      "",
+    );
+  }
+  return html;
 }
 
 // "<name> · OrielOS guides", or just the name if that would be too long.
@@ -205,9 +219,12 @@ function newsItems(posts, heading) {
 // <!-- contributors -->, <!-- news --> and <!-- artwork-credits --> markers.
 export function renderPage(template, { contributors = [], release = null, sums = null, news = [], artworkCredits = null } = {}) {
   const iso = release?.iso ?? null;
+  const version = safeVersion(release?.version);
   const flags = {
     release: Boolean(release),
     "no-release": !release,
+    version: version !== "",
+    "no-version": version === "",
     iso: Boolean(iso),
     "no-iso": !iso,
     sha256: Boolean(iso?.sha256),
@@ -252,6 +269,7 @@ export function renderPage(template, { contributors = [], release = null, sums =
     html = html
       .replaceAll("{{release.name}}", () => escapeHtml(release.name))
       .replaceAll("{{release.url}}", () => escapeHtml(release.url));
+    if (version) html = html.replaceAll("{{release.version}}", () => escapeHtml(version));
   }
   if (iso) {
     html = html

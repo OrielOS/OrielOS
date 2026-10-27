@@ -15,6 +15,7 @@
 // release. Finally it checks every page's title, description, canonical link
 // and link preview for search engines, and writes the sitemap.
 
+import { execFileSync } from "node:child_process";
 import { closeSync, existsSync, openSync, readSync } from "node:fs";
 import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -46,6 +47,7 @@ import {
   renderLayout,
   renderPage,
   stripLeadingComment,
+  safeVersion,
   suffixedTitle,
 } from "./pages.mjs";
 
@@ -165,6 +167,7 @@ export function checkPages(pages) {
     if (meta["og:image"] && !meta["og:image"].startsWith(`${SITE}/`)) {
       problem(`og:image should be on ${SITE}.`);
     }
+    if (meta["twitter:site"] !== "@BuiltByNath") problem("needs twitter:site set to @BuiltByNath.");
     // Search engines read alt text, and SEO checkers flag empty alt, so even
     // images in parts hidden from screen readers get some.
     for (const image of images) {
@@ -193,12 +196,80 @@ export function checkPages(pages) {
   }
 }
 
-export function sitemapXml(urls) {
-  const entries = [...urls].sort().map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`);
+// "2026-10-27" dates from `git log --format=%cs --name-only`, newest commit
+// first. The first date seen for a file is the one kept.
+export function datesFromGitLog(output) {
+  const dates = new Map();
+  let date = null;
+  for (const line of String(output).replace(/\r\n?/g, "\n").split("\n")) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(line)) date = line;
+    else if (line !== "" && date !== null && !dates.has(line)) dates.set(line, date);
+  }
+  return dates;
+}
+
+export function newestDate(dates) {
+  let newest = null;
+  for (const date of dates) {
+    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) && (newest === null || date > newest)) {
+      newest = date;
+    }
+  }
+  return newest;
+}
+
+function runGit(args, cwd) {
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 15000,
+  });
+}
+
+// The commit date of each file git can see, as YYYY-MM-DD. Files git can't
+// date, and a checkout with no history for them, are left out: a shallow
+// clone often can't see the commit that last changed a file, and guessing
+// from the checkout time would tell search engines every page changed today.
+export function gitLastModified(files, { root = repoRoot, run = runGit } = {}) {
+  const paths = [
+    ...new Set(
+      files.filter((file) => typeof file === "string" && file !== "" && !file.startsWith("-") && !file.includes("\0")),
+    ),
+  ];
+  if (paths.length === 0) return new Map();
+  let output = "";
+  try {
+    output = run(["log", "--format=%cs", "--name-only", "--", ...paths], root);
+  } catch {
+    return new Map();
+  }
+  const dates = datesFromGitLog(output);
+  const wanted = new Set(paths);
+  for (const file of [...dates.keys()]) {
+    if (!wanted.has(file)) dates.delete(file);
+  }
+  return dates;
+}
+
+// entries: page addresses, or { url, lastmod } when the build could date the
+// page. lastmod is a YYYY-MM-DD date, or it is left out.
+export function sitemapXml(entries) {
+  const items = entries.map((entry) => (typeof entry === "string" ? { url: entry } : entry));
+  const rows = items
+    .slice()
+    .sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0))
+    .map((entry) => {
+      const lastmod =
+        typeof entry.lastmod === "string" && /^\d{4}-\d{2}-\d{2}$/.test(entry.lastmod)
+          ? `<lastmod>${escapeHtml(entry.lastmod)}</lastmod>`
+          : "";
+      return `  <url><loc>${escapeHtml(entry.url)}</loc>${lastmod}</url>`;
+    });
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ...entries,
+    ...rows,
     "</urlset>",
     "",
   ].join("\n");
@@ -239,7 +310,8 @@ export function releaseFrom(json, repo) {
     throw new Error("The latest release has neither a name nor a tag.");
   }
   const url = isGitHubUrl(json.html_url) ? json.html_url : fallbackUrl;
-  return { name, url, iso: isoFrom(json.assets) };
+  const tag = typeof json?.tag_name === "string" ? json.tag_name.trim() : "";
+  return { name, version: safeVersion(tag), url, iso: isoFrom(json.assets) };
 }
 
 function isGitHubUrl(value) {
@@ -476,6 +548,20 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
   const partials = await loadPartials();
   const layout = await readFile(path.join(templatesDir, "page.html"), "utf8");
   const imageSize = imageSizer(outDir);
+  // Where each built page's words come from, so the sitemap can date it.
+  // Shared templates are included: a change to the header or footer changes
+  // every page that uses them.
+  const sources = new Map();
+  const extraDates = new Map();
+  const layoutSources = [
+    "website/templates/page.html",
+    "website/templates/header.html",
+    "website/templates/footer.html",
+  ];
+  const note = (relative, files, extra = null) => {
+    sources.set(relative, files);
+    if (extra) extraDates.set(relative, extra);
+  };
   const write = async (relative, content) => {
     const target = path.join(outDir, relative);
     await mkdir(path.dirname(target), { recursive: true });
@@ -494,6 +580,7 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
   const groups = guidesFrom(docs, readme, { imageSize });
   const guides = groups.flatMap((group) => group.guides);
   for (const [index, guide] of guides.entries()) {
+    note(`guides/${guide.slug}/index.html`, [`docs/${guide.file}`, ...layoutSources]);
     await page(`guides/${guide.slug}/index.html`, {
       title: guide.title,
       ogTitle: guide.heading,
@@ -502,6 +589,7 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
       content: guideContent(guide, guides[index - 1], guides[index + 1]),
     });
   }
+  note("guides/index.html", [...docs.map(({ file }) => `docs/${file}`), ...layoutSources]);
   await page("guides/index.html", {
     title: "Guides to installing and using OrielOS",
     description:
@@ -514,6 +602,7 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
   const posts = postsFrom(await readSources(newsDir, [".md"]));
   for (const post of posts) {
     requireImage(post.file, post.image);
+    note(`news/${post.slug}/index.html`, [post.file, ...layoutSources]);
     await page(`news/${post.slug}/index.html`, {
       title: suffixedTitle(post.title, "OrielOS news"),
       ogTitle: post.title,
@@ -525,6 +614,7 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
       content: postContent(post, postHtml(post, { imageSize })),
     });
   }
+  note("news/index.html", [...posts.map((post) => post.file), ...layoutSources]);
   await page("news/index.html", {
     title: "OrielOS news",
     description: "News from the OrielOS project: releases, milestones and what's coming next, newest first, with a feed to follow.",
@@ -537,7 +627,9 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
   ];
   await write("news/feed.xml", atomFeed(entries));
 
-  // Release notes.
+  // Release notes. The page is filled from GitHub, so its date is also the
+  // newest release's publish date when that is later than the changelog.
+  note("releases/index.html", ["CHANGELOG.md", ...layoutSources], releases[0]?.publishedAt?.slice(0, 10) ?? null);
   await page("releases/index.html", {
     title: "Release notes · OrielOS",
     description: "What changed in each OrielOS release, newest first, with links to every version and its installer on GitHub.",
@@ -559,6 +651,7 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
     } catch (error) {
       throw new Error(`${item.file}: ${error.message}`);
     }
+    note(`${item.slug}/index.html`, [item.file, ...layoutSources]);
     await page(`${item.slug}/index.html`, {
       title: item.title,
       ogTitle: item.heading,
@@ -569,8 +662,10 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
     });
   }
 
-  // The home page and the not-found page.
+  // The home page and the not-found page. The home page has its own document,
+  // so it doesn't use the shared page template.
   const home = await readFile(path.join(publicDir, "index.html"), "utf8");
+  note("index.html", ["website/public/index.html", "website/templates/header.html", "website/templates/footer.html"]);
   await write("index.html", renderPage(applyIncludes(home, partials), data));
   const notFound = await readFile(path.join(publicDir, "404.html"), "utf8");
   await write("404.html", renderPage(applyIncludes(notFound, partials)));
@@ -578,7 +673,15 @@ export async function build({ offline = false, outDir = siteDir } = {}) {
 
   const pages = await indexablePages(outDir);
   checkPages(pages);
-  await write("sitemap.xml", sitemapXml(pages.map((item) => item.url)));
+  const sourceDates = gitLastModified([...sources.values()].flat());
+  const dated = pages.map((item) => ({
+    url: item.url,
+    lastmod: newestDate([
+      ...(sources.get(item.file) ?? []).map((file) => sourceDates.get(file)),
+      extraDates.get(item.file),
+    ]),
+  }));
+  await write("sitemap.xml", sitemapXml(dated));
 
   console.log(
     `Built ${path.relative(process.cwd(), outDir) || "."}: ` +

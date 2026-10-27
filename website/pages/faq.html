@@ -1,0 +1,125 @@
+---
+title: OrielOS FAQ: download, hardware and games
+heading: FAQ
+description: Answers before you install OrielOS: how it differs from Bazzite, the hardware it needs, .exe files, anti-cheat, rollback, telemetry and keeping Windows.
+---
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<p class="lead">Short answers before you install. The <a href="/guides/">guides</a> go into more detail, and the <a href="/download/">download page</a> has the installer.</p>
+
+<section aria-labelledby="faq-bazzite">
+  <h2 id="faq-bazzite">How is OrielOS different from Bazzite?</h2>
+  <p>Both are Fedora Atomic desktops: the system is one image, and an update replaces that image instead of changing it piece by piece. OrielOS is its own desktop on that base. It uses KDE Plasma with OrielOS’s taskbar and Start menu, Steam from the Store, and Proton with GE-Proton for Windows games. .exe and .msi files open through Run this app. Updates download in the background, and you can go back to the previous version from Settings. OrielOS collects no telemetry. It’s early, and it targets desktop PCs with NVIDIA RTX graphics, 20-series or newer.</p>
+</section>
+
+<section aria-labelledby="faq-download">
+  <h2 id="faq-download">Can I download it?</h2>
+  <p>Yes. <!-- if:version -->The current stable release is {{release.version}}, and it has an installer.<!-- end:version --><!-- if:no-version -->An installer will be published with the first stable release.<!-- end:no-version --> Get the ISO from the <a href="/download/">download page</a>, check its SHA-256, and write it to a USB stick of at least 2 GB. The installer downloads OrielOS, so the PC needs an internet connection. The <a href="/guides/install/">install guide</a> goes through each step.</p>
+</section>
+
+<section aria-labelledby="faq-hardware">
+  <h2 id="faq-hardware">What hardware does it need?</h2>
+  <p>A desktop PC with NVIDIA RTX graphics, 20-series or newer, a 64-bit Intel or AMD processor, and UEFI with Secure Boot. It needs at least 60 GB free, as a whole drive or unused space next to Windows, a USB stick of 2 GB or more, and internet during the install. PCs with only AMD or Intel graphics aren’t supported yet. So far it has been checked on a laptop with an NVIDIA GeForce RTX 4050 Laptop GPU; laptops aren’t what it’s built for. <a href="/guides/status/#hardware-verified">Status</a> lists every PC checked, and <a href="/guides/install/">Install OrielOS</a> has the full list.</p>
+</section>
+
+<section aria-labelledby="faq-exe">
+  <h2 id="faq-exe">Does it run .exe/.msi files?</h2>
+  <p>Yes, through Run this app. Double-click a .exe or .msi file and OrielOS shows the file and where it came from, then asks before doing anything. It runs the program through GE-Proton, in a Windows set-up of its own, and shortcuts its installer creates can appear in Start. It’s new and has only been tried with a few programs. Programs that need special drivers don’t run, and Microsoft 365 and Adobe apps don’t run. A Linux version from the Store is a better choice when there is one. See <a href="/guides/windows-programs/">Windows programs</a>.</p>
+</section>
+
+<section aria-labelledby="faq-anticheat">
+  <h2 id="faq-anticheat">Will my anti-cheat games work?</h2>
+  <p>Often not. The publisher decides whether a game’s anti-cheat allows Linux. If it doesn’t, the game won’t start on OrielOS or on any other Linux system. Valorant, League of Legends, Call of Duty and Battlefield 6 are examples. OrielOS does start in the way Easy Anti-Cheat’s Linux support asks for, so a game that allows Linux can run. There’s no Hibernate, because that start rules it out; sleep works. <a href="/guides/known-limitations/">Known limitations</a> and <a href="/guides/anti-cheat/">games with anti-cheat</a> say more.</p>
+</section>
+
+<section aria-labelledby="faq-rollback">
+  <h2 id="faq-rollback">Can I undo a bad update?</h2>
+  <p>Yes. OrielOS keeps the previous version for 14 days. In Settings, open Update and choose “Go back to the previous version…”. If a new version fails to reach the desktop twice, the next start uses the previous one by itself. A version you went back from isn’t offered again. The <a href="/guides/updates/">updates guide</a> explains it.</p>
+</section>
+
+<section aria-labelledby="faq-telemetry">
+  <h2 id="faq-telemetry">Does it collect data?</h2>
+  <p>No. OrielOS collects nothing about you or your PC, and it doesn’t send Fedora’s anonymous weekly package count. This website sets no cookies and runs no trackers.</p>
+</section>
+
+<section aria-labelledby="faq-windows">
+  <h2 id="faq-windows">Can I keep Windows?</h2>
+  <p>Yes. Free at least 60 GB in Windows’ Disk Management and leave that space unallocated. The installer uses it and leaves Windows in the boot menu, which shows for five seconds at each start. If the drive is encrypted, save the recovery key first, because Windows may ask for it afterwards, and turn off Fast Startup. Back up anything you can’t lose. The <a href="/guides/install/">install guide</a> shows each step.</p>
+</section>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "url": "https://orielos.org/faq/",
+  "inLanguage": "en-GB",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How is OrielOS different from Bazzite?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Both are Fedora Atomic desktops: the system is one image, and an update replaces that image instead of changing it piece by piece. OrielOS is its own desktop on that base. It uses KDE Plasma with OrielOS’s taskbar and Start menu, Steam from the Store, and Proton with GE-Proton for Windows games. .exe and .msi files open through Run this app. Updates download in the background, and you can go back to the previous version from Settings. OrielOS collects no telemetry. It’s early, and it targets desktop PCs with NVIDIA RTX graphics, 20-series or newer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I download it?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. <!-- if:version -->The current stable release is {{release.version}}, and it has an installer.<!-- end:version --><!-- if:no-version -->An installer will be published with the first stable release.<!-- end:no-version --> Get the ISO from the download page, check its SHA-256, and write it to a USB stick of at least 2 GB. The installer downloads OrielOS, so the PC needs an internet connection. The install guide goes through each step."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What hardware does it need?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A desktop PC with NVIDIA RTX graphics, 20-series or newer, a 64-bit Intel or AMD processor, and UEFI with Secure Boot. It needs at least 60 GB free, as a whole drive or unused space next to Windows, a USB stick of 2 GB or more, and internet during the install. PCs with only AMD or Intel graphics aren’t supported yet. So far it has been checked on a laptop with an NVIDIA GeForce RTX 4050 Laptop GPU; laptops aren’t what it’s built for. Status lists every PC checked, and Install OrielOS has the full list."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it run .exe/.msi files?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, through Run this app. Double-click a .exe or .msi file and OrielOS shows the file and where it came from, then asks before doing anything. It runs the program through GE-Proton, in a Windows set-up of its own, and shortcuts its installer creates can appear in Start. It’s new and has only been tried with a few programs. Programs that need special drivers don’t run, and Microsoft 365 and Adobe apps don’t run. A Linux version from the Store is a better choice when there is one. See Windows programs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Will my anti-cheat games work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Often not. The publisher decides whether a game’s anti-cheat allows Linux. If it doesn’t, the game won’t start on OrielOS or on any other Linux system. Valorant, League of Legends, Call of Duty and Battlefield 6 are examples. OrielOS does start in the way Easy Anti-Cheat’s Linux support asks for, so a game that allows Linux can run. There’s no Hibernate, because that start rules it out; sleep works. Known limitations and games with anti-cheat say more."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I undo a bad update?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. OrielOS keeps the previous version for 14 days. In Settings, open Update and choose “Go back to the previous version…”. If a new version fails to reach the desktop twice, the next start uses the previous one by itself. A version you went back from isn’t offered again. The updates guide explains it."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it collect data?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. OrielOS collects nothing about you or your PC, and it doesn’t send Fedora’s anonymous weekly package count. This website sets no cookies and runs no trackers."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I keep Windows?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Free at least 60 GB in Windows’ Disk Management and leave that space unallocated. The installer uses it and leaves Windows in the boot menu, which shows for five seconds at each start. If the drive is encrypted, save the recovery key first, because Windows may ask for it afterwards, and turn off Fast Startup. Back up anything you can’t lose. The install guide shows each step."
+      }
+    }
+  ]
+}
+</script>
