@@ -54,7 +54,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 - **Few real PCs so far.** Only one laptop has run OrielOS. Desktop PCs with NVIDIA graphics are what it's for, and the first one is still to be tested.
 - **PCs with only AMD or Intel graphics** aren't supported yet: OrielOS is built and tested for NVIDIA. (On the laptop, Intel graphics drive its own screen alongside the RTX 4050, as on most laptops.)
-- **Windows programs that aren't games** can't be run with a double-click yet.
+- **Run this app is new:** Windows programs run with a double-click, but it has been tried with only a few programs (see [Windows programs](windows-programs.md)).
 - **No game has been played on OrielOS yet** in its tests: Steam and the graphics driver work, but playing games is the next step.
 - **Sleep and wake** haven't been checked on a real PC yet.
 - **The first start's welcome page** still says "Welcome to Plasma Desktop", over Plasma's own picture.
@@ -64,8 +64,8 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 ## Planned
 
-- **Run this app**: double-click a Windows program and OrielOS runs it, with known apps set up for you.
 - **Game Settings**: an app for per-game settings, such as the Proton version, the FPS overlay and HDR, for Steam and Heroic games.
+- **Known apps in Run this app**: the Store version offered first when there is one, and tested set-ups for launchers such as Battle.net, the EA app and Ubisoft Connect.
 - **Will it run?**: check whether a game works on Linux before you buy it.
 - **An FPS overlay** you turn on with a shortcut.
 - **A Gaming page in Settings.**
