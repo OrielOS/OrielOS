@@ -8,9 +8,7 @@
 
 const apps = [
     { id: "com.valvesoftware.Steam", name: "Steam" },
-    { id: "com.heroicgameslauncher.hgl", name: "Heroic Games Launcher" },
     { id: "com.discordapp.Discord", name: "Discord" },
     { id: "com.spotify.Client", name: "Spotify" },
     { id: "com.obsproject.Studio", name: "OBS Studio" },
-    { id: "net.lutris.Lutris", name: "Lutris" },
 ];

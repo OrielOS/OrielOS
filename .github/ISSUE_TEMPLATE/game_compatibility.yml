@@ -14,7 +14,11 @@ body:
       label: Store
       options:
         - Steam
-        - Heroic
+        - Epic Games Launcher
+        - GOG Galaxy
+        - EA app
+        - Ubisoft Connect
+        - Battle.net
         - Other
     validations:
       required: true

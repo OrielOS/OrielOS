@@ -31,7 +31,7 @@ OrielOS is a free and open-source Linux desktop, tuned for gaming and developmen
 | Desktop | KDE Plasma with OrielOS's own taskbar, Start menu, shortcuts and look |
 | OrielOS apps | C++ with Qt 6, QML and Kirigami |
 | Apps | Installed from Flathub through the Store; Firefox comes preinstalled |
-| Gaming | Steam and Heroic from the Store, GE-Proton by default, umu-launcher for Windows programs |
+| Gaming | Steam from the Store and the stores' own launchers through Run this app, GE-Proton by default |
 
 ## Hardware
 
