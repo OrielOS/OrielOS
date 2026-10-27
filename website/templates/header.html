@@ -1,0 +1,26 @@
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+The site header on every page. website/build.mjs puts it where a page has an
+"include:header" marker, and marks the current section's link with
+aria-current="page" through the nav placeholders.
+-->
+<header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/">
+        <img class="only-light" src="/images/orielos-logo.svg" alt="OrielOS home" width="133" height="38">
+        <img class="only-dark" src="/images/orielos-logo-dark.svg" alt="OrielOS home" width="133" height="38">
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="/download/"{{nav.download}}>Download</a></li>
+          <li><a href="/guides/"{{nav.guides}}>Guides</a></li>
+          <li class="nav-extra"><a href="/news/"{{nav.news}}>News</a></li>
+          <li class="nav-extra"><a href="/#status"{{nav.status}}>Status</a></li>
+          <li class="nav-extra"><a href="/#contribute"{{nav.contribute}}>Contribute</a></li>
+          <li><a href="https://github.com/ncjsvr/OrielOS">GitHub</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>

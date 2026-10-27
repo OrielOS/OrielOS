@@ -639,28 +639,32 @@ kbd kbd {
   color: var(--text-muted);
 }
 
-/* Status: the milestones are a real sequence */
+/* Status: the roadmap is a real sequence, top to bottom. Oriel Blue marks what's
+   done and Daylight, once, marks "now". */
 
-.milestones {
+.roadmap {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-8);
+  margin-top: var(--space-8);
   padding: 0;
   list-style: none;
 }
 
-.milestones li {
+.roadmap > li {
   position: relative;
   display: grid;
-  align-content: start;
-  gap: var(--space-1);
-  padding-top: 40px;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: var(--space-2) var(--space-8);
+  padding: 0 0 var(--space-8) 40px;
 }
 
-.milestones li::before {
+.roadmap > li:last-child {
+  padding-bottom: 0;
+}
+
+.roadmap > li::before {
   content: "";
   position: absolute;
-  top: 4px;
+  top: 3px;
   left: 0;
   z-index: 1;
   width: 16px;
@@ -670,65 +674,68 @@ kbd kbd {
   background: var(--surface);
 }
 
-.milestones li:not(:last-child)::after {
+.roadmap > li:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 11px;
-  right: calc(-1 * var(--space-8));
-  left: 16px;
-  height: 2px;
+  top: 19px;
+  bottom: 3px;
+  left: 7px;
+  width: 2px;
   background: var(--line-strong);
 }
 
-.milestones .is-now::before {
+.roadmap > .is-done::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.roadmap > .is-done:not(:last-child)::after {
+  background: var(--accent);
+}
+
+.roadmap > .is-now::before {
   border-color: var(--daylight);
   background: var(--daylight);
   box-shadow: 0 0 0 6px var(--daylight-halo);
+}
+
+.roadmap-head {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+}
+
+.roadmap-body {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--text-muted);
+}
+
+.roadmap-body ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.roadmap-body li::marker {
+  color: var(--accent-text);
+}
+
+.roadmap .is-now .milestone-when,
+.roadmap .is-done .milestone-when {
+  color: var(--text);
+}
+
+.roadmap-more {
+  margin-top: var(--space-8);
+  font-weight: 600;
 }
 
 .milestone-when {
   color: var(--text-muted);
   font-size: var(--step-small);
   font-weight: 600;
-}
-
-.is-now .milestone-when {
-  color: var(--text);
-}
-
-.milestones p {
-  color: var(--text-muted);
-}
-
-.working {
-  display: grid;
-  gap: var(--space-4);
-  margin-top: clamp(3rem, 6vw, 4.5rem);
-}
-
-.checks {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
-  gap: var(--space-3) var(--space-8);
-  padding: 0;
-  list-style: none;
-}
-
-.checks li {
-  position: relative;
-  padding-left: 30px;
-}
-
-.checks li::before {
-  content: "";
-  position: absolute;
-  top: 0.3em;
-  left: 6px;
-  width: 6px;
-  height: 11px;
-  border: solid var(--accent-text);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
 }
 
 /* Download */
@@ -950,27 +957,9 @@ kbd kbd {
     display: none;
   }
 
-  .milestones {
+  .roadmap > li {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-6);
-  }
-
-  .milestones li {
-    padding-top: 0;
     padding-left: 36px;
-  }
-
-  .milestones li::before {
-    top: 5px;
-  }
-
-  .milestones li:not(:last-child)::after {
-    top: 21px;
-    right: auto;
-    bottom: calc(-1 * var(--space-6) - 5px);
-    left: 7px;
-    width: 2px;
-    height: auto;
   }
 }
 
@@ -986,5 +975,619 @@ kbd kbd {
 
   .specs dd + dt {
     margin-top: var(--space-3);
+  }
+}
+
+/* ==========================================================================
+   Inner pages: guides, news, release notes, download, credits and press.
+   They share the header and footer above and set their text in a readable
+   column. Code and tables scroll inside their own box, never the page.
+   ========================================================================== */
+
+#main.page {
+  display: block;
+}
+
+.page-wrap {
+  padding-block: clamp(1.5rem, 4vw, 3rem) clamp(3rem, 8vw, 5rem);
+}
+
+.page-title {
+  margin-bottom: var(--space-4);
+  font: 700 var(--step-title)/1.15 var(--font-display);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+.page .lead {
+  max-width: 44rem;
+  margin-bottom: var(--space-8);
+}
+
+.page-wrap > section + section,
+.content-page > section + section {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.empty-note,
+.page-note,
+.help-line {
+  max-width: 44rem;
+  margin-top: var(--space-8);
+  color: var(--text-muted);
+}
+
+/* Breadcrumbs, and the way back */
+
+.breadcrumb {
+  margin-bottom: var(--space-6);
+  font-size: var(--step-small);
+}
+
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  padding: 0;
+  list-style: none;
+  color: var(--text-muted);
+}
+
+.breadcrumb li + li::before {
+  content: "›";
+  margin-right: var(--space-2);
+  color: var(--text-muted);
+}
+
+.breadcrumb a {
+  font-weight: 600;
+}
+
+.back-link {
+  margin-top: var(--space-8);
+  font-weight: 600;
+}
+
+/* Long-form text: guides, posts, release notes */
+
+.prose {
+  max-width: 70ch;
+  overflow-wrap: break-word;
+}
+
+.prose > * + *,
+.prose li > * + * {
+  margin-top: var(--space-4);
+}
+
+.prose h1 {
+  font: 700 var(--step-title)/1.15 var(--font-display);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.prose h2 {
+  margin-top: var(--space-12);
+  font: 700 1.5rem/1.25 var(--font-display);
+  text-wrap: balance;
+}
+
+.prose h3 {
+  margin-top: var(--space-8);
+  font: 600 var(--step-subtitle)/1.4 var(--font-sans);
+  text-wrap: balance;
+}
+
+.prose h4 {
+  margin-top: var(--space-6);
+  font: 600 1rem/1.5 var(--font-sans);
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.5em;
+}
+
+.prose li + li {
+  margin-top: var(--space-2);
+}
+
+.prose li > ul,
+.prose li > ol {
+  margin-top: var(--space-2);
+}
+
+.prose li::marker {
+  color: var(--text-muted);
+}
+
+.prose :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  background: var(--line);
+  overflow-wrap: anywhere;
+}
+
+.prose pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--raised);
+  line-height: 1.5;
+}
+
+.prose pre code {
+  white-space: pre;
+}
+
+.prose blockquote {
+  margin-inline: 0;
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--line-strong);
+  color: var(--text-muted);
+}
+
+.prose hr {
+  height: 1px;
+  margin-block: var(--space-8);
+  border: 0;
+  background: var(--line-strong);
+}
+
+.prose img {
+  border-radius: var(--radius-md);
+}
+
+.doc-image,
+.post-image {
+  margin: var(--space-6) 0;
+}
+
+.doc-image img,
+.post-image img {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--raised);
+}
+
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.table-wrap th,
+.table-wrap td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-wrap thead th {
+  background: var(--raised);
+  font-weight: 600;
+}
+
+.table-wrap tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table-wrap .align-center {
+  text-align: center;
+}
+
+.table-wrap .align-right {
+  text-align: right;
+}
+
+/* A guide's licence and edit link, and the next and previous guides */
+
+.page-meta {
+  display: grid;
+  gap: var(--space-1);
+  max-width: 70ch;
+  margin-top: var(--space-12);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  color: var(--text-muted);
+  font-size: var(--step-small);
+}
+
+.page-meta a {
+  font-weight: 600;
+}
+
+.pager {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-3);
+  max-width: 70ch;
+  margin-top: var(--space-8);
+}
+
+.pager a {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--raised);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pager a:hover {
+  border-color: var(--accent-text);
+}
+
+.pager span {
+  color: var(--text-muted);
+  font-size: var(--step-small);
+  font-weight: 400;
+}
+
+.pager-next {
+  grid-column: -2;
+  text-align: right;
+}
+
+/* The guides index and its A to Z of topics */
+
+.guide-group + .guide-group {
+  margin-top: var(--space-8);
+}
+
+.guide-group h2,
+.topics h2 {
+  margin-bottom: var(--space-4);
+  font: 700 1.5rem/1.25 var(--font-display);
+}
+
+.guide-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.guide-list li {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--raised);
+}
+
+.guide-list li:hover {
+  border-color: var(--accent-text);
+}
+
+.guide-link {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* The whole card is the link's target */
+.guide-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+}
+
+.guide-list p {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.topics {
+  margin-top: var(--space-12);
+}
+
+.topics > p {
+  max-width: 44rem;
+  color: var(--text-muted);
+}
+
+.letters ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-block: var(--space-4) var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.letters a {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.letters a:hover {
+  border-color: var(--accent-text);
+}
+
+.topic-groups {
+  columns: 18rem 3;
+  column-gap: var(--space-8);
+}
+
+.topic-group {
+  break-inside: avoid;
+  padding-bottom: var(--space-6);
+}
+
+.topic-group h3 {
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--line);
+  font: 700 1.25rem/1.3 var(--font-display);
+}
+
+.topic-group ul {
+  display: grid;
+  gap: var(--space-1);
+  padding: 0;
+  list-style: none;
+}
+
+.topic-guide {
+  color: var(--text-muted);
+  font-size: var(--step-small);
+}
+
+/* News: the list here and on the home page, and a post's date */
+
+.news-list {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 48rem;
+  padding: 0;
+  list-style: none;
+}
+
+.news-list article {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.news-title {
+  font: 600 var(--step-subtitle)/1.4 var(--font-sans);
+  text-wrap: balance;
+}
+
+.section .news-title {
+  font-size: var(--step-subtitle);
+}
+
+.news-date,
+.post-date,
+.release-meta {
+  color: var(--text-muted);
+  font-size: var(--step-small);
+  font-weight: 600;
+}
+
+.news-summary {
+  color: var(--text-muted);
+}
+
+.news-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin-top: var(--space-6);
+  font-weight: 600;
+}
+
+.post .post-date {
+  margin-top: var(--space-2);
+}
+
+/* Release notes */
+
+.release {
+  padding-top: var(--space-8);
+}
+
+.release + .release {
+  margin-top: var(--space-8);
+  border-top: 1px solid var(--line);
+}
+
+.release > h2 {
+  margin-top: 0;
+}
+
+.release-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+}
+
+/* Download page */
+
+.download-page {
+  margin-top: var(--space-6);
+}
+
+.download-page .download-card {
+  background: var(--raised);
+}
+
+.download-page .download-card h2,
+.needs h2 {
+  font: 700 1.5rem/1.25 var(--font-display);
+}
+
+.download-steps {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.download-steps h2 {
+  margin-top: 0;
+}
+
+.needs p {
+  color: var(--text-muted);
+}
+
+/* Credits and press */
+
+.credit-list li {
+  color: var(--text-muted);
+}
+
+.credit-list a {
+  font-weight: 600;
+}
+
+.credit-list .licence {
+  display: block;
+  margin-top: 0;
+  font-size: var(--step-small);
+}
+
+.content-page section > h2 {
+  margin-bottom: var(--space-4);
+  font: 700 1.5rem/1.25 var(--font-display);
+  text-wrap: balance;
+}
+
+.content-page .prose > h2 {
+  margin-top: 0;
+}
+
+.content-page section > p,
+.content-page section > ul:not([class]) {
+  max-width: 70ch;
+}
+
+.content-page section > * + * {
+  margin-top: var(--space-4);
+}
+
+.content-page section > ul:not([class]) {
+  padding-left: 1.5em;
+}
+
+.press-quote {
+  max-width: 70ch;
+  margin: 0;
+  padding: var(--space-4) var(--space-6);
+  border-left: 3px solid var(--accent-text);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--raised);
+  font-size: var(--step-lead);
+}
+
+.press-logos,
+.press-shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.press-logos li {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+.press-logo-light {
+  background: #ffffff;
+}
+
+.press-logo-light a {
+  color: #3a66f0;
+}
+
+.press-logo-dark {
+  background: #0c1530;
+}
+
+.press-logo-dark a {
+  color: #9cc2ff;
+}
+
+.press-logos img {
+  width: 100%;
+  max-width: 266px;
+}
+
+.press-shots figure {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.press-shots a {
+  display: block;
+  line-height: 0;
+}
+
+.press-shots img {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.press-shots figcaption {
+  color: var(--text-muted);
+  font-size: var(--step-small);
+}
+
+/* Phones: room for Download, Guides and GitHub beside the logo */
+
+@media (max-width: 30rem) {
+  .site-header .wrap {
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .brand img {
+    height: 30px;
+  }
+
+  .site-nav ul {
+    gap: 0 var(--space-4);
+  }
+
+  .pager-next {
+    grid-column: auto;
   }
 }

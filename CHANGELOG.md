@@ -8,9 +8,18 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 - The sign-in screen shows your account and the password box over the OrielOS wallpaper as soon as it appears, with the time and date above, and stays that way until you sign in. It offers Sleep, Restart and Shut down.
 - A [Status](docs/status.md) page in the user docs lists what works today, what doesn't work yet and what's planned. The updates guide no longer says that no versions are published.
+- orielos.org has more pages, still with no JavaScript, cookies or trackers:
+  - **Download**, with the installer's checksum, `SHA256SUMS` and how to check the download on Windows, macOS and Linux;
+  - **Guides**, every user guide from `docs/`, with screenshots, and "Find a topic", an A to Z list of every topic in them;
+  - **News**, with an Atom feed of the posts and every release, starting with "Introducing OrielOS";
+  - **Release notes** for every release, **Press**, with a fact sheet, the logo and screenshots, and **Credits** for the projects OrielOS is built on and its artwork.
+- The home page's "Where it stands" shows the roadmap, from the first builds to version 1 and beyond, and the newest news.
+- Two new guides: [The desktop](docs/desktop.md) (the taskbar, the system tray, snapping windows, Files, screenshots and Process Manager) and [Getting help](docs/help.md). The install, Secure Boot, Start, apps, Settings and anti-cheat guides show screenshots.
+- [Status](docs/status.md#hardware-verified) lists the hardware OrielOS has been verified on: so far, an NVIDIA GeForce RTX 4050 Laptop GPU.
 
 ### Changed
 
+- The install guide says which graphics cards OrielOS needs, how to check the download on macOS, which tools write the USB stick on Windows, macOS and Linux, and which firmware settings to check if the stick isn't offered.
 - The website's download says it's the stable version, which updates itself, and how to switch to the testing channel; its "How to install" link opens the install guide. Each stable release's notes start with how to get it: the installer for new installs, or nothing to do on a computer that already runs OrielOS.
 - The installer and its start menu name the OrielOS version that was current when the ISO was made, such as "OrielOS v0.0.5", instead of "OrielOS 44", the Fedora release it's built from. When a drive is encrypted with BitLocker, the installer warns that Windows may ask for its recovery key afterwards.
 - Right-clicking an app on the taskbar offers **Pin to taskbar** and **Unpin from taskbar**, the same words as Start, instead of "Pin to Task Manager", and **Configure Taskbar…**; the taskbar's widget is called Taskbar. This applies when the desktop's language is English; a list of languages chosen in Settings → Region & Language brings back Plasma's wording.

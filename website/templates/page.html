@@ -1,0 +1,58 @@
+<!doctype html>
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+The layout of every page but the home page and the not-found page.
+website/build.mjs fills the placeholders in double braces with the page's
+title, description, address and link preview, and the "head" and "content"
+markers with the page's extra head tags and its content.
+
+The Content-Security-Policy is the home page's: see the comment there.
+-->
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src 'self'; style-src 'self'; img-src 'self' https://www.bestpractices.dev; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<link rel="canonical" href="{{url}}">
+<meta name="robots" content="max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#cadafb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#050a1c" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="alternate" type="application/atom+xml" href="/news/feed.xml" title="OrielOS news">
+<link rel="preload" href="/fonts/noto-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/noto-sans-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css">
+<meta property="og:type" content="{{og.type}}">
+<meta property="og:site_name" content="OrielOS">
+<meta property="og:title" content="{{og.title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{url}}">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="{{image.url}}">
+<meta property="og:image:alt" content="{{image.alt}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image:alt" content="{{image.alt}}">
+<!-- head -->
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- include:header -->
+
+<main id="main" class="page">
+  <div class="wrap page-wrap">
+  <!-- content -->
+  </div>
+</main>
+
+<!-- include:footer -->
+</body>
+</html>
