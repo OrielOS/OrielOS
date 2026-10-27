@@ -111,6 +111,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- Updates from the testing channel are prepared again. Once update signatures were checked, every update stopped with "containers-policy.json specifies a default of insecureAcceptAnything", because the system's container policy accepted unsigned images by default. It now refuses them by default, except where each tool accepted them before, and OrielOS's own updates must carry OrielOS's signature.
 - About this System shows the OrielOS logo and the whole version, such as 44.20261026, instead of Fedora's logo.
 - The firewall settings page no longer asks for a password as soon as it opens. Anyone can see the firewall's settings, and administrators change them without a password, as on Fedora's KDE edition.
 - A new installation names the computer `orielos` instead of `fedora`, on the network and in the terminal.
