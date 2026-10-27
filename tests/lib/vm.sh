@@ -303,6 +303,7 @@ wait_for_ssh() {
 #   type:<text>                 type letters, digits, spaces and . - _ one key at a time
 #   shot:<file>                 save a screendump; PNG when the name ends in .png, PPM otherwise
 #   click:<x>,<y>               click the left mouse button at that pixel (needs VM_SCREEN)
+#   rclick:<x>,<y>              click the right mouse button there
 #   wait:<seconds>              pause
 vm_qmp() {
     python3 -I - "$WORK/qmp.sock" "${VM_SCREEN:-0x0}" "$@" <<'PY'
@@ -336,13 +337,13 @@ def press(combo):
 
 f.readline()
 cmd("qmp_capabilities")
-def click(x, y):
+def click(x, y, button="left"):
     move = [{"type": "abs", "data": {"axis": "x", "value": int(x * 32767 / (width - 1))}},
             {"type": "abs", "data": {"axis": "y", "value": int(y * 32767 / (height - 1))}}]
     cmd("input-send-event", {"events": move})
     time.sleep(0.3)
     for down in (True, False):
-        cmd("input-send-event", {"events": [{"type": "btn", "data": {"down": down, "button": "left"}}]})
+        cmd("input-send-event", {"events": [{"type": "btn", "data": {"down": down, "button": button}}]})
         time.sleep(0.1)
 
 
@@ -350,6 +351,8 @@ for step in sys.argv[3:]:
     kind, _, value = step.partition(":")
     if kind == "click" and width:
         click(*(int(n) for n in value.split(",")))
+    elif kind == "rclick" and width:
+        click(*(int(n) for n in value.split(",")), button="right")
     elif kind == "keys":
         press(value)
     elif kind == "type":

@@ -9,6 +9,11 @@ find_package(Plasma 6.0 REQUIRED)
 # The Start menu widget.
 add_subdirectory(startmenu)
 
+# OrielOS's wording for some of Plasma's own text, such as "Pin to taskbar" in the taskbar's menu,
+# as catalogues for the language en@orielos, which
+# image/system/etc/xdg/plasma-workspace/env/orielos-wording.sh puts first for English.
+ki18n_install(translations)
+
 # Snap layouts: a KWin effect that Win+Z opens, to snap the active window into a layout.
 install(DIRECTORY kwin/snaplayouts/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snaplayouts)
 
