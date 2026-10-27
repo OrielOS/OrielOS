@@ -1,0 +1,44 @@
+# OrielOS network installer: installs the current OrielOS build of a channel from the registry.
+# build-iso.sh replaces @CHANNEL@ with stable (the default) or testing. Everything else (language,
+# keyboard, network, disk) is asked interactively; Plasma Setup creates the account on first boot,
+# so the installer creates none. The installer's container policy requires OrielOS's cosign
+# signature for this image (updates/etc/containers/policy.json).
+ostreecontainer --url=ghcr.io/ncjsvr/orielos:@CHANNEL@ --transport=registry
+rootpw --lock
+
+# Finish the deployment the way bootc's own install does. Runs in the new deployment's root, where
+# /sysroot is the physical root and /boot/efi the EFI system partition.
+%post --erroronfail --log=/var/log/anaconda/orielos-post.log
+set -euxo pipefail
+
+# Btrfs compression for everything on the root file system, /var included (bootc's install
+# configuration in the image asks for it, but this route doesn't read that file). ostree looks for
+# the boot loader entries under /sysroot/boot, but here the boot partition is mounted on the
+# deployment's /boot only.
+entry="$(ls /boot/loader/entries/*.conf | head -n1)"
+flags="$(sed -n 's/^options .*rootflags=\([^ ]*\).*/\1/p' "$entry")"
+case ",$flags," in
+*,compress=*) ;;
+*)
+    mount --bind /boot /sysroot/boot
+    ostree admin --sysroot=/sysroot instutil set-kargs --merge "--replace=rootflags=${flags:+$flags,}compress=zstd:1"
+    umount /sysroot/boot
+    ;;
+esac
+grep -h '^options' /boot/loader/entries/*.conf
+
+# The root file system is a read-only composefs overlay that systemd-remount-fs can't remount, so
+# fstab must not list "/" (bootc's installs don't).
+sed -i -E '/^[^#[:space:]]+[[:space:]]+\/[[:space:]]/d' /etc/fstab
+cat /etc/fstab
+
+# Name the firmware boot entry OrielOS rather than Fedora, and keep it first.
+esp="$(findmnt -no SOURCE /boot/efi)"
+disk="/dev/$(lsblk -no PKNAME "$esp")"
+part="$(cat "/sys/class/block/${esp#/dev/}/partition")"
+for num in $(efibootmgr | sed -n 's/^Boot\([0-9A-F]\{4\}\)\* \(Fedora\|OrielOS\)\([[:space:]].*\)\{0,1\}$/\1/p'); do
+    efibootmgr -q -b "$num" -B
+done
+efibootmgr -q --create --disk "$disk" --part "$part" --label OrielOS --loader '\EFI\fedora\shimx64.efi'
+efibootmgr
+%end
