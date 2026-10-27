@@ -6,6 +6,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- An installer: `OrielOS.iso`, about 1.2 GB, on each release. It starts with Secure Boot on, asks for language, keyboard, time zone, network (Wi-Fi or cable) and where to install, then downloads the current stable version of OrielOS, checks its signature and installs it, showing how much is left and how long it will take. Next to Windows it uses the space you freed in Windows' Disk Management and keeps Windows in the start menu. The account is created when OrielOS first starts. [Install OrielOS](docs/install.md) shows each step.
+- Wi-Fi and Bluetooth work with every common card from the first start: OrielOS includes the firmware for Intel cards from the oldest to Wi-Fi 7 and Intel Bluetooth, Qualcomm and Atheros, MediaTek, Realtek, Broadcom, NXP and Marvell, TI and older USB sticks, as well as Intel laptop cameras and TV tuners.
 - On a PC that also has Windows, the boot menu lists Windows and shows for five seconds at every start. On other PCs it stays hidden as before.
 - OrielOS has its own sounds: soft glass chimes for signing in and out, notifications, questions, warnings and errors, plugging in devices and power, low battery and the volume keys. Any other sound comes from Plasma's Ocean theme.
 - Snap layouts: Windows + Z shows layouts for the window you're using (halves, thirds, two thirds beside one third, and quarters) and moves it into the area you click or choose with the arrow keys and Enter.

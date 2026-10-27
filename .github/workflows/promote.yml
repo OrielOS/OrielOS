@@ -4,7 +4,8 @@ name: Promote
 # digest and signature. Run by hand by the maintainer once the build has passed the real-hardware
 # checklist. Each build's version is its name, so the GitHub Release is named after the build and
 # tagged at the commit it was built from; its notes are the CHANGELOG's Unreleased section, and a
-# pull request turns that section into the version's own.
+# pull request turns that section into the version's own. The installer workflow then attaches
+# OrielOS.iso to the release.
 
 on:
   workflow_dispatch:
@@ -34,6 +35,7 @@ jobs:
       contents: write
       packages: write
       pull-requests: write
+      actions: write
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -85,6 +87,14 @@ jobs:
           VERSION: ${{ inputs.build }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release create "${VERSION}" --target "${REVISION}" --title "OrielOS ${VERSION}" --notes-file /tmp/notes.md
+
+      # A release made with GITHUB_TOKEN starts no other workflows, so the installer workflow is
+      # started by hand: it attaches OrielOS.iso and SHA256SUMS to this release, the latest one,
+      # and rebuilds the website.
+      - name: Attach the installer to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run installer.yml --repo "${GITHUB_REPOSITORY}" --ref main
 
       # The Unreleased section becomes the release's own, under a new empty Unreleased heading, in
       # a pull request for the maintainer to merge.
