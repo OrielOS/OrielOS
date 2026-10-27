@@ -114,6 +114,10 @@ private Q_SLOTS:
         QTest::newRow("spaces") << QStringLiteral("Discord Setup 1.0.9.exe") << QStringLiteral("discord");
         QTest::newRow("capitals") << QStringLiteral("VLCSetup.exe") << QStringLiteral("vlc");
         QTest::newRow("folder") << QStringLiteral("/home/a/Downloads/GOG Galaxy Setup.exe") << QStringLiteral("gog-galaxy");
+        QTest::newRow("version joined to the name") << QStringLiteral("7z2605-x64.exe") << QStringLiteral("7z");
+        QTest::newRow("older joined version") << QStringLiteral("7z1900.exe") << QStringLiteral("7z");
+        QTest::newRow("short number in the name") << QStringLiteral("x264-r3191.exe") << QStringLiteral("x264");
+        QTest::newRow("number ending a name") << QStringLiteral("Doom64-Setup.exe") << QStringLiteral("doom64");
     }
 
     void prefixName()

@@ -79,6 +79,14 @@ bool isVersion(const QString &word)
     return version.match(word).hasMatch();
 }
 
+// The word without a version joined to its end: four or more digits after a letter, as in 7-Zip's
+// "7z2605" (version 26.05), give "7z". Shorter runs belong to the name ("x264", "doom64").
+QString withoutJoinedVersion(const QString &word)
+{
+    static const QRegularExpression joinedVersion(QStringLiteral("(?<=[a-z])[0-9]{4,}$"));
+    return QString(word).remove(joinedVersion);
+}
+
 QByteArray attribute(const QString &path, const char *name)
 {
     const QByteArray file = QFile::encodeName(path);
@@ -235,7 +243,7 @@ QString prefixName(const QString &fileName)
     const QStringList words = nameWords(fileName);
     for (const QString &word : words) {
         if (!isVersion(word) && !packagingWords.contains(word)) {
-            kept.append(word);
+            kept.append(withoutJoinedVersion(word));
         }
     }
     return kept.isEmpty() ? QStringLiteral("app") : kept.join(QLatin1Char('-'));

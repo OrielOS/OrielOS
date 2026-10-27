@@ -18,8 +18,8 @@ namespace OrielOSRunApp {
 
 // The prefix name for a downloaded file: its words in lower case, joined with "-", without the
 // extension, version numbers and packaging words such as "setup" or "x64", so that every version
-// of the same program shares one prefix. "SteamSetup.exe" gives "steam"; a name with no words
-// left gives "app".
+// of the same program shares one prefix. "SteamSetup.exe" gives "steam", "7z2605-x64.exe" gives
+// "7z"; a name with no words left gives "app".
 QString prefixName(const QString &fileName);
 
 // Whether the file looks like an installer: an .msi, or a name with a word such as "setup" or
