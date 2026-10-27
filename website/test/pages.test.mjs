@@ -23,6 +23,7 @@ import {
   guideLink,
   guidesFrom,
   guidesIndexContent,
+  latestTesting,
   newsIndexContent,
   parseFrontMatter,
   postContent,
@@ -485,6 +486,60 @@ test("release notes are rendered safely, with links to GitHub and headings under
   assert.match(page, /<time datetime="2026-10-27T15:04:05Z">27 October 2026<\/time>/);
   assert.ok(page.indexOf('id="v0.0.7"') < page.indexOf('id="v0.0.6"'));
   assert.match(releasesContent([]), /No releases yet\..*github\.com\/ncjsvr\/OrielOS\/releases/s);
+});
+
+const channelJson = [
+  { tag_name: "v0.0.7", name: "OrielOS v0.0.7", draft: false, prerelease: false, published_at: "2026-10-27T10:00:00Z", body: "Stable." },
+  { tag_name: "v0.0.8", name: "OrielOS v0.0.8 (testing)", draft: false, prerelease: true, published_at: "2026-10-27T11:00:00Z", body: "Eight." },
+  { tag_name: "v0.0.9", name: "OrielOS v0.0.9", draft: false, prerelease: false, published_at: "2026-10-27T12:00:00Z", body: "Nine." },
+  { tag_name: "v0.0.10", name: "OrielOS v0.0.10 (testing)", draft: false, prerelease: true, published_at: "2026-10-27T13:00:00Z", body: "Ten." },
+  { tag_name: "v0.1.0", name: "OrielOS v0.1.0 (testing)", draft: false, prerelease: true, published_at: "2026-10-27T14:00:00Z", body: "Eleven." },
+];
+
+test("testing builds are kept and marked with the stable version that includes them", () => {
+  const releases = releasesFrom(channelJson, "ncjsvr/OrielOS");
+  assert.deepEqual(
+    releases.map((release) => [release.tag, release.testing, release.stableIn]),
+    [
+      ["v0.1.0", true, null],
+      ["v0.0.10", true, null],
+      ["v0.0.9", false, undefined],
+      ["v0.0.8", true, "v0.0.9"],
+      ["v0.0.7", false, undefined],
+    ],
+  );
+  assert.deepEqual(latestTesting(releases), { name: "OrielOS v0.1.0 (testing)", version: "v0.1.0" });
+  assert.equal(latestTesting(releasesFrom(channelJson.slice(0, 3), "ncjsvr/OrielOS")), null);
+  assert.equal(latestTesting([]), null);
+});
+
+test("a withdrawn testing build is labelled and never offered as the newest", () => {
+  const withdrawn = { ...channelJson[4], name: "OrielOS v0.1.0 (testing, withdrawn)" };
+  const releases = releasesFrom([...channelJson.slice(0, 4), withdrawn], "ncjsvr/OrielOS");
+  assert.equal(releases[0].withdrawn, true);
+  assert.deepEqual(latestTesting(releases), { name: "OrielOS v0.0.10 (testing)", version: "v0.0.10" });
+  const page = releasesContent(releases);
+  assert.match(page, /Testing<\/span> <span>Withdrawn<\/span>/);
+});
+
+test("the release notes label testing builds and say which stable version has them", () => {
+  const page = releasesContent(releasesFrom(channelJson, "ncjsvr/OrielOS"));
+  const article = (tag) => page.slice(page.indexOf(`id="${tag}"`), page.indexOf("</article>", page.indexOf(`id="${tag}"`)));
+  assert.match(article("v0.0.8"), /<span class="release-channel release-channel-testing">Testing<\/span> <span>In stable <a href="#v0\.0\.9">v0\.0\.9<\/a><\/span>/);
+  assert.match(article("v0.1.0"), /Testing<\/span> <span>Not in a stable version yet<\/span>/);
+  assert.match(article("v0.0.9"), /<span class="release-channel">Stable<\/span> <time/);
+  assert.match(page, /<strong>Testing<\/strong> builds come first/);
+});
+
+test("renderPage names the newest testing build only when there is one", () => {
+  const template = "<p>Stable.<!-- if:testing --> Testing: <a href=\"{{testing.url}}\">{{testing.version}}</a>.<!-- end:testing --><!-- if:no-testing --> None.<!-- end:no-testing --></p>";
+  assert.equal(
+    renderPage(template, { testing: { name: "OrielOS v0.1.0 (testing)", version: "v0.1.0" } }),
+    '<p>Stable. Testing: <a href="/releases/#v0.1.0">v0.1.0</a>.</p>',
+  );
+  assert.equal(renderPage(template, {}), "<p>Stable. None.</p>");
+  assert.equal(renderPage(template, { testing: { version: "<b>" } }), "<p>Stable. None.</p>");
+  assert.throws(() => renderPage("<p>{{testing.version}}</p>", {}), /unresolved marker: \{\{testing\./);
 });
 
 test("repoLink sends relative paths to GitHub", () => {

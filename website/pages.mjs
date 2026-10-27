@@ -215,14 +215,17 @@ function newsItems(posts, heading) {
 }
 
 // Fills a page template: keeps or removes the <!-- if:name --> blocks and
-// fills the {{release.*}}, {{iso.*}} and {{sums.*}} placeholders and the
+// fills the {{release.*}}, {{iso.*}}, {{sums.*}} and {{testing.*}} placeholders and the
 // <!-- contributors -->, <!-- news --> and <!-- artwork-credits --> markers.
-export function renderPage(template, { contributors = [], release = null, sums = null, news = [], artworkCredits = null } = {}) {
+export function renderPage(template, { contributors = [], release = null, sums = null, news = [], artworkCredits = null, testing = null } = {}) {
   const iso = release?.iso ?? null;
   const version = safeVersion(release?.version);
+  const testingVersion = safeVersion(testing?.version);
   const flags = {
     release: Boolean(release),
     "no-release": !release,
+    testing: testingVersion !== "",
+    "no-testing": testingVersion === "",
     version: version !== "",
     "no-version": version === "",
     iso: Boolean(iso),
@@ -278,9 +281,14 @@ export function renderPage(template, { contributors = [], release = null, sums =
       .replaceAll("{{iso.sha256}}", () => escapeHtml(iso.sha256));
   }
   if (sums) html = html.replaceAll("{{sums.url}}", () => escapeHtml(sums.url));
+  if (testingVersion) {
+    html = html
+      .replaceAll("{{testing.version}}", () => escapeHtml(testingVersion))
+      .replaceAll("{{testing.url}}", () => escapeHtml(`/releases/#${encodeURIComponent(testingVersion)}`));
+  }
 
   const leftover =
-    /<!-- (?:if|end|include):[^>]*-->|<!-- (?:contributors|news|artwork-credits) -->|\{\{(?:release|iso|sums)\./.exec(html);
+    /<!-- (?:if|end|include):[^>]*-->|<!-- (?:contributors|news|artwork-credits) -->|\{\{(?:release|iso|sums|testing)\./.exec(html);
   if (leftover) {
     throw new Error(`The page template has an unresolved marker: ${leftover[0]}`);
   }
@@ -590,24 +598,40 @@ export function newsIndexContent(posts) {
 
 const isGitHubUrl = (value) => typeof value === "string" && value.startsWith("https://github.com/");
 
-// Full releases from GitHub's list, newest first: drafts and pre-releases are left out.
+// A version tag such as v0.1.1 as [major, minor, patch], or null for any other tag.
+export function versionParts(tag) {
+  const match = /^v(\d+)\.(\d+)\.(\d+)$/.exec(tag);
+  return match ? match.slice(1).map(Number) : null;
+}
+
+function compareVersions(a, b) {
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] - b[i];
+  return 0;
+}
+
+// Releases from GitHub's list, newest first. Full releases are stable versions; pre-releases are
+// testing builds, kept only when their tag is a version. A testing build is marked with the first
+// stable version that includes it, if there is one yet. Drafts are left out.
 export function releasesFrom(json, repo) {
   if (!Array.isArray(json)) return [];
-  return json
+  const releases = json
     .filter(
       (item) =>
         item !== null &&
         typeof item === "object" &&
         item.draft === false &&
-        item.prerelease === false &&
         typeof item.tag_name === "string" &&
         item.tag_name !== "" &&
+        (item.prerelease === false || (item.prerelease === true && versionParts(item.tag_name) !== null)) &&
         typeof item.published_at === "string" &&
         !Number.isNaN(Date.parse(item.published_at)),
     )
     .map((item) => ({
       name: typeof item.name === "string" && item.name.trim() !== "" ? item.name : item.tag_name,
       tag: item.tag_name,
+      testing: item.prerelease === true,
+      // The Withdraw workflow renames a withdrawn build's pre-release.
+      withdrawn: item.prerelease === true && typeof item.name === "string" && item.name.endsWith("(testing, withdrawn)"),
       publishedAt: new Date(item.published_at).toISOString().replace(/\.000Z$/, "Z"),
       url: isGitHubUrl(item.html_url)
         ? item.html_url
@@ -615,6 +639,23 @@ export function releasesFrom(json, repo) {
       body: typeof item.body === "string" ? item.body : "",
     }))
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+  const stable = releases
+    .filter((release) => !release.testing && versionParts(release.tag))
+    .sort((a, b) => compareVersions(versionParts(a.tag), versionParts(b.tag)));
+  for (const release of releases) {
+    if (!release.testing) continue;
+    const version = versionParts(release.tag);
+    release.stableIn = stable.find((item) => compareVersions(versionParts(item.tag), version) >= 0)?.tag ?? null;
+  }
+  return releases;
+}
+
+// The newest testing build that no stable version includes yet and that wasn't withdrawn, or null.
+export function latestTesting(releases) {
+  const waiting = releases.filter((release) => release.testing && !release.stableIn && !release.withdrawn);
+  waiting.sort((a, b) => compareVersions(versionParts(b.tag), versionParts(a.tag)));
+  const newest = waiting[0];
+  return newest ? { name: newest.name, version: newest.tag } : null;
 }
 
 export function releaseAnchor(release) {
@@ -643,14 +684,23 @@ export function releasesContent(releases) {
     const id = escapeHtml(release.tag);
     const date = release.publishedAt.slice(0, 10);
     const notes = releaseHtml(release);
+    let channel = `<span class="release-channel">Stable</span>`;
+    if (release.testing) {
+      let stableIn = "<span>Not in a stable version yet</span>";
+      if (release.withdrawn) stableIn = "<span>Withdrawn</span>";
+      else if (release.stableIn) {
+        stableIn = `<span>In stable <a href="#${escapeHtml(release.stableIn)}">${escapeHtml(release.stableIn)}</a></span>`;
+      }
+      channel = `<span class="release-channel release-channel-testing">Testing</span> ${stableIn}`;
+    }
     return `<article class="release prose" id="${id}" aria-labelledby="${id}-title">
     <h2 id="${id}-title">${escapeHtml(release.name)}</h2>
-    <p class="release-meta"><time datetime="${escapeHtml(release.publishedAt)}">${formatDate(date)}</time> <a href="${escapeHtml(release.url)}">This release on GitHub</a></p>
+    <p class="release-meta">${channel} <time datetime="${escapeHtml(release.publishedAt)}">${formatDate(date)}</time> <a href="${escapeHtml(release.url)}">This release on GitHub</a></p>
 ${notes || "<p>No notes for this release.</p>"}
   </article>`;
   });
   return `<h1 class="page-title">Release notes</h1>
-  <p class="lead">What changed in each OrielOS release, newest first. <a href="/download/">Download the latest</a>, or find older versions on <a href="${REPO_URL}/releases">GitHub</a>.</p>
+  <p class="lead">What changed in each OrielOS version, newest first. <strong>Testing</strong> builds come first, one for each set of changes, on computers that chose the testing channel; each one says what’s new since the build before it. Once a build has been checked on real PCs it becomes the next <strong>stable</strong> version, which the download installs and every other computer gets. <a href="/download/">Download the latest</a>, or find every version on <a href="${REPO_URL}/releases">GitHub</a>.</p>
   ${articles.join("\n  ")}`;
 }
 

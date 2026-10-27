@@ -1,0 +1,133 @@
+name: Testing release
+
+# Gives a build on the testing channel its own GitHub pre-release, named after its version and
+# tagged at the commit it was built from. Its notes say what's new since the previous published
+# build: the entries the CHANGELOG's Unreleased section gained between the two builds' commits
+# (tools/build-changelog.sh). The Image workflow calls it for each build it publishes; run it by
+# hand to write the notes of a build that has none. When a build becomes stable, Promote turns its
+# pre-release into the stable release. The website is rebuilt afterwards, so its release notes
+# and the newest testing build follow at once.
+
+on:
+  workflow_call:
+    inputs:
+      build:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      build:
+        description: Published build to write the notes of, such as v0.1.1
+        required: true
+        type: string
+
+permissions: {}
+
+env:
+  REPOSITORY: ghcr.io/ncjsvr/orielos
+
+jobs:
+  notes:
+    name: notes
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: testing-release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The notes compare the CHANGELOG at two builds' commits.
+          fetch-depth: 0
+
+      # The input is checked before anything uses it, and only ever reaches the shell as an
+      # environment variable.
+      - name: Check the input
+        env:
+          BUILD: ${{ inputs.build }}
+        run: |
+          [[ "${BUILD}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The build looks like v0.1.1"; exit 1; }
+
+      # The build before this one is the next lower version in the registry, whichever channel it
+      # reached; each image records the commit it was built from.
+      - name: Find this build's commit and the previous build's
+        env:
+          BUILD: ${{ inputs.build }}
+        run: |
+          revision_of() {
+              skopeo inspect --format '{{index .Labels "org.opencontainers.image.revision"}}' "docker://${REPOSITORY}:$1"
+          }
+          digest="$(skopeo inspect --format '{{.Digest}}' "docker://${REPOSITORY}:${BUILD}")"
+          revision="$(revision_of "${BUILD}")"
+          [[ "${revision}" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::${BUILD} has no revision label, so its commit isn't known"; exit 1; }
+          previous="$(skopeo list-tags "docker://${REPOSITORY}" | jq -r '.Tags[]' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V |
+              awk -v build="${BUILD}" '$0 == build { print last; exit } { last = $0 }')"
+          previous_revision=""
+          if [ -n "${previous}" ]; then
+              previous_revision="$(revision_of "${previous}")"
+              [[ "${previous_revision}" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::${previous} has no revision label, so what's new since it isn't known"; exit 1; }
+          fi
+          {
+              echo "DIGEST=${digest}"
+              echo "REVISION=${revision}"
+              echo "PREVIOUS=${previous}"
+              echo "PREVIOUS_REVISION=${previous_revision}"
+          } >>"${GITHUB_ENV}"
+
+      # Links to the guides are relative in the CHANGELOG; on GitHub's release page they need the
+      # repository's address, at the build's commit.
+      - name: Write the notes
+        env:
+          BUILD: ${{ inputs.build }}
+        run: |
+          git show "${REVISION}:CHANGELOG.md" >/tmp/current.md
+          : >/tmp/previous.md
+          if [ -n "${PREVIOUS_REVISION}" ]; then
+              git show "${PREVIOUS_REVISION}:CHANGELOG.md" >/tmp/previous.md 2>/dev/null || true
+          fi
+          tools/build-changelog.sh /tmp/previous.md /tmp/current.md >/tmp/new.md
+          base="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          {
+              cat <<EOF
+          **Testing build.** Computers on the testing channel get it by themselves. It becomes a stable version once it has been checked on real PCs. Want it now? Switch to the testing channel in Settings → Update ([how](${base}/blob/main/docs/updates.md#the-update-settings)).
+
+          EOF
+              if [ -n "${PREVIOUS}" ]; then
+                  printf "What's new since [%s](%s/releases/tag/%s):\n\n" "${PREVIOUS}" "${base}" "${PREVIOUS}"
+              fi
+              if [ -s /tmp/new.md ]; then
+                  sed -E "s#\]\(([A-Za-z0-9_./-]+\.md(\#[A-Za-z0-9_-]+)?)\)#](${base}/blob/${REVISION}/\1)#g" /tmp/new.md
+              else
+                  echo "Nothing new in the CHANGELOG: this build brings the latest updates of the packages OrielOS is built from."
+              fi
+              printf '\nImage digest %s.\n' "${DIGEST}"
+          } >/tmp/notes.md
+          cat /tmp/notes.md >>"${GITHUB_STEP_SUMMARY}"
+
+      # A build that is already a stable release keeps the notes Promote gave it.
+      - name: Create or update the pre-release
+        env:
+          BUILD: ${{ inputs.build }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if prerelease="$(gh release view "${BUILD}" --json isPrerelease --jq .isPrerelease 2>/dev/null)"; then
+              if [ "${prerelease}" != "true" ]; then
+                  echo "::notice::${BUILD} is a stable release, so its notes are left as they are"
+                  exit 0
+              fi
+              gh release edit "${BUILD}" --notes-file /tmp/notes.md
+          else
+              gh release create "${BUILD}" --prerelease --target "${REVISION}" --title "OrielOS ${BUILD} (testing)" --notes-file /tmp/notes.md
+          fi
+
+      # A release made with GITHUB_TOKEN starts no other workflows, so the website is rebuilt by hand.
+      - name: Rebuild the website
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run website.yml --repo "${GITHUB_REPOSITORY}" --ref main

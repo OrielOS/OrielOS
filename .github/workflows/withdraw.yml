@@ -4,8 +4,9 @@ name: Withdraw
 # without rebuilding it: the same image, digest and signature. Run by hand by the maintainer.
 # Computers on testing stage that build at their next update check, whether they run the
 # withdrawn build, have it staged or never got it, because orielos-update stages whatever digest
-# the channel points to. The withdrawn build keeps its own tag, and the next build published from
-# main moves testing on again, so merge the fix or a revert after running this.
+# the channel points to. The withdrawn build keeps its own tag, and its testing pre-release on
+# GitHub is marked withdrawn. The next build published from main moves testing on again, so merge
+# the fix or a revert after running this.
 
 on:
   workflow_dispatch:
@@ -32,8 +33,9 @@ jobs:
     timeout-minutes: 15
     environment: publish
     permissions:
-      contents: read
+      contents: write
       packages: write
+      actions: write
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -69,3 +71,23 @@ jobs:
           printf '%s' "${GITHUB_TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
           skopeo copy --preserve-digests "docker://${REPOSITORY}@${digest}" "docker://${REPOSITORY}:testing"
           echo "::notice::testing is now ${BUILD} (${digest}); it was ${current}"
+
+      # The builds after the one testing went back to are withdrawn: their testing pre-releases
+      # (the Testing release workflow) say so, and the website stops offering them.
+      - name: Mark the withdrawn builds' pre-releases
+        env:
+          BUILD: ${{ inputs.build }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mapfile -t withdrawn < <(skopeo list-tags "docker://${REPOSITORY}" | jq -r '.Tags[]' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V |
+              awk -v from="${BUILD}" 'on { print } $0 == from { on = 1 }')
+          for version in "${withdrawn[@]}"; do
+              prerelease="$(gh release view "${version}" --json isPrerelease --jq .isPrerelease 2>/dev/null || true)"
+              [ "${prerelease}" = "true" ] || continue
+              title="$(gh release view "${version}" --json name --jq .name)"
+              [[ "${title}" == *"(testing, withdrawn)" ]] && continue
+              { printf '**Withdrawn.** Computers on the testing channel went back to %s.\n\n' "${BUILD}"; gh release view "${version}" --json body --jq .body; } >/tmp/notes.md
+              gh release edit "${version}" --title "OrielOS ${version} (testing, withdrawn)" --notes-file /tmp/notes.md
+              echo "::notice::Marked ${version}'s pre-release as withdrawn"
+          done
+          gh workflow run website.yml --repo "${GITHUB_REPOSITORY}" --ref main

@@ -3,7 +3,8 @@ name: Image
 # Builds the OS image when a change that affects it merges into main, or by hand: smoke-tests it in
 # a VM, checks that Flathub has the NVIDIA driver extension it needs, then publishes it to
 # ghcr.io/ncjsvr/orielos under its version (v0.0.1, v0.0.2, ...), signs it with cosign and moves the
-# testing tag to it.
+# testing tag to it. The Testing release workflow then gives the build a GitHub pre-release saying
+# what's new in it.
 # A pull request that changes this workflow or the build script only builds: changes are booted
 # and update-tested locally before they merge, so pull requests don't smoke-test on GitHub, and
 # they never publish.
@@ -196,6 +197,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      published: ${{ steps.key.outputs.ready }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -256,3 +259,15 @@ jobs:
           fi
           skopeo copy --preserve-digests "docker://${REPOSITORY}@${digest}" "docker://${REPOSITORY}:testing"
           echo "::notice::Published ${REPOSITORY}:${TAG} (${digest}) and moved testing to it"
+
+  # Each published build gets a pre-release on GitHub saying what's new in it.
+  notes:
+    name: notes
+    needs: [build, publish]
+    if: needs.publish.outputs.published == 'true'
+    permissions:
+      contents: write
+      actions: write
+    uses: ./.github/workflows/testing-release.yml
+    with:
+      build: ${{ needs.build.outputs.tag }}

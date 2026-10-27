@@ -1431,7 +1431,22 @@ kbd kbd {
 .release-meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
   gap: var(--space-1) var(--space-4);
+}
+
+.release-channel {
+  padding: 0 var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--space-1);
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.release-channel-testing {
+  color: var(--text-muted);
+  border-style: dashed;
 }
 
 /* Download page */
