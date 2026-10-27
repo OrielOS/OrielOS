@@ -21,9 +21,15 @@ During the next restart, before OrielOS starts, a blue screen appears with the t
 
 1. Press any key.
 2. Choose **Enroll MOK** and press Enter. (Use the arrow keys to move between choices.)
+
+   ![The blue Perform MOK management screen, with Continue boot, Enroll MOK, Enroll key from disk and Enroll hash from disk](images/secure-boot-enrol-menu.webp)
+
 3. Choose **Continue** and press Enter.
 4. Choose **Yes** and press Enter.
 5. Type the password `orielos` and press Enter. Nothing appears on screen as you type.
+
+   ![The blue Enroll the key(s)? screen, asking for a password](images/secure-boot-password.webp)
+
 6. Choose **Reboot** and press Enter.
 
 The PC restarts, OrielOS starts, and the drivers load from then on. You won't see the blue screen again.

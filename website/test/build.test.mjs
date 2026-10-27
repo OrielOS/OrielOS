@@ -19,12 +19,17 @@ import {
   releaseFrom,
   renderPage,
   sitemapXml,
+  loadPartials,
+  sumsFrom,
 } from "../build.mjs";
+import { applyIncludes } from "../pages.mjs";
 
 const readPublic = (name) => readFile(fileURLToPath(new URL(`../public/${name}`, import.meta.url)), "utf8");
-const template = await readPublic("index.html");
+// The home page with the shared header and footer, as the build puts them in.
+const partials = await loadPartials();
+const template = applyIncludes(await readPublic("index.html"), partials);
 
-const leftovers = /<!-- (?:if|end):|<!-- contributors -->|\{\{(?:release|iso)\./;
+const leftovers = /<!-- (?:if|end|include):|<!-- (?:contributors|news) -->|\{\{(?:release|iso|sums)\./;
 
 test("renders without a release or contributors", () => {
   const html = renderPage(template, { contributors: [], release: null });
@@ -59,7 +64,7 @@ test("renders a release with its installer", () => {
   assert.ok(html.includes(release.url));
   assert.ok(html.includes("Installer, 1.2 GB."));
   assert.match(html, /switch to the testing channel in Settings/);
-  assert.ok(html.includes("docs/install.md"));
+  assert.ok(html.includes('href="/guides/install/"'));
   assert.ok(html.includes(`<code translate="no">${iso.sha256}</code>`));
   assert.doesNotMatch(html, /Nothing to download yet/);
   assert.doesNotMatch(html, /Follow on GitHub/);

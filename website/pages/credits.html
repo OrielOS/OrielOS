@@ -1,0 +1,46 @@
+---
+title: Credits: the projects and artwork behind OrielOS
+heading: Credits
+description: The free and open-source projects OrielOS is built on, the artwork, fonts and sounds it uses, and their licences.
+---
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+The credits page. website/build.mjs puts artwork/CREDITS.md, rendered, at the
+"artwork-credits" marker.
+-->
+<p class="lead">OrielOS stands on the work of many free and open-source projects. Thank you to everyone who makes them.</p>
+
+<section class="prose" aria-labelledby="credits-projects">
+  <h2 id="credits-projects">The projects OrielOS is built on</h2>
+  <ul class="credit-list">
+    <li><a href="https://fedoraproject.org/">Fedora</a>: the base system and its packages. <span class="licence">Licences vary by package, mostly the free licences Fedora lists.</span></li>
+    <li><a href="https://github.com/bootc-dev/bootc">bootc</a>: image-based updates, which install OrielOS as one image with a way back to the previous version. <span class="licence">Apache-2.0 or MIT.</span></li>
+    <li><a href="https://kde.org/plasma-desktop/">KDE Plasma</a>: the desktop, under OrielOS’s taskbar, Start and look. <span class="licence">Mainly GPL-2.0-or-later and LGPL-2.1-or-later.</span></li>
+    <li><a href="https://universal-blue.org/">Universal Blue</a>: the NVIDIA driver modules, signed for Secure Boot, and tools for building the image. <span class="licence">Apache-2.0.</span></li>
+    <li><a href="https://www.nvidia.com/">NVIDIA’s driver</a>: the graphics driver for NVIDIA RTX cards. <span class="licence">A proprietary user-space driver, with open kernel modules under MIT and GPL-2.0.</span></li>
+    <li><a href="https://flathub.org/">Flathub</a>: the apps in the Store. <span class="licence">Each app has its own licence.</span></li>
+    <li><a href="https://github.com/ValveSoftware/Proton">Proton</a>: Valve’s compatibility layer, which runs Windows games on Linux. <span class="licence">BSD-3-Clause, plus its components’ licences.</span></li>
+    <li><a href="https://github.com/GloriousEggroll/proton-ge-custom">GE-Proton</a>: a build of Proton with extra fixes, OrielOS’s default for Windows games. <span class="licence">BSD-3-Clause, plus its components’ licences.</span></li>
+    <li><a href="https://www.winehq.org/">Wine</a>: runs Windows programs, underneath Proton. <span class="licence">LGPL-2.1-or-later.</span></li>
+    <li><a href="https://github.com/doitsujin/dxvk">DXVK</a>: translates Direct3D 8 to 11 into Vulkan for games. <span class="licence">zlib.</span></li>
+    <li><a href="https://github.com/HansKristian-Work/vkd3d-proton">VKD3D-Proton</a>: translates Direct3D 12 into Vulkan for games. <span class="licence">LGPL-2.1-or-later.</span></li>
+    <li><a href="https://www.mozilla.org/firefox/">Firefox</a>: the web browser, there from the first start. <span class="licence">MPL-2.0.</span></li>
+  </ul>
+</section>
+
+<section class="prose" aria-labelledby="credits-artwork">
+  <h2 id="credits-artwork">Artwork, fonts and sounds</h2>
+<!-- artwork-credits -->
+</section>
+
+<section class="prose" aria-labelledby="credits-website">
+  <h2 id="credits-website">This website</h2>
+  <ul class="credit-list">
+    <li>The text is set in <a href="https://notofonts.github.io/">Noto Sans and Noto Sans Display</a>, by Google and the Noto project authors, from <a href="https://fontsource.org/">Fontsource</a>. <span class="licence">SIL Open Font License 1.1.</span></li>
+    <li>The GitHub and Discord marks on the community buttons come from <a href="https://simpleicons.org/">Simple Icons</a>. <span class="licence">CC0-1.0.</span></li>
+  </ul>
+</section>
+
+<p class="page-note">OrielOS is not affiliated with Microsoft. Windows is a trademark of Microsoft Corporation.</p>

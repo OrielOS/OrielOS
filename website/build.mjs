@@ -5,24 +5,62 @@
 //
 // Usage: node website/build.mjs [--offline]
 //
-// Copies website/public/ and the shared artwork, then fills the contributors
-// list and the latest release, with its installer ISO, into index.html from
-// GitHub's REST API. Avatars are downloaded so visitors' browsers only contact
-// our own domain. Pre-releases are left out: GitHub's "latest" is the newest
-// full release. Finally it checks every page's title, description, canonical
-// link and link preview for search engines, and writes the sitemap.
+// Copies website/public/ and the shared artwork, then builds every page: the
+// home page and the not-found page from public/, the guides from docs/, the
+// news posts from news/, the release notes from GitHub, and the pages in
+// pages/, all with the header and footer in templates/. The contributors list
+// and the latest release, with its installer ISO, come from GitHub's REST
+// API. Avatars are downloaded so visitors' browsers only contact our own
+// domain. Pre-releases are left out: GitHub's "latest" is the newest full
+// release. Finally it checks every page's title, description, canonical link
+// and link preview for search engines, and writes the sitemap.
 
+import { closeSync, existsSync, openSync, readSync } from "node:fs";
 import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { decodeEntities, escapeHtml, imageDimensions, renderMarkdownDocument } from "./markdown.mjs";
+import {
+  SITE,
+  applyIncludes,
+  artworkCreditsHtml,
+  atomFeed,
+  contentPageContent,
+  contentPageImage,
+  contentPagesFrom,
+  guideContent,
+  guidesFrom,
+  guidesIndexContent,
+  newsIndexContent,
+  postContent,
+  postEntry,
+  postHead,
+  postHtml,
+  postImage,
+  postsFrom,
+  releaseEntry,
+  releaseHtml,
+  releasesContent,
+  releasesFrom,
+  renderLayout,
+  renderPage,
+  stripLeadingComment,
+  suffixedTitle,
+} from "./pages.mjs";
+
+export { SITE, decodeEntities, escapeHtml, renderPage };
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
 const publicDir = path.join(here, "public");
+const templatesDir = path.join(here, "templates");
+const pagesDir = path.join(here, "pages");
+const newsDir = path.join(here, "news");
 const siteDir = path.join(here, "_site");
 const artworkDir = path.join(repoRoot, "artwork");
+const docsDir = path.join(repoRoot, "docs");
 
-export const SITE = "https://orielos.org";
 const API = "https://api.github.com";
 const MAX_PAGES = 5;
 // Roughly what search results show before cutting the text off.
@@ -30,6 +68,9 @@ const MAX_TITLE = 70;
 const MAX_DESCRIPTION = 160;
 const AVATAR_CONCURRENCY = 8;
 const FALLBACK_AVATAR = "favicon.svg";
+const RELEASES_SHOWN = 30;
+// Sections in the site's main navigation that a page can belong to.
+const NAV_SECTIONS = new Set(["download", "guides", "news"]);
 
 const ARTWORK = [
   ["logo/orielos-logo.svg", "images/orielos-logo.svg"],
@@ -38,21 +79,6 @@ const ARTWORK = [
   ["wallpapers/src/orielos-nightfall.svg", "images/nightfall.svg"],
   ["icons/orielos-start.svg", "favicon.svg"],
 ];
-
-export function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-const ENTITIES = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
-
-export function decodeEntities(value) {
-  return String(value).replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => ENTITIES[entity]);
-}
 
 // A tag's attributes, whatever their order or quoting.
 function attributesOf(tag) {
@@ -237,6 +263,18 @@ export function isoFrom(assets) {
   return { url: asset.browser_download_url, size: formatSize(asset.size), sha256 };
 }
 
+// The release's checksum file: an uploaded asset named exactly SHA256SUMS.
+export function sumsFrom(assets) {
+  if (!Array.isArray(assets)) return null;
+  const asset = assets.find(
+    (item) =>
+      item?.name === "SHA256SUMS" &&
+      (item.state === undefined || item.state === "uploaded") &&
+      isGitHubUrl(item.browser_download_url),
+  );
+  return asset ? { url: asset.browser_download_url } : null;
+}
+
 export function formatSize(bytes) {
   // A non-breaking space keeps the number and its unit together.
   if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
@@ -252,64 +290,6 @@ export function nextLink(header) {
     }
   }
   return null;
-}
-
-export function renderPage(template, { contributors, release }) {
-  const iso = release?.iso ?? null;
-  const flags = {
-    release: Boolean(release),
-    "no-release": !release,
-    iso: Boolean(iso),
-    "no-iso": !iso,
-    sha256: Boolean(iso?.sha256),
-    contributors: contributors.length > 0,
-    "no-contributors": contributors.length === 0,
-  };
-
-  // Repeat until nothing changes, so blocks nested inside kept blocks resolve too.
-  let html = template;
-  for (let previous = ""; previous !== html; ) {
-    previous = html;
-    html = html.replace(
-      /<!-- if:([a-z0-9-]+) -->([\s\S]*?)<!-- end:\1 -->/g,
-      (_all, name, body) => {
-        if (!(name in flags)) {
-          throw new Error(`The page template has an unresolved marker: <!-- if:${name} -->`);
-        }
-        return flags[name] ? body : "";
-      },
-    );
-  }
-
-  const people = contributors
-    .map(
-      (person) =>
-        `<li><a href="https://github.com/${encodeURIComponent(person.login)}">` +
-        // The alt text differs from the name beside it, which Lighthouse would flag as redundant.
-        `<img src="${escapeHtml(person.avatar)}" alt="${escapeHtml(person.login)}’s avatar" width="56" height="56" loading="lazy" decoding="async">` +
-        `<span class="person-name">${escapeHtml(person.login)}</span></a></li>`,
-    )
-    .join("\n          ");
-  html = html.replaceAll("<!-- contributors -->", () => people);
-
-  if (release) {
-    html = html
-      .replaceAll("{{release.name}}", () => escapeHtml(release.name))
-      .replaceAll("{{release.url}}", () => escapeHtml(release.url));
-  }
-  if (iso) {
-    html = html
-      .replaceAll("{{iso.url}}", () => escapeHtml(iso.url))
-      .replaceAll("{{iso.size}}", () => escapeHtml(iso.size))
-      .replaceAll("{{iso.sha256}}", () => escapeHtml(iso.sha256));
-  }
-
-  const leftover =
-    /<!-- (?:if|end):[^>]*-->|<!-- contributors -->|\{\{(?:release|iso)\./.exec(html);
-  if (leftover) {
-    throw new Error(`The page template has an unresolved marker: ${leftover[0]}`);
-  }
-  return html;
 }
 
 function githubHeaders(token) {
@@ -359,17 +339,33 @@ async function fetchContributors(repo, token) {
   return all.map(({ id, login }) => ({ id, login }));
 }
 
-async function fetchRelease(repo, token) {
+// GitHub's latest full release, as it returns it, or null if there is none.
+async function fetchLatestRelease(repo, token) {
   const url = `${API}/repos/${repo}/releases/latest`;
   const response = await apiGet(url, token);
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(`GitHub answered ${response.status} for ${url}.`);
   }
-  return releaseFrom(await apiJson(response, url), repo);
+  return apiJson(response, url);
 }
 
-async function downloadAvatar(person) {
+// The newest releases, for the release notes and the feed.
+async function fetchReleases(repo, token) {
+  const url = `${API}/repos/${repo}/releases?per_page=${RELEASES_SHOWN}`;
+  const response = await apiGet(url, token);
+  if (response.status === 404) return [];
+  if (!response.ok) {
+    throw new Error(`GitHub answered ${response.status} for ${url}.`);
+  }
+  const json = await apiJson(response, url);
+  if (!Array.isArray(json)) {
+    throw new Error(`GitHub returned an unexpected response for ${url}.`);
+  }
+  return json;
+}
+
+async function downloadAvatar(person, outDir) {
   const url = `https://avatars.githubusercontent.com/u/${person.id}?s=112&v=4`;
   try {
     const response = await fetch(url, { headers: { "User-Agent": "orielos.org-build" } });
@@ -379,8 +375,8 @@ async function downloadAvatar(person) {
     if (!extension) throw new Error(`unsupported content type "${type}"`);
     const bytes = Buffer.from(await response.arrayBuffer());
     const relative = `avatars/${person.id}.${extension}`;
-    await mkdir(path.join(siteDir, "avatars"), { recursive: true });
-    await writeFile(path.join(siteDir, relative), bytes);
+    await mkdir(path.join(outDir, "avatars"), { recursive: true });
+    await writeFile(path.join(outDir, relative), bytes);
     return { login: person.login, avatar: relative };
   } catch (error) {
     console.warn(`Warning: no avatar for ${person.login}: ${error.message}`);
@@ -388,14 +384,14 @@ async function downloadAvatar(person) {
   }
 }
 
-async function downloadAvatars(people) {
+async function downloadAvatars(people, outDir) {
   const results = new Array(people.length);
   let next = 0;
   const worker = async () => {
     while (next < people.length) {
       const index = next;
       next += 1;
-      results[index] = await downloadAvatar(people[index]);
+      results[index] = await downloadAvatar(people[index], outDir);
     }
   };
   await Promise.all(
@@ -404,46 +400,195 @@ async function downloadAvatars(people) {
   return results;
 }
 
-async function build({ offline }) {
+// Every file in a folder with the given extensions, with its text; none if
+// the folder doesn't exist.
+async function readSources(dir, extensions) {
+  if (!existsSync(dir)) return [];
+  const files = (await readdir(dir, { withFileTypes: true }))
+    .filter((entry) => entry.isFile() && extensions.some((extension) => entry.name.endsWith(extension)))
+    .map((entry) => entry.name)
+    .sort();
+  return Promise.all(files.map(async (file) => ({ file, source: await readFile(path.join(dir, file), "utf8") })));
+}
+
+// The header and footer, without their SPDX comments.
+export async function loadPartials(dir = templatesDir) {
+  const partials = {};
+  for (const name of ["header", "footer"]) {
+    partials[name] = stripLeadingComment(await readFile(path.join(dir, `${name}.html`), "utf8"));
+  }
+  return partials;
+}
+
+// The pixel size of a PNG or WebP image on the built site, read from its
+// header; null if it can't be read.
+function imageSizer(outDir) {
+  return (src) => {
+    if (!src.startsWith("/") || src.startsWith("//")) return null;
+    const file = path.join(outDir, ...decodeURI(src.split(/[?#]/)[0]).split("/").filter(Boolean));
+    if (!file.startsWith(outDir) || !/\.(png|webp)$/i.test(file)) return null;
+    let handle;
+    try {
+      handle = openSync(file, "r");
+      const bytes = Buffer.alloc(32);
+      const read = readSync(handle, bytes, 0, 32, 0);
+      return imageDimensions(bytes.subarray(0, read));
+    } catch {
+      return null;
+    } finally {
+      if (handle !== undefined) closeSync(handle);
+    }
+  };
+}
+
+export async function build({ offline = false, outDir = siteDir } = {}) {
   const repo = process.env.GITHUB_REPOSITORY || "ncjsvr/OrielOS";
   const token = process.env.GITHUB_TOKEN || "";
 
-  await rm(siteDir, { recursive: true, force: true });
-  await cp(publicDir, siteDir, { recursive: true });
+  await rm(outDir, { recursive: true, force: true });
+  await cp(publicDir, outDir, { recursive: true });
   for (const [from, to] of ARTWORK) {
-    const target = path.join(siteDir, to);
+    const target = path.join(outDir, to);
     await mkdir(path.dirname(target), { recursive: true });
     await cp(path.join(artworkDir, from), target);
+  }
+  if (existsSync(path.join(docsDir, "images"))) {
+    await cp(path.join(docsDir, "images"), path.join(outDir, "guides", "images"), { recursive: true });
   }
 
   let contributors = [];
   let release = null;
+  let sums = null;
+  let releases = [];
   if (offline) {
-    console.log("Offline: rendering with no contributors and no release.");
+    console.log("Offline: rendering with no contributors and no releases.");
   } else {
     const people = await fetchContributors(repo, token);
-    release = await fetchRelease(repo, token);
-    contributors = await downloadAvatars(people);
+    const latest = await fetchLatestRelease(repo, token);
+    if (latest) {
+      release = releaseFrom(latest, repo);
+      sums = sumsFrom(latest.assets);
+    }
+    releases = releasesFrom(await fetchReleases(repo, token), repo);
+    contributors = await downloadAvatars(people, outDir);
   }
 
-  const template = await readFile(path.join(publicDir, "index.html"), "utf8");
-  await writeFile(
-    path.join(siteDir, "index.html"),
-    renderPage(template, { contributors, release }),
-  );
-  await writeFile(path.join(siteDir, ".nojekyll"), "");
+  const partials = await loadPartials();
+  const layout = await readFile(path.join(templatesDir, "page.html"), "utf8");
+  const imageSize = imageSizer(outDir);
+  const write = async (relative, content) => {
+    const target = path.join(outDir, relative);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, content);
+  };
+  const page = (relative, details) => write(relative, renderLayout(layout, partials, { ...details, url: pageUrl(relative) }));
+  const requireImage = (file, image) => {
+    if (image && !existsSync(path.join(outDir, ...image.path.split("/").filter(Boolean)))) {
+      throw new Error(`${file}: the image ${image.path} isn't in website/public/ or the shared artwork.`);
+    }
+  };
 
-  const pages = await indexablePages(siteDir);
+  // Guides, from docs/.
+  const docs = await readSources(docsDir, [".md"]);
+  const readme = docs.find(({ file }) => file === "README.md")?.source ?? "";
+  const groups = guidesFrom(docs, readme, { imageSize });
+  const guides = groups.flatMap((group) => group.guides);
+  for (const [index, guide] of guides.entries()) {
+    await page(`guides/${guide.slug}/index.html`, {
+      title: guide.title,
+      ogTitle: guide.heading,
+      description: guide.description,
+      current: "guides",
+      content: guideContent(guide, guides[index - 1], guides[index + 1]),
+    });
+  }
+  await page("guides/index.html", {
+    title: "Guides to installing and using OrielOS",
+    description:
+      "How to install OrielOS, use the desktop, Start, Settings and the Store, keep it updated and set it up for games, with an A to Z of every topic.",
+    current: "guides",
+    content: guidesIndexContent(groups),
+  });
+
+  // News, from news/, and the feed.
+  const posts = postsFrom(await readSources(newsDir, [".md"]));
+  for (const post of posts) {
+    requireImage(post.file, post.image);
+    await page(`news/${post.slug}/index.html`, {
+      title: suffixedTitle(post.title, "OrielOS news"),
+      ogTitle: post.title,
+      description: post.summary,
+      current: "news",
+      ogType: "article",
+      image: postImage(post) ?? undefined,
+      head: postHead(post),
+      content: postContent(post, postHtml(post, { imageSize })),
+    });
+  }
+  await page("news/index.html", {
+    title: "OrielOS news",
+    description: "News from the OrielOS project: releases, milestones and what's coming next, newest first, with a feed to follow.",
+    current: "news",
+    content: newsIndexContent(posts),
+  });
+  const entries = [
+    ...posts.map((post) => postEntry(post, postHtml(post, { forFeed: true, imageSize }))),
+    ...releases.map((item) => releaseEntry(item, releaseHtml(item))),
+  ];
+  await write("news/feed.xml", atomFeed(entries));
+
+  // Release notes.
+  await page("releases/index.html", {
+    title: "Release notes · OrielOS",
+    description: "What changed in each OrielOS release, newest first, with links to every version and its installer on GitHub.",
+    content: releasesContent(releases),
+  });
+
+  // Pages from pages/.
+  const data = { contributors, release, sums, news: posts };
+  const artworkCredits = artworkCreditsHtml(await readFile(path.join(artworkDir, "CREDITS.md"), "utf8"));
+  const contentPages = contentPagesFrom(await readSources(pagesDir, [".html", ".md"]));
+  for (const item of contentPages) {
+    requireImage(item.file, item.image);
+    let body;
+    try {
+      body =
+        item.kind === "html"
+          ? renderPage(item.body, { ...data, artworkCredits })
+          : renderMarkdownDocument(item.body, { imageSize }).html;
+    } catch (error) {
+      throw new Error(`${item.file}: ${error.message}`);
+    }
+    await page(`${item.slug}/index.html`, {
+      title: item.title,
+      ogTitle: item.heading,
+      description: item.description,
+      current: NAV_SECTIONS.has(item.slug) ? item.slug : "",
+      image: contentPageImage(item) ?? undefined,
+      content: contentPageContent(item, body),
+    });
+  }
+
+  // The home page and the not-found page.
+  const home = await readFile(path.join(publicDir, "index.html"), "utf8");
+  await write("index.html", renderPage(applyIncludes(home, partials), data));
+  const notFound = await readFile(path.join(publicDir, "404.html"), "utf8");
+  await write("404.html", renderPage(applyIncludes(notFound, partials)));
+  await write(".nojekyll", "");
+
+  const pages = await indexablePages(outDir);
   checkPages(pages);
-  await writeFile(path.join(siteDir, "sitemap.xml"), sitemapXml(pages.map((page) => page.url)));
+  await write("sitemap.xml", sitemapXml(pages.map((item) => item.url)));
 
   console.log(
-    `Built ${path.relative(process.cwd(), siteDir) || "."}: ` +
+    `Built ${path.relative(process.cwd(), outDir) || "."}: ` +
       `${contributors.length} contributor(s), ` +
       `${release ? `release ${release.name}` : "no release"}, ` +
       `${release?.iso ? `installer ${release.iso.size}` : "no installer"}, ` +
+      `${guides.length} guide(s), ${posts.length} news post(s), ${releases.length} release note(s), ` +
       `${pages.length} page(s) in the sitemap.`,
   );
+  return { pages: pages.map((item) => item.file) };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
