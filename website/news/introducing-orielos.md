@@ -2,10 +2,10 @@
 title: Introducing OrielOS
 date: 2026-10-27
 summary: OrielOS is a free and open-source Linux desktop, tuned for gaming and development and familiar from the first boot. Its first installer is out.
-image: /images/screenshots/start.webp
-image_alt: The OrielOS desktop with Start open, showing pinned apps such as Files, Firefox, the Store and Settings, and recommended apps such as Steam and Discord
-image_width: 1280
-image_height: 800
+image: /images/news/introducing-orielos.png
+image_alt: The OrielOS desktop with Start open, showing pinned apps such as Files, Firefox, the Store and Settings, and recommended apps such as Steam and Discord, on deep blue
+image_width: 1200
+image_height: 630
 ---
 
 OrielOS is a free and open-source Linux desktop for PCs with NVIDIA RTX graphics, tuned for gaming and development and familiar from the first boot. Today its first installer is out, as version v0.0.7, together with this website's new guides, news and release notes.
