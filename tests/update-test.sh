@@ -701,11 +701,17 @@ step_update_settings() {
 
     # Turning automatic app updates off and on needs no password. The page keeps its controls
     # disabled while orielos-update runs, and the channel shows in the state file before it has
-    # finished, so wait for it to finish first.
+    # finished, so wait for it to finish first. Switching the channel also starts an update check,
+    # which can disable the controls again just as the key arrives, so the key is pressed once more
+    # if nothing changed.
     local apps_off=0
     wait_for_idle 60 || true
     vm_qmp "wait:3" "keys:alt+a" || true
-    if wait_for_state .appUpdates false 60; then
+    if ! wait_for_state .appUpdates false 15; then
+        wait_for_idle 60 || true
+        vm_qmp "wait:3" "keys:alt+a" || true
+    fi
+    if wait_for_state .appUpdates false 45; then
         apps_off=1
         vm_qmp "wait:2" "shot:$RESULTS/settings-apps-off.png" || true
         pass "Update apps automatically on the page turns app updates off, with no password (see settings-apps-off.png)"
@@ -833,9 +839,10 @@ restart_watching_menu() {
             sleep 1
             text="$(serial_since)"
             MENU_TEXT="$(grep -a -E 'ostree:|UEFI Firmware' <<<"$text" | tr -s ' ' || true)"
-            MENU_ENTRIES="$(grep -a -o -E 'OrielOS [0-9][0-9.]* \(ostree:[0-9]\)' <<<"$text" |
+            # Versions are named like v0.0.7, or dev.3 for local builds.
+            MENU_ENTRIES="$(grep -a -o -E 'OrielOS [[:alnum:]][[:alnum:].]* \(ostree:[0-9]\)' <<<"$text" |
                 sed -E 's/^OrielOS //; s/ \(ostree:[0-9]\)$//' | awk '!seen[$0]++' | paste -sd ' ' -)" || true
-            MENU_DEFAULT="$(grep -a -o -E '\*OrielOS [0-9][0-9.]*' <<<"$text" | head -n1 | sed 's/^\*OrielOS //')" || true
+            MENU_DEFAULT="$(grep -a -o -E '\*OrielOS [[:alnum:]][[:alnum:].]*' <<<"$text" | head -n1 | sed 's/^\*OrielOS //')" || true
             case "$action" in
                 enter) vm_qmp "shot:$RESULTS/boot-menu-last-resort.png" "keys:ret" || true ;;
                 escape) vm_qmp "shot:$RESULTS/boot-menu-esc.png" "keys:ret" || true ;;
@@ -858,7 +865,7 @@ restart_watching_menu() {
 }
 
 step_boot_menu() {
-    local out titles names
+    local out titles names expected
     info "Step 13: the boot menu stays hidden after good boots and appears after a failed one"
     vm_ssh "ls -l /boot/loader; grep -H -E '^(title|version) ' /boot/loader/entries/*.conf" >"$RESULTS/boot-entries.txt" 2>&1 || true
     out="$(vm_ssh "grep -c 'BEGIN 12_orielos-menu.cfg' /boot/grub2/grub.cfg" 2>/dev/null)" || true
@@ -867,7 +874,8 @@ step_boot_menu() {
     # so only the names are compared. The restarts below show which build starts.
     # The VM has two deployments, so N is one digit.
     names="${titles// (ostree:[0-9])/}"
-    if [[ "$out" == 1 && "$names" == "OrielOS $OLD_VERSION;OrielOS $NEW_VERSION" ]]; then
+    expected="$(printf 'OrielOS %s\n' "$OLD_VERSION" "$NEW_VERSION" | sort | paste -sd ';' -)"
+    if [[ "$out" == 1 && "$names" == "$expected" ]]; then
         pass "The boot loader has OrielOS's menu settings, and the entries are $titles"
     else
         fail "The boot loader's settings or entries are wrong (12_orielos-menu.cfg found ${out:-0} times; entries: ${titles:-none})"
