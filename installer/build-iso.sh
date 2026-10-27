@@ -3,11 +3,13 @@
 # the OrielOS name with generic logos, which downloads the current OrielOS build of a channel from
 # ghcr.io and checks its signature. Then mkksiso adds the kickstart (orielos.ks.in), an updates
 # image (updates/: the installer's Anaconda profile, its DNS fix, the container signature policy
-# with OrielOS's public key, and Anaconda's deploy step patched to show the download's progress)
-# and inst.profile=orielos.
+# with OrielOS's public key, and Anaconda patched by patch-anaconda.py) and inst.profile=orielos.
+# The installer and its boot menu name the OrielOS version the channel has when it's built.
 #
-# Usage: installer/build-iso.sh [--channel stable|testing] [--output DIR] [--keep-lorax] [--help]
+# Usage: installer/build-iso.sh [--channel stable|testing] [--version vX.Y.Z] [--output DIR]
+#                               [--keep-lorax] [--help]
 #   --channel CHANNEL  the channel the installer installs (default stable)
+#   --version VERSION  the version the installer shows (default: the channel's current build's)
 #   --output DIR       where OrielOS.iso and SHA256SUMS go (default /var/lib/orielos/installer)
 #   --keep-lorax       reuse the installer environment from the last build (lorax takes several
 #                      minutes); only the kickstart and the updates image are made again
@@ -23,6 +25,7 @@ KEY="$ROOT/image/keys/orielos-cosign.pub"
 source "$ROOT/tools/lib/pins.sh"
 
 CHANNEL=stable
+VERSION=""
 OUTPUT=/var/lib/orielos/installer
 KEEP_LORAX=0
 
@@ -32,7 +35,7 @@ die() {
 }
 
 usage() {
-    sed -n '9,13p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '9,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 main() {
@@ -42,6 +45,11 @@ main() {
             --channel)
                 [[ $# -ge 2 ]] || die "--channel needs a value"
                 CHANNEL="$2"
+                shift 2
+                ;;
+            --version)
+                [[ $# -ge 2 ]] || die "--version needs a value"
+                VERSION="$2"
                 shift 2
                 ;;
             --output)
@@ -64,6 +72,7 @@ main() {
         esac
     done
     [[ "$CHANNEL" == stable || "$CHANNEL" == testing ]] || die "--channel is stable or testing"
+    [[ -z "$VERSION" || "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "--version is vMAJOR.MINOR.PATCH"
     [[ "$OUTPUT" == /* ]] || die "--output needs an absolute path"
 
     if [[ "$EUID" -ne 0 ]]; then
@@ -93,13 +102,26 @@ main() {
 
     printf '==> Building the installer for the %s channel in %s\n' "$CHANNEL" "$builder"
     podman run --rm --privileged --security-opt label=disable \
+        -e "CHANNEL=$CHANNEL" -e "VERSION=$VERSION" \
         -v /dev:/dev -v "$work:/work" "$builder" bash -c '
 set -Eeuo pipefail
 # grub2-common'\''s scriptlet fails on the container'\''s overlay root and dnf then exits 1, though
 # everything installs, so check the tools instead.
-dnf -y -q install lorax cpio squashfs-tools >/dev/null 2>&1 || true
-for tool in lorax mkksiso cpio unsquashfs; do command -v "$tool" >/dev/null || { echo "$tool is missing"; exit 1; }; done
+dnf -y -q install lorax cpio squashfs-tools skopeo >/dev/null 2>&1 || true
+for tool in lorax mkksiso cpio unsquashfs skopeo python3; do command -v "$tool" >/dev/null || { echo "$tool is missing"; exit 1; }; done
 cd /work
+# The installer shows the version of OrielOS the channel has now, which is what it installs
+# until a newer one arrives. A channel with no build yet is named instead.
+if [[ -z "$VERSION" ]]; then
+    VERSION="$(skopeo inspect --no-tags "docker://ghcr.io/ncjsvr/orielos:$CHANNEL" 2>/dev/null |
+        python3 -c "import json, sys; print(json.load(sys.stdin)[\"Labels\"].get(\"org.opencontainers.image.version\", \"\"))" ||
+        true)"
+fi
+if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "warning: no OrielOS version found for the $CHANNEL channel; the installer shows the channel instead"
+    VERSION="$CHANNEL"
+fi
+echo "==> The installer shows OrielOS $VERSION"
 if [[ ! -r lorax/images/boot.iso ]]; then
     rm -rf lorax tmp
     mkdir -p tmp
@@ -112,28 +134,39 @@ if [[ ! -r lorax/images/boot.iso ]]; then
 fi
 # NetworkManager writes the name servers here (updates/etc/NetworkManager/conf.d/90-orielos-dns.conf).
 ln -sfn /run/NetworkManager/resolv.conf updates/etc/resolv.conf
-# Download progress for the deploy step: patch this installer'\''s own copy of Anaconda'\''s deploy
-# code and ship it with fresh bytecode, so the installer can'\''t use its stale .pyc files.
-rel=$(unsquashfs -l lorax/images/install.img | sed -n "s|^squashfs-root/||p" \
-    | grep "/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py$")
-[[ -n "$rel" ]] || { echo "installation.py is not in install.img"; exit 1; }
+# Patch this installer'\''s own copy of Anaconda (patch-anaconda.py: download progress, the
+# version shown whole, the BitLocker warning) and ship the files with fresh bytecode, so the
+# installer can'\''t use its stale .pyc files.
+py=$(unsquashfs -l lorax/images/install.img | sed -n "s|^squashfs-root/||p" \
+    | grep "/site-packages/pyanaconda/__init__.py$")
+[[ -n "$py" ]] || { echo "Anaconda is not in install.img"; exit 1; }
+py="${py%/__init__.py}"
+files=(modules/payloads/payload/rpm_ostree/installation.py core/product.py ui/helpers.py
+    modules/storage/checker/utils.py)
 rm -rf anaconda-src
-unsquashfs -q -d anaconda-src lorax/images/install.img "$rel" >/dev/null
-install -D -m 0644 "anaconda-src/$rel" "updates/$rel"
-rm -rf anaconda-src
-python3 /work/patch-anaconda.py "updates/$rel"
+unsquashfs -q -d anaconda-src lorax/images/install.img .buildstamp "${files[@]/#/$py/}" >/dev/null
+for f in "${files[@]}"; do install -D -m 0644 "anaconda-src/$py/$f" "updates/$py/$f"; done
+python3 /work/patch-anaconda.py "updates/$py"
 python3 -c "
 import py_compile, sys
-src = sys.argv[1]
-base = src.rsplit(\"/\", 1)[0] + \"/__pycache__/installation.\" + sys.implementation.cache_tag
-for opt, suffix in ((0, \".pyc\"), (1, \".opt-1.pyc\")):
-    py_compile.compile(src, cfile=base + suffix, optimize=opt, doraise=True,
-                       invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
-" "updates/$rel"
+for src in sys.argv[1:]:
+    folder, name = src.rsplit(\"/\", 1)
+    base = folder + \"/__pycache__/\" + name[:-3] + \".\" + sys.implementation.cache_tag
+    for opt, suffix in ((0, \".pyc\"), (1, \".opt-1.pyc\")):
+        py_compile.compile(src, cfile=base + suffix, optimize=opt, doraise=True,
+                           invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
+" "${files[@]/#/updates/$py/}"
+# Anaconda names the product from /.buildstamp, which lorax writes with the Fedora release.
+grep -q "^Version=" anaconda-src/.buildstamp || { echo ".buildstamp has no Version"; exit 1; }
+sed "s/^Version=.*/Version=$VERSION/" anaconda-src/.buildstamp >updates/.buildstamp
+rm -rf anaconda-src
 (cd updates && find . | cpio -o -H newc --quiet | gzip -9) >updates.img
 echo "==> mkksiso"
-mkksiso --ks orielos.ks -u updates.img -c "inst.profile=orielos" lorax/images/boot.iso OrielOS.iso \
-    >/work/mkksiso.out 2>&1 || { tail -40 /work/mkksiso.out; exit 1; }
+fedora="$(rpm -E %fedora)"
+grep -q "OrielOS $fedora" lorax/EFI/BOOT/grub.cfg || { echo "the boot menu doesn'\''t say OrielOS $fedora"; exit 1; }
+mkksiso --ks orielos.ks -u updates.img -c "inst.profile=orielos" \
+    -R "OrielOS $fedora" "OrielOS $VERSION" -R "Rescue a OrielOS system" "Rescue an OrielOS system" \
+    lorax/images/boot.iso OrielOS.iso >/work/mkksiso.out 2>&1 || { tail -40 /work/mkksiso.out; exit 1; }
 '
     mv -f "$work/OrielOS.iso" "$OUTPUT/OrielOS.iso"
     (cd "$OUTPUT" && sha256sum OrielOS.iso >SHA256SUMS)
