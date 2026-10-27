@@ -245,7 +245,8 @@ for catalogue in "$wording"/plasma_applet_*.mo; do
     [[ -f "$catalogue" ]] || continue
     applet="$(basename "$catalogue" .mo)"
     applet="/usr/lib64/qt6/plugins/plasma/applets/${applet#plasma_applet_}.so"
-    if ! missing="$(python3 -I - "$catalogue" "$applet" <<'PY'
+    if ! missing="$(
+        python3 -I - "$catalogue" "$applet" <<'PY'
 import os, struct, sys
 
 catalogue, applet = sys.argv[1:]
