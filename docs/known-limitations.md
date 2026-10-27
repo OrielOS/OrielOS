@@ -6,8 +6,7 @@ OrielOS is in early development. This page lists what it can't do yet, and what 
 
 - **It has been tested on few real PCs so far.** OrielOS runs on an MSI laptop with an RTX 4050 (installed next to Windows 11, and on its own), and in virtual machines. Laptops aren't officially supported yet: OrielOS is built for desktop PCs.
 - **The installer needs an internet connection.** It downloads OrielOS while it installs, over Wi-Fi or a cable: see [Install OrielOS](install.md).
-- **The installer doesn't shrink Windows for you.** Make room for OrielOS in Windows' Disk Management first, as [Install OrielOS](install.md) shows. It also doesn't warn about BitLocker yet, so save your recovery key before you start.
-- **The installer calls itself "OrielOS 44"**, after the Fedora release it's built from, not OrielOS's own version number.
+- **The installer doesn't shrink Windows for you.** Make room for OrielOS in Windows' Disk Management first, as [Install OrielOS](install.md) shows.
 - **A virtual machine isn't a gaming PC.** In a virtual machine the desktop uses basic graphics, so it can feel slower and games don't run as they would on your PC (see [Graphics in a virtual machine](install-vm.md#graphics-in-a-virtual-machine)).
 
 ## Games
@@ -20,6 +19,7 @@ OrielOS is in early development. This page lists what it can't do yet, and what 
 
 - **OrielOS's own parts are in English only.** The words OrielOS adds, such as in Start, the update notifications and its own settings pages, aren't translated yet. Plasma and the apps that come with it follow the language you choose.
 - **The first-start wizard still says "Welcome to Plasma Desktop"**, the name of the desktop OrielOS is built on, over Plasma's own picture rather than OrielOS's wallpaper.
+- **The taskbar's menu says "Pin to Task Manager" if you choose languages in Settings → Region & Language.** OrielOS changes it to "Pin to taskbar" for English, but a language list chosen there replaces OrielOS's wording.
 - **There are no high-contrast colour themes.** Zoom, the magnifier and colour filters are there, but not Windows-style contrast themes.
 - **Microsoft's fonts, apps and services aren't included**, and never will be: OrielOS doesn't ship anything Microsoft owns. Apps such as Microsoft 365 work in the browser.
 
