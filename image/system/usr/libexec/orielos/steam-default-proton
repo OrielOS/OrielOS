@@ -1,0 +1,204 @@
+#!/usr/bin/python3 -I
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Makes GE-Proton the default compatibility tool in the user's Steam from the Store, once.
+
+Steam keeps its default for Windows games in config.vdf, under CompatToolMapping, as the entry for
+app 0; a game's own entry, which Steam writes when the user picks a tool in the game's properties,
+wins over it. This adds the default entry for GE-Proton (Flathub's GE-Proton extension for Steam,
+which orielos-update installs next to Steam) only when:
+
+- Steam isn't running, since it writes config.vdf when it quits and would undo the change;
+- the extension is installed;
+- Steam has no default of its own yet, so a choice the user made is never changed.
+
+Once the default is set, or Steam already had one, a note in ~/.local/state/orielos stops this
+from running again. Started by orielos-steam-default-proton.timer. Exits 0 unless config.vdf
+can't be read or written.
+"""
+
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+STEAM_APP = "com.valvesoftware.Steam"
+CONFIG = Path.home() / ".var/app" / STEAM_APP / ".local/share/Steam/config/config.vdf"
+EXTENSION = Path(
+    os.environ.get(
+        "ORIELOS_GE_PROTON_DIR",
+        "/var/lib/flatpak/runtime/com.valvesoftware.Steam.CompatibilityTool.Proton-GE/x86_64/stable/active/files",
+    )
+)
+STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "orielos/steam-default-proton"
+PATH_TO_MAPPING = ["InstallConfigStore", "Software", "Valve", "Steam", "CompatToolMapping"]
+
+TOKEN = re.compile(r'\s+|//[^\n]*|"((?:[^"\\]|\\.)*)"|([{}])|([^\s{}"]+)', re.S)
+ESCAPES = {"n": "\n", "t": "\t", "\\": "\\", '"': '"'}
+
+
+class VdfError(Exception):
+    pass
+
+
+def unescape(text):
+    return re.sub(r"\\(.)", lambda m: ESCAPES.get(m.group(1), "\\" + m.group(1)), text)
+
+
+def escape(text):
+    return text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+
+
+def parse(text):
+    """Steam's text KeyValues as nested lists of [key, value], value a string or another list,
+    keeping their order and repeated keys."""
+    tokens = []
+    position = 0
+    while position < len(text):
+        match = TOKEN.match(text, position)
+        if not match:
+            raise VdfError(f"unexpected text at {position}")
+        position = match.end()
+        if match.group(1) is not None:
+            tokens.append(("string", unescape(match.group(1))))
+        elif match.group(2):
+            tokens.append((match.group(2), None))
+        elif match.group(3):
+            tokens.append(("string", match.group(3)))
+    items, index = _block(tokens, 0, top=True)
+    if index != len(tokens):
+        raise VdfError("text after the last block")
+    return items
+
+
+def _block(tokens, index, top=False):
+    items = []
+    while index < len(tokens):
+        kind, value = tokens[index]
+        if kind == "}":
+            if top:
+                raise VdfError("unmatched }")
+            return items, index + 1
+        if kind != "string":
+            raise VdfError("expected a key")
+        key = value
+        index += 1
+        if index >= len(tokens):
+            raise VdfError(f"{key} has no value")
+        kind, value = tokens[index]
+        if kind == "{":
+            child, index = _block(tokens, index + 1)
+            items.append([key, child])
+        elif kind == "string":
+            items.append([key, value])
+            index += 1
+        else:
+            raise VdfError(f"{key} has no value")
+    if not top:
+        raise VdfError("a block isn't closed")
+    return items, index
+
+
+def dump(items, depth=0):
+    indent = "\t" * depth
+    lines = []
+    for key, value in items:
+        if isinstance(value, list):
+            lines.append(f'{indent}"{escape(key)}"')
+            lines.append(f"{indent}{{")
+            lines.append(dump(value, depth + 1))
+            lines.append(f"{indent}}}")
+        else:
+            lines.append(f'{indent}"{escape(key)}"\t\t"{escape(value)}"')
+    return "\n".join(line for line in lines if line)
+
+
+def child(items, key, create=False):
+    """The block under key, matched without regard to case as Steam does."""
+    for item in items:
+        if item[0].lower() == key.lower() and isinstance(item[1], list):
+            return item[1]
+    if not create:
+        return None
+    block = []
+    items.append([key, block])
+    return block
+
+
+def tool_name():
+    """The tool's name as Steam lists it, from the extension's compatibilitytool.vdf."""
+    for vdf in sorted(EXTENSION.rglob("compatibilitytool.vdf")):
+        tools = child(parse(vdf.read_text(encoding="utf-8", errors="replace")), "compatibilitytools")
+        tools = child(tools or [], "compat_tools")
+        if tools:
+            return tools[0][0]
+    return None
+
+
+def steam_running():
+    try:
+        running = subprocess.run(
+            ["flatpak", "ps", "--columns=application"], capture_output=True, text=True, timeout=30, check=False
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return True
+    return STEAM_APP in running.split()
+
+
+def done(note):
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    STATE.write_text(note + "\n", encoding="utf-8")
+    print(note)
+
+
+def main():
+    if STATE.exists():
+        return 0
+    if not CONFIG.exists():
+        print("Steam from the Store hasn't been started yet")
+        return 0
+    name = tool_name()
+    if not name:
+        print("GE-Proton for Steam isn't installed yet")
+        return 0
+    if steam_running():
+        print("Steam is running; trying again later")
+        return 0
+    try:
+        text = CONFIG.read_text(encoding="utf-8")
+        config = parse(text)
+    except (OSError, UnicodeDecodeError, VdfError) as error:
+        print(f"can't read {CONFIG}: {error}", file=sys.stderr)
+        return 1
+
+    block = config
+    for key in PATH_TO_MAPPING[:-1]:
+        block = child(block, key)
+        if block is None:
+            print(f"{CONFIG} has no {key} section; trying again after Steam has run")
+            return 0
+    mapping = child(block, PATH_TO_MAPPING[-1], create=True)
+    for key, value in mapping:
+        if key == "0" and isinstance(value, list):
+            current = next((v for k, v in value if k == "name"), "")
+            done(f"Steam already has a default compatibility tool ({current}); leaving it")
+            return 0
+    mapping.append(["0", [["name", name], ["config", ""], ["priority", "75"]]])
+
+    backup = CONFIG.with_name(CONFIG.name + ".orielos-before-default")
+    temporary = CONFIG.with_name(CONFIG.name + ".orielos-new")
+    try:
+        if not backup.exists():
+            backup.write_text(text, encoding="utf-8")
+        temporary.write_text(dump(config) + "\n", encoding="utf-8")
+        os.replace(temporary, CONFIG)
+    except OSError as error:
+        print(f"can't write {CONFIG}: {error}", file=sys.stderr)
+        return 1
+    done(f"Steam's default compatibility tool is now {name}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

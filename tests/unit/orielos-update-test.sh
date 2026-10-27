@@ -130,6 +130,11 @@ SH
     cat >"$WORK/bin/flatpak" <<'SH'
 #!/usr/bin/env bash
 printf 'flatpak %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
+# "flatpak info" finds the apps listed, one per line, in the stub's installed file.
+if [[ "$1" == info ]]; then
+    grep -qxF "${*: -1}" "$ORIELOS_TEST_STUB/installed" 2>/dev/null
+    exit
+fi
 if [[ -e "$ORIELOS_TEST_STUB/flatpak-fails" ]]; then
     echo "error: Unable to connect to dl.flathub.org" >&2
     exit 1
@@ -561,6 +566,22 @@ check "apps updates every system-wide app and runtime without asking" called "fl
 check "apps records when the apps were updated" test "$RC" -eq 0 -a "$(state .appsUpdatedAt)" == "$(iso "$NOW")"
 run status
 check "status shows app updates and when they last ran" grep -qF "App updates: on, last updated $(iso "$NOW")" <<<"$OUT"
+
+setup
+run apps
+check "apps installs no GE-Proton without Steam" not_called "flatpak install"
+
+setup
+printf 'com.valvesoftware.Steam\n' >"$WORK/stub/installed"
+run apps
+check "apps installs GE-Proton next to Steam from the Store" \
+    called "flatpak install --system --noninteractive flathub com.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable"
+check "and still records the update" test "$RC" -eq 0 -a "$(state .appsUpdatedAt)" == "$(iso "$NOW")"
+
+setup
+printf 'com.valvesoftware.Steam\ncom.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable\n' >"$WORK/stub/installed"
+run apps
+check "apps leaves GE-Proton alone once it's installed" not_called "flatpak install"
 
 setup
 : >"$WORK/stub/flatpak-fails"

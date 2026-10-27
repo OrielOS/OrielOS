@@ -1,0 +1,12 @@
+[Unit]
+Description=Make GE-Proton the default for Windows games in Steam from the Store
+Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/games-and-controllers.md
+
+[Timer]
+# Soon after signing in, before Steam is usually started, then every 15 minutes, because Steam may
+# be running, not installed yet or not yet given GE-Proton. Once it's done, each run exits at once.
+OnStartupSec=20s
+OnUnitActiveSec=15min
+
+[Install]
+WantedBy=timers.target
