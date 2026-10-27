@@ -11,6 +11,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Changed
 
+- The website's download says it's the stable version, which updates itself, and how to switch to the testing channel; its "How to install" link opens the install guide. Each stable release's notes start with how to get it: the installer for new installs, or nothing to do on a computer that already runs OrielOS.
 - The installer and its start menu name the OrielOS version that was current when the ISO was made, such as "OrielOS v0.0.5", instead of "OrielOS 44", the Fedora release it's built from. When a drive is encrypted with BitLocker, the installer warns that Windows may ask for its recovery key afterwards.
 - Right-clicking an app on the taskbar offers **Pin to taskbar** and **Unpin from taskbar**, the same words as Start, instead of "Pin to Task Manager", and **Configure Taskbar…**; the taskbar's widget is called Taskbar. This applies when the desktop's language is English; a list of languages chosen in Settings → Region & Language brings back Plasma's wording.
 

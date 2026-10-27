@@ -110,7 +110,7 @@ badges in the footer, loaded live so they always show the current levels.
           </div>
           <p class="status">
             <!-- if:no-release -->In early development. Nothing to download yet.<!-- end:no-release -->
-            <!-- if:release -->{{release.name}} is out.<!-- end:release -->
+            <!-- if:release -->{{release.name}}, the stable version, is out.<!-- end:release -->
           </p>
         </div>
       </section>
@@ -217,9 +217,10 @@ badges in the footer, loaded live so they always show the current levels.
       <div class="download-card">
         <h3>{{release.name}}</h3>
         <p>Installer, {{iso.size}}. Write it to a USB stick of at least 4&nbsp;GB, start your PC from it and follow the steps. The installer downloads OrielOS as it goes, over Wi-Fi or Ethernet.</p>
+        <p>This is the <strong>stable</strong> version: it gets new versions once they’ve been tested on real PCs, and updates itself in the background. Want new versions sooner? After installing, switch to the testing channel in Settings&nbsp;→ Update.</p>
         <p><a class="button primary" href="{{iso.url}}">Download the installer</a></p>
         <!-- if:sha256 --><p class="checksum">SHA-256 <code translate="no">{{iso.sha256}}</code></p><!-- end:sha256 -->
-        <p class="download-links"><a href="{{release.url}}">Release notes</a> <a href="https://github.com/ncjsvr/OrielOS/tree/main/docs">How to install</a></p>
+        <p class="download-links"><a href="{{release.url}}">Release notes</a> <a href="https://github.com/ncjsvr/OrielOS/blob/main/docs/install.md">How to install</a></p>
       </div>
       <!-- end:iso -->
       <!-- if:no-iso -->
