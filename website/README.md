@@ -37,6 +37,7 @@ node --test "website/test/*.test.mjs"
 |---|---|
 | `/` | `public/index.html` |
 | `/download/` | `pages/download.html` |
+| `/faq/` | `pages/faq.html` |
 | `/guides/` and `/guides/<name>/` | the user docs in `docs/` at the repository root |
 | `/news/`, `/news/<name>/` and `/news/feed.xml` | the posts in `news/`, and the releases |
 | `/releases/` | the releases on GitHub |
@@ -108,7 +109,7 @@ The page files mark the parts the build fills in with comments:
 - `<!-- if:contributors -->` and `<!-- if:no-contributors -->`: whether the contributors list could be read.
 - `<!-- if:news -->` and `<!-- if:no-news -->`: whether there are news posts.
 - `<!-- contributors -->` is replaced by the contributors list, `<!-- news -->` by the three newest posts, and `<!-- artwork-credits -->` by `artwork/CREDITS.md`.
-- `{{release.name}}`, `{{release.url}}`, `{{iso.url}}`, `{{iso.size}}`, `{{iso.sha256}}` and `{{sums.url}}` are replaced by the release's details.
+- `{{release.name}}`, `{{release.version}}`, `{{release.url}}`, `{{iso.url}}`, `{{iso.size}}`, `{{iso.sha256}}` and `{{sums.url}}` are replaced by the release's details. `{{release.version}}` is the release's tag, such as `v0.0.7`, and only when that tag is a plain version. The home page's description and its software structured data use it, so the version isn't written out in several places.
 
 The build stops if a marker is left over. The download is the first `.iso` file attached to the newest full release on GitHub, and `SHA256SUMS` is the release's file of that exact name. Pre-releases are left out. The SHA-256 checksum is the one GitHub records for the file.
 
@@ -124,16 +125,17 @@ The build fails unless every page that search engines may index (all but those m
 
 - one `<title>` of at most 70 characters and a `<meta name="description">` of at most 160;
 - a canonical link, and an `og:url`, both equal to the page's own address (`https://orielos.org/` for `index.html`, `https://orielos.org/news/` for `news/index.html`);
-- `og:title`, `og:description`, `og:image` (on orielos.org) and `og:image:alt`, for link previews;
+- `og:title`, `og:description`, `og:image` (on orielos.org), `og:image:width`, `og:image:height` and `og:image:alt`, for link previews (the width and height are left out when a picture has no size);
+- `twitter:site` set to `@BuiltByNath`;
 - a title, description and address that no other page shares.
 
-Script blocks must be `application/ld+json` structured data that parses as JSON; anything that would run in the browser fails the build. The home page's structured data names the site and the OrielOS organisation, with its logo and its GitHub and Discord pages, and each news post describes itself as a blog post by that organisation.
+Script blocks must be `application/ld+json` structured data that parses as JSON; anything that would run in the browser fails the build. The home page's structured data names the site and the OrielOS organisation, with its logo and its GitHub and Discord pages, and describes OrielOS itself as software: an operating system, GPL-3.0, free, with the current release's version when there is one. The FAQ page lists its questions the same way. Each news post describes itself as a blog post by that organisation.
 
 Every `<img>` needs alt text, even decorative ones inside parts hidden from screen readers, because search engines read it and SEO checkers flag empty `alt`. A contributor's avatar reads "<name>’s avatar", so it doesn't just repeat the name beside it.
 
 The "Share OrielOS" links are plain links to each site's own share page (X, Bluesky, Reddit, Facebook) and a `mailto:` link, so nothing is loaded from those sites unless a visitor clicks one.
 
-The build then writes `sitemap.xml` with every checked page. It has no `lastmod` dates, because a shallow checkout can't give accurate ones. `robots.txt` lets every crawler in and points to the sitemap.
+The build then writes `sitemap.xml` with every checked page. When git can see the commit that last changed a page's source (the page itself, and the header, footer and layout it uses), the entry includes that date as `lastmod`, `YYYY-MM-DD`. The release notes also use the newest release's publish date when that is later. A shallow checkout only knows the commits it has, so a page whose files aren't in those commits is listed without a date, rather than with one guessed from the checkout time. `robots.txt` lets every crawler in and points to the sitemap.
 
 ## Publishing
 
@@ -147,7 +149,7 @@ The policy allows one thing from another site: images from `https://www.bestprac
 
 ## Writing and design
 
-- Write in British English, in sentence case, and describe OrielOS as a familiar desktop tuned for gaming and development. Name Windows only for plain compatibility facts.
+- Write in British English, in sentence case, and describe OrielOS as a free, open-source Linux desktop for gaming and development. Name Windows only for plain compatibility facts.
 - Colours, type and shapes follow the OrielOS brand: Noto Sans for text and Noto Sans Display for headings, Oriel Blue for actions, and Daylight, the warm amber, used once.
 - The styles for the inner pages are at the end of `styles.css` and use the same colours, spacing and shapes. Every page works at 375 pixels wide and in light and dark mode; code and tables scroll inside their own box.
 - Use no Microsoft logos, fonts, icons or product names in the design.
