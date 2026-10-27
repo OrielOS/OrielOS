@@ -107,6 +107,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - The installer and its start menu name the OrielOS version that was current when the ISO was made, such as "OrielOS v0.0.5", instead of "OrielOS 44", the Fedora release it's built from. When a drive is encrypted with BitLocker, the installer warns that Windows may ask for its recovery key afterwards.
 - Window titles sit on the left of the title bar, next to the app's icon, as on Windows.
 - OrielOS no longer sends Fedora's anonymous weekly package count ("countme") when it checks repositories.
+- Right-clicking an app on the taskbar offers **Pin to taskbar** and **Unpin from taskbar**, the same words as Start, instead of "Pin to Task Manager", and **Configure Taskbar…**; the taskbar's widget is called Taskbar. This applies when the desktop's language is English; a list of languages chosen in Settings → Region & Language brings back Plasma's wording.
 
 - Pull requests that don't change the apps, such as documentation or website changes, no longer wait about two minutes for the app build and tests; the `apps` check still reports and passes. The Discord bot's tests run after a merge only when the bot changed.
 

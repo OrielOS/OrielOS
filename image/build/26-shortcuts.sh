@@ -2,9 +2,9 @@
 # Windows keyboard shortcuts and plain names for the system tools. Gives System Monitor
 # Ctrl+Shift+Esc, KRunner Win+R and Spectacle a Win+PrtSc action that saves a full screenshot
 # without a dialog, moves the Spectacle shortcuts those keys clash with, and renames System
-# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files. System Settings gives
-# Win+I and its place in Start to OrielOS's Settings app. The KWin shortcuts (Win+Tab and
-# Win+Up/Down) are in system/etc/skel/.config/kglobalshortcutsrc.
+# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files, and the taskbar widget
+# to Taskbar. System Settings gives Win+I and its place in Start to OrielOS's Settings app. The
+# KWin shortcuts (Win+Tab and Win+Up/Down) are in system/etc/skel/.config/kglobalshortcutsrc.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -88,6 +88,18 @@ EOF
 
 # Files: Dolphin. Win+E is Plasma's default.
 rename_entry "$apps/org.kde.dolphin.desktop" Dolphin Files "File manager" "$script"
+
+# Taskbar: Plasma's icons-only task manager, the widget the taskbar's apps are in, so its menu
+# says "Configure Taskbar…" (the menu's pin wording is in plasma/translations). Only the English
+# names change; other languages keep Plasma's translations.
+icontasks=/usr/share/plasma/plasmoids/org.kde.plasma.icontasks/metadata.json
+jq -e '.KPlugin.Name == "Icons-Only Task Manager"' "$icontasks" >/dev/null ||
+    die "$icontasks is no longer named Icons-Only Task Manager; update $script"
+tmp="$(mktemp)"
+jq '.KPlugin.Name = "Taskbar" | if .KPlugin["Name[en_GB]"] then .KPlugin["Name[en_GB]"] = "Taskbar" else . end' \
+    "$icontasks" >"$tmp"
+install -m 0644 "$tmp" "$icontasks"
+rm -f "$tmp"
 
 # Settings: OrielOS's own app (apps/settings) has Win+I and is Settings in Start, so System
 # Settings gives up both. It stays installed, because parts of Plasma open their pages in it.
