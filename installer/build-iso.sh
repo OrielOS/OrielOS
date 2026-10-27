@@ -19,7 +19,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HERE="$ROOT/installer"
 PINS="$ROOT/image/pins.env"
 KEY="$ROOT/image/keys/orielos-cosign.pub"
-# shellcheck source=../tools/lib/pins.sh
+# shellcheck source=/dev/null
 source "$ROOT/tools/lib/pins.sh"
 
 CHANNEL=stable
