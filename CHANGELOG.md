@@ -4,6 +4,20 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+### Added
+
+- The sign-in screen shows your account and the password box over the OrielOS wallpaper as soon as it appears, with the time and date above, and stays that way until you sign in. It offers Sleep, Restart and Shut down.
+- A [Status](docs/status.md) page in the user docs lists what works today, what doesn't work yet and what's planned. The updates guide no longer says that no versions are published.
+
+### Changed
+
+- The installer and its start menu name the OrielOS version that was current when the ISO was made, such as "OrielOS v0.0.5", instead of "OrielOS 44", the Fedora release it's built from. When a drive is encrypted with BitLocker, the installer warns that Windows may ask for its recovery key afterwards.
+- Right-clicking an app on the taskbar offers **Pin to taskbar** and **Unpin from taskbar**, the same words as Start, instead of "Pin to Task Manager", and **Configure Taskbar…**; the taskbar's widget is called Taskbar. This applies when the desktop's language is English; a list of languages chosen in Settings → Region & Language brings back Plasma's wording.
+
+### Fixed
+
+- A stable release's notes list only what that version contains: changes merged after the version was built stay under Unreleased for the next one.
+
 ## [0.0.7] - 2026-10-27
 
 ### Added
@@ -14,7 +28,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - OrielOS has its own sounds: soft glass chimes for signing in and out, notifications, questions, warnings and errors, plugging in devices and power, low battery and the volume keys. Any other sound comes from Plasma's Ocean theme.
 - Snap layouts: Windows + Z shows layouts for the window you're using (halves, thirds, two thirds beside one third, and quarters) and moves it into the area you click or choose with the arrow keys and Enter.
 - A "Known limitations" page lists what OrielOS can't do yet, such as running on real hardware or games whose publishers block Linux, and what it won't do by design, such as Hibernate.
-- The sign-in screen shows your account and the password box over the OrielOS wallpaper as soon as it appears, with the time and date above, and stays that way until you sign in. It offers Sleep, Restart and Shut down.
+- The sign-in screen opens on the time over the OrielOS wallpaper, like a locked screen. Press a key or click, and the sign-in slides up into the middle; after a minute without input the time comes back. It offers Sleep, Restart and Shut down.
 - The boot splash shows the OrielOS logo on a black screen, with a spinner below it.
 - OrielOS has its own colours: OrielOS Light, the default, and OrielOS Dark, built from OrielOS's palette with Oriel Blue for selections, focus and links. The OrielOS Dark global theme keeps the OrielOS taskbar, and Plasma's Day-Night Cycle switches between the two.
 - Start suggests apps to get started with under Recommended: Steam, Heroic Games Launcher, Discord, Spotify, OBS Studio and Lutris. Each opens its page in the Store, leaves the list once installed, and the suggestions can be hidden from an entry's menu.
@@ -102,21 +116,17 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Plasma Setup on first boot: a new installation has no user account, and KDE's setup wizard asks for the language, keyboard layout, network, time zone and the first account, then opens the login screen. It doesn't run again once setup is finished, and the boot test checks both.
 - Virtual machine disks for QEMU (qcow2) and VMware (VMDK) from one command, a tool that creates and boot-checks a VMware Workstation VM from the VMDK, and a guide to trying OrielOS in a virtual machine.
 - A command-line update tool that stages a new build for the next restart and rolls back to the previous build; rolled-back builds are not offered again.
-- A [Status](docs/status.md) page in the user docs lists what works today, what doesn't work yet and what's planned. The updates guide no longer says that no versions are published.
 
 ### Changed
 
 - OrielOS has one version number for everything, starting at v0.0.1: every published build is the next one, rolling over from v0.0.10 to v0.1.0. About this System, the boot menu, Settings → Update and the apps' About dialogs show it, as in "OrielOS v0.0.7", in place of names such as "OrielOS 44.20261026". A stable release is named after the build it is.
-- The installer and its start menu name the OrielOS version that was current when the ISO was made, such as "OrielOS v0.0.5", instead of "OrielOS 44", the Fedora release it's built from. When a drive is encrypted with BitLocker, the installer warns that Windows may ask for its recovery key afterwards.
 - Window titles sit on the left of the title bar, next to the app's icon, as on Windows.
 - OrielOS no longer sends Fedora's anonymous weekly package count ("countme") when it checks repositories.
-- Right-clicking an app on the taskbar offers **Pin to taskbar** and **Unpin from taskbar**, the same words as Start, instead of "Pin to Task Manager", and **Configure Taskbar…**; the taskbar's widget is called Taskbar. This applies when the desktop's language is English; a list of languages chosen in Settings → Region & Language brings back Plasma's wording.
 
 - Pull requests that don't change the apps, such as documentation or website changes, no longer wait about two minutes for the app build and tests; the `apps` check still reports and passes. The Discord bot's tests run after a merge only when the bot changed.
 
 ### Fixed
 
-- A stable release's notes list only what that version contains: changes merged after the version was built stay under Unreleased for the next one.
 - Updates from the testing channel are prepared again. Once update signatures were checked, every update stopped with "containers-policy.json specifies a default of insecureAcceptAnything", because the system's container policy accepted unsigned images by default. It now refuses them by default, except where each tool accepted them before, and OrielOS's own updates must carry OrielOS's signature.
 - About this System shows the OrielOS logo and the whole version, such as 44.20261026, instead of Fedora's logo.
 - The firewall settings page no longer asks for a password as soon as it opens. Anyone can see the firewall's settings, and administrators change them without a password, as on Fedora's KDE edition.
@@ -124,3 +134,4 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - A unit no longer fails at every start (`efi.automount`, the EFI system partition's automount), which made `systemctl is-system-running` report `degraded`.
 - The credits line on orielos.org names only the upstream projects OrielOS builds on.
 - The Discord bot no longer cuts an emoji in half when it shortens a long title or release note.
+
