@@ -10,6 +10,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - GE-Proton is the default for Windows games in Steam from the Store: OrielOS installs it next to Steam and, the next time Steam is closed, makes it Steam's default, once, without changing a default you chose. A game's own compatibility setting in Steam still wins. [Games and controllers](docs/games-and-controllers.md#ge-proton-for-windows-games-in-steam) explains it.
 - The sign-in screen shows your account and the password box over the OrielOS wallpaper as soon as it appears, with the time and date above, and stays that way until you sign in. It offers Sleep, Restart and Shut down.
 - A [Status](docs/status.md) page in the user docs lists what works today, what doesn't work yet and what's planned. The updates guide no longer says that no versions are published.
+- orielos.org describes OrielOS to search engines as a free Linux desktop for gaming and development: the home page, the download page and a new FAQ, with structured data for the software and the questions. The sitemap dates a page when git can see the commit that last changed it. A news post covers v0.0.7, the first release with an installer.
 - orielos.org has more pages, still with no JavaScript, cookies or trackers:
   - **Download**, with the installer's checksum, `SHA256SUMS` and how to check the download on Windows, macOS and Linux;
   - **Guides**, every user guide from `docs/`, with screenshots, and "Find a topic", an A to Z list of every topic in them;

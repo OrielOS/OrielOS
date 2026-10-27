@@ -18,8 +18,8 @@ badges in the footer, loaded live so they always show the current levels.
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src 'self'; style-src 'self'; img-src 'self' https://www.bestpractices.dev; font-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>OrielOS: a Linux desktop tuned for gaming and development</title>
-<meta name="description" content="OrielOS is a free and open-source Linux desktop, tuned for gaming and development and familiar from the first boot. It is in early development.">
+<title>OrielOS: a free Linux desktop for gaming and development</title>
+<meta name="description" content="OrielOS is a free, open-source Linux desktop for gaming and development. Steam and Proton, rollback updates, no telemetry. Early: <!-- if:version -->{{release.version}} on NVIDIA RTX PCs.<!-- end:version --><!-- if:no-version -->the installer isn’t out yet.<!-- end:no-version -->">
 <link rel="canonical" href="https://orielos.org/">
 <meta name="robots" content="max-image-preview:large">
 <meta name="color-scheme" content="light dark">
@@ -36,8 +36,8 @@ badges in the footer, loaded live so they always show the current levels.
 <link rel="stylesheet" href="/styles.css">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="OrielOS">
-<meta property="og:title" content="OrielOS: a Linux desktop tuned for gaming and development">
-<meta property="og:description" content="A familiar desktop, tuned for gaming and development. Free and open source.">
+<meta property="og:title" content="OrielOS: a free Linux desktop for gaming and development">
+<meta property="og:description" content="A free Linux desktop for gaming and development. Open source, no telemetry, and you can install it now.">
 <meta property="og:url" content="https://orielos.org/">
 <meta property="og:locale" content="en_GB">
 <meta property="og:image" content="https://orielos.org/images/open-graph.png">
@@ -45,6 +45,7 @@ badges in the footer, loaded live so they always show the current levels.
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The OrielOS logo and wordmark beside a glowing bay window of three glass panes, on deep blue">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@BuiltByNath">
 <meta name="twitter:image:alt" content="The OrielOS logo and wordmark beside a glowing bay window of three glass panes, on deep blue">
 <script type="application/ld+json">
 {
@@ -65,8 +66,23 @@ badges in the footer, loaded live so they always show the current levels.
       "name": "OrielOS",
       "url": "https://orielos.org/",
       "logo": "https://orielos.org/apple-touch-icon.png",
-      "description": "A familiar desktop, tuned for gaming and development. Free and open source.",
+      "description": "A free Linux desktop for gaming and development. Open source, no telemetry, and you can install it now.",
       "sameAs": ["https://github.com/ncjsvr/OrielOS", "https://discord.gg/RnpZYaKbHA"]
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "OrielOS",
+      "applicationCategory": "OperatingSystem",
+      "operatingSystem": "Linux",
+      <!-- if:version -->"softwareVersion": "{{release.version}}",<!-- end:version -->
+      "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "downloadUrl": "https://orielos.org/download/",
+      "publisher": { "@id": "https://orielos.org/#organization" }
     }
   ]
 }
@@ -86,8 +102,8 @@ badges in the footer, loaded live so they always show the current levels.
           <span>Welcome to OrielOS</span>
         </div>
         <div class="welcome-body">
-          <h1 id="hero-title">A familiar desktop, tuned for gaming and development</h1>
-          <p class="lead">OrielOS is a free and open-source Linux desktop for PCs with NVIDIA RTX graphics. Coming from Windows? The taskbar, Start menu, keyboard shortcuts and Settings are where you expect them.</p>
+          <h1 id="hero-title">A Linux desktop for gaming and development</h1>
+          <p class="lead">OrielOS is a free, open-source Linux desktop for PCs with NVIDIA RTX graphics. Steam and Proton come with it, you can roll an update back, and it collects nothing about you.</p>
           <div class="actions">
             <!-- if:iso --><a class="button primary" href="#download">Download {{release.name}}</a><!-- end:iso -->
             <!-- if:no-iso --><a class="button primary" href="https://github.com/ncjsvr/OrielOS">Follow on GitHub</a><!-- end:no-iso -->
@@ -330,11 +346,11 @@ badges in the footer, loaded live so they always show the current levels.
     <div class="share">
       <h3 id="share-title">Share OrielOS</h3>
       <ul class="share-links" aria-labelledby="share-title">
-        <li><a class="button" aria-label="Share on X" href="https://x.com/intent/post?text=OrielOS%3A%20a%20familiar%20Linux%20desktop%2C%20tuned%20for%20gaming%20and%20development.%20Free%20and%20open%20source.&amp;url=https%3A%2F%2Forielos.org%2F">X</a></li>
-        <li><a class="button" aria-label="Share on Bluesky" href="https://bsky.app/intent/compose?text=OrielOS%3A%20a%20familiar%20Linux%20desktop%2C%20tuned%20for%20gaming%20and%20development.%20Free%20and%20open%20source.%20https%3A%2F%2Forielos.org%2F">Bluesky</a></li>
-        <li><a class="button" aria-label="Share on Reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Forielos.org%2F&amp;title=OrielOS%3A%20a%20familiar%20Linux%20desktop%2C%20tuned%20for%20gaming%20and%20development.%20Free%20and%20open%20source.">Reddit</a></li>
+        <li><a class="button" aria-label="Share on X" href="https://x.com/intent/post?text=OrielOS%3A%20a%20free%20Linux%20desktop%20for%20gaming%20and%20development.%20Open%20source%2C%20no%20telemetry.&amp;url=https%3A%2F%2Forielos.org%2F">X</a></li>
+        <li><a class="button" aria-label="Share on Bluesky" href="https://bsky.app/intent/compose?text=OrielOS%3A%20a%20free%20Linux%20desktop%20for%20gaming%20and%20development.%20Open%20source%2C%20no%20telemetry.%20https%3A%2F%2Forielos.org%2F">Bluesky</a></li>
+        <li><a class="button" aria-label="Share on Reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Forielos.org%2F&amp;title=OrielOS%3A%20a%20free%20Linux%20desktop%20for%20gaming%20and%20development.%20Open%20source%2C%20no%20telemetry.">Reddit</a></li>
         <li><a class="button" aria-label="Share on Facebook" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Forielos.org%2F">Facebook</a></li>
-        <li><a class="button" aria-label="Share by email" href="mailto:?subject=OrielOS&amp;body=OrielOS%3A%20a%20familiar%20Linux%20desktop%2C%20tuned%20for%20gaming%20and%20development.%20Free%20and%20open%20source.%0A%0Ahttps%3A%2F%2Forielos.org%2F">Email</a></li>
+        <li><a class="button" aria-label="Share by email" href="mailto:?subject=OrielOS&amp;body=OrielOS%3A%20a%20free%20Linux%20desktop%20for%20gaming%20and%20development.%20Open%20source%2C%20no%20telemetry.%0A%0Ahttps%3A%2F%2Forielos.org%2F">Email</a></li>
       </ul>
     </div>
   </div>

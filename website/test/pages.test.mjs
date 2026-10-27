@@ -7,6 +7,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { checkPages, loadPartials, readHead, sumsFrom } from "../build.mjs";
+import { htmlToText } from "../markdown.mjs";
 import {
   DEFAULT_IMAGE,
   applyIncludes,
@@ -45,6 +46,22 @@ const read = (relative) => readFile(fileURLToPath(new URL(relative, import.meta.
 const partials = await loadPartials();
 const layout = await read("../templates/page.html");
 
+// Visible text of each FAQ section. The structured data sits outside these
+// sections, so the comparison is against the page copy.
+function sectionTexts(html) {
+  const texts = [];
+  let from = 0;
+  for (;;) {
+    const start = html.indexOf("<section", from);
+    if (start < 0) break;
+    const end = html.indexOf("</section>", start);
+    assert.ok(end > start);
+    texts.push(htmlToText(html.slice(start, end)));
+    from = end + "</section>".length;
+  }
+  return texts;
+}
+
 // A page through the shared layout, as the build makes it.
 const layoutPage = (details) =>
   renderLayout(layout, partials, { title: "A page", description: "About the page.", url: "https://orielos.org/a/", content: "<p>Hi</p>", ...details });
@@ -77,7 +94,7 @@ test("the nav has the site's sections, with Download, Guides and GitHub on narro
 
 test("the footer links the site's pages and keeps the badges", () => {
   const html = applyIncludes("<!-- include:footer -->", partials);
-  for (const href of ["/guides/", "/news/", "/releases/", "/press/", "/credits/", "https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md"]) {
+  for (const href of ["/guides/", "/faq/", "/news/", "/releases/", "/press/", "/credits/", "https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md"]) {
     assert.ok(html.includes(`href="${href}"`), href);
   }
   assert.match(html, /bestpractices\.dev\/projects\/15906\/badge/);
@@ -95,6 +112,8 @@ test("the layout makes a page that passes the search checks", () => {
   assert.equal(canonical, "https://orielos.org/a/");
   assert.equal(meta["og:image"], DEFAULT_IMAGE.url);
   assert.equal(meta["og:image:width"], "1200");
+  assert.equal(meta["og:image:height"], "630");
+  assert.equal(meta["twitter:site"], "@BuiltByNath");
   assert.match(html, /<link rel="alternate" type="application\/atom\+xml" href="\/news\/feed\.xml" title="OrielOS news">/);
   assert.match(html, /<main id="main" class="page">/);
   assert.match(html, /<a href="\/news\/" aria-current="page">News<\/a>/);
@@ -584,6 +603,45 @@ test("content pages take their titles, heading and image from front matter", () 
     () => contentPagesFrom([{ file: "a.html", source: "---\ntitle: A\ndescription: A\n---\n" }, { file: "a.md", source: "---\ntitle: B\ndescription: B\n---\n" }]),
     /same address/,
   );
+});
+
+test("the FAQ page's structured data repeats the answers on the page", async () => {
+  const item = contentPageFrom("faq.html", await read("../pages/faq.html"));
+  assert.equal(item.title, "OrielOS FAQ: download, hardware and games");
+  assert.equal(item.heading, "FAQ");
+  const release = { name: "OrielOS v0.0.7", version: "v0.0.7", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v0.0.7", iso: null };
+  const rendered = (data) => {
+    const body = renderPage(item.body, data);
+    return {
+      body,
+      html: layoutPage({
+        title: item.title,
+        description: item.description,
+        url: "https://orielos.org/faq/",
+        content: contentPageContent(item, body),
+      }),
+    };
+  };
+  const { body, html } = rendered({ release });
+  assert.doesNotThrow(() => checkPages([{ file: "faq/index.html", url: "https://orielos.org/faq/", html }]));
+  const data = JSON.parse(readHead(html).scripts.find((script) => script.type === "application/ld+json").body);
+  assert.equal(data["@type"], "FAQPage");
+  assert.equal(data.url, "https://orielos.org/faq/");
+  const texts = sectionTexts(body);
+  assert.equal(data.mainEntity.length, 8);
+  assert.equal(texts.length, data.mainEntity.length);
+  for (const [question, text] of data.mainEntity.map((question, index) => [question, texts[index]])) {
+    assert.equal(question["@type"], "Question");
+    assert.equal(question.acceptedAnswer["@type"], "Answer");
+    assert.ok(text.includes(question.name), question.name);
+    assert.ok(text.includes(question.acceptedAnswer.text), question.name);
+  }
+  assert.match(texts[1], /The current stable release is v0\.0\.7/);
+  const offline = rendered({});
+  const offlineData = JSON.parse(readHead(offline.html).scripts.find((script) => script.type === "application/ld+json").body);
+  assert.match(offlineData.mainEntity[1].acceptedAnswer.text, /An installer will be published with the first stable release/);
+  assert.match(sectionTexts(offline.body)[1], /An installer will be published with the first stable release/);
+  assert.doesNotMatch(offline.html, /\{\{release\.version\}\}/);
 });
 
 test("the credits page includes the artwork credits from artwork/CREDITS.md", async () => {

@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { build, checkPages, isNoindex, pageUrl } from "../build.mjs";
+import { build, checkPages, gitLastModified, isNoindex, pageUrl } from "../build.mjs";
 
 test("an offline build makes every page, the feed and the sitemap", async (t) => {
   const outDir = await mkdtemp(path.join(tmpdir(), "orielos-site-"));
@@ -32,17 +32,25 @@ test("an offline build makes every page, the feed and the sitemap", async (t) =>
     "news/feed.xml",
     "releases/index.html",
     "download/index.html",
+    "faq/index.html",
     "credits/index.html",
+    "news/orielos-v0-0-7/index.html",
     "sitemap.xml",
   ];
   for (const file of expected) assert.ok(existsSync(path.join(outDir, file)), file);
   assert.ok(!existsSync(path.join(outDir, "templates")), "templates aren't published");
 
   const sitemap = await readFile(path.join(outDir, "sitemap.xml"), "utf8");
-  for (const url of ["/", "/guides/", "/guides/install/", "/news/", "/releases/", "/download/", "/credits/"]) {
+  for (const url of ["/", "/guides/", "/guides/install/", "/news/", "/news/orielos-v0-0-7/", "/releases/", "/download/", "/faq/", "/credits/"]) {
     assert.ok(sitemap.includes(`<loc>https://orielos.org${url}</loc>`), url);
   }
   assert.doesNotMatch(sitemap, /404/);
+  for (const [, date] of sitemap.matchAll(/<lastmod>([^<]*)<\/lastmod>/g)) {
+    assert.match(date, /^\d{4}-\d{2}-\d{2}$/);
+  }
+  if (gitLastModified(["website/public/index.html"]).has("website/public/index.html")) {
+    assert.match(sitemap, /<loc>https:\/\/orielos.org\/<\/loc><lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
+  }
 
   // Every page passes the search checks again, and none is left with a marker.
   const files = (await readdir(outDir, { recursive: true }))
