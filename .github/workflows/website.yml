@@ -10,6 +10,8 @@ on:
     paths:
       - "website/**"
       - "artwork/**"
+      - "docs/**"
+      - "CHANGELOG.md"
       - ".github/workflows/website.yml"
   release:
     types: [published]

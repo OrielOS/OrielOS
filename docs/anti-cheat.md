@@ -14,6 +14,8 @@ Every time OrielOS starts:
 
 ## Checking your PC
 
+![Settings open on Privacy & security, Device security, listing each requirement, such as Secure Boot and the TPM, with whether it's met](images/settings-device-security.webp)
+
 OrielOS can only start this way if the PC's firmware lets it: Secure Boot, the TPM and the IOMMU are switched on or off there. To see whether your PC meets every requirement, open **Settings > Privacy & security > Device security**. Anything not met comes with what to change.
 
 ## Why there's no Hibernate

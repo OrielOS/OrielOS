@@ -2,6 +2,8 @@
 
 Press the Windows key (Win), or click the Start button in the middle of the taskbar, to open Start. Press it again, or Escape, to close it.
 
+![Start, with the search box at the top, pinned apps such as Files, Firefox, the Store and Settings, recommended apps below, and the account and power buttons at the bottom](images/start.webp)
+
 ## Search
 
 Start typing as soon as Start opens. The results list apps, settings, files, apps in the Store, and quick calculations such as `12*7`, grouped by kind. Settings open in [Settings](settings.md), and know Windows' words for them, such as "wifi", "default apps" or "windows update". Typing never opens anything by itself: press Enter to open the highlighted result (the first one, unless you moved with the Up and Down arrow keys), or click a result.

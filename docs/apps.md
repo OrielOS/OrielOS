@@ -10,6 +10,8 @@ If there is no connection on the first start, OrielOS tries again every five min
 
 ## Installing an app
 
+![The Store's home page, with categories on the left and popular apps such as Spotify and VLC](images/store.webp)
+
 1. Open the Store from Start.
 2. Search for the app, or browse the categories.
 3. Choose **Install**.

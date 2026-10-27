@@ -8,6 +8,7 @@ Contains:
 
 - [Install OrielOS](install.md): download the installer, make a USB stick, make room next to Windows, install and start OrielOS for the first time.
 - [Status](status.md): what works today, what doesn't work yet, and what's planned.
+- [The desktop](desktop.md): the taskbar, the system tray, snapping windows, Files, taking a screenshot, Process Manager, and light and dark.
 - [Settings](settings.md): the categories, finding a setting, and applying changes.
 - [Using Start](start-menu.md): searching, pinning apps, All apps, recommendations, and the account and power buttons.
 - [Try OrielOS in a virtual machine](install-vm.md): build OrielOS, make a virtual machine disk and start it in QEMU or VMware Workstation.
@@ -19,6 +20,8 @@ Contains:
 - [Games and controllers](games-and-controllers.md): what OrielOS sets up for games, pairing Xbox and PlayStation controllers, and apps for gaming mice and lighting.
 - [Games with anti-cheat](anti-cheat.md): why OrielOS always starts in the mode that games with anti-cheat need, and why there's Sleep but no Hibernate.
 - [Windows programs](windows-programs.md): running a Windows `.exe` or `.msi` with Run this app, its Start entries, and removing a program.
+- [Getting help](help.md): where to look things up, where to ask, and how to report a problem.
+- `images/`: the screenshots in these guides, taken from OrielOS.
 
 Will contain:
 

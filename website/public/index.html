@@ -3,8 +3,9 @@
 SPDX-FileCopyrightText: 2026 OrielOS contributors
 SPDX-License-Identifier: GPL-3.0-or-later
 
-The home page of orielos.org. website/build.mjs fills in the blocks marked
-with "if:" comments and the {{...}} placeholders from GitHub.
+The home page of orielos.org. website/build.mjs puts in the site header and
+footer from website/templates/, the newest news posts, and fills in the blocks
+marked with "if:" comments and the {{...}} placeholders from GitHub.
 
 connect-src 'self' lets tools that audit the page from inside it, such as
 Lighthouse, read robots.txt. No script can run here, so nothing else can use it.
@@ -24,14 +25,15 @@ badges in the footer, loaded live so they always show the current levels.
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#cadafb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#050a1c" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="favicon.ico" sizes="48x48">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="preload" href="fonts/noto-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/noto-sans-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="images/daybreak.svg" as="image" type="image/svg+xml" media="(prefers-color-scheme: light)">
-<link rel="preload" href="images/nightfall.svg" as="image" type="image/svg+xml" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="alternate" type="application/atom+xml" href="/news/feed.xml" title="OrielOS news">
+<link rel="preload" href="/fonts/noto-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/noto-sans-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/images/daybreak.svg" as="image" type="image/svg+xml" media="(prefers-color-scheme: light)">
+<link rel="preload" href="/images/nightfall.svg" as="image" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles.css">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="OrielOS">
 <meta property="og:title" content="OrielOS: a Linux desktop tuned for gaming and development">
@@ -74,29 +76,13 @@ badges in the footer, loaded live so they always show the current levels.
 <a class="skip" href="#main">Skip to content</a>
 
 <div class="desktop">
-  <header class="site-header">
-    <div class="wrap">
-      <a class="brand" href="./">
-        <img class="only-light" src="images/orielos-logo.svg" alt="OrielOS home" width="133" height="38">
-        <img class="only-dark" src="images/orielos-logo-dark.svg" alt="OrielOS home" width="133" height="38">
-      </a>
-      <nav class="site-nav" aria-label="Main">
-        <ul>
-          <li class="nav-extra"><a href="#why">Why OrielOS</a></li>
-          <li class="nav-extra"><a href="#status">Status</a></li>
-          <li><a href="#download">Download</a></li>
-          <li class="nav-extra"><a href="#contribute">Contribute</a></li>
-          <li><a href="https://github.com/ncjsvr/OrielOS">GitHub</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
+  <!-- include:header -->
 
   <main id="main">
     <div class="wrap hero">
       <section class="welcome" aria-labelledby="hero-title">
         <div class="titlebar" aria-hidden="true">
-          <img src="favicon.svg" alt="OrielOS" width="16" height="16">
+          <img src="/favicon.svg" alt="OrielOS" width="16" height="16">
           <span>Welcome to OrielOS</span>
         </div>
         <div class="welcome-body">
@@ -119,7 +105,7 @@ badges in the footer, loaded live so they always show the current levels.
 
   <div class="taskbar" aria-hidden="true">
     <div class="taskbar-apps">
-      <span class="tile tile-start"><img src="favicon.svg" alt="Start" width="24" height="24"></span>
+      <span class="tile tile-start"><img src="/favicon.svg" alt="Start" width="24" height="24"></span>
       <span class="tile"><svg class="glyph glyph-files" viewBox="0 0 24 24"><path d="M2.5 6.5a2 2 0 0 1 2-2h4.6l2 2h8.4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2z"/></svg></span>
       <span class="tile"><svg class="glyph glyph-web" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path class="glyph-line" d="M2.5 12h19M12 2.5c3 3.2 3 15.8 0 19M12 2.5c-3 3.2-3 15.8 0 19"/></svg></span>
       <span class="tile"><svg class="glyph glyph-store" viewBox="0 0 24 24"><path d="M4 8.5h16l-1.2 11a1.5 1.5 0 0 1-1.5 1.3H6.7a1.5 1.5 0 0 1-1.5-1.3z"/><path class="glyph-line" d="M9 11V7a3 3 0 0 1 6 0v4"/></svg></span>
@@ -178,34 +164,95 @@ badges in the footer, loaded live so they always show the current levels.
 <section class="section" id="status" aria-labelledby="status-title">
   <div class="wrap">
     <h2 id="status-title">Where it stands</h2>
-    <ol class="milestones">
+    <p class="section-lead">OrielOS is in early development. Here’s what’s done, what’s being built now and what comes after, all the way to version 1.</p>
+    <ol class="roadmap">
+      <li class="is-done">
+        <div class="roadmap-head">
+          <span class="milestone-when">Done</span>
+          <h3>The foundations</h3>
+        </div>
+        <div class="roadmap-body">
+          <p>A Fedora system image with the KDE Plasma desktop, built and tested automatically in virtual machines with Secure Boot on, for every change.</p>
+          <ul>
+            <li>A centred taskbar, Start, snap layouts, and OrielOS’s own look, sounds and sign-in screen</li>
+            <li>One Settings app, the Store with apps from Flathub, and Firefox</li>
+            <li>Signed updates on restart, with a way back to the previous version</li>
+          </ul>
+        </div>
+      </li>
+      <li class="is-done">
+        <div class="roadmap-head">
+          <span class="milestone-when">Done · 27 October 2026</span>
+          <h3>The first installer</h3>
+        </div>
+        <div class="roadmap-body">
+          <p>v0.0.7, the first stable release, with an installer for a USB stick. It installs on a whole drive or next to Windows.</p>
+          <ul>
+            <li>Verified on real hardware: a laptop with an NVIDIA GeForce RTX 4050 Laptop GPU</li>
+            <li>The NVIDIA driver with Secure Boot on, Wi-Fi, Bluetooth, sound, the Store and Steam, and a real update</li>
+          </ul>
+        </div>
+      </li>
       <li class="is-now">
-        <span class="milestone-when">Now</span>
-        <h3>Development builds</h3>
-        <p>Tested in virtual machines while the core pieces come together.</p>
+        <div class="roadmap-head">
+          <span class="milestone-when">Now</span>
+          <h3>Games and Windows programs</h3>
+        </div>
+        <div class="roadmap-body">
+          <p>Making games and Windows programs work without a terminal, tested on real hardware.</p>
+          <ul>
+            <li>Run this app: open a Windows program with a double-click</li>
+            <li>Game Settings, with per-game options and GE-Proton as the default</li>
+            <li>Will it run?, to check a game before you buy it</li>
+            <li>An FPS overlay and a Gaming page in Settings</li>
+          </ul>
+        </div>
       </li>
       <li>
-        <span class="milestone-when">Next</span>
-        <h3>First release</h3>
-        <p>An installer for desktop PCs with NVIDIA RTX graphics, 20-series or newer.</p>
+        <div class="roadmap-head">
+          <span class="milestone-when">Next</span>
+          <h3>Desktop PCs and benchmarks</h3>
+        </div>
+        <div class="roadmap-body">
+          <p>Checking OrielOS on the desktop PCs it’s made for, and measuring it honestly.</p>
+          <ul>
+            <li>Development tools: code editors, containers and a terminal, ready to use</li>
+            <li>Installs on desktop PCs with NVIDIA RTX graphics</li>
+            <li>Benchmarks against Windows on the same PC, published with the method</li>
+            <li>A real-hardware checklist before every stable release</li>
+          </ul>
+        </div>
       </li>
       <li>
-        <span class="milestone-when">After that</span>
-        <h3>AMD and Intel graphics</h3>
-        <p>Support for more graphics cards, and perhaps laptops and handhelds later on.</p>
+        <div class="roadmap-head">
+          <span class="milestone-when">Then</span>
+          <h3>Version 1</h3>
+        </div>
+        <div class="roadmap-body">
+          <p>Ready for people switching from Windows to use every day.</p>
+          <ul>
+            <li>Performance targets every version must meet</li>
+            <li>A privacy statement, and guides for every everyday task</li>
+            <li>What’s new in each update, shown before you restart</li>
+          </ul>
+        </div>
+      </li>
+      <li>
+        <div class="roadmap-head">
+          <span class="milestone-when">After version 1</span>
+          <h3>More hardware, more languages</h3>
+        </div>
+        <div class="roadmap-body">
+          <p>Taking OrielOS beyond NVIDIA desktops.</p>
+          <ul>
+            <li>AMD Radeon and Intel Arc graphics</li>
+            <li>Translations of OrielOS’s own parts</li>
+            <li>Perhaps a console-style gaming mode, and handhelds</li>
+          </ul>
+        </div>
       </li>
     </ol>
-    <div class="working">
-      <h3>Already working in development builds</h3>
-      <ul class="checks">
-        <li>A Fedora system image with NVIDIA’s driver, signed for Secure Boot</li>
-        <li>The KDE Plasma desktop with a centred taskbar and OrielOS’s own look</li>
-        <li>Windows keyboard shortcuts such as Win+E, Win+R and Ctrl+Shift+Esc</li>
-        <li>The Store, with apps from Flathub, and Firefox</li>
-        <li>Updates on restart, with a way back to the previous version</li>
-        <li>Boot settings that meet Easy Anti-Cheat’s Linux requirements</li>
-      </ul>
-    </div>
+    <p class="roadmap-more"><a href="/guides/status/">Full status: what works, what doesn’t yet and what’s planned</a></p>
   </div>
 </section>
 
@@ -216,11 +263,11 @@ badges in the footer, loaded live so they always show the current levels.
       <!-- if:iso -->
       <div class="download-card">
         <h3>{{release.name}}</h3>
-        <p>Installer, {{iso.size}}. Write it to a USB stick of at least 4&nbsp;GB, start your PC from it and follow the steps. The installer downloads OrielOS as it goes, over Wi-Fi or Ethernet.</p>
+        <p>Installer, {{iso.size}}. Write it to a USB stick of at least 2&nbsp;GB, start your PC from it and follow the steps. The installer downloads OrielOS as it goes, over Wi-Fi or Ethernet.</p>
         <p>This is the <strong>stable</strong> version: it gets new versions once they’ve been tested on real PCs, and updates itself in the background. Want new versions sooner? After installing, switch to the testing channel in Settings&nbsp;→ Update.</p>
         <p><a class="button primary" href="{{iso.url}}">Download the installer</a></p>
         <!-- if:sha256 --><p class="checksum">SHA-256 <code translate="no">{{iso.sha256}}</code></p><!-- end:sha256 -->
-        <p class="download-links"><a href="{{release.url}}">Release notes</a> <a href="https://github.com/ncjsvr/OrielOS/blob/main/docs/install.md">How to install</a></p>
+        <p class="download-links"><a href="/download/#check">Check your download</a> <a href="{{release.url}}">Release notes</a> <a href="/guides/install/">How to install</a></p>
       </div>
       <!-- end:iso -->
       <!-- if:no-iso -->
@@ -232,16 +279,9 @@ badges in the footer, loaded live so they always show the current levels.
       <!-- end:no-iso -->
       <div class="needs">
         <h3>What you’ll need</h3>
-        <dl class="specs">
-          <dt>Graphics</dt>
-          <dd>NVIDIA RTX, 20-series or newer</dd>
-          <dt>Computer</dt>
-          <dd>A desktop PC</dd>
-          <dt>Firmware</dt>
-          <dd>UEFI with Secure Boot turned on</dd>
-          <dt>Internet</dt>
-          <dd>Wi-Fi or Ethernet while installing</dd>
-        </dl>
+        <p>A desktop PC with NVIDIA RTX graphics, 20-series or newer, UEFI firmware with Secure Boot turned on, and Wi-Fi or Ethernet while installing.</p>
+        <p>Verified so far on an NVIDIA GeForce RTX 4050 Laptop GPU.</p>
+        <p class="download-links"><a href="/download/">More about the download</a></p>
       </div>
     </div>
     <div class="limits">
@@ -255,6 +295,18 @@ badges in the footer, loaded live so they always show the current levels.
     </div>
   </div>
 </section>
+
+<!-- if:news -->
+<section class="section" id="news" aria-labelledby="news-title">
+  <div class="wrap">
+    <h2 id="news-title">News</h2>
+    <ul class="news-list">
+      <!-- news -->
+    </ul>
+    <p class="news-links"><a href="/news/">All news</a> <a href="/news/feed.xml">Subscribe to the feed</a></p>
+  </div>
+</section>
+<!-- end:news -->
 
 <section class="section" id="contribute" aria-labelledby="contribute-title">
   <div class="wrap">
@@ -288,23 +340,6 @@ badges in the footer, loaded live so they always show the current levels.
   </div>
 </section>
 
-<footer class="site-footer">
-  <div class="wrap">
-    <ul class="footer-links">
-      <li><a href="https://github.com/ncjsvr/OrielOS">GitHub</a></li>
-      <li><a href="https://github.com/ncjsvr/OrielOS/discussions">Discussions</a></li>
-      <li><a href="https://discord.gg/RnpZYaKbHA">Discord</a></li>
-      <li><a href="https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md">Security policy</a></li>
-      <li><a href="https://github.com/ncjsvr/OrielOS/tree/main/website">Improve this site</a></li>
-      <li><a href="mailto:hello@orielos.org">hello@orielos.org</a></li>
-    </ul>
-    <p class="badges">
-      <a href="https://www.bestpractices.dev/projects/15906"><img src="https://www.bestpractices.dev/projects/15906/badge" alt="OpenSSF Best Practices badge" width="184" height="20"></a>
-      <a href="https://www.bestpractices.dev/projects/15906"><img src="https://www.bestpractices.dev/projects/15906/baseline" alt="OpenSSF Baseline badge" width="213" height="20"></a>
-    </p>
-    <p>Built on <a href="https://fedoraproject.org/">Fedora</a>, <a href="https://github.com/bootc-dev/bootc">bootc</a>, <a href="https://kde.org/plasma-desktop/">KDE Plasma</a>, <a href="https://universal-blue.org/">Universal Blue</a>, <a href="https://github.com/ValveSoftware/Proton">Proton</a>, <a href="https://github.com/GloriousEggroll/proton-ge-custom">GE-Proton</a>, <a href="https://www.winehq.org/">Wine</a>, <a href="https://github.com/doitsujin/dxvk">DXVK</a>, <a href="https://github.com/HansKristian-Work/vkd3d-proton">VKD3D-Proton</a> and <a href="https://flathub.org/">Flathub</a>.</p>
-    <p>Code is licensed under GPL-3.0-or-later, and documentation and artwork under CC BY-SA 4.0. This site uses the Noto Sans fonts, under the SIL Open Font License. OrielOS is not affiliated with Microsoft. Windows is a trademark of Microsoft Corporation.</p>
-  </div>
-</footer>
+<!-- include:footer -->
 </body>
 </html>

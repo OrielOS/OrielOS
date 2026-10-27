@@ -33,6 +33,6 @@ If a program doesn't start or closes with an error, Run this app offers **Open t
 
 - **Programs that need special drivers or deep access to Windows**, such as some anti-virus and system tools, and games whose anti-cheat blocks Linux (see [Games with anti-cheat](anti-cheat.md)).
 - **Microsoft 365 and Adobe apps** don't run; use their web versions or Linux alternatives from the Store.
-- Run this app is new and has been tried with only a few programs. If one doesn't work, ask in the [Q&A](https://github.com/ncjsvr/OrielOS/discussions/categories/q-a) on GitHub Discussions.
+- Run this app is new and has been tried with only a few programs. If one doesn't work, see [Getting help](help.md).
 
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder).

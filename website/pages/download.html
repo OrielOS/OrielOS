@@ -1,0 +1,74 @@
+---
+title: Download OrielOS
+description: Download the OrielOS installer, check it against its SHA-256 checksum, see what your PC needs and write it to a USB stick.
+---
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+The download page. website/build.mjs fills the "if:" blocks and the
+release, installer and checksum placeholders from GitHub, as on the home page.
+-->
+<p class="lead">OrielOS is free to download and use. The installer goes on a USB stick, and downloads the current version of OrielOS as it installs.</p>
+
+<div class="download download-page">
+  <!-- if:iso -->
+  <div class="download-card">
+    <h2>{{release.name}}</h2>
+    <p>Installer, {{iso.size}}. This is the <strong>stable</strong> version: it gets new versions once they’ve been tested on real PCs, and updates itself in the background. Want new versions sooner? After installing, switch to the testing channel in Settings&nbsp;→ Update.</p>
+    <p><a class="button primary" href="{{iso.url}}">Download the installer</a></p>
+    <!-- if:sha256 --><p class="checksum">SHA-256 <code translate="no">{{iso.sha256}}</code></p><!-- end:sha256 -->
+    <p class="download-links"><!-- if:sums --><a href="{{sums.url}}">SHA256SUMS</a> <!-- end:sums --><a href="{{release.url}}">This release on GitHub</a> <a href="/releases/">All release notes</a> <a href="https://github.com/ncjsvr/OrielOS/releases">Older versions</a></p>
+  </div>
+  <!-- end:iso -->
+  <!-- if:no-iso -->
+  <div class="download-card is-empty">
+    <h2>Nothing to download yet</h2>
+    <p>The first release will put an installer here, ready to write to a USB stick. Watch the repository on GitHub to hear when it’s out.</p>
+    <p><a class="button" href="https://github.com/ncjsvr/OrielOS">Watch on GitHub</a></p>
+    <p class="download-links"><a href="/releases/">All release notes</a> <a href="https://github.com/ncjsvr/OrielOS/releases">Releases on GitHub</a></p>
+  </div>
+  <!-- end:no-iso -->
+  <section class="needs" id="needs" aria-labelledby="needs-title">
+    <h2 id="needs-title">What you’ll need</h2>
+    <dl class="specs">
+      <dt>Graphics</dt>
+      <dd>NVIDIA RTX, 20-series or newer</dd>
+      <dt>Verified on</dt>
+      <dd>NVIDIA GeForce RTX 4050 Laptop GPU (<a href="/guides/status/#hardware-verified">every PC checked</a>)</dd>
+      <dt>Computer</dt>
+      <dd>A desktop PC</dd>
+      <dt>Firmware</dt>
+      <dd>UEFI with Secure Boot turned on</dd>
+      <dt>Internet</dt>
+      <dd>Wi-Fi or Ethernet while installing</dd>
+      <dt>USB stick</dt>
+      <dd>2&nbsp;GB or larger</dd>
+      <dt>Space</dt>
+      <dd>60&nbsp;GB: a whole drive, or free space next to Windows</dd>
+    </dl>
+  </section>
+</div>
+
+<!-- if:iso -->
+<section class="prose download-steps" id="check" aria-labelledby="check-title">
+  <h2 id="check-title">Check your download</h2>
+  <p>Before you write the installer to a USB stick, check that it arrived complete and unchanged: work out its SHA-256 checksum on your own computer and compare it with <!-- if:sha256 -->the one shown above<!-- end:sha256 --><!-- if:no-sha256 -->the line for OrielOS.iso in SHA256SUMS on the release’s page<!-- end:no-sha256 -->. The result must match exactly. If it doesn’t, download the installer again.</p>
+  <h3>On Windows</h3>
+  <p>Open PowerShell in the folder you downloaded it to and run:</p>
+  <pre><code>Get-FileHash .\OrielOS.iso</code></pre>
+  <h3>On macOS</h3>
+  <p>Open Terminal in the download folder and run:</p>
+  <pre><code>shasum -a 256 OrielOS.iso</code></pre>
+  <h3>On Linux</h3>
+  <p>In a terminal in the download folder, run:</p>
+  <pre><code>sha256sum OrielOS.iso</code></pre>
+  <!-- if:sums --><p>Or download <a href="{{sums.url}}">SHA256SUMS</a> into the same folder and let it compare for you. It prints “OK” when the checksum matches:</p>
+  <pre><code>sha256sum -c SHA256SUMS --ignore-missing</code></pre><!-- end:sums -->
+</section>
+<!-- end:iso -->
+
+<section class="prose download-steps" id="usb" aria-labelledby="usb-title">
+  <h2 id="usb-title">Write it to a USB stick</h2>
+  <p>Write the installer to a USB stick with a tool such as Fedora Media Writer, balenaEtcher or Rufus, start your PC from the stick and follow the installer’s steps. <a href="/guides/install/">Install OrielOS</a> takes you through each one, including how to keep Windows next to OrielOS.</p>
+</section>

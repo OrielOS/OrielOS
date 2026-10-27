@@ -4,6 +4,14 @@ OrielOS is in early development. This page lists what works today, what doesn't 
 
 Last updated: 27 October 2026.
 
+## Hardware verified
+
+| Graphics | PC | Verified | What was checked |
+|---|---|---|---|
+| NVIDIA GeForce RTX 4050 Laptop GPU | MSI laptop, with Intel graphics for its own screen | 27 October 2026 | Installing next to Windows 11 and on a whole drive, Secure Boot with the NVIDIA driver, Wi-Fi, Bluetooth, sound, the display, keyboard and touchpad, the Store, Steam, and a real update |
+
+OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No desktop PC has been verified yet; each one that is will be added here.
+
 ## Works
 
 ### Installing

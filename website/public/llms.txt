@@ -9,6 +9,12 @@ For where OrielOS stands and the latest download, see https://orielos.org/.
 ## Links
 
 - [orielos.org](https://orielos.org/): what OrielOS is, where it stands and the download
+- [Download](https://orielos.org/download/): the installer, how to check it with its SHA-256 checksum, and what your PC needs
+- [Guides](https://orielos.org/guides/): installing and using OrielOS, with an A to Z of every topic
+- [News](https://orielos.org/news/): news from the project, with an Atom feed at https://orielos.org/news/feed.xml
+- [Release notes](https://orielos.org/releases/): what changed in each release, newest first
+- [Press](https://orielos.org/press/): descriptions, a fact sheet, the logo and screenshots for writers
+- [Credits](https://orielos.org/credits/): the projects OrielOS is built on, and the artwork, fonts and sounds with their licences
 - [Source code](https://github.com/ncjsvr/OrielOS): the code, image recipe, artwork and website
 - [User documentation](https://github.com/ncjsvr/OrielOS/tree/main/docs)
 - [Discussions](https://github.com/ncjsvr/OrielOS/discussions): questions and ideas
