@@ -29,7 +29,7 @@ Write the ISO to the stick with [balenaEtcher](https://etcher.balena.io/), [Fedo
 
 Plug in the stick and restart. Open your PC's boot menu as it starts (usually **F11**, **F12**, **F8** or **Esc**, shown briefly on the maker's logo) and choose the USB stick. Leave Secure Boot on.
 
-Choose **Install OrielOS** in the menu that appears.
+Choose **Install OrielOS** in the menu that appears. The menu and the installer show the version of OrielOS that was current when the ISO was made, such as v0.0.5; the installer always downloads the newest stable version.
 
 ## 4. The installer
 
@@ -38,7 +38,7 @@ Choose **Install OrielOS** in the menu that appears.
    - **Network & Host Name**: connect to Wi-Fi if you're not on a cable.
    - **Keyboard** and **Time & Date**: open each, check it, and select **Done**.
    - **Installation Destination**: select your drive.
-     - **Next to Windows**: keep **Automatic** and leave "Free up space" unticked; the installer uses only the unallocated space you made. It may warn that the EFI system partition is under 500 MiB: that's Windows' boot partition, which OrielOS shares, and the warning is harmless.
+     - **Next to Windows**: keep **Automatic** and leave "Free up space" unticked; the installer uses only the unallocated space you made. It may warn that the EFI system partition is under 500 MiB: that's Windows' boot partition, which OrielOS shares, and the warning is harmless. If Windows' drive is encrypted with BitLocker, it also warns that Windows may ask for the recovery key: have the key ready, as above.
      - **On the whole drive**: tick "Free up space by removing or shrinking existing partitions", select **Done**, then **Delete all** and **Reclaim space**. Everything on that drive is erased.
 3. Select **Begin Installation**. The installer downloads OrielOS and shows how much is left and roughly how long it will take, then installs it.
 4. When it's done, select **Reboot System** and remove the USB stick.

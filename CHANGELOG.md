@@ -104,6 +104,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 ### Changed
 
 - OrielOS has one version number for everything, starting at v0.0.1: every published build is the next one, rolling over from v0.0.10 to v0.1.0. About this System, the boot menu, Settings → Update and the apps' About dialogs show it, as in "OrielOS v0.0.7", in place of names such as "OrielOS 44.20261026". A stable release is named after the build it is.
+- The installer and its start menu name the OrielOS version that was current when the ISO was made, such as "OrielOS v0.0.5", instead of "OrielOS 44", the Fedora release it's built from. When a drive is encrypted with BitLocker, the installer warns that Windows may ask for its recovery key afterwards.
 - Window titles sit on the left of the title bar, next to the app's icon, as on Windows.
 - OrielOS no longer sends Fedora's anonymous weekly package count ("countme") when it checks repositories.
 
