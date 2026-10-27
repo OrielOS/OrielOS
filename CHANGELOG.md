@@ -4,6 +4,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-10-27
+
 ### Added
 
 - An installer: `OrielOS.iso`, about 1.2 GB, on each release. It starts with Secure Boot on, asks for language, keyboard, time zone, network (Wi-Fi or cable) and where to install, then downloads the current stable version of OrielOS, checks its signature and installs it, showing how much is left and how long it will take. Next to Windows it uses the space you freed in Windows' Disk Management and keeps Windows in the start menu. The account is created when OrielOS first starts. [Install OrielOS](docs/install.md) shows each step.
