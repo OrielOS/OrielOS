@@ -78,7 +78,7 @@ test("code spans with double backticks", () => {
 
 test("raw HTML is escaped, never passed through", () => {
   const html = md('<script>alert(1)</script>\n\n<img src=x onerror=alert(1)>\n\nText with <b>tags</b> & "quotes".');
-  assert.doesNotMatch(html, /<script|<img|<b>/);
+  assert.doesNotMatch(html, /<script|<img|<b>/i);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.match(html, /&lt;b&gt;tags&lt;\/b&gt; &amp; &quot;quotes&quot;/);
 });

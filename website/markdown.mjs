@@ -27,9 +27,11 @@ export function decodeEntities(value) {
   return String(value).replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => ENTITIES[entity]);
 }
 
-// The text of some HTML, without its tags.
+// The text of some HTML, without its tags. Any stray angle bracket goes too, so
+// nothing tag-like survives before the entities are decoded; callers escape the
+// result again wherever it goes back into HTML.
 export function htmlToText(html) {
-  return decodeEntities(String(html).replace(/<[^>]*>/g, ""));
+  return decodeEntities(String(html).replace(/<[^>]*>/g, "").replace(/[<>]/g, ""));
 }
 
 // GitHub's heading anchors: lower case, punctuation dropped, spaces to hyphens.
