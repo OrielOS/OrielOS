@@ -4,7 +4,12 @@ OrielOS comes ready for games. You install the game launchers you want from the 
 
 ## Getting games
 
-Install Steam, Heroic Games Launcher, Lutris or another launcher from the Store (see [Installing apps](apps.md)). OrielOS doesn't preinstall any of them.
+Get your games the way you would on Windows:
+
+- **Steam:** install it from the Store (see [Installing apps](apps.md)).
+- **Other stores:** download the store's own launcher from its website, such as the Epic Games Launcher, GOG Galaxy, the EA app, Ubisoft Connect or Battle.net, and double-click it. Run this app installs it, and it appears in Start (see [Windows programs](windows-programs.md)). Some of these launchers are still being tested on OrielOS.
+
+OrielOS doesn't preinstall any of them.
 
 ## GE-Proton for Windows games in Steam
 

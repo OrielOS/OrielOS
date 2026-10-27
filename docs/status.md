@@ -64,7 +64,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 ## Planned
 
-- **Game Settings**: an app for per-game settings, such as the Proton version, the FPS overlay and HDR, for Steam and Heroic games.
+- **Game Settings**: an app for per-game settings, such as the Proton version, the FPS overlay and HDR.
 - **Known apps in Run this app**: the Store version offered first when there is one, and tested set-ups for launchers such as Battle.net, the EA app and Ubisoft Connect.
 - **Will it run?**: check whether a game works on Linux before you buy it.
 - **An FPS overlay** you turn on with a shortcut.
