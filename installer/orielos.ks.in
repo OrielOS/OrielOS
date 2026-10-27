@@ -6,6 +6,19 @@
 ostreecontainer --url=ghcr.io/ncjsvr/orielos:@CHANNEL@ --transport=registry
 rootpw --lock
 
+# Reinstalling over an earlier OrielOS next to Windows leaves its boot files, EFI/fedora, on the
+# EFI system partition the new install shares with Windows. ostree then finds their grub.cfg,
+# runs grub2-mkconfig while deploying, and the install fails. The new install writes its own boot
+# files there, so the old ones go first. Windows' EFI/Microsoft is never touched.
+%pre-install --erroronfail --log=/tmp/orielos-pre-install.log
+set -eux
+esp=/mnt/sysimage/boot/efi
+if [ -d "$esp/EFI/fedora" ]; then
+    rm -rf "$esp/EFI/fedora"
+fi
+ls "$esp/EFI" 2>/dev/null || true
+%end
+
 # Finish the deployment the way bootc's own install does. Runs in the new deployment's root, where
 # /sysroot is the physical root and /boot/efi the EFI system partition.
 %post --erroronfail --log=/var/log/anaconda/orielos-post.log

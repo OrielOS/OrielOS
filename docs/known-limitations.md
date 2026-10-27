@@ -4,8 +4,10 @@ OrielOS is in early development. This page lists what it can't do yet, and what 
 
 ## Trying it out
 
-- **There's no download or installer yet.** You build OrielOS yourself from the source code and try it in a virtual machine: see [Try OrielOS in a virtual machine](install-vm.md).
-- **It hasn't been tested on real PCs yet.** So far OrielOS has only run in virtual machines. The first installs on real hardware, alongside Windows, come next.
+- **It has been tested on few real PCs so far.** OrielOS runs on an MSI laptop with an RTX 4050 (installed next to Windows 11, and on its own), and in virtual machines. Laptops aren't officially supported yet: OrielOS is built for desktop PCs.
+- **The installer needs an internet connection.** It downloads OrielOS while it installs, over Wi-Fi or a cable: see [Install OrielOS](install.md).
+- **The installer doesn't shrink Windows for you.** Make room for OrielOS in Windows' Disk Management first, as [Install OrielOS](install.md) shows. It also doesn't warn about BitLocker yet, so save your recovery key before you start.
+- **The installer calls itself "OrielOS 44"**, after the Fedora release it's built from, not OrielOS's own version number.
 - **A virtual machine isn't a gaming PC.** In a virtual machine the desktop uses basic graphics, so it can feel slower and games don't run as they would on your PC (see [Graphics in a virtual machine](install-vm.md#graphics-in-a-virtual-machine)).
 
 ## Games
