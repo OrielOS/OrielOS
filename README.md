@@ -10,7 +10,7 @@
 
 OrielOS is a free and open-source Linux desktop, tuned for gaming and development, that feels familiar from the first boot. It runs on desktop PCs, starting with NVIDIA RTX graphics. If you're coming from Windows, the taskbar, Start menu, keyboard shortcuts and Settings are where you expect them, and Windows games and programs run through Proton.
 
-**Status:** early development. The installer, `OrielOS.iso`, is on the [latest release](https://github.com/ncjsvr/OrielOS/releases/latest): see [Install OrielOS](docs/install.md). It installs the stable version; [known limitations](docs/known-limitations.md) lists what doesn't work yet.
+**Status:** early development. The installer, `OrielOS.iso`, is on the [latest release](https://github.com/ncjsvr/OrielOS/releases/latest): see [Install OrielOS](docs/install.md). It installs the stable version; [Status](docs/status.md) lists what works, what doesn't yet and what's planned.
 
 ## Goals
 
