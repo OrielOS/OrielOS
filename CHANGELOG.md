@@ -21,7 +21,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
   - A new power page sets when the computer sleeps and when the screen turns off if it isn't being used, starting from sleep after 15 minutes and the screen off after 10. Your choice becomes the power settings every new account starts with.
   - On a computer without Wi-Fi, the network page shows whether the cable connection reaches the internet, instead of being skipped.
   - The setup no longer asks for screen scaling, a dark theme or the computer's name. The dark theme switch gave the new account Fedora's dark desktop instead of OrielOS's.
-  - The welcome screen shows the OrielOS wallpaper, and the last page shows the OrielOS logo.
+  - The last page shows the OrielOS logo.
 - OrielOS builds are published when changes merge.
   - Each change that affects the system is built on GitHub, started in a VM to check it reaches the sign-in screen in the mode anti-cheat needs with only signed drivers, signed, and published to ghcr.io as the new testing build.
   - A build is published only if Flathub has the NVIDIA driver extension that Store apps need for it.
@@ -100,6 +100,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Plasma Setup on first boot: a new installation has no user account, and KDE's setup wizard asks for the language, keyboard layout, network, time zone and the first account, then opens the login screen. It doesn't run again once setup is finished, and the boot test checks both.
 - Virtual machine disks for QEMU (qcow2) and VMware (VMDK) from one command, a tool that creates and boot-checks a VMware Workstation VM from the VMDK, and a guide to trying OrielOS in a virtual machine.
 - A command-line update tool that stages a new build for the next restart and rolls back to the previous build; rolled-back builds are not offered again.
+- A [Status](docs/status.md) page in the user docs lists what works today, what doesn't work yet and what's planned. The updates guide no longer says that no versions are published.
 
 ### Changed
 
