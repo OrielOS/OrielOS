@@ -2,7 +2,8 @@
 # Makes installed computers check the signature of every OrielOS build they update to. The public
 # half of the key that CI signs published builds with is image/keys/orielos-cosign.pub, mounted at
 # /keys. This installs it as /etc/pki/containers/orielos.pub, requires a sigstore signature made
-# with it for ghcr.io/ncjsvr/orielos in /etc/containers/policy.json, and tells the container tools
+# with it for ghcr.io/ncjsvr/orielos in /etc/containers/policy.json (whose global default rejects,
+# with a default per transport that accepts other images as before), and tells the container tools
 # to look for signatures attached in the registry. orielos-update then stages builds with bootc's
 # --enforce-container-sigpolicy. Until the key is in the repository, nothing changes and the build
 # says so.
@@ -27,8 +28,18 @@ install -D -m 0644 "$key" /etc/pki/containers/orielos.pub
     printf 'error: %s is missing from the base image\n' "$policy" >&2
     exit 1
 }
+# bootc's --enforce-container-sigpolicy refuses to stage anything while the policy's global default
+# is insecureAcceptAnything, as Fedora's is, even for an image with its own signature rule: updates
+# from the registry failed with "containers-policy.json specifies a default of
+# `insecureAcceptAnything`; refusing usage". So the global default rejects, and each transport gets
+# its own default that accepts anything, as before, so Podman and other tools pull as they did;
+# only OrielOS's own image needs its signature.
+transports='["docker", "docker-daemon", "docker-archive", "oci", "oci-archive", "dir", "containers-storage", "sif", "tarball"]'
 tmp="$(mktemp)"
-jq --arg repo "$repository" '.transports.docker[$repo] = [{
+jq --arg repo "$repository" --argjson transports "$transports" '
+    .default = [{type: "reject"}]
+    | reduce $transports[] as $t (.; .transports[$t][""] //= [{type: "insecureAcceptAnything"}])
+    | .transports.docker[$repo] = [{
         type: "sigstoreSigned",
         keyPath: "/etc/pki/containers/orielos.pub",
         signedIdentity: {type: "matchRepository"}
@@ -41,6 +52,15 @@ printf 'docker:\n  %s:\n    use-sigstore-attachments: true\n' "$repository" >/et
 
 jq -e --arg repo "$repository" '.transports.docker[$repo][0].type == "sigstoreSigned"' "$policy" >/dev/null || {
     printf 'error: %s does not require a signature for %s\n' "$policy" "$repository" >&2
+    exit 1
+}
+jq -e '.default == [{type: "reject"}]' "$policy" >/dev/null || {
+    printf 'error: %s has a default other than reject, so bootc would refuse to stage updates\n' "$policy" >&2
+    exit 1
+}
+jq -e --argjson transports "$transports" \
+    '. as $p | all($transports[]; $p.transports[.][""][0].type == "insecureAcceptAnything")' "$policy" >/dev/null || {
+    printf 'error: %s does not let other images through on every transport\n' "$policy" >&2
     exit 1
 }
 printf 'Updates from %s must be signed with %s\n' "$repository" /etc/pki/containers/orielos.pub
