@@ -5,10 +5,9 @@
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-// OrielOS's sign-in screen: Breeze's (sddm-breeze 6.7.5, Main.qml), changed to open on the clock over
-// the wallpaper, like a locked screen. A key press or a click slides the sign-in up into the middle;
-// after a minute without input it goes back to the clock. There is no Hibernate button, because
-// OrielOS doesn't offer hibernation. The other files come from Breeze's theme unchanged, copied at
+// OrielOS's sign-in screen: Breeze's (sddm-breeze 6.7.5, Main.qml), changed to show the sign-in all
+// the time, rather than hiding it after a minute without input. There is no Hibernate button,
+// because OrielOS doesn't offer hibernation. The other files come from Breeze's theme unchanged, copied at
 // build time (image/build/28-sign-in.sh), which stops the build if Breeze's Main.qml changes.
 
 import QtQuick
@@ -69,47 +68,14 @@ Item {
         id: loginScreenRoot
         anchors.fill: parent
 
-        // The sign-in starts hidden: the screen shows the clock until someone presses a key or clicks.
-        property bool uiVisible: false
-        property bool blockUI: mainStack.depth > 1 || userListComponent.mainPasswordBox.text.length > 0 || inputPanel.keyboardActive || config.type !== "image"
+        // The sign-in is always showing, from the moment the screen appears: a screen with only the
+        // wallpaper looked stuck, as if the computer were still starting. Breeze hides it after a
+        // minute without input; OrielOS doesn't.
+        readonly property bool uiVisible: true
 
         hoverEnabled: true
         drag.filterChildren: true
-        // Moving the pointer leaves the clock showing; a click or a key press shows the sign-in.
-        onPressed: uiVisible = true;
-        onUiVisibleChanged: {
-            if (blockUI) {
-                fadeoutTimer.running = false;
-            } else if (uiVisible) {
-                fadeoutTimer.restart();
-            }
-        }
-        onBlockUIChanged: {
-            if (blockUI) {
-                fadeoutTimer.running = false;
-                uiVisible = true;
-            } else {
-                fadeoutTimer.restart();
-            }
-        }
 
-        Keys.onPressed: event => {
-            uiVisible = true;
-            event.accepted = false;
-        }
-
-        //takes one full minute for the ui to disappear
-        Timer {
-            id: fadeoutTimer
-            running: true
-            interval: 60000
-            onTriggered: {
-                if (!loginScreenRoot.blockUI) {
-                    userListComponent.mainPasswordBox.showPassword = false;
-                    loginScreenRoot.uiVisible = false;
-                }
-            }
-        }
         WallpaperFader {
             visible: config.type === "image"
             anchors.fill: parent

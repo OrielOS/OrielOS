@@ -239,7 +239,7 @@ sign_in() {
     wait_until 600 "test -e /var/lib/orielos/flatpak-setup.done" || warn "Firefox was not installed within 600 s"
     wait_until 120 "pgrep -f sddm-greeter" || warn "The sign-in screen did not start"
     sleep 10
-    vm_qmp keys:shift wait:3 >/dev/null 2>&1 || true
+    # Before any key press or click: the sign-in must already be showing.
     shot 04-sign-in
     vm_qmp "type:$TOUR_PASSWORD" keys:ret >/dev/null 2>&1 || true
     if ! wait_for_procs 90 "$TOUR_USER" plasmashell kwin_wayland; then
