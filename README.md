@@ -35,7 +35,7 @@ OrielOS is a free and open-source Linux desktop, tuned for gaming and developmen
 
 ## Hardware
 
-The first release targets desktop PCs with NVIDIA RTX (20-series or newer) graphics. Support for AMD and Intel graphics is planned to follow the first release. Laptops and handhelds may come later.
+The first release targets desktop PCs with NVIDIA RTX (20-series or newer) graphics. It has been verified on an NVIDIA GeForce RTX 4050 Laptop GPU; [Status](docs/status.md#hardware-verified) lists every PC checked so far. Support for AMD and Intel graphics is planned to follow the first release. Laptops and handhelds may come later.
 
 ## Known limitations
 

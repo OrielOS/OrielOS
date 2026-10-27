@@ -4,6 +4,8 @@ Settings is where you change how OrielOS works. Open it with Windows + I, or cho
 
 ## Finding a setting
 
+![Settings open on System, with the categories on the left and System's pages, such as Display, Sound and Power mode, on the right](images/settings.webp)
+
 The categories on the left come in the order you know from Windows:
 
 - **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode and About.

@@ -4,7 +4,8 @@ This guide takes you from download to desktop: making the USB stick, making room
 
 ## What you need
 
-- A PC with a 64-bit Intel or AMD processor, UEFI firmware and Secure Boot (any PC that runs Windows 11 has these).
+- A PC with NVIDIA RTX graphics, 20-series or newer. OrielOS is made for desktop PCs; [Status](status.md#hardware-verified) lists the PCs it has been checked on. PCs with only AMD or Intel graphics aren't supported yet.
+- A 64-bit Intel or AMD processor, UEFI firmware and Secure Boot (any PC that runs Windows 11 has these).
 - At least 60 GB of free space for OrielOS: a whole drive, or unused space next to Windows.
 - A USB stick of 2 GB or more. Writing the installer to it erases everything on it.
 - An internet connection during the install: Wi-Fi or a cable. The installer downloads OrielOS as it installs, so you always get the current version.
@@ -19,15 +20,17 @@ This guide takes you from download to desktop: making the USB stick, making room
 
 ## 1. Download
 
-Download **OrielOS.iso** from the [latest release](https://github.com/ncjsvr/OrielOS/releases/latest), with **SHA256SUMS** next to it. To check the download, compare the ISO's SHA-256 with the line in SHA256SUMS: in Windows PowerShell, `Get-FileHash OrielOS.iso`; on Linux, `sha256sum -c SHA256SUMS`.
+Download **OrielOS.iso** from the [latest release](https://github.com/ncjsvr/OrielOS/releases/latest), with **SHA256SUMS** next to it. To check the download, compare the ISO's SHA-256 with the line in SHA256SUMS (it's also shown on [orielos.org/download](https://orielos.org/download/)): in Windows PowerShell, `Get-FileHash OrielOS.iso`; on macOS, `shasum -a 256 OrielOS.iso`; on Linux, `sha256sum -c SHA256SUMS --ignore-missing`. If they don't match, download the ISO again.
 
 ## 2. Make the USB stick
 
-Write the ISO to the stick with [balenaEtcher](https://etcher.balena.io/), [Fedora Media Writer](https://fedoraproject.org/workstation/download) or [Rufus](https://rufus.ie/) (in Rufus, choose **DD image mode** if it asks). Windows may then say it can't read the stick; that's normal for an installer stick, so don't format it.
+Write the ISO to the stick with [balenaEtcher](https://etcher.balena.io/) or [Fedora Media Writer](https://fedoraproject.org/workstation/download), which work on Windows, macOS and Linux, or with [Rufus](https://rufus.ie/) on Windows (choose **DD image mode** if it asks). In Fedora Media Writer, choose **Select .iso file**; in balenaEtcher, **Flash from file**; then pick the stick and write. Windows may then say it can't read the stick; that's normal for an installer stick, so don't format it.
 
 ## 3. Start from the stick
 
 Plug in the stick and restart. Open your PC's boot menu as it starts (usually **F11**, **F12**, **F8** or **Esc**, shown briefly on the maker's logo) and choose the USB stick. Leave Secure Boot on.
+
+If the stick isn't offered, open the firmware settings instead (usually **Del** or **F2** as the PC starts) and check two things: **Secure Boot** is on, with the standard or Microsoft keys ("Windows UEFI mode" on some boards), and booting from USB is allowed. Turn off **CSM** or **Legacy boot** if it's on; OrielOS needs UEFI.
 
 Choose **Install OrielOS** in the menu that appears. The menu and the installer show the version of OrielOS that was current when the ISO was made, such as v0.0.5; the installer always downloads the newest stable version.
 
@@ -35,12 +38,20 @@ Choose **Install OrielOS** in the menu that appears. The menu and the installer 
 
 1. Choose your **language** and select **Continue**.
 2. On the summary screen:
+
+   ![The installer's summary screen, with Keyboard, Language Support, Time & Date, Installation Destination and Network & Host Name](images/installer-summary.webp)
+
    - **Network & Host Name**: connect to Wi-Fi if you're not on a cable.
    - **Keyboard** and **Time & Date**: open each, check it, and select **Done**.
    - **Installation Destination**: select your drive.
      - **Next to Windows**: keep **Automatic** and leave "Free up space" unticked; the installer uses only the unallocated space you made. It may warn that the EFI system partition is under 500 MiB: that's Windows' boot partition, which OrielOS shares, and the warning is harmless. If Windows' drive is encrypted with BitLocker, it also warns that Windows may ask for the recovery key: have the key ready, as above.
      - **On the whole drive**: tick "Free up space by removing or shrinking existing partitions", select **Done**, then **Delete all** and **Reclaim space**. Everything on that drive is erased.
+
+   ![Installation Destination, with the drive to install on selected and Automatic chosen under Storage Configuration](images/installer-destination.webp)
 3. Select **Begin Installation**. The installer downloads OrielOS and shows how much is left and roughly how long it will take, then installs it.
+
+   ![Installation Progress, with a bar showing how much of OrielOS has been downloaded and about how many minutes are left](images/installer-progress.webp)
+
 4. When it's done, select **Reboot System** and remove the USB stick.
 
 The installer doesn't ask for an account: OrielOS asks for it when it first starts.
@@ -50,6 +61,9 @@ The installer doesn't ask for an account: OrielOS asks for it when it first star
 - **On a PC with Windows**, a menu lists OrielOS and Windows for five seconds at every start; OrielOS starts if you don't choose.
 - During the very first start, a red line about **"Load Kernel Modules"** may flash past. It's expected: your PC doesn't trust OrielOS's extra drivers yet (the next step fixes that).
 - **The first-run setup** asks for your language, keyboard layout, network, time zone and power settings, then creates your account.
+
+  ![The first-run setup's Language page over the desktop wallpaper, with a list of languages to choose from](images/first-start-language.webp)
+
 - A notification, **Finish setting up your graphics driver**, asks you to restart once and confirm a key on a blue screen, with the password `orielos`. This lets the NVIDIA driver and other drivers load. [Secure Boot and your drivers](secure-boot.md) shows each step. If you see no blue screen, your PC already trusts the key (for example after installing OrielOS before).
 
 ## After installing
