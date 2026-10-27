@@ -48,6 +48,7 @@ Last updated: 27 October 2026.
 - **Windows programs that aren't games** can't be run with a double-click yet.
 - **No game has been played on OrielOS yet** in its tests: Steam and the graphics driver work, but playing games is the next step.
 - **Sleep and wake** haven't been checked on a real PC yet.
+- **The first start's welcome page** still says "Welcome to Plasma Desktop", over Plasma's own picture.
 - **OrielOS's own parts are in English only.**
 
 [Known limitations](known-limitations.md) lists these and more, including what OrielOS won't do by design, such as Hibernate.
