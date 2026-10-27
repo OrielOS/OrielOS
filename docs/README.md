@@ -7,6 +7,7 @@ These pages are also published as the repository's [wiki](https://github.com/ncj
 Contains:
 
 - [Install OrielOS](install.md): download the installer, make a USB stick, make room next to Windows, install and start OrielOS for the first time.
+- [Status](status.md): what works today, what doesn't work yet, and what's planned.
 - [Settings](settings.md): the categories, finding a setting, and applying changes.
 - [Using Start](start-menu.md): searching, pinning apps, All apps, recommendations, and the account and power buttons.
 - [Try OrielOS in a virtual machine](install-vm.md): build OrielOS, make a virtual machine disk and start it in QEMU or VMware Workstation.
