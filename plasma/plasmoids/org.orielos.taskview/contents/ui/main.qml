@@ -3,7 +3,8 @@
 
 // The taskbar's Task View button, after Search: shows every open window and the desktops, as
 // Win+Tab does (KWin's Overview). Sill: a 44 px button with two overlapping windows and a rounded
-// highlight when hovered or pressed. Keep this in step with org.orielos.search, its twin.
+// highlight when hovered or pressed, then a short line that sets the apps apart. Keep this in step
+// with org.orielos.search, its twin.
 
 import QtQuick
 import QtQuick.Layouts
@@ -29,12 +30,15 @@ PlasmoidItem {
     fullRepresentation: MouseArea {
         id: button
 
-        implicitWidth: 44
+        // The button, then the line in the middle of a 13 px gap.
+        readonly property int dividerSpace: 13
+
+        implicitWidth: 44 + dividerSpace
         implicitHeight: 40
-        Layout.minimumWidth: 44
+        Layout.minimumWidth: 44 + dividerSpace
         Layout.minimumHeight: 40
         Layout.fillHeight: true
-        Layout.preferredWidth: 44
+        Layout.preferredWidth: 44 + dividerSpace
         hoverEnabled: true
         activeFocusOnTab: true
         Accessible.role: Accessible.Button
@@ -45,7 +49,9 @@ PlasmoidItem {
         Keys.onSpacePressed: runner.connectSource(root.command)
 
         Rectangle {
-            anchors.centerIn: parent
+            id: highlight
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
             width: 44
             height: 40
             radius: 6
@@ -54,10 +60,19 @@ PlasmoidItem {
         }
 
         Kirigami.Icon {
-            anchors.centerIn: parent
+            anchors.centerIn: highlight
             width: Kirigami.Units.iconSizes.smallMedium
             height: Kirigami.Units.iconSizes.smallMedium
             source: "window-duplicate"
+        }
+
+        Rectangle {
+            x: 44 + (button.dividerSpace - 1) / 2
+            width: 1
+            height: 24
+            anchors.verticalCenter: parent.verticalCenter
+            color: Kirigami.Theme.textColor
+            opacity: 0.16
         }
     }
 }

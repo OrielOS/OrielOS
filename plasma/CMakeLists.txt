@@ -38,7 +38,7 @@ install(DIRECTORY shell/org.orielos.desktop DESTINATION ${KDE_INSTALL_DATADIR}/p
 install(DIRECTORY desktoptheme/orielos DESTINATION ${KDE_INSTALL_DATADIR}/plasma/desktoptheme)
 
 # The taskbar's Search and Task View buttons, QML-only Plasma widgets.
-install(DIRECTORY plasmoids/org.orielos.search plasmoids/org.orielos.taskview DESTINATION ${KDE_INSTALL_DATADIR}/plasma/plasmoids)
+install(DIRECTORY plasmoids/org.orielos.search plasmoids/org.orielos.taskview plasmoids/org.orielos.showdesktop DESTINATION ${KDE_INSTALL_DATADIR}/plasma/plasmoids)
 
 # OrielOS's look-and-feel packages: OrielOS, in light colours, and OrielOS Dark. Their layout is the
 # shell's own, so applying either with its desktop layout gives the OrielOS taskbar, whether Plasma
@@ -71,6 +71,11 @@ install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash-white.png
 # The Start button's icon: the OrielOS mark, drawn with wider gaps for taskbar sizes.
 install(FILES ${PROJECT_SOURCE_DIR}/artwork/icons/orielos-start.svg
     DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)
+
+# OrielOS's own line icons, drawn in the text colour like Breeze's, where Breeze has none in
+# OrielOS's style: Settings' sun-like gear.
+install(FILES ${PROJECT_SOURCE_DIR}/artwork/icons/orielos-settings-symbolic.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/actions)
 
 # OrielOS's logo as an icon, which os-release's LOGO names: About this System and other tools that
 # show the system's logo use it.

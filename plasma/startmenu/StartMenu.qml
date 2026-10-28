@@ -16,6 +16,9 @@ FocusScope {
 
     required property PlasmoidItem plasmoidItem
 
+    // Sill's roomy inset around the search field and the pages, beyond the popup's own padding.
+    readonly property int inset: 22
+
     readonly property MenuState menu: MenuState {
         plasmoidItem: root.plasmoidItem
         contextMenu: contextMenu
@@ -38,6 +41,15 @@ FocusScope {
             }
         }
         onFocusCycleRequested: forward => root.moveFocus(forward)
+        onShowingMoreChanged: {
+            if (root.menu.showingMore) {
+                morePage.view.currentIndex = 0;
+                morePage.view.positionViewAtBeginning();
+                Qt.callLater(root.focusAfterPageSwitch);
+            } else if (!root.menu.showingAllApps) {
+                root.focusAfterPageSwitch();
+            }
+        }
         onShowingAllAppsChanged: {
             if (root.menu.showingAllApps) {
                 allAppsPage.view.currentIndex = 0;
@@ -57,10 +69,10 @@ FocusScope {
         }
     }
 
-    Layout.minimumWidth: Kirigami.Units.gridUnit * 36
-    Layout.preferredWidth: Kirigami.Units.gridUnit * 36
-    Layout.minimumHeight: Kirigami.Units.gridUnit * 40
-    Layout.preferredHeight: Kirigami.Units.gridUnit * 40
+    Layout.minimumWidth: Kirigami.Units.gridUnit * 34
+    Layout.preferredWidth: Kirigami.Units.gridUnit * 34
+    Layout.minimumHeight: Kirigami.Units.gridUnit * 38
+    Layout.preferredHeight: Kirigami.Units.gridUnit * 38
 
     function focusPinned() {
         const grid = homePage.pinnedView;
@@ -98,6 +110,18 @@ FocusScope {
         list.forceActiveFocus(Qt.TabFocusReason);
     }
 
+    function focusMoreList() {
+        const list = morePage.view;
+        if (list.count === 0) {
+            morePage.backButton.forceActiveFocus(Qt.TabFocusReason);
+            return;
+        }
+        if (list.currentIndex < 0) {
+            list.currentIndex = 0;
+        }
+        list.forceActiveFocus(Qt.TabFocusReason);
+    }
+
     // The focus never stays on the page that was hidden: the all apps page starts in its list,
     // and the home page in the search field.
     function focusAfterPageSwitch() {
@@ -106,6 +130,8 @@ FocusScope {
         }
         if (root.menu.showingAllApps) {
             root.focusAllAppsList();
+        } else if (root.menu.showingMore) {
+            root.focusMoreList();
         } else {
             searchField.forceActiveFocus(Qt.OtherFocusReason);
         }
@@ -123,11 +149,17 @@ FocusScope {
             if (allAppsPage.view.count > 0) {
                 chain.push(allAppsPage.view);
             }
+        } else if (root.menu.showingMore) {
+            chain.push(morePage.backButton);
+            if (morePage.view.count > 0) {
+                chain.push(morePage.view);
+            }
         } else {
             chain.push(homePage.allAppsButton);
             if (homePage.pinnedView.count > 0) {
                 chain.push(homePage.pinnedView);
             }
+            chain.push(homePage.moreButton);
             if (homePage.recommendedView.count > 0) {
                 chain.push(homePage.recommendedView);
             }
@@ -149,6 +181,8 @@ FocusScope {
             root.focusRecommended();
         } else if (next === allAppsPage.view) {
             root.focusAllAppsList();
+        } else if (next === morePage.view) {
+            root.focusMoreList();
         } else {
             next.forceActiveFocus(forward ? Qt.TabFocusReason : Qt.BacktabFocusReason);
         }
@@ -162,6 +196,8 @@ FocusScope {
         }
         searchField.clear();
         root.menu.showingAllApps = false;
+        root.menu.showingMore = false;
+        homePage.reset();
         homePage.pinnedView.currentIndex = 0;
         homePage.recommendedView.currentIndex = 0;
         root.menu.syncFavorites();
@@ -196,7 +232,7 @@ FocusScope {
             if (root.menu.searching) {
                 searchField.clear();
                 searchField.forceActiveFocus(Qt.OtherFocusReason);
-            } else if (root.menu.showingAllApps) {
+            } else if (root.menu.showingAllApps || root.menu.showingMore) {
                 root.menu.showHome();
                 searchField.forceActiveFocus(Qt.OtherFocusReason);
             } else {
@@ -227,6 +263,10 @@ FocusScope {
             id: searchField
 
             Layout.fillWidth: true
+            Layout.topMargin: root.inset - Kirigami.Units.smallSpacing
+            Layout.leftMargin: root.inset
+            Layout.rightMargin: root.inset
+            Layout.bottomMargin: root.inset
             focus: true
             placeholderText: KI18n.i18nc("@info:placeholder", "Search for apps, settings and files")
             Accessible.name: KI18n.i18nc("@info:accessible", "Search")
@@ -256,6 +296,8 @@ FocusScope {
                         searchPage.moveCurrent(1);
                     } else if (root.menu.showingAllApps) {
                         root.focusAllAppsList();
+                    } else if (root.menu.showingMore) {
+                        root.focusMoreList();
                     } else {
                         root.focusPinned();
                     }
@@ -275,7 +317,9 @@ FocusScope {
         StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: root.menu.searching ? 2 : (root.menu.showingAllApps ? 1 : 0)
+            Layout.leftMargin: root.inset
+            Layout.rightMargin: root.inset
+            currentIndex: root.menu.searching ? 2 : (root.menu.showingAllApps ? 1 : (root.menu.showingMore ? 3 : 0))
 
             HomePage {
                 id: homePage
@@ -291,11 +335,20 @@ FocusScope {
                 id: searchPage
                 menu: root.menu
             }
+
+            MorePage {
+                id: morePage
+                menu: root.menu
+            }
         }
 
         Footer {
             id: footer
             Layout.fillWidth: true
+            leftPadding: root.inset
+            rightPadding: root.inset
+            topPadding: Kirigami.Units.largeSpacing
+            bottomPadding: Kirigami.Units.largeSpacing
             menu: root.menu
         }
     }

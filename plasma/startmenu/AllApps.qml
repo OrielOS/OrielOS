@@ -28,21 +28,18 @@ ColumnLayout {
         PlasmaExtras.Heading {
             Layout.fillWidth: true
             level: 4
+            font.weight: Font.DemiBold
             text: KI18n.i18nc("@title Every app", "All apps")
             textFormat: Text.PlainText
         }
 
-        PC3.ToolButton {
+        PillButton {
             id: backButton
 
+            back: true
             text: KI18n.i18nc("@action:button Go back to the pinned apps", "Back")
-            icon.name: allApps.mirrored ? "go-next" : "go-previous"
-            Accessible.name: text
-            Accessible.role: Accessible.Button
 
             onClicked: allApps.menu.showHome()
-            Keys.onReturnPressed: clicked()
-            Keys.onEnterPressed: clicked()
             Keys.onTabPressed: allApps.menu.cycleFocus(true)
             Keys.onBacktabPressed: allApps.menu.cycleFocus(false)
         }

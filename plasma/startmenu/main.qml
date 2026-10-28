@@ -22,6 +22,8 @@ PlasmoidItem {
     switchWidth: Kirigami.Units.gridUnit * 1000
     switchHeight: Kirigami.Units.gridUnit * 1000
     hideOnWindowDeactivate: true
+    // The OrielOS shell opens the menu in the middle of the taskbar, like Sill's.
+    readonly property bool centredPopup: true
 
     fullRepresentation: StartMenu {
         plasmoidItem: root

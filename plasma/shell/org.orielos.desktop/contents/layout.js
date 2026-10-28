@@ -61,4 +61,4 @@ clock.writeConfig("showDate", true);
 clock.writeConfig("dateDisplayFormat", 2);
 
 // The sliver at the far right that shows the desktop.
-panel.addWidget("org.kde.plasma.showdesktop");
+panel.addWidget("org.orielos.showdesktop");

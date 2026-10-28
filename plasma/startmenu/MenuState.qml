@@ -27,10 +27,13 @@ QtObject {
     property string query: ""
     readonly property bool searching: query.length > 0
     property bool showingAllApps: false
+    // Recommended's More page.
+    property bool showingMore: false
 
     readonly property int pinnedColumns: 6
-    readonly property int pinnedRows: 3
-    readonly property int recommendedLimit: 6
+    // Rows on each page of pinned apps.
+    readonly property int pinnedRows: 2
+    readonly property int recommendedLimit: showingMore ? 30 : 6
     // What Recommended lists, set on Settings' Start page.
     readonly property bool showRecentlyAdded: Plasmoid.configuration.showRecentlyAdded ?? true
     readonly property bool showRecentFiles: Plasmoid.configuration.showRecentFiles ?? true
@@ -522,11 +525,23 @@ QtObject {
 
     //BEGIN Pages and focus
     function showAllApps() {
+        state.showingMore = false;
         state.showingAllApps = true;
     }
 
-    function showHome() {
+    function showMore() {
         state.showingAllApps = false;
+        state.showingMore = true;
+        state.rebuildRecommended();
+    }
+
+    function showHome() {
+        const wasMore = state.showingMore;
+        state.showingAllApps = false;
+        state.showingMore = false;
+        if (wasMore) {
+            state.rebuildRecommended();
+        }
     }
 
     function focusSearch() {

@@ -277,11 +277,12 @@ def lineedit(path):
     frame(svg, "focus", c, c, None, border=("ColorScheme-Highlight", 0.70), extra=underline)
     # No separate keyboard-focus ring around the field: the focus frame above is the ring.
     frame(svg, "focusframe", c, c, None)
-    # The base's margins hold the text; Plasma draws the hover and focus frames outside the base
-    # by their own margins, so theirs are nothing.
-    hints(svg, "base", 9, 9, 14, 14)
+    # The base's margins hold the text, for Sill's 40 px field. Plasma draws the hover and focus
+    # frames outside the base by their own margins, and takes a margin of 0 as missing (and uses
+    # the corner's size instead), so theirs are 1 px.
+    hints(svg, "base", 11, 11, 14, 14)
     for state in ("hover", "focus", "focusframe"):
-        hints(svg, state, 0, 0, 0, 0)
+        hints(svg, state, 1, 1, 1, 1)
     x, y = svg.slot(2, 2)
     svg.add('<rect id="hint-focus-over-base" x="%s" y="%s" width="2" height="2" fill="#ff00ff"/>' % (x, y))
     svg.write(path)

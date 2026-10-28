@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Copies the OrielOS shell from this checkout onto a running OrielOS computer over SSH, for trying
-# changes without building an image: the shell package, OrielOS's Plasma theme, the settings that
-# make them the desktop, and the sign-in theme. OrielOS's /usr (and /usr/local) is read-only, so the files go to
+# changes without building an image: the shell package, OrielOS's Plasma theme and widgets, its line
+# icons, the settings that make them the desktop, and the sign-in theme. OrielOS's /usr (and
+# /usr/local) is read-only, so the files go to
 # /var/usrlocal/orielos-sideload/share, which carries /usr's SELinux label: a session environment
 # script puts it first on XDG_DATA_DIRS for Plasma and the lock screen, and an SDDM setting points
 # the sign-in screen at its themes. Every file it places is listed on the computer in
@@ -109,7 +110,7 @@ else
     staging="$(mktemp -d)"
     trap 'rm -rf -- "$staging"' EXIT
     tar -C "$staging" -x
-    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" /etc/sddm.conf.d
+    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" "$data/icons/hicolor/scalable/actions" /etc/sddm.conf.d
     : >"$manifest"
     place() { # place SOURCE TARGET
         cp -a -- "$1" "$2"
@@ -123,6 +124,9 @@ else
     place "$staging/desktoptheme/orielos" "$data/plasma/desktoptheme/orielos"
     for widget in "$staging"/plasmoids/*; do
         place "$widget" "$data/plasma/plasmoids/${widget##*/}"
+    done
+    for icon in "$staging"/icons/*.svg; do
+        place "$icon" "$data/icons/hicolor/scalable/actions/${icon##*/}"
     done
     place "$staging/etc/plasmashellrc" /etc/xdg/plasmashellrc
     place "$staging/etc/plasmarc" /etc/xdg/plasmarc
@@ -197,6 +201,8 @@ main() {
     cp -a "$ROOT/plasma/shell/org.orielos.desktop" "$STAGING/shell/"
     cp -a "$ROOT/plasma/desktoptheme/orielos" "$STAGING/desktoptheme/"
     cp -a "$ROOT/plasma/plasmoids" "$STAGING/plasmoids"
+    mkdir -p "$STAGING/icons"
+    cp "$ROOT"/artwork/icons/*-symbolic.svg "$STAGING/icons/"
     cp "$ROOT/image/system/etc/xdg/plasmarc" "$STAGING/etc/plasmarc"
     cp "$ROOT/image/system/etc/xdg/kwinrc" "$STAGING/etc/kwinrc"
     cp "$ROOT/image/system/etc/xdg/plasmashellrc" "$STAGING/etc/plasmashellrc"

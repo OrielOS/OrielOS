@@ -6,10 +6,10 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import org.kde.ki18n
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.components as PC3
 
-// The pinned apps, six to a row. It scrolls when there are more rows than fit.
-PC3.ScrollView {
+// The pinned apps, six to a row, in pages of a few rows: the wheel and the keyboard turn the pages,
+// and Sill's dots at the side show which page is showing and turn to the one clicked.
+Item {
     id: pinned
 
     required property MenuState menu
@@ -17,15 +17,94 @@ PC3.ScrollView {
     readonly property GridView view: grid
     // Sill's tile: room for a 38 px icon and two lines of the app's name.
     readonly property real tileHeight: 84 + Kirigami.Units.smallSpacing
+    readonly property int rowsPerPage: menu.pinnedRows
+    readonly property int pageCount: Math.max(1, Math.ceil(Math.ceil(grid.count / grid.columns) / rowsPerPage))
+    property int page: 0
 
-    PC3.ScrollBar.horizontal.policy: PC3.ScrollBar.AlwaysOff
+    // Turns to a page. The grid moves itself to show its current tile too, so the page is set
+    // rather than bound, and always holds the current tile.
+    function showPage(newPage: int) {
+        pinned.page = Math.max(0, Math.min(pinned.pageCount - 1, newPage));
+        turn.to = pinned.page * pinned.rowsPerPage * pinned.tileHeight;
+        turn.restart();
+    }
+
+    NumberAnimation {
+        id: turn
+        target: grid
+        property: "contentY"
+        duration: Kirigami.Units.longDuration
+        easing.type: Easing.OutCubic
+    }
+
+    // Wheel steps add up until they make a page, so a touchpad doesn't race through them.
+    property real wheelSum: 0
+
+    onPageCountChanged: pinned.showPage(pinned.page)
+
+    WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: event => {
+            pinned.wheelSum += event.angleDelta.y;
+            if (Math.abs(pinned.wheelSum) >= 120) {
+                pinned.showPage(pinned.page + (pinned.wheelSum < 0 ? 1 : -1));
+                pinned.wheelSum = 0;
+            }
+        }
+    }
+
+    // Sill's page dots, beside the grid, while there's more than one page.
+    Column {
+        id: dots
+
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Kirigami.Units.smallSpacing
+        visible: pinned.pageCount > 1
+
+        Repeater {
+            model: pinned.pageCount
+
+            delegate: MouseArea {
+                id: dot
+
+                required property int index
+
+                width: 12
+                height: dot.index === pinned.page ? 18 : 10
+                Accessible.role: Accessible.Button
+                Accessible.name: KI18n.i18nc("@action:button %1 is a page number", "Page %1", dot.index + 1)
+                onClicked: pinned.showPage(dot.index)
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: dot.index === pinned.page ? 4 : 5
+                    height: dot.index === pinned.page ? 14 : 5
+                    radius: width / 2
+                    color: Kirigami.Theme.textColor
+                    opacity: dot.index === pinned.page ? 1 : 0.45
+                }
+            }
+        }
+    }
 
     GridView {
         id: grid
 
         readonly property int columns: pinned.menu.pinnedColumns
 
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: dots.visible ? dots.left : parent.right
         clip: true
+        interactive: false
+        // The keyboard's current tile is always on the page showing.
+        onCurrentIndexChanged: {
+            if (grid.currentIndex >= 0) {
+                pinned.showPage(Math.floor(grid.currentIndex / grid.columns / pinned.rowsPerPage));
+            }
+        }
         model: pinned.menu.favoritesModel
         cellWidth: Math.floor(width / columns)
         cellHeight: pinned.tileHeight

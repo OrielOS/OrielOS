@@ -162,8 +162,8 @@ PlasmaExtras.PlasmoidHeading {
         Repeater {
             model: [
                 { text: KI18n.i18nc("@action:button", "Downloads"), icon: "folder-download", url: StandardPaths.writableLocation(StandardPaths.DownloadLocation) },
-                { text: KI18n.i18nc("@action:button", "Files"), icon: "system-file-manager", url: StandardPaths.writableLocation(StandardPaths.HomeLocation) },
-                { text: KI18n.i18nc("@action:button", "Settings"), icon: "settings-configure", app: "org.orielos.Settings.desktop" },
+                { text: KI18n.i18nc("@action:button", "Files"), icon: "document-open-folder", url: StandardPaths.writableLocation(StandardPaths.HomeLocation) },
+                { text: KI18n.i18nc("@action:button", "Settings"), icon: "orielos-settings-symbolic", app: "org.orielos.Settings.desktop" },
             ]
 
             delegate: PC3.ToolButton {

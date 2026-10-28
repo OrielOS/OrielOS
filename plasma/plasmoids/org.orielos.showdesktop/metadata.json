@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "A thin strip at the end of the taskbar that shows the desktop, and the windows again on a second click",
+        "Icon": "user-desktop",
+        "Id": "org.orielos.showdesktop",
+        "License": "GPL-3.0-or-later",
+        "Name": "Show desktop",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
