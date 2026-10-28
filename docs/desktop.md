@@ -7,30 +7,35 @@ The OrielOS desktop works the way you expect if you're coming from Windows: a ta
 ## The taskbar
 
 - **Start** is the first button in the middle. Click it, or press the Windows key. See [Using Start](start-menu.md).
+- **Search** and **Task View** come next. Search opens Start ready to type; Task View shows all your windows and desktops, as Windows + Tab does.
 - **Your pinned apps** sit beside it: Files, Firefox and the Store to begin with. Click one to open it, or to switch to it if it's already open. Apps you open that aren't pinned appear next to them while they run.
 - **To pin or unpin an app**, right-click it on the taskbar and choose **Pin to taskbar** or **Unpin from taskbar**. You can also pin apps from Start.
 - **To move the taskbar's apps to the left**, or hide the taskbar until you point at the bottom of the screen, open **Settings > Personalisation > Taskbar**, or right-click an empty part of the taskbar and choose **Configure Taskbar…**.
 
-## The system tray
+## The right of the taskbar
 
-The right of the taskbar holds the system tray:
+- **The arrow** shows the icons of apps running in the background, such as Discord or Steam, and the OrielOS updates icon when an update is ready (see [Updates and going back](updates.md)).
+- **Quick Settings** is the button with the network, volume and battery icons. Click it for tiles that turn Wi-Fi, Bluetooth, airplane mode, energy saver and night light on and off, sliders for brightness and volume, and the battery's charge and time left. What's playing shows on a card above it, with play, pause and skip. Scrolling over the button changes the volume.
+- **The clock and the bell.** The bell shows how many new notifications you have. Click either for your notifications, newest first, and the month's calendar beneath them. The bell at the top turns Do not disturb on and off, **Clear all** clears the list, and **Focus for 30 min** turns on Do not disturb for half an hour.
+- **The thin strip at the far right** shows the desktop. Click it again, or press Windows + D, to bring your windows back.
 
-- **Volume, network, Bluetooth and battery** icons. Click one to change it there, or choose its settings for more.
-- **The OrielOS updates icon**, which tells you when an update is ready and opens **Settings > Update**. See [Updates and going back](updates.md).
-- **The arrow** shows the icons of apps running in the background, such as Discord or Steam.
-- **The clock and date.** Click them for a calendar.
-- **The corner at the far right** shows the desktop. Click it again, or press Windows + D, to bring your windows back.
+Notifications pop up at the bottom right, above the clock, and stay in the list until you clear them.
 
-Notifications appear above the system tray and stay in its notification list until you clear them.
+## The desktop
+
+The **Bin** sits at the top left of the desktop, and shows when it has something in it. Double-click it to see what you deleted. Files you save to the desktop line up in columns beneath it.
+
+Right-click the desktop for **View** (icon size and arrangement), **Sort by**, **Refresh**, **New** (a folder or a document), **Display settings**, **Personalise** (the wallpaper and colours) and **Open in Terminal**. **Show more options** has the rest, such as emptying the Bin and adding widgets.
 
 ## Windows
 
 - **Snap a window** to one side with Windows + Left or Right arrow, or drag it to the edge of the screen.
-- **Snap layouts:** press Windows + Z to choose a half, a third or a quarter of the screen for the window you're using.
+- **Snap layouts:** rest the pointer on a window's maximise button, or press Windows + Z, to choose a half, a third or a quarter of the screen for it.
 
   ![Snap layouts open over Files, showing layouts of halves, thirds and quarters to choose from](images/snap-layouts.webp)
 
-- **See every window** with Windows + Tab, and switch between them with Alt + Tab.
+- **See every window** with Windows + Tab, and switch between them with Alt + Tab: hold Alt and press Tab to move along the windows, and let go to switch. While it shows, Delete closes the selected window.
+- **Window buttons:** minimise, maximise and close are at the top right of every window. Close turns red when you point at it.
 
 [Keyboard shortcuts](keyboard-shortcuts.md) lists them all, with how snap layouts work from the keyboard.
 

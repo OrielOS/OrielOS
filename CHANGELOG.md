@@ -23,6 +23,17 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Changed
 
+- The taskbar has a new look and new buttons, like Windows 11's:
+  - **Start** opens in the middle of the screen above the taskbar, floating with rounded corners, with two rows of pinned apps a page (dots turn the pages), a **More** page for Recommended, and Downloads, Files and Settings next to the power button.
+  - **Search** and **Task View** buttons follow Start, and a thin strip at the far right shows the desktop.
+  - **Quick Settings**, one button with the network, volume and battery icons, opens tiles for Wi-Fi, Bluetooth, airplane mode, energy saver, night light and accessibility, brightness and volume sliders and the battery, with what's playing on a card above. The tray's own network, sound, Bluetooth, battery and media icons move among the hidden icons.
+  - **The clock** shows the time over the date, with a bell that counts new notifications. Either opens your notifications, newest first, with Do not disturb and Clear all, over the month's calendar with a 30-minute focus session.
+  - Pop-ups float a little above the taskbar, and an open button is lit by a rounded highlight.
+- Windows have new frames: a flat title bar with the app's icon and title, wide minimise, maximise and close buttons (close turns red), rounded corners and a soft shadow. Resting the pointer on maximise shows snap layouts under it, and Windows + Z shows the same six layouts.
+- Alt + Tab dims the screen and shows the windows' thumbnails, each with its app's icon and title; Delete closes the selected window. Only this desktop's windows show.
+- Notifications pop up at the bottom right, above the clock, and the volume keys change the volume by 2 %.
+- The Bin is on the desktop, at the top left, and files on the desktop line up in columns from there. Right-clicking the desktop gives View, Sort by, Refresh, New, Display settings, Personalise, Open in Terminal and Show more options.
+- Quick Settings, Start and the desktop menu open the matching page of Settings instead of separate settings windows.
 - The lock screen and the sign-in screen have a new look. Locked, the screen shows a large clock and the date at the top; press a key or click and they slide away to the sign-in: your picture (or your initial) and name and a rounded password box over the blurred wallpaper. The sign-in screen lists every account at the bottom left, with Other for typing a name, and keeps the keyboard layout, the on-screen keyboard and the power menu at the bottom right.
 - OrielOS is dark by default: new accounts start with OrielOS Dark's colours, dark icons and the Nightfall wallpaper, and the sign-in screen shows Nightfall too. Light is still one switch away in Settings → Personalisation.
 - The desktop is now OrielOS's own: the taskbar, Start and the lock screen run in OrielOS's shell, which will take over more of the desktop in coming versions. Your pinned apps in Start and on the taskbar and your wallpaper carry over the first time it starts, and going back to an earlier version brings back your earlier desktop as you left it.

@@ -1,6 +1,6 @@
 # Using Start
 
-Press the Windows key (Win), or click the Start button in the middle of the taskbar, to open Start. Press it again, or Escape, to close it.
+Press the Windows key (Win), or click the Start button in the middle of the taskbar, to open Start. It opens in the middle of the screen, just above the taskbar. Press it again, or Escape, to close it.
 
 ![Start, with the search box at the top, pinned apps such as Files, Firefox, the Store and Settings, recommended apps below, and the account and power buttons at the bottom](images/start.webp)
 
@@ -10,7 +10,7 @@ Start typing as soon as Start opens. The results list apps, settings, files, app
 
 ## Pinned apps
 
-Your pinned apps fill the top of Start. To change them, right-click an app anywhere in Start, or select it and press the Menu key or Shift+F10:
+Your pinned apps fill the top of Start, two rows at a time. With more than two rows, dots beside them show which page you're on: scroll or click a dot to turn the page. To change them, right-click an app anywhere in Start, or select it and press the Menu key or Shift+F10:
 
 - **Pin to Start** adds it to the end of your pinned apps.
 - **Unpin from Start** removes it.
@@ -23,7 +23,7 @@ Your pinned apps are saved with your account, so they stay the same after a rest
 
 ## Recommended
 
-Recommended shows apps you installed in the last three days, then files you opened recently. Click one to open it. To leave either out, go to **Settings > Personalisation > Start**.
+Recommended shows apps you installed in the last three days, then files you opened recently. Click one to open it. **More** lists more of them, and **Back** returns. To leave either out, go to **Settings > Personalisation > Start**.
 
 Until you hide them, Recommended also suggests apps to get started with: Steam, Discord, Spotify and OBS Studio. Each one says "Get it from the Store", and clicking it opens its page in the Store, where you choose whether to install it. An app leaves the list once it's installed. To hide the suggestions, right-click one (or press the Menu key on it) and choose **Hide these suggestions**.
 
@@ -32,6 +32,7 @@ Until you hide them, Recommended also suggests apps to get started with: Steam, 
 At the bottom of Start:
 
 - **Your name** opens Account settings, and lets you Lock the screen, Switch user or Sign out.
+- **Downloads**, **Files** and **Settings** open your Downloads folder, your home folder and Settings.
 - **The power button** offers Sleep, Restart and Shut down. There is no Hibernate: see [Games with anti-cheat](anti-cheat.md) for why.
 
 ## Using the keyboard
