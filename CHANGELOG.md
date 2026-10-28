@@ -23,6 +23,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Changed
 
+- The desktop is now OrielOS's own: the taskbar, Start and the lock screen run in OrielOS's shell, which will take over more of the desktop in coming versions. Your pinned apps in Start and on the taskbar and your wallpaper carry over the first time it starts, and going back to an earlier version brings back your earlier desktop as you left it.
 - Games come the way they do on Windows: Steam from the Store, and other stores through their own launchers, such as the Epic Games Launcher or GOG Galaxy, installed with Run this app. Start no longer suggests Heroic Games Launcher or Lutris, which stay in the Store for anyone who wants them, and the guides no longer point to them.
 - The install guide says which graphics cards OrielOS needs, how to check the download on macOS, which tools write the USB stick on Windows, macOS and Linux, and which firmware settings to check if the stick isn't offered.
 - The website's download says it's the stable version, which updates itself, and how to switch to the testing channel; its "How to install" link opens the install guide. Each stable release's notes start with how to get it: the installer for new installs, or nothing to do on a computer that already runs OrielOS.

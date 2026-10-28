@@ -202,17 +202,33 @@ command -v python3 >/dev/null || {
     exit 1
 }
 
-# New users get the taskbar from OrielOS's look-and-feel package, which 20-desktop.sh makes the
-# default; the package and the Start button's icon come from the app-builder stage.
+# Every user's desktop is OrielOS's own shell, org.orielos.desktop, which lays out the taskbar for a
+# new desktop and carries an earlier one over; /etc/xdg/plasmashellrc makes it the default and the
+# session's environment script keeps it the fallback. The shell, the look-and-feel packages and the
+# Start button's icon come from the app-builder stage; 20-desktop.sh makes the look-and-feel the
+# default.
 lnf=org.orielos.desktop
+shell=/usr/share/plasma/shells/org.orielos.desktop
 taskbar_errors=()
+if ! python3 -I -c 'import json, sys; sys.exit(json.load(open(sys.argv[1]))["KPlugin"]["Id"] != "org.orielos.desktop")'     "$shell/metadata.json" 2>/dev/null; then
+    taskbar_errors+=("the OrielOS shell package is not installed in $shell")
+fi
+for f in contents/layout.js contents/lockscreen/LockScreen.qml contents/lockscreen/LockScreenUi.qml contents/updates/orielos-desktop-1.js; do
+    [[ -f "$shell/$f" ]] || taskbar_errors+=("the OrielOS shell package has no $f")
+done
+if [[ "$(kreadconfig6 --file /etc/xdg/plasmashellrc --group Shell --key ShellPackage)" != org.orielos.desktop ]]; then
+    taskbar_errors+=("/etc/xdg/plasmashellrc does not make org.orielos.desktop the shell")
+fi
+grep -qx 'PLASMA_DEFAULT_SHELL=org.orielos.desktop' /etc/xdg/plasma-workspace/env/orielos-shell.sh 2>/dev/null ||
+    taskbar_errors+=("/etc/xdg/plasma-workspace/env/orielos-shell.sh does not make org.orielos.desktop the fallback shell")
 if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage)" != "$lnf" ]]; then
     taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf the default look-and-feel")
 fi
 for package in "$lnf" "$lnf.dark"; do
-    if [[ ! -f "/usr/share/plasma/look-and-feel/$package/contents/layouts/org.kde.plasma.desktop-layout.js" ]]; then
-        taskbar_errors+=("the $package look-and-feel package or its layout script is not installed")
-    fi
+    for layout in org.orielos.desktop-layout.js org.kde.plasma.desktop-layout.js; do
+        cmp -s "$shell/contents/layout.js" "/usr/share/plasma/look-and-feel/$package/contents/layouts/$layout" ||
+            taskbar_errors+=("the $package look-and-feel package's $layout is missing or isn't the shell's layout")
+    done
 done
 if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultDarkLookAndFeel)" != "$lnf.dark" ]]; then
     taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf.dark the dark look-and-feel")

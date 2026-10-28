@@ -27,12 +27,23 @@ install(DIRECTORY firstrun/power/
 install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash.png
     DESTINATION ${KDE_INSTALL_DATADIR}/orielos/first-run RENAME finished-logo.png)
 
-# OrielOS's look-and-feel packages, which lay out OrielOS's taskbar for new users: OrielOS, in light
-# colours, and OrielOS Dark, which has the same layout script.
+# OrielOS's own shell, org.orielos.desktop: the desktop and taskbar layout, the lock screen and the
+# script that carries a user's earlier desktop over. Plasma takes every file it doesn't have from
+# its own desktop shell. /etc/xdg/plasmashellrc makes it the default.
+install(DIRECTORY shell/org.orielos.desktop DESTINATION ${KDE_INSTALL_DATADIR}/plasma/shells)
+
+# OrielOS's look-and-feel packages: OrielOS, in light colours, and OrielOS Dark. Their layout is the
+# shell's own, so applying either with its desktop layout gives the OrielOS taskbar, whether Plasma
+# looks it up for the OrielOS shell or for its own desktop shell.
 install(DIRECTORY look-and-feel/org.orielos.desktop look-and-feel/org.orielos.desktop.dark
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
-install(DIRECTORY look-and-feel/org.orielos.desktop/contents/layouts
-    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/org.orielos.desktop.dark/contents)
+foreach(lnf org.orielos.desktop org.orielos.desktop.dark)
+    foreach(shell org.orielos.desktop org.kde.plasma.desktop)
+        install(FILES shell/org.orielos.desktop/contents/layout.js
+            DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents/layouts
+            RENAME ${shell}-layout.js)
+    endforeach()
+endforeach()
 
 # OrielOS's colour schemes, which the look-and-feel packages choose.
 install(FILES color-schemes/OrielOSLight.colors color-schemes/OrielOSDark.colors
@@ -40,7 +51,8 @@ install(FILES color-schemes/OrielOSLight.colors color-schemes/OrielOSDark.colors
 
 # Update scripts move existing users' desktops to the current layout. Plasma runs each one once
 # per user, in file-name order, so the Start menu replaces the old launcher before the taskbar is
-# put in order.
+# put in order. They are for Plasma's desktop shell, which OrielOS no longer uses by default; they
+# stay for anyone who switches back to it. The OrielOS shell's own are in its package.
 install(FILES updates/orielos-startmenu-1.js updates/orielos-startmenu-2.js updates/orielos-taskbar-1.js
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/shells/org.kde.plasma.desktop/contents/updates)
 

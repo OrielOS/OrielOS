@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// The desktop layout for a new user: the desktop, and one taskbar along the bottom of the screen
-// laid out the way people coming from Windows expect. Plasma runs this once, when the user has no
-// plasma-org.kde.plasma.desktop-appletsrc yet. Keep the widget order in step with
-// plasma/updates/, which moves existing users' panels to it.
+// The OrielOS shell's desktop layout for a new desktop: the desktop, and one taskbar along the bottom
+// of the screen laid out the way people coming from Windows expect. Plasma runs this once, when the
+// user has no plasma-org.orielos.desktop-appletsrc yet; contents/updates/orielos-desktop-1.js then
+// copies the pins and wallpaper of a desktop the user had before the OrielOS shell.
+// plasma/CMakeLists.txt also installs this file as the look-and-feel packages' layout, so applying
+// the OrielOS global theme with its desktop layout gives the same taskbar.
 
 // The desktop, as in Breeze's layout, with the OrielOS wallpaper: Daybreak with a light colour
 // scheme and Nightfall with a dark one.

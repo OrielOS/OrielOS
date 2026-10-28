@@ -1,17 +1,37 @@
 # plasma
 
-OrielOS's layer for KDE Plasma: the taskbar, Start menu, shortcuts and look.
+OrielOS's layer for KDE Plasma: OrielOS's own shell, the taskbar, Start menu, shortcuts and look.
 
 Contains:
 
+- `shell/`: OrielOS's own shell, `org.orielos.desktop`, which Plasma runs in place of its desktop shell: the desktop and taskbar layout, the lock screen and the move from an earlier desktop (see [The OrielOS shell](#the-orielos-shell)).
 - `startmenu/`: the Start menu, OrielOS's own Plasma widget (see [The Start menu](#the-start-menu)).
-- `look-and-feel/org.orielos.desktop/` and `look-and-feel/org.orielos.desktop.dark/`: OrielOS's look-and-feel packages, light and dark, which set up OrielOS's taskbar for new users.
+- `look-and-feel/org.orielos.desktop/` and `look-and-feel/org.orielos.desktop.dark/`: OrielOS's look-and-feel packages, light and dark.
 - `color-schemes/`: OrielOS's colour schemes, OrielOS Light and OrielOS Dark (see [Colour schemes](#colour-schemes)).
-- `updates/`: desktop update scripts, which move existing users' desktops to the current layout.
+- `updates/`: update scripts for Plasma's desktop shell, from before the OrielOS shell.
 - `firstrun/`: OrielOS's pages for the first-run setup, Plasma Setup: `network/`, which shows a computer without Wi-Fi whether its cable connection reaches the internet, and `power/`, which asks when the computer sleeps and the screen turns off. They are Plasma Setup packages; `image/README.md` describes the whole setup and its page order.
 - `kwin/snaplayouts/`: the snap layouts picker, a KWin effect (see [Snap layouts](#snap-layouts)).
 
 `CMakeLists.txt` installs them with OrielOS's apps; `tools/test-apps.sh` builds them, and the image build copies them in.
+
+## The OrielOS shell
+
+`shell/org.orielos.desktop/` is OrielOS's own Plasma shell package, installed to `/usr/share/plasma/shells/`. `plasmashell` loads it in place of Plasma's desktop shell (`org.kde.plasma.desktop`), the way Plasma Mobile and Plasma Bigscreen are built, and takes every file the package doesn't have from Plasma's desktop shell, so OrielOS replaces the desktop one part at a time. KWin and Plasma's services stay as they are.
+
+- `metadata.json`: the package, `org.orielos.desktop`, with Plasma's desktop shell as its fallback.
+- `contents/layout.js`: the layout for a new desktop (see [The layout script](#the-layout-script)).
+- `contents/lockscreen/`: the lock screen, a full copy of plasma-desktop 6.7.5's with OrielOS's `LockScreenUi.qml`, whose time and date sit under the sill of the OrielOS wallpaper while the screen is idle, in ink on Daybreak and white on Nightfall, and fade out while the user unlocks. The whole folder is copied because its files load each other by relative path. `shell/lockscreen-upstream.sha256` lists the checksums of the Plasma files the copy is based on; `image/build/27-shell.sh` stops the build when Plasma's change, so the copy is rebased on them.
+- `contents/updates/orielos-desktop-1.js`: carries a user's earlier desktop over (see [Update scripts](#update-scripts)).
+
+**Which shell runs.** `plasmashell` and the lock screen read `ShellPackage` from `[Shell]` in `plasmashellrc`, then `PLASMA_DEFAULT_SHELL`, then use `org.kde.plasma.desktop`. The image's `/etc/xdg/plasmashellrc` names `org.orielos.desktop`, and `/etc/xdg/plasma-workspace/env/orielos-shell.sh` sets `PLASMA_DEFAULT_SHELL` to it too, because applying a global theme can write an empty `ShellPackage` into the user's own `plasmashellrc`, and an empty value falls through to `PLASMA_DEFAULT_SHELL` rather than to `/etc/xdg`.
+
+**Each shell has its own desktop file.** Plasma keeps a shell's desktop in `~/.config/plasma-<shell>-appletsrc`: the OrielOS shell's is `plasma-org.orielos.desktop-appletsrc`, and Plasma's desktop shell's, which OrielOS used until now, `plasma-org.kde.plasma.desktop-appletsrc`. The OrielOS shell only reads the old file, once.
+
+**Updating and going back.** Both settings are in `/etc`, and each OrielOS version has its own `/etc`, so going back to a version from before the OrielOS shell starts Plasma's desktop shell with the user's old desktop exactly as they left it; updating again brings back the OrielOS shell with its own desktop.
+
+**Trying a change.** Restarting `plasmashell` (`plasmashell --replace`) loads the package's files again. For a new desktop, sign in as a test user with no `plasma-org.orielos.desktop-appletsrc`. Update scripts only run from a folder outside the home folder: Plasma ignores any under `~/.local/share`.
+
+`image/build/90-finalise.sh` fails the build if the package, its layout, lock screen or update script, or either default is missing.
 
 ## The look-and-feel packages
 
@@ -19,9 +39,9 @@ Two Plasma 6 look-and-feel packages ("global themes"), installed to `/usr/share/
 
 - `org.orielos.desktop`, named OrielOS, and `org.orielos.desktop.dark`, named OrielOS Dark.
 - `contents/defaults`: the settings applied when a user picks the theme in System Settings: OrielOS Light or OrielOS Dark colours, Breeze's or Breeze Dark's icons, and Breeze's widget style, Plasma theme, cursors and window decorations, with the OrielOS wallpaper (see [Wallpapers](#wallpapers)), which shows Nightfall with the dark colours.
-- `contents/layouts/org.kde.plasma.desktop-layout.js`: the layout script (below), the same file in both; `CMakeLists.txt` installs the light package's copy into the dark one.
+- `contents/layouts/`: the shell's layout script (below), which `CMakeLists.txt` installs into both packages as `org.orielos.desktop-layout.js` and `org.kde.plasma.desktop-layout.js`, so applying either theme with its desktop layout gives the OrielOS taskbar under either shell.
 
-The lock screen, logout screen and splash screen come from Breeze, which Plasma falls back to when a look-and-feel package doesn't have its own.
+The logout screen and splash screen come from Breeze, which Plasma falls back to when a look-and-feel package doesn't have its own; the lock screen comes from the OrielOS shell.
 
 `image/build/20-desktop.sh` makes OrielOS the default for every user with `LookAndFeelPackage=org.orielos.desktop` in the `[KDE]` group of `/etc/xdg/kdeglobals`, and makes the two packages Plasma's light and dark choices for the Day-Night Cycle (`DefaultLightLookAndFeel` and `DefaultDarkLookAndFeel`). `/etc/xdg` comes before Fedora's `kde-settings` profile on `XDG_CONFIG_DIRS`, so this overrides Fedora's look-and-feel. `image/build/90-finalise.sh` fails the build if the settings, the packages, the colour schemes, the Start button's icon or the wallpapers are missing.
 
@@ -39,7 +59,7 @@ Plasma Setup's Dark Theme switch still applies Breeze or Breeze Dark; the first-
 
 ## The layout script
 
-Plasma runs the default look-and-feel's layout script when a user logs in for the first time, that is, when there is no `~/.config/plasma-org.kde.plasma.desktop-appletsrc` yet. OrielOS's script keeps the desktop set-up from Breeze's own script, gives the desktop the OrielOS wallpaper and creates one taskbar:
+`shell/org.orielos.desktop/contents/layout.js` runs when the OrielOS shell starts with no desktop yet, that is, when there is no `~/.config/plasma-org.orielos.desktop-appletsrc`: for a new user, and once for someone updating from a version with Plasma's desktop shell, whose pins and wallpaper the update script then copies. (Plasma would run a look-and-feel's `layouts/org.orielos.desktop-layout.js` first; OrielOS's is the same file.) OrielOS's script keeps the desktop set-up from Breeze's own script, gives the desktop the OrielOS wallpaper and creates one taskbar:
 
 - along the bottom of the screen, across its whole width, 48 pixels high at 100 % scale (the height people coming from Windows are used to), not floating;
 - a flexible spacer, the Start button, the icons-only task manager and another flexible spacer: two flexible spacers centre the widgets between them on the panel;
@@ -53,7 +73,7 @@ The task manager pins Files (`org.kde.dolphin.desktop`), Firefox (`org.mozilla.f
 
 Notifications pop up next to the notifications icon in the system tray, which is at the bottom right of the screen, so they appear at the bottom right like Windows' without any further setting.
 
-To try a change without a new user, log in as a test user with no `plasma-org.kde.plasma.desktop-appletsrc`, or paste the script into Plasma's desktop scripting console on a running desktop, which adds a second panel next to the existing one.
+To try a change without a new user, log in as a test user with no `plasma-org.orielos.desktop-appletsrc`, or paste the script into Plasma's desktop scripting console on a running desktop, which adds a second panel next to the existing one.
 
 ## The Start menu
 
@@ -78,7 +98,7 @@ Right-click an app, or press the Menu key, to pin it to or unpin it from Start. 
 
 A Plasma update can change that API, so check the Start menu after every Plasma update; this one was written against Plasma 6.7.5.
 
-**Pinned apps** are kept in the widget's own settings, the `favorites` key in the user's `~/.config/plasma-org.kde.plasma.desktop-appletsrc`, so they survive restarts and OS updates. `main.xml` holds the default pins: Files, Firefox, Store, Settings, Konsole, Process Manager and Screenshot. A pinned app that isn't installed yet, such as Firefox before the first-boot install finishes, stays in the list and shows up as soon as it's installed.
+**Pinned apps** are kept in the widget's own settings, the `favorites` key in the user's `~/.config/plasma-org.orielos.desktop-appletsrc`, so they survive restarts and OS updates. `main.xml` holds the default pins: Files, Firefox, Store, Settings, Konsole, Process Manager and Screenshot. A pinned app that isn't installed yet, such as Firefox before the first-boot install finishes, stays in the list and shows up as soon as it's installed.
 
 ## Snap layouts
 
@@ -103,7 +123,7 @@ Each package has a light image in `contents/images/` and a dark one in `contents
 
 OrielOS is the default in three places:
 
-- The layout script writes `Image=file:///usr/share/wallpapers/OrielOS/` to the `[Wallpaper][org.kde.image][General]` group of each new desktop, so a new user's `plasma-org.kde.plasma.desktop-appletsrc` names it.
+- The layout script writes `Image=file:///usr/share/wallpapers/OrielOS/` to the `[Wallpaper][org.kde.image][General]` group of each new desktop, so a new user's `plasma-org.orielos.desktop-appletsrc` names it.
 - `[Wallpaper] Image=OrielOS` in `contents/defaults`. Plasma's image wallpaper shows the default look-and-feel's `[Wallpaper]` image on any desktop without an `Image` of its own, and System Settings applies it when a user picks the theme.
 - `/etc/xdg/kscreenlockerrc`, from `image/system/etc/xdg/`, sets the lock screen's wallpaper the same way. Fedora's `kde-settings` profile names Fedora's wallpaper there, and `/etc/xdg` comes first on `XDG_CONFIG_DIRS`.
 
@@ -111,7 +131,13 @@ The login screen (SDDM) and the boot splash keep their own artwork for now.
 
 ## Update scripts
 
-The layout script only runs for new users. To change the desktop of users who already have one, a release adds an update script to `updates/`. Plasma installs them to `/usr/share/plasma/shells/org.kde.plasma.desktop/contents/updates/`, runs each script once per user when Plasma starts, and records the scripts it has run in `[Updates]` in `~/.config/plasmashellrc`, so a script never runs twice for the same user. Scripts use the same scripting API as the layout script, and what they `print` goes to `plasmashell`'s output. Plasma also runs them right after a layout script for a new user, so they must leave the current layout as it is.
+The layout script only runs for a new desktop. To change the desktop of users who already have one, a release adds an update script to the shell's `contents/updates/`. Plasma runs the scripts in the running shell's `/usr/share/plasma/shells/<shell>/contents/updates/` once per user when it starts, and records the scripts it has run in `[Updates]` in `~/.config/plasmashellrc`, so a script never runs twice for the same user. Plasma's own scripts for its widgets are in its desktop shell's folder, which the OrielOS shell doesn't read: when a Plasma update adds one that applies to a widget on OrielOS's desktop, copy it into the OrielOS shell's folder. Scripts use the same scripting API as the layout script, and what they `print` goes to `plasmashell`'s output. Plasma also runs them right after a layout script for a new user, so they must leave the current layout as it is.
+
+The OrielOS shell's script:
+
+- `shell/org.orielos.desktop/contents/updates/orielos-desktop-1.js` carries a desktop from Plasma's desktop shell over to the OrielOS shell, the first time it starts for someone who had one: it reads the Start menu's `favorites`, the task manager's `launchers` and the desktop's wallpaper from `plasma-org.kde.plasma.desktop-appletsrc` and writes them onto the taskbar the layout script has just made. It never writes the old file. For a new user there is nothing to copy.
+
+The scripts in `updates/` are for Plasma's desktop shell, which OrielOS used before the OrielOS shell; `CMakeLists.txt` still installs them to `/usr/share/plasma/shells/org.kde.plasma.desktop/contents/updates/` for anyone who switches back to it:
 
 - `orielos-startmenu-2.js` pins OrielOS's Settings app in place of System Settings in a user's Start menu, when they had System Settings pinned; Start menus on the default pins are left alone, since the default now pins Settings.
 - `orielos-startmenu-1.js` replaces Plasma's launcher (Kickoff, Kicker or the application dashboard) on the default bottom panel with OrielOS's Start menu, in the same place. It keeps a custom launcher icon, replacing only Plasma's and Fedora's stock icons, and changes nothing on a panel that already has the Start menu. Plasma runs scripts in file-name order, so it runs before `orielos-taskbar-1.js`. The old launcher's pinned apps aren't carried over: the Start menu starts with OrielOS's default pins.
@@ -119,9 +145,9 @@ The layout script only runs for new users. To change the desktop of users who al
 
 Rules for update scripts:
 
-- Name them `orielos-<topic>-<n>.js`, numbering from 1, and add a new script for every change rather than editing a released one: Plasma would not run an edited script again for users who already ran it. Edit a released script only to keep it working with the current layout for the users who haven't run it yet. For example, `orielos-taskbar-1.js` now counts the Start menu as the launcher, so it leaves a new user's taskbar as it is.
+- Put new scripts in the OrielOS shell's `contents/updates/`. Name them `orielos-<topic>-<n>.js`, numbering from 1, and add a new script for every change rather than editing a released one: Plasma would not run an edited script again for users who already ran it. Edit a released script only to keep it working with the current layout for the users who haven't run it yet. For example, `orielos-taskbar-1.js` now counts the Start menu as the launcher, so it leaves a new user's taskbar as it is.
 - Make them safe to run on any desktop, including a brand-new one from the current layout script: check what is there, change only what needs changing and log what changed.
 - Keep the layout script and the update scripts in step, so new and existing users end up with the same desktop.
-- Add each script to `install(FILES ...)` in `CMakeLists.txt`.
+- Scripts in the shell's `contents/updates/` are installed with the package; add any in `updates/` to `install(FILES ...)` in `CMakeLists.txt`.
 
 Licence: GPL-3.0-or-later (see `LICENSE` in the repository root).
