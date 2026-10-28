@@ -2,6 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "Daily refresh of the digests pinned in image/pins.env (Fedora's registry drops old digests within days), which is how Fedora's updates reach OrielOS builds. GitHub Actions and the Discord bot's packages are left to Dependabot.",
   "extends": ["config:recommended"],
+  "dependencyDashboard": false,
   "enabledManagers": ["custom.regex"],
   "timezone": "Europe/London",
   "schedule": ["before 6am"],
