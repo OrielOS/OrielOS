@@ -32,7 +32,7 @@ PlasmaCore.Dialog {
         { id: "terminal", text: KI18n.i18nc("@action:inmenu Power user menu", "Term&inal") },
         { id: "admin-terminal", text: KI18n.i18nc("@action:inmenu Power user menu", "Terminal (&Admin)") },
         { separator: true },
-        { id: "task-manager", text: KI18n.i18nc("@action:inmenu Power user menu", "&Task Manager") },
+        { id: "process-manager", text: KI18n.i18nc("@action:inmenu Power user menu", "Pro&cess Manager") },
         { id: "settings", text: KI18n.i18nc("@action:inmenu Power user menu", "Setti&ngs") },
         { id: "files", text: KI18n.i18nc("@action:inmenu Power user menu", "Fil&es") },
         { id: "search", text: KI18n.i18nc("@action:inmenu Power user menu", "&Search") },

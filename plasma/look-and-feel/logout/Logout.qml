@@ -5,7 +5,7 @@ pragma ComponentBehavior: Bound
 
 // Plasma's log-out screen, as OrielOS's Ctrl+Alt+Del screen, laid out the way Windows does it: the
 // desktop gives way to a plain dark page with Lock, Switch user, Sign out, Change a password and
-// Task Manager in the middle, Cancel below them, and the power button at the bottom right (Sleep,
+// Process Manager in the middle, Cancel below them, and the power button at the bottom right (Sleep,
 // Shut down, Restart). Plasma shows it for Ctrl+Alt+Del and whenever something asks for it; Start's
 // Shut down and Restart don't, as /etc/xdg/ksmserverrc turns the confirmation off.
 //
@@ -72,7 +72,7 @@ Item {
                 { text: i18ndc("plasma_lookandfeel_org.orielos.desktop", "@action:button", "Switch user"), act: () => { session.switchUser(); root.cancelRequested(); }, shown: session.canSwitchUser },
                 { text: i18ndc("plasma_lookandfeel_org.orielos.desktop", "@action:button", "Sign out"), act: () => root.logoutRequested(), shown: canLogout },
                 { text: i18ndc("plasma_lookandfeel_org.orielos.desktop", "@action:button", "Change a password"), act: () => root.openThen("orielos-settings:your-info"), shown: true },
-                { text: i18ndc("plasma_lookandfeel_org.orielos.desktop", "@action:button", "Task Manager"), act: () => { taskManager.call(); root.cancelRequested(); }, shown: true },
+                { text: i18ndc("plasma_lookandfeel_org.orielos.desktop", "@action:button", "Process Manager"), act: () => { processManager.call(); root.cancelRequested(); }, shown: true },
             ]
 
             delegate: QQC2.AbstractButton {
@@ -158,9 +158,9 @@ Item {
         }
     }
 
-    // Task Manager is Process Manager, which OrielOS starts with Ctrl+Shift+Esc.
+    // Process Manager, which OrielOS starts with Ctrl+Shift+Esc.
     QtObject {
-        id: taskManager
+        id: processManager
 
         function call() {
             DBus.SessionBus.asyncCall({
