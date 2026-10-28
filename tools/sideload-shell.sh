@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copies the OrielOS shell from this checkout onto a running OrielOS computer over SSH, for trying
-# changes without building an image: the shell package, the settings that make it the desktop and
-# the sign-in theme. OrielOS's /usr (and /usr/local) is read-only, so the files go to
+# changes without building an image: the shell package, OrielOS's Plasma theme, the settings that
+# make them the desktop, and the sign-in theme. OrielOS's /usr (and /usr/local) is read-only, so the files go to
 # /var/usrlocal/orielos-sideload/share, which carries /usr's SELinux label: a session environment
 # script puts it first on XDG_DATA_DIRS for Plasma and the lock screen, and an SDDM setting points
 # the sign-in screen at its themes. Every file it places is listed on the computer in
@@ -100,7 +100,7 @@ else
     staging="$(mktemp -d)"
     trap 'rm -rf -- "$staging"' EXIT
     tar -C "$staging" -x
-    mkdir -p "$data/plasma/shells" "$data/sddm/themes" /etc/sddm.conf.d
+    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/sddm/themes" /etc/sddm.conf.d
     : >"$manifest"
     place() { # place SOURCE TARGET
         cp -a -- "$1" "$2"
@@ -111,7 +111,9 @@ else
         printf '%s\n' "$1" >>"$manifest"
     }
     place "$staging/shell/org.orielos.desktop" "$data/plasma/shells/org.orielos.desktop"
+    place "$staging/desktoptheme/orielos" "$data/plasma/desktoptheme/orielos"
     place "$staging/etc/plasmashellrc" /etc/xdg/plasmashellrc
+    place "$staging/etc/plasmarc" /etc/xdg/plasmarc
     place "$staging/etc/orielos-shell.sh" /etc/xdg/plasma-workspace/env/orielos-shell.sh
     write /etc/xdg/plasma-workspace/env/orielos-sideload.sh <<ENV
 XDG_DATA_DIRS="$data:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
@@ -155,8 +157,10 @@ main() {
     fi
     trap cleanup EXIT
     STAGING="$(mktemp -d)"
-    mkdir -p "$STAGING/shell" "$STAGING/etc" "$STAGING/sddm"
+    mkdir -p "$STAGING/shell" "$STAGING/desktoptheme" "$STAGING/etc" "$STAGING/sddm"
     cp -a "$ROOT/plasma/shell/org.orielos.desktop" "$STAGING/shell/"
+    cp -a "$ROOT/plasma/desktoptheme/orielos" "$STAGING/desktoptheme/"
+    cp "$ROOT/image/system/etc/xdg/plasmarc" "$STAGING/etc/plasmarc"
     cp "$ROOT/image/system/etc/xdg/plasmashellrc" "$STAGING/etc/plasmashellrc"
     cp "$ROOT/image/system/etc/xdg/plasma-workspace/env/orielos-shell.sh" "$STAGING/etc/orielos-shell.sh"
     cp "$ROOT"/image/sddm/orielos/*.qml "$ROOT/image/sddm/orielos/metadata.desktop" \

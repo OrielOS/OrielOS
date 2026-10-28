@@ -1,0 +1,4 @@
+# OrielOS's Plasma theme, orielos (plasma/desktoptheme/), is every user's: the taskbar, pop-ups,
+# tooltips and task buttons in OrielOS's look. A user who picks another theme in Settings keeps it.
+[Theme]
+name=orielos

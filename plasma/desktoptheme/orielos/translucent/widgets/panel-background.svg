@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 OrielOS contributors -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Written by plasma/desktoptheme/src/generate.py; change that and run it again. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="18">
+<defs><style id="current-color-scheme" type="text/css">.ColorScheme-Background { color:#1a1f2e; } .ColorScheme-Text { color:#ffffff; } .ColorScheme-Highlight { color:#3a66f0; } .ColorScheme-NegativeText { color:#e05a5a; }</style>
+<linearGradient id="shade-top" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+<linearGradient id="shade-bottom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+<linearGradient id="shade-left" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+<linearGradient id="shade-right" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+<radialGradient id="shade-topleft" cx="358" cy="8" r="8" gradientUnits="userSpaceOnUse" gradientTransform="translate(358,8) scale(1.0,1.0) translate(-358,-8)"><stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<radialGradient id="shade-topright" cx="368" cy="8" r="8" gradientUnits="userSpaceOnUse" gradientTransform="translate(368,8) scale(1.0,1.0) translate(-368,-8)"><stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<radialGradient id="shade-bottomleft" cx="394" cy="0" r="8" gradientUnits="userSpaceOnUse" gradientTransform="translate(394,0) scale(1.0,1.0) translate(-394,0)"><stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<radialGradient id="shade-bottomright" cx="404" cy="0" r="8" gradientUnits="userSpaceOnUse" gradientTransform="translate(404,0) scale(1.0,1.0) translate(-404,0)"><stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>
+<g id="topleft" transform="translate(0,0) "><rect x="0" y="0" width="4" height="4" style="fill:none"/><path d="M 0,0 H 4 V 4 H 0 Z" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/><rect x="0" y="0" width="4" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.09"/></g>
+<g id="topright" transform="translate(18,0) scale(-1,1)"><rect x="0" y="0" width="4" height="4" style="fill:none"/><path d="M 0,0 H 4 V 4 H 0 Z" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/><rect x="0" y="0" width="4" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.09"/></g>
+<g id="bottomleft" transform="translate(28,4) scale(1,-1)"><rect x="0" y="0" width="4" height="4" style="fill:none"/><path d="M 0,0 H 4 V 4 H 0 Z" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/></g>
+<g id="bottomright" transform="translate(46,4) scale(-1,-1)"><rect x="0" y="0" width="4" height="4" style="fill:none"/><path d="M 0,0 H 4 V 4 H 0 Z" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/></g>
+<g id="top" transform="translate(56,0)"><rect x="0" y="0" width="1" height="4" style="fill:none"/><rect x="0" y="0" width="1" height="4" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/><rect x="0" y="0" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.09"/></g>
+<g id="bottom" transform="translate(67,0)"><rect x="0" y="0" width="1" height="4" style="fill:none"/><rect x="0" y="0" width="1" height="4" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/></g>
+<g id="left" transform="translate(78,0)"><rect x="0" y="0" width="4" height="1" style="fill:none"/><rect x="0" y="0" width="4" height="1" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/></g>
+<g id="right" transform="translate(92,0)"><rect x="0" y="0" width="4" height="1" style="fill:none"/><rect x="0" y="0" width="4" height="1" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/></g>
+<g id="center" transform="translate(106,0)"><rect x="0" y="0" width="4" height="4" style="fill:none"/><rect x="0" y="0" width="4" height="4" class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.8"/></g>
+<rect id="hint-top-margin" x="120" y="0" width="2" height="4" fill="#ff00ff"/>
+<rect id="hint-bottom-margin" x="132" y="0" width="2" height="4" fill="#ff00ff"/>
+<rect id="hint-left-margin" x="144" y="0" width="4" height="2" fill="#ff00ff"/>
+<rect id="hint-right-margin" x="158" y="0" width="4" height="2" fill="#ff00ff"/>
+<g id="mask-topleft" transform="translate(172,0) "><rect x="0" y="0" width="4" height="4" style="fill:none"/><path d="M 0,0 H 4 V 4 H 0 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="mask-topright" transform="translate(190,0) scale(-1,1)"><rect x="0" y="0" width="4" height="4" style="fill:none"/><path d="M 0,0 H 4 V 4 H 0 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="mask-bottomleft" transform="translate(200,4) scale(1,-1)"><rect x="0" y="0" width="4" height="4" style="fill:none"/><path d="M 0,0 H 4 V 4 H 0 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="mask-bottomright" transform="translate(218,4) scale(-1,-1)"><rect x="0" y="0" width="4" height="4" style="fill:none"/><path d="M 0,0 H 4 V 4 H 0 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="mask-top" transform="translate(228,0)"><rect x="0" y="0" width="1" height="4" style="fill:none"/><rect x="0" y="0" width="1" height="4" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="mask-bottom" transform="translate(239,0)"><rect x="0" y="0" width="1" height="4" style="fill:none"/><rect x="0" y="0" width="1" height="4" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="mask-left" transform="translate(250,0)"><rect x="0" y="0" width="4" height="1" style="fill:none"/><rect x="0" y="0" width="4" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="mask-right" transform="translate(264,0)"><rect x="0" y="0" width="4" height="1" style="fill:none"/><rect x="0" y="0" width="4" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="mask-center" transform="translate(278,0)"><rect x="0" y="0" width="4" height="4" style="fill:none"/><rect x="0" y="0" width="4" height="4" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:1"/></g>
+<rect id="shadow-top" x="292" y="0" width="1" height="8" fill="url(#shade-top)"/>
+<rect id="shadow-bottom" x="303" y="0" width="1" height="8" fill="url(#shade-bottom)"/>
+<rect id="shadow-left" x="314" y="0" width="8" height="1" fill="url(#shade-left)"/>
+<rect id="shadow-right" x="332" y="0" width="8" height="1" fill="url(#shade-right)"/>
+<rect id="shadow-topleft" x="350" y="0" width="8" height="8" fill="url(#shade-topleft)"/>
+<rect id="shadow-topright" x="368" y="0" width="8" height="8" fill="url(#shade-topright)"/>
+<rect id="shadow-bottomleft" x="386" y="0" width="8" height="8" fill="url(#shade-bottomleft)"/>
+<rect id="shadow-bottomright" x="404" y="0" width="8" height="8" fill="url(#shade-bottomright)"/>
+<rect id="shadow-hint-top-margin" x="422" y="0" width="2" height="8" fill="#ff00ff"/>
+<rect id="shadow-hint-bottom-margin" x="434" y="0" width="2" height="8" fill="#ff00ff"/>
+<rect id="shadow-hint-left-margin" x="446" y="0" width="8" height="2" fill="#ff00ff"/>
+<rect id="shadow-hint-right-margin" x="464" y="0" width="8" height="2" fill="#ff00ff"/>
+</svg>

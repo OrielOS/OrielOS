@@ -32,6 +32,11 @@ install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash.png
 # its own desktop shell. /etc/xdg/plasmashellrc makes it the default.
 install(DIRECTORY shell/org.orielos.desktop DESTINATION ${KDE_INSTALL_DATADIR}/plasma/shells)
 
+# OrielOS's Plasma theme, orielos, in Sill's look: the taskbar, pop-ups, tooltips and task buttons.
+# desktoptheme/src/generate.py writes its SVGs; any file it doesn't have comes from Breeze.
+# /etc/xdg/plasmarc makes it the default.
+install(DIRECTORY desktoptheme/orielos DESTINATION ${KDE_INSTALL_DATADIR}/plasma/desktoptheme)
+
 # OrielOS's look-and-feel packages: OrielOS, in light colours, and OrielOS Dark. Their layout is the
 # shell's own, so applying either with its desktop layout gives the OrielOS taskbar, whether Plasma
 # looks it up for the OrielOS shell or for its own desktop shell.

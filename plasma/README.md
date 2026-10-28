@@ -6,6 +6,7 @@ Contains:
 
 - `shell/`: OrielOS's own shell, `org.orielos.desktop`, which Plasma runs in place of its desktop shell: the desktop and taskbar layout, the lock screen and the move from an earlier desktop (see [The OrielOS shell](#the-orielos-shell)).
 - `startmenu/`: the Start menu, OrielOS's own Plasma widget (see [The Start menu](#the-start-menu)).
+- `desktoptheme/`: OrielOS's Plasma theme, `orielos`, and the script that writes it (see [The Plasma theme](#the-plasma-theme)).
 - `look-and-feel/org.orielos.desktop/` and `look-and-feel/org.orielos.desktop.dark/`: OrielOS's look-and-feel packages, light and dark.
 - `color-schemes/`: OrielOS's colour schemes, OrielOS Light and OrielOS Dark (see [Colour schemes](#colour-schemes)).
 - `updates/`: update scripts for Plasma's desktop shell, from before the OrielOS shell.
@@ -32,6 +33,16 @@ Contains:
 **Trying a change.** Restarting `plasmashell` (`plasmashell --replace`) loads the package's files again. For a new desktop, sign in as a test user with no `plasma-org.orielos.desktop-appletsrc`. Update scripts only run from a folder outside the home folder: Plasma ignores any under `~/.local/share`.
 
 `image/build/90-finalise.sh` fails the build if the package, its layout, lock screen or update script, or either default is missing.
+
+## The Plasma theme
+
+`desktoptheme/orielos/` is OrielOS's Plasma theme ("desktop theme"), installed to `/usr/share/plasma/desktoptheme/` and made the default by `/etc/xdg/plasmarc` and both look-and-feel packages. It draws the taskbar, pop-ups (Start, the tray's pop-ups, notifications, the calendar, menus), tooltips and task buttons in Sill's look:
+
+- **Pop-ups** are panes with 8 px corners, a thin light rim and a soft shadow, translucent over Plasma's blur (`translucent/`) or nearly opaque without it.
+- **The taskbar** is a translucent bar with a hairline along its top.
+- **Task buttons:** the app in use has a soft highlight and the sill, a Daylight line under its icon; other running apps get a short grey dash; hovering highlights; an app asking for attention is tinted.
+
+Colours come from the colour scheme (Plasma's `ColorScheme-*` classes), so the theme is dark with OrielOS Dark and light with OrielOS Light; Daylight is the one fixed colour. `desktoptheme/src/generate.py` writes every SVG from a few numbers (corner sizes, opacities, shadow depths): change it and run it again rather than editing the SVGs. Files the theme doesn't have come from Breeze.
 
 ## The look-and-feel packages
 

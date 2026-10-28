@@ -252,6 +252,12 @@ fi
 for f in contents/layout.js contents/lockscreen/LockScreen.qml contents/lockscreen/LockScreenUi.qml contents/updates/orielos-desktop-1.js; do
     [[ -f "$shell/$f" ]] || taskbar_errors+=("the OrielOS shell package has no $f")
 done
+for f in metadata.json widgets/panel-background.svg widgets/tasks.svg dialogs/background.svg translucent/dialogs/background.svg; do
+    [[ -f "/usr/share/plasma/desktoptheme/orielos/$f" ]] || taskbar_errors+=("OrielOS's Plasma theme has no $f")
+done
+if [[ "$(kreadconfig6 --file /etc/xdg/plasmarc --group Theme --key name)" != orielos ]]; then
+    taskbar_errors+=("/etc/xdg/plasmarc does not make orielos the Plasma theme")
+fi
 if [[ "$(kreadconfig6 --file /etc/xdg/plasmashellrc --group Shell --key ShellPackage)" != org.orielos.desktop ]]; then
     taskbar_errors+=("/etc/xdg/plasmashellrc does not make org.orielos.desktop the shell")
 fi
