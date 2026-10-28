@@ -215,8 +215,10 @@ taskbar_errors=()
 # not from the scheme's name, so the whole scheme goes into /etc/xdg/kdeglobals; the wallpapers
 # and the lock screen show Nightfall with dark colours.
 dark_scheme=/usr/share/color-schemes/OrielOSDark.colors
-if [[ -r "$dark_scheme" ]]; then
-    python3 -I - "$dark_scheme" <<'PY' | while IFS=$'\t' read -r group key value; do
+# Prints each colour entry of a colour scheme as group<TAB>key<TAB>value, the group as Plasma
+# writes it in kdeglobals, such as Colors:Header][Inactive.
+scheme_entries() {
+    python3 -I - "$1" <<'PY'
 import configparser, sys
 
 scheme = configparser.RawConfigParser(strict=False, interpolation=None)
@@ -227,11 +229,14 @@ for section in scheme.sections():
         for key, value in scheme.items(section):
             print(f"{section}\t{key}\t{value}")
 PY
+}
+if [[ -r "$dark_scheme" ]]; then
+    while IFS=$'\t' read -r group key value; do
         IFS='][' read -ra groups <<<"$group"
         args=()
         for g in "${groups[@]}"; do [[ -n "$g" ]] && args+=(--group "$g"); done
         kwriteconfig6 --file /etc/xdg/kdeglobals "${args[@]}" --key "$key" "$value"
-    done
+    done < <(scheme_entries "$dark_scheme")
     kwriteconfig6 --file /etc/xdg/kdeglobals --group General --key ColorScheme OrielOSDark
 fi
 window_default="$(kreadconfig6 --file /etc/xdg/kdeglobals --group Colors:Window --key BackgroundNormal)"
