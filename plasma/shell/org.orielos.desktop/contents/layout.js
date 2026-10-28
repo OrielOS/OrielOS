@@ -51,10 +51,10 @@ tasks.writeConfig("fill", false);
 
 panel.addWidget("org.kde.plasma.panelspacer");
 
-// The system tray holds the notifications, network, sound and other status icons.
-// Network, sound, Bluetooth, battery, brightness and media move into Quick Settings, next to the
-// tray. Plasma's own widgets for them stay loaded, among the hidden icons, because the volume and
-// media keys belong to them.
+// The system tray holds the apps' status icons. Network, sound, Bluetooth, battery, brightness and
+// media move into Quick Settings, next to the tray, and notifications into the clock's bell.
+// Plasma's own widgets for them stay loaded, among the hidden icons, because the volume and media
+// keys belong to them and Plasma's notifications widget shows the pop-ups.
 var tray = panel.addWidget("org.kde.plasma.systemtray");
 tray.currentConfigGroup = ["General"];
 tray.writeConfig("hiddenItems", [
@@ -64,14 +64,12 @@ tray.writeConfig("hiddenItems", [
     "org.kde.plasma.battery",
     "org.kde.plasma.brightness",
     "org.kde.plasma.mediacontroller",
+    "org.kde.plasma.notifications",
 ]);
 panel.addWidget("org.orielos.quicksettings");
 
-var clock = panel.addWidget("org.kde.plasma.digitalclock");
-clock.currentConfigGroup = ["Appearance"];
-clock.writeConfig("showDate", true);
-// 2 puts the date under the time.
-clock.writeConfig("dateDisplayFormat", 2);
+// The clock and the bell, which open the notifications and the calendar.
+panel.addWidget("org.orielos.clock");
 
 // The sliver at the far right that shows the desktop.
 panel.addWidget("org.orielos.showdesktop");

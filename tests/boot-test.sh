@@ -1249,7 +1249,7 @@ run_checks() {
         pass "The desktop is OrielOS's own shell (plasma-org.orielos.desktop-appletsrc, and no desktop file for Plasma's shell)"
     fi
 
-    taskbar="panelspacer startmenu icontasks panelspacer systemtray digitalclock showdesktop"
+    taskbar="panelspacer startmenu search taskview icontasks panelspacer systemtray quicksettings clock showdesktop"
     if [[ "$SSH_OK" -ne 1 ]]; then
         fail "The OrielOS taskbar is set up: $no_ssh"
         hint "$ssh_hint"

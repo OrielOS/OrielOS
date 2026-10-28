@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Date and Time",
+        "Description": "The time and date, and the bell, which open the notifications and the calendar",
+        "Icon": "preferences-system-time",
+        "Id": "org.orielos.clock",
+        "License": "GPL-3.0-or-later",
+        "Name": "Clock and notifications",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

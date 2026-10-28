@@ -26,6 +26,7 @@ Contains:
 - `contents/updates/orielos-desktop-1.js`: carries a user's earlier desktop over (see [Update scripts](#update-scripts)).
 - `contents/updates/orielos-buttons-1.js`: adds the Search and Task View buttons after Start on taskbars made before they existed.
 - `contents/updates/orielos-sliver-1.js`: swaps Plasma's Show Desktop button for OrielOS's show desktop sliver.
+- `contents/updates/orielos-clock-1.js`: swaps Plasma's digital clock for the clock and bell, and moves the notifications icon among the hidden icons.
 - `contents/updates/orielos-quicksettings-1.js`: adds Quick Settings after the tray and moves the icons it covers among the tray's hidden icons.
 
 **Which shell runs.** `plasmashell` and the lock screen read `ShellPackage` from `[Shell]` in `plasmashellrc`, then `PLASMA_DEFAULT_SHELL`, then use `org.kde.plasma.desktop`. The image's `/etc/xdg/plasmashellrc` names `org.orielos.desktop`, and `/etc/xdg/plasma-workspace/env/orielos-shell.sh` sets `PLASMA_DEFAULT_SHELL` to it too, because applying a global theme can write an empty `ShellPackage` into the user's own `plasmashellrc`, and an empty value falls through to `PLASMA_DEFAULT_SHELL` rather than to `/etc/xdg`.
@@ -123,6 +124,7 @@ QML-only Plasma widgets in `plasmoids/`, installed to `/usr/share/plasma/plasmoi
 - `org.orielos.taskview`: the Task View button (KWin's Overview), with the short line that sets the apps apart after it.
 - `org.orielos.showdesktop`: the show desktop sliver at the far end of the taskbar (KWin's Show Desktop).
 - `org.orielos.quicksettings`: Quick Settings, between the hidden icons and the clock: one button with the network, volume and battery icons, opening the panel of what's playing, tiles for Wi-Fi, Bluetooth, airplane mode, energy saver, night light and accessibility, the brightness and volume sliders, and the battery. It uses the same Plasma services as Plasma's own network, sound, Bluetooth, power, brightness and media widgets (their QML modules, some of them private to Plasma, so a Plasma update can change them: check Quick Settings after one). Those widgets stay loaded among the hidden icons because the volume and media keys belong to them. The wheel over the button changes the volume by 2 %.
+- `org.orielos.clock`: the clock and the bell at the end of the taskbar, the time over the date and the bell with the number of new notifications (or Do not disturb's bell). Either opens the notification centre: the history, newest first, with Do not disturb and Clear all, over the month's calendar with a 30-minute focus session (Do not disturb for half an hour). Sill draws these as two cards with a gap, which Plasma's popups (always one pane) can't, so the widget opens a window of its own with no pane. It reads the same history as Plasma's notifications widget, with the same "don't keep in history" settings, which by default leave out apps with no desktop entry (`@other`); Plasma's widget stays loaded among the hidden icons for the pop-ups.
 
 OrielOS's own line icons for these, drawn like Breeze's where Breeze has none in OrielOS's style, are in `artwork/icons/*-symbolic.svg` and installed to `hicolor/scalable/actions`.
 

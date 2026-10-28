@@ -58,8 +58,6 @@ MouseArea {
 
     Rectangle {
         anchors.fill: parent
-        anchors.topMargin: 4
-        anchors.bottomMargin: 4
         radius: 6
         color: Kirigami.Theme.textColor
         opacity: button.pressed ? 0.14 : (button.containsMouse || button.activeFocus ? 0.08 : 0)

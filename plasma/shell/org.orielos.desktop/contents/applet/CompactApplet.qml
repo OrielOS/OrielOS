@@ -9,7 +9,7 @@
 // Plasma's popup for widgets in a panel (plasma-desktop's shell, applet/CompactApplet.qml), with
 // OrielOS's changes for its new look: popups from the taskbar float a little above it, like Sill's,
 // with all their corners rounded; a widget that declares `centredPopup: true` (Start) opens its
-// popup in the middle of the taskbar rather than over itself; and an open widget is lit by a rounded
+// popup in the middle of the taskbar rather than over itself; an open widget is lit by a rounded
 // highlight rather than a tab.
 import QtQuick
 import QtQuick.Layouts
