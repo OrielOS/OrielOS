@@ -67,7 +67,7 @@ The look-and-feel packages also carry OrielOS's Ctrl+Alt+Del screen (`look-and-f
 
 Asked to shut down (`sdtype` is KWorkSpace's `ShutdownTypeHalt`, 2), the same file shows Windows' small Shut down dialog instead (`ShutDownDialog.qml`): a list of Switch user, Sign out, Sleep, Shut down and Restart, with Shut down chosen, and OK and Cancel. `kwin/closeorshutdown/` is the KWin script that asks for it: it takes Alt+F4, closes the window in use as KWin's Close Window did, and with no window in use (the desktop) asks `org.kde.LogoutPrompt` to shut down. KWin's Close Window gives up Alt+F4 for it: new accounts through `/etc/skel/.config/kglobalshortcutsrc`, earlier ones once at sign-in through `/usr/libexec/orielos/close-shortcut` (`orielos-close-shortcut.service`), unless the user gave Close Window another shortcut.
 
-OrielOS's English wording (`translations/en@orielos/`, first when the desktop's language is English) also names Dolphin's window Files (`dolphin.po`) and its Trash place Bin (`kio6.po`). KDE's standard actions, such as Move to Trash, come from Qt translation catalogues, which this doesn't change.
+OrielOS's English wording (`translations/en@orielos/`, first when the desktop's language is English) also names Dolphin's window Files (`dolphin.po`) and its Trash place Bin (`kio6.po`). KDE's standard Move to Trash action, in every app, becomes Move to Bin (`kconfigwidgets6.po`), as does the text Files shows for it with nothing selected (`dolphin.po`).
 
 ## Colour schemes
 

@@ -1,5 +1,6 @@
-# OrielOS's wording for Dolphin, which OrielOS calls Files: its name, in the window's title. Only the
-# strings OrielOS changes are here; the rest comes from Dolphin or the language's translation.
+# OrielOS's wording for Dolphin, which OrielOS calls Files: its name, in the window's title, and the
+# Bin, as OrielOS calls the trash. Only the strings OrielOS changes are here; the rest comes from
+# Dolphin or the language's translation.
 # SPDX-FileCopyrightText: 2026 OrielOS contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 msgid ""
@@ -14,3 +15,7 @@ msgstr ""
 
 msgid "Dolphin"
 msgstr "Files"
+
+msgctxt "@action:inmenu File"
+msgid "Move to Trash…"
+msgstr "Move to Bin…"

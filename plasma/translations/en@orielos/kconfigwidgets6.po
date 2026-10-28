@@ -1,0 +1,16 @@
+# OrielOS's wording for KDE's standard actions, such as every app's Move to Trash: OrielOS calls the
+# trash the Bin. Only the strings OrielOS changes are here.
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+msgid ""
+msgstr ""
+"Project-Id-Version: orielos\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+msgid "&Move to Trash"
+msgstr "&Move to Bin"
