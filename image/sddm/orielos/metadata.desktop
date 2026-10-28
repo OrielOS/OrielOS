@@ -1,6 +1,6 @@
 [SddmGreeterTheme]
 Name=OrielOS
-Description=OrielOS's sign-in screen: the time over the OrielOS wallpaper, and the sign-in in the middle when you press a key or click
+Description=OrielOS's sign-in screen: your account's picture, name and password over the blurred OrielOS wallpaper, with every account at the bottom left
 Author=OrielOS contributors, from Breeze by the KDE Visual Design Group
 License=LGPL-2.0-or-later
 Type=sddm-theme
