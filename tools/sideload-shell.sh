@@ -114,6 +114,7 @@ else
     place "$staging/desktoptheme/orielos" "$data/plasma/desktoptheme/orielos"
     place "$staging/etc/plasmashellrc" /etc/xdg/plasmashellrc
     place "$staging/etc/plasmarc" /etc/xdg/plasmarc
+    place "$staging/etc/kwinrc" /etc/xdg/kwinrc
     place "$staging/etc/orielos-shell.sh" /etc/xdg/plasma-workspace/env/orielos-shell.sh
     write /etc/xdg/plasma-workspace/env/orielos-sideload.sh <<ENV
 XDG_DATA_DIRS="$data:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
@@ -138,6 +139,7 @@ if [[ -n "$restart_user" ]]; then
     if runuser -u "$restart_user" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
         DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
         systemctl --user restart plasma-plasmashell.service; then
+        runuser -u "$restart_user" -- env XDG_RUNTIME_DIR="/run/user/$uid"             DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus"             dbus-send --session --dest=org.kde.KWin --type=method_call /KWin org.kde.KWin.reconfigure || true
         echo "restarted $restart_user's desktop"
     else
         echo "could not restart $restart_user's desktop; sign out and in again to see the change" >&2
@@ -161,6 +163,7 @@ main() {
     cp -a "$ROOT/plasma/shell/org.orielos.desktop" "$STAGING/shell/"
     cp -a "$ROOT/plasma/desktoptheme/orielos" "$STAGING/desktoptheme/"
     cp "$ROOT/image/system/etc/xdg/plasmarc" "$STAGING/etc/plasmarc"
+    cp "$ROOT/image/system/etc/xdg/kwinrc" "$STAGING/etc/kwinrc"
     cp "$ROOT/image/system/etc/xdg/plasmashellrc" "$STAGING/etc/plasmashellrc"
     cp "$ROOT/image/system/etc/xdg/plasma-workspace/env/orielos-shell.sh" "$STAGING/etc/orielos-shell.sh"
     cp "$ROOT"/image/sddm/orielos/*.qml "$ROOT/image/sddm/orielos/metadata.desktop" \

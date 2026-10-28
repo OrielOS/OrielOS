@@ -254,11 +254,11 @@ def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "orielos")
     # Solid pieces are used without compositing; translucent/ ones over Plasma's blur.
     pane(os.path.join(out, "dialogs", "background.svg"), 0.97)
-    pane(os.path.join(out, "translucent", "dialogs", "background.svg"), 0.74)
+    pane(os.path.join(out, "translucent", "dialogs", "background.svg"), 0.68)
     tooltip(os.path.join(out, "widgets", "tooltip.svg"), 0.97)
     tooltip(os.path.join(out, "translucent", "widgets", "tooltip.svg"), 0.78)
     panel(os.path.join(out, "widgets", "panel-background.svg"), 0.97)
-    panel(os.path.join(out, "translucent", "widgets", "panel-background.svg"), 0.80)
+    panel(os.path.join(out, "translucent", "widgets", "panel-background.svg"), 0.72)
     tasks(os.path.join(out, "widgets", "tasks.svg"))
     print("wrote the OrielOS Plasma theme to", out)
 

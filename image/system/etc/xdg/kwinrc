@@ -1,0 +1,8 @@
+# OrielOS's glass: a strong blur behind the taskbar and pop-ups, as Sill draws them, with a little
+# noise so it doesn't band. A user's own blur settings in Settings still win.
+[Effect-blur]
+BlurStrength=12
+NoiseStrength=4
+
+[Plugins]
+blurEnabled=true
