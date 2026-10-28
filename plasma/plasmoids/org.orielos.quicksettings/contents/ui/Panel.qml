@@ -57,7 +57,7 @@ ColumnLayout {
             enabled: !PlasmaNM.Configuration.airplaneModeEnabled && panel.quickSettings.enabledConnections.wirelessHwEnabled
             hasDetails: true
             onClicked: panel.quickSettings.networkHandler.enableWireless(!checked)
-            onDetailsRequested: panel.quickSettings.openSettings("kcm_networkmanagement")
+            onDetailsRequested: panel.quickSettings.openSettings("network")
         }
 
         Tile {
@@ -70,7 +70,7 @@ ColumnLayout {
             checked: BluezQt.Manager.bluetoothOperational
             hasDetails: true
             onClicked: panel.quickSettings.setBluetoothEnabled(!checked)
-            onDetailsRequested: panel.quickSettings.openSettings("kcm_bluetooth")
+            onDetailsRequested: panel.quickSettings.openSettings("bluetooth")
         }
 
         Tile {
@@ -115,7 +115,7 @@ ColumnLayout {
             }
             onClicked: {
                 if (!nightLight.enabled) {
-                    panel.quickSettings.openSettings("kcm_nightlight");
+                    panel.quickSettings.openSettings("night-light");
                 } else {
                     Brightness.NightLightInhibitor.toggleInhibition();
                 }
@@ -126,7 +126,7 @@ ColumnLayout {
             Layout.fillWidth: true
             text: i18nc("@action:button", "Accessibility")
             iconName: "orielos-accessibility-symbolic"
-            onClicked: panel.quickSettings.openSettings("kcm_access")
+            onClicked: panel.quickSettings.openSettings("accessibility")
         }
     }
 
@@ -188,7 +188,7 @@ ColumnLayout {
             Layout.preferredHeight: 36
             iconName: "orielos-headphones-symbolic"
             accessibleName: i18nc("@action:button", "Sound output")
-            onClicked: panel.quickSettings.openSettings("kcm_pulseaudio")
+            onClicked: panel.quickSettings.openSettings("sound")
         }
     }
 

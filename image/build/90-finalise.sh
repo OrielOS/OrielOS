@@ -186,6 +186,17 @@ if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
+# The Bin on each user's desktop, put there once at sign-in, as Windows has its Recycle Bin.
+systemctl --global enable orielos-desktop-bin.service
+if [[ "$(systemctl --global is-enabled orielos-desktop-bin.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-desktop-bin.service is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/desktop-bin ]] || {
+    printf 'error: /usr/libexec/orielos/desktop-bin is not executable\n' >&2
+    exit 1
+}
+
 # GE-Proton is the default for Windows games: orielos-update installs it next to Steam from the
 # Store, and this timer sets it as each user's Steam default, once, while Steam is closed.
 systemctl --global enable orielos-steam-default-proton.timer
@@ -290,6 +301,9 @@ fi
 for widget in org.orielos.search org.orielos.taskview org.orielos.quicksettings org.orielos.clock org.orielos.showdesktop; do
     [[ -f "/usr/share/plasma/plasmoids/$widget/metadata.json" ]] || taskbar_errors+=("the taskbar widget $widget is not installed")
 done
+if [[ ! -f /usr/lib64/qt6/plugins/plasma/containmentactions/org.orielos.desktopmenu.so ]]; then
+    taskbar_errors+=("the desktop's right-click menu, org.orielos.desktopmenu.so, is not installed")
+fi
 if [[ ! -f /usr/lib64/qt6/plugins/org.kde.kdecoration3/org.orielos.decoration.so ]]; then
     taskbar_errors+=("OrielOS's window frames, org.orielos.decoration.so, are not installed")
 fi

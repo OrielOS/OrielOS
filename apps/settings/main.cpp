@@ -29,7 +29,9 @@ int main(int argc, char *argv[])
     QCommandLineParser parser;
     about.setupCommandLine(&parser);
     parser.addPositionalArgument(QStringLiteral("page"),
-        i18nc("@info:shell", "The page to open: its name, such as display or update, its settings module, such as kcm_kscreen, or a category."),
+        i18nc("@info:shell",
+            "The page to open: its name, such as display or update, its settings module, such as kcm_kscreen, or a category, alone or as an orielos-settings: "
+            "link."),
         QStringLiteral("[page]"));
     parser.process(app);
     about.processCommandLine(&parser);
@@ -39,14 +41,14 @@ int main(int argc, char *argv[])
     KDBusService service(KDBusService::Unique);
 
     SettingsWindow window(PageCatalogue::standard().available([](const QString &module) { return findModule(module).isValid(); }));
-    const QString page = parser.positionalArguments().value(0);
+    const QString page = PageCatalogue::targetFromArgument(parser.positionalArguments().value(0));
     if (page.isEmpty() || !window.open(page)) {
         window.openFirst();
     }
     QObject::connect(&service, &KDBusService::activateRequested, &window, [&window](const QStringList &arguments, const QString &) {
         // The first argument is the program.
         if (arguments.size() > 1) {
-            window.open(arguments.at(1));
+            window.open(PageCatalogue::targetFromArgument(arguments.at(1)));
         }
         window.show();
         window.raise();

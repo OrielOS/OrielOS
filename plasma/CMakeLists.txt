@@ -9,6 +9,7 @@ find_package(Plasma 6.0 REQUIRED)
 # The Start menu widget.
 add_subdirectory(startmenu)
 add_subdirectory(decoration)
+add_subdirectory(desktopmenu)
 
 # OrielOS's wording for some of Plasma's own text, such as "Pin to taskbar" in the taskbar's menu,
 # as catalogues for the language en@orielos, which

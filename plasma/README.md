@@ -21,11 +21,13 @@ Contains:
 
 - `metadata.json`: the package, `org.orielos.desktop`, with Plasma's desktop shell as its fallback.
 - `contents/layout.js`: the layout for a new desktop (see [The layout script](#the-layout-script)).
+- `contents/defaults`: Plasma's desktop shell defaults with OrielOS's desktop menu on the desktop's right button.
 - `contents/lockscreen/`: the lock screen, a full copy of plasma-desktop 6.7.5's with OrielOS's `LockScreenUi.qml`, whose time and date sit under the sill of the OrielOS wallpaper while the screen is idle, in ink on Daybreak and white on Nightfall, and fade out while the user unlocks. The whole folder is copied because its files load each other by relative path. `shell/upstream.sha256` lists the checksums of the Plasma files the copies here are based on; `image/build/27-shell.sh` stops the build when Plasma's change, so the copy is rebased on them.
 - `contents/applet/CompactApplet.qml`: the popup of a widget on the taskbar, plasma-desktop 6.7.5's with three changes: popups float 12 px above the taskbar with all their corners rounded, a widget whose root item declares `centredPopup: true` (Start) opens in the middle of the taskbar instead of over itself, and an open widget is lit by a rounded highlight instead of Plasma's tab. Plasma's other `applet/` files are used as they are.
 - `contents/updates/orielos-desktop-1.js`: carries a user's earlier desktop over (see [Update scripts](#update-scripts)).
 - `contents/updates/orielos-buttons-1.js`: adds the Search and Task View buttons after Start on taskbars made before they existed.
 - `contents/updates/orielos-sliver-1.js`: swaps Plasma's Show Desktop button for OrielOS's show desktop sliver.
+- `contents/updates/orielos-desktop-icons-1.js`: arranges the desktop's icons in columns and gives its right button OrielOS's menu.
 - `contents/updates/orielos-clock-1.js`: swaps Plasma's digital clock for the clock and bell, and moves the notifications icon among the hidden icons.
 - `contents/updates/orielos-quicksettings-1.js`: adds Quick Settings after the tray and moves the icons it covers among the tray's hidden icons.
 
@@ -127,6 +129,15 @@ QML-only Plasma widgets in `plasmoids/`, installed to `/usr/share/plasma/plasmoi
 - `org.orielos.clock`: the clock and the bell at the end of the taskbar, the time over the date and the bell with the number of new notifications (or Do not disturb's bell). Either opens the notification centre: the history, newest first, with Do not disturb and Clear all, over the month's calendar with a 30-minute focus session (Do not disturb for half an hour). Sill draws these as two cards with a gap, which Plasma's popups (always one pane) can't, so the widget opens a window of its own with no pane. It reads the same history as Plasma's notifications widget, with the same "don't keep in history" settings, which by default leave out apps with no desktop entry (`@other`); Plasma's widget stays loaded among the hidden icons for the pop-ups.
 
 OrielOS's own line icons for these, drawn like Breeze's where Breeze has none in OrielOS's style, are in `artwork/icons/*-symbolic.svg` and installed to `hicolor/scalable/actions`.
+
+## The desktop
+
+The desktop is Plasma's folder view (`org.kde.plasma.folder`), with icons in columns from the top left as Windows arranges them (`arrangement=1`, set by the layout script and, for earlier desktops, `orielos-desktop-icons-1.js`).
+
+- **The Bin.** `/usr/libexec/orielos/desktop-bin`, run once per user by the user unit `orielos-desktop-bin.service` at sign-in, puts `Bin.desktop` in the Desktop folder: a link to `trash:/` whose `Icon` and `EmptyIcon` are OrielOS's line icons for a full and an empty Bin, in the text colour. A note in `~/.local/state/orielos/desktop-bin` stops it running again, so a deleted Bin stays deleted.
+- **The right-click menu.** `desktopmenu/` is a Plasma containment actions plugin, `org.orielos.desktopmenu`, which the shell's `contents/defaults` gives the desktop's right button (and `orielos-desktop-icons-1.js` gives earlier desktops, through Plasma's scripting `ConfigFile`, from their next sign-in; a right button set to something else is left alone). It lists, in Windows' order: View (the folder view's icon options), Sort by, Refresh (KIO's change notification for the Desktop folder), Undo and Paste when there's something to undo or paste, New, Display settings and Personalise (OrielOS Settings' Display and Background pages), Open in Terminal (in the Desktop folder) and Show more options (emptying the Bin, widgets, edit mode, the desktop's settings and the wallpaper's own actions). The folder view's actions have no names, so the plugin finds them by their icons; a Plasma update that changes those icons drops them from the menu, so check it after one.
+
+OrielOS Settings opens a page from an `orielos-settings:` link (`orielos-settings:display`), which its desktop file handles, so the shell's QML and plugins open pages with `Qt.openUrlExternally` and `QDesktopServices::openUrl` instead of Plasma's System Settings.
 
 ## Window frames
 

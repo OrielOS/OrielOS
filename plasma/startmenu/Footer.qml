@@ -7,7 +7,6 @@ import QtCore
 import QtQuick
 import QtQuick.Layouts
 import org.kde.coreaddons as KCoreAddons
-import org.kde.kcmutils as KCMUtils
 import org.kde.ki18n
 import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
@@ -56,7 +55,7 @@ PlasmaExtras.PlasmoidHeading {
             icon: "system-users",
             handler: () => {
                 footer.menu.close();
-                KCMUtils.KCMLauncher.openSystemSettings("kcm_users");
+                Qt.openUrlExternally("orielos-settings:your-info");
             },
         }];
         const session = footer.sessionEntries([

@@ -14,7 +14,6 @@ import org.kde.bluezqt as BluezQt
 import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.plasma5support as P5Support
 import org.kde.plasma.networkmanagement as PlasmaNM
 import org.kde.plasma.plasmoid
 import org.kde.plasma.private.battery as Battery
@@ -63,14 +62,10 @@ PlasmoidItem {
         });
     }
 
-    function openSettings(module: string) {
+    // Opens a page of OrielOS's Settings, or Settings itself without one.
+    function openSettings(page: string) {
         root.expanded = false;
-        settingsRunner.connectSource("kcmshell6 " + module);
-    }
-
-    function openApp(desktopId: string) {
-        root.expanded = false;
-        settingsRunner.connectSource("gtk-launch " + desktopId);
+        Qt.openUrlExternally("orielos-settings:" + page);
     }
 
     Plasmoid.icon: root.networkIcon
@@ -163,12 +158,6 @@ PlasmoidItem {
     // What's playing.
     Mpris.Mpris2Model {
         id: media
-    }
-
-    P5Support.DataSource {
-        id: settingsRunner
-        engine: "executable"
-        onNewData: source => disconnectSource(source)
     }
 
     // The panel's parts read these through quickSettings.

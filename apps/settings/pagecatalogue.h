@@ -57,6 +57,10 @@ public:
     // A page by its ID or by its module's ID.
     std::optional<Page> page(const QString &idOrModule) const;
 
+    // What to open for a command-line argument: a page, module or category as it is, or one in an
+    // orielos-settings: link, as the shell opens pages with (orielos-settings:display).
+    static QString targetFromArgument(const QString &argument);
+
     // The pages that match every word of the query, best first: a match at the start of the title,
     // then anywhere in the title, then in the keywords, the category's name and the description.
     // Words match from their start, ignoring case and accents.

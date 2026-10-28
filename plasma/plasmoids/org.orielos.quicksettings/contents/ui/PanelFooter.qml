@@ -78,7 +78,7 @@ PlasmaExtras.PlasmoidHeading {
             Accessible.name: text
             PC3.ToolTip.text: text
             PC3.ToolTip.visible: hovered
-            onClicked: footer.quickSettings.openApp("org.orielos.Settings")
+            onClicked: footer.quickSettings.openSettings("")
         }
     }
 }

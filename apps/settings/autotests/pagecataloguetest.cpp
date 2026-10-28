@@ -69,6 +69,15 @@ private Q_SLOTS:
         QVERIFY(!catalogue.page(QString()));
     }
 
+    void opensPagesFromLinks()
+    {
+        QCOMPARE(PageCatalogue::targetFromArgument(QStringLiteral("display")), QStringLiteral("display"));
+        QCOMPARE(PageCatalogue::targetFromArgument(QStringLiteral("orielos-settings:display")), QStringLiteral("display"));
+        QCOMPARE(PageCatalogue::targetFromArgument(QStringLiteral("orielos-settings://bluetooth/")), QStringLiteral("bluetooth"));
+        QCOMPARE(PageCatalogue::targetFromArgument(QStringLiteral("orielos-settings:")), QString());
+        QCOMPARE(PageCatalogue::targetFromArgument(QString()), QString());
+    }
+
     void leavesOutPagesWhoseModuleIsMissing()
     {
         const PageCatalogue catalogue = PageCatalogue::standard().available([](const QString &module) {

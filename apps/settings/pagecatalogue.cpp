@@ -263,6 +263,22 @@ QList<Page> PageCatalogue::pages(const QString &categoryId) const
     return out;
 }
 
+QString PageCatalogue::targetFromArgument(const QString &argument)
+{
+    static const QString scheme = QStringLiteral("orielos-settings:");
+    if (!argument.startsWith(scheme)) {
+        return argument;
+    }
+    QString target = argument.mid(scheme.size());
+    while (target.startsWith(QLatin1Char('/'))) {
+        target.remove(0, 1);
+    }
+    while (target.endsWith(QLatin1Char('/'))) {
+        target.chop(1);
+    }
+    return target;
+}
+
 std::optional<Page> PageCatalogue::page(const QString &idOrModule) const
 {
     const auto found

@@ -15,6 +15,9 @@ for (var j = 0; j < desktopsArray.length; j++) {
     desktopsArray[j].wallpaperPlugin = "org.kde.image";
     desktopsArray[j].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
     desktopsArray[j].writeConfig("Image", "file:///usr/share/wallpapers/OrielOS/");
+    // Icons in columns from the top left, as Windows arranges them (1 is columns).
+    desktopsArray[j].currentConfigGroup = ["General"];
+    desktopsArray[j].writeConfig("arrangement", 1);
 }
 
 var panel = new Panel;

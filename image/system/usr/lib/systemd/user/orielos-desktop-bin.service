@@ -1,0 +1,12 @@
+[Unit]
+Description=Put the Bin on the desktop, once
+Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/desktop.md
+Before=plasma-plasmashell.service
+
+[Service]
+# Runs at each sign-in until it has put the Bin on the desktop once (see the script).
+Type=oneshot
+ExecStart=/usr/libexec/orielos/desktop-bin
+
+[Install]
+WantedBy=plasma-workspace.target
