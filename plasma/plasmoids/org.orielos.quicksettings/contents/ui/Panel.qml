@@ -44,13 +44,16 @@ Item {
 
         Card {
             Layout.fillWidth: true
-            implicitHeight: settings.implicitHeight
+            // A sub-page takes the settings' place at the same height, or a little more for a short
+            // list of tiles, and scrolls what doesn't fit.
+            implicitHeight: panel.quickSettings.page === "" ? settings.implicitHeight : Math.max(settings.implicitHeight, 380)
 
             ColumnLayout {
                 id: settings
 
                 anchors.left: parent.left
                 anchors.right: parent.right
+                visible: panel.quickSettings.page === ""
                 spacing: 0
 
                 GridLayout {
@@ -70,7 +73,7 @@ Item {
                         enabled: !PlasmaNM.Configuration.airplaneModeEnabled && panel.quickSettings.enabledConnections.wirelessHwEnabled
                         hasDetails: true
                         onClicked: panel.quickSettings.networkHandler.enableWireless(!checked)
-                        onDetailsRequested: panel.quickSettings.openSettings("network")
+                        onDetailsRequested: panel.quickSettings.page = "wifi"
                     }
 
                     Tile {
@@ -83,7 +86,7 @@ Item {
                         checked: BluezQt.Manager.bluetoothOperational
                         hasDetails: true
                         onClicked: panel.quickSettings.setBluetoothEnabled(!checked)
-                        onDetailsRequested: panel.quickSettings.openSettings("bluetooth")
+                        onDetailsRequested: panel.quickSettings.page = "bluetooth"
                     }
 
                     Tile {
@@ -201,7 +204,7 @@ Item {
                         Layout.preferredHeight: 36
                         iconName: "orielos-headphones-symbolic"
                         accessibleName: i18nc("@action:button", "Sound output")
-                        onClicked: panel.quickSettings.openSettings("sound")
+                        onClicked: panel.quickSettings.page = "sound"
                     }
                 }
 
@@ -211,6 +214,55 @@ Item {
                     inset: panel.inset
                 }
             }
+
+            Loader {
+                id: subPage
+
+                anchors.fill: parent
+                active: panel.quickSettings.page !== ""
+                focus: active
+                sourceComponent: {
+                    switch (panel.quickSettings.page) {
+                    case "wifi":
+                        return wifiPage;
+                    case "bluetooth":
+                        return bluetoothPage;
+                    case "sound":
+                        return soundPage;
+                    }
+                    return null;
+                }
+            }
+        }
+    }
+
+    Component {
+        id: wifiPage
+        WifiPage {
+            quickSettings: panel.quickSettings
+            inset: panel.inset
+            focus: true
+            onBack: panel.quickSettings.page = ""
+        }
+    }
+
+    Component {
+        id: bluetoothPage
+        BluetoothPage {
+            quickSettings: panel.quickSettings
+            inset: panel.inset
+            focus: true
+            onBack: panel.quickSettings.page = ""
+        }
+    }
+
+    Component {
+        id: soundPage
+        SoundPage {
+            quickSettings: panel.quickSettings
+            inset: panel.inset
+            focus: true
+            onBack: panel.quickSettings.page = ""
         }
     }
 }

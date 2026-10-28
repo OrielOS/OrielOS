@@ -26,8 +26,10 @@ import org.kde.plasma.workspace.dbus as DBus
 PlasmoidItem {
     id: root
 
-    // Whether the panel is open.
+    // Whether the panel is open, and which sub-page it shows: "" for the tiles, or "wifi",
+    // "bluetooth" or "sound".
     property bool open: false
+    property string page: ""
     // The gap Sill leaves between the taskbar, or the screen's edge, and the cards.
     readonly property int gap: 12
 
@@ -113,6 +115,7 @@ PlasmoidItem {
                 panelWindow.requestActivate();
             } else {
                 root.open = false;
+                root.page = "";
             }
         }
 
@@ -140,10 +143,14 @@ PlasmoidItem {
     PlasmaNM.Handler {
         id: networkHandler
     }
+    // Every connection and network in range, for the Wi-Fi tile and the Wi-Fi page.
+    PlasmaNM.NetworkModel {
+        id: networkModel
+    }
     // The Wi-Fi network in use, for the Wi-Fi tile.
     KItemModels.KSortFilterProxyModel {
         id: activeWifi
-        sourceModel: PlasmaNM.NetworkModel {}
+        sourceModel: networkModel
         // A change of state filters the row again.
         filterRoleName: "ConnectionState"
         filterRowCallback: (row, parent) => {
@@ -196,6 +203,7 @@ PlasmoidItem {
     // The panel's parts read these through quickSettings.
     readonly property alias enabledConnections: enabledConnections
     readonly property alias networkHandler: networkHandler
+    readonly property alias networkModel: networkModel
     readonly property alias battery: battery
     readonly property alias powerProfiles: powerProfiles
     readonly property alias screenBrightness: screenBrightness
