@@ -110,7 +110,7 @@ else
     staging="$(mktemp -d)"
     trap 'rm -rf -- "$staging"' EXIT
     tar -C "$staging" -x
-    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" "$data/icons/hicolor/scalable/actions" "$data/kwin/effects" "$data/kwin/tabbox" /etc/sddm.conf.d
+    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" "$data/icons/hicolor/scalable/actions" "$data/kwin/effects" "$data/kwin/tabbox" "$data/plasma/look-and-feel" /etc/sddm.conf.d
     : >"$manifest"
     place() { # place SOURCE TARGET
         cp -a -- "$1" "$2"
@@ -126,6 +126,9 @@ else
         place "$widget" "$data/plasma/plasmoids/${widget##*/}"
     done
     place "$staging/kwin/snaplayouts" "$data/kwin/effects/orielos-snaplayouts"
+    for lnf in "$staging"/look-and-feel/*; do
+        place "$lnf" "$data/plasma/look-and-feel/${lnf##*/}"
+    done
     place "$staging/kwin/switcher" "$data/kwin/tabbox/org.orielos.switcher"
     for icon in "$staging"/icons/*.svg; do
         place "$icon" "$data/icons/hicolor/scalable/actions/${icon##*/}"
@@ -135,6 +138,7 @@ else
     place "$staging/etc/kwinrc" /etc/xdg/kwinrc
     place "$staging/etc/plasmanotifyrc" /etc/xdg/plasmanotifyrc
     place "$staging/etc/plasmaparc" /etc/xdg/plasmaparc
+    place "$staging/etc/ksmserverrc" /etc/xdg/ksmserverrc
     place "$staging/etc/orielos-shell.sh" /etc/xdg/plasma-workspace/env/orielos-shell.sh
     plugin_path=""
     if [[ -d "$staging/plugins" ]]; then
@@ -205,13 +209,24 @@ main() {
     cp -a "$ROOT/plasma/shell/org.orielos.desktop" "$STAGING/shell/"
     cp -a "$ROOT/plasma/desktoptheme/orielos" "$STAGING/desktoptheme/"
     cp -a "$ROOT/plasma/plasmoids" "$STAGING/plasmoids"
-    mkdir -p "$STAGING/icons"
+    mkdir -p "$STAGING/icons" "$STAGING/look-and-feel"
     cp -a "$ROOT/plasma/kwin" "$STAGING/kwin"
     cp "$ROOT"/artwork/icons/*-symbolic.svg "$STAGING/icons/"
     cp "$ROOT/image/system/etc/xdg/plasmarc" "$STAGING/etc/plasmarc"
     cp "$ROOT/image/system/etc/xdg/kwinrc" "$STAGING/etc/kwinrc"
     cp "$ROOT/image/system/etc/xdg/plasmanotifyrc" "$STAGING/etc/plasmanotifyrc"
     cp "$ROOT/image/system/etc/xdg/plasmaparc" "$STAGING/etc/plasmaparc"
+    cp "$ROOT/image/system/etc/xdg/ksmserverrc" "$STAGING/etc/ksmserverrc"
+    # The look-and-feel packages as the image installs them: with the shell's layout and the
+    # Ctrl+Alt+Del screen.
+    for lnf in org.orielos.desktop org.orielos.desktop.dark; do
+        cp -a "$ROOT/plasma/look-and-feel/$lnf" "$STAGING/look-and-feel/"
+        mkdir -p "$STAGING/look-and-feel/$lnf/contents/layouts"
+        cp -a "$ROOT/plasma/look-and-feel/logout" "$STAGING/look-and-feel/$lnf/contents/"
+        for shell in org.orielos.desktop org.kde.plasma.desktop; do
+            cp "$ROOT/plasma/shell/org.orielos.desktop/contents/layout.js" "$STAGING/look-and-feel/$lnf/contents/layouts/$shell-layout.js"
+        done
+    done
     cp "$ROOT/image/system/etc/xdg/plasmashellrc" "$STAGING/etc/plasmashellrc"
     cp "$ROOT/image/system/etc/xdg/plasma-workspace/env/orielos-shell.sh" "$STAGING/etc/orielos-shell.sh"
     cp "$ROOT"/image/sddm/orielos/*.qml "$ROOT/image/sddm/orielos/metadata.desktop" \
