@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Window Management",
+        "Description": "Alt+F4 closes the window in use, and on the desktop offers to shut down, as in Windows",
+        "EnabledByDefault": true,
+        "Id": "orielos-closeorshutdown",
+        "License": "GPL-3.0-or-later",
+        "Name": "Close or shut down"
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}

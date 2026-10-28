@@ -110,7 +110,7 @@ else
     staging="$(mktemp -d)"
     trap 'rm -rf -- "$staging"' EXIT
     tar -C "$staging" -x
-    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" "$data/icons/hicolor/scalable/actions" "$data/kwin/effects" "$data/kwin/tabbox" "$data/plasma/look-and-feel" /etc/sddm.conf.d
+    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" "$data/icons/hicolor/scalable/actions" "$data/kwin/effects" "$data/kwin/tabbox" "$data/kwin/scripts" "$data/plasma/look-and-feel" /etc/sddm.conf.d
     : >"$manifest"
     place() { # place SOURCE TARGET
         cp -a -- "$1" "$2"
@@ -130,6 +130,7 @@ else
         place "$lnf" "$data/plasma/look-and-feel/${lnf##*/}"
     done
     place "$staging/kwin/switcher" "$data/kwin/tabbox/org.orielos.switcher"
+    place "$staging/kwin/closeorshutdown" "$data/kwin/scripts/orielos-closeorshutdown"
     for icon in "$staging"/icons/*.svg; do
         place "$icon" "$data/icons/hicolor/scalable/actions/${icon##*/}"
     done

@@ -186,6 +186,22 @@ if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
+# Alt+F4 belongs to OrielOS's Close or shut down KWin script; accounts made before it give it up
+# once at sign-in (new ones get it from /etc/skel).
+systemctl --global enable orielos-close-shortcut.service
+if [[ "$(systemctl --global is-enabled orielos-close-shortcut.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-close-shortcut.service is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/close-shortcut ]] || {
+    printf 'error: /usr/libexec/orielos/close-shortcut is not executable\n' >&2
+    exit 1
+}
+[[ -f /usr/share/kwin/scripts/orielos-closeorshutdown/metadata.json ]] || {
+    printf 'error: the Close or shut down KWin script is not installed\n' >&2
+    exit 1
+}
+
 # The Bin on each user's desktop, put there once at sign-in, as Windows has its Recycle Bin.
 systemctl --global enable orielos-desktop-bin.service
 if [[ "$(systemctl --global is-enabled orielos-desktop-bin.service 2>/dev/null)" != "enabled" ]]; then
