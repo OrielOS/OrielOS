@@ -210,6 +210,35 @@ command -v python3 >/dev/null || {
 lnf=org.orielos.desktop
 shell=/usr/share/plasma/shells/org.orielos.desktop
 taskbar_errors=()
+# Dark by default: OrielOS Dark's colours become every user's default colours, until they choose
+# light in Settings, which writes their own. Apps read colours from kdeglobals' [Colors:*] groups,
+# not from the scheme's name, so the whole scheme goes into /etc/xdg/kdeglobals; the wallpapers
+# and the lock screen show Nightfall with dark colours.
+dark_scheme=/usr/share/color-schemes/OrielOSDark.colors
+if [[ -r "$dark_scheme" ]]; then
+    python3 -I - "$dark_scheme" <<'PY' | while IFS=$'\t' read -r group key value; do
+import configparser, sys
+
+scheme = configparser.RawConfigParser(strict=False, interpolation=None)
+scheme.optionxform = str
+scheme.read(sys.argv[1], encoding="utf-8")
+for section in scheme.sections():
+    if section.startswith("Colors:") or section.startswith("ColorEffects:") or section == "WM":
+        for key, value in scheme.items(section):
+            print(f"{section}\t{key}\t{value}")
+PY
+        IFS='][' read -ra groups <<<"$group"
+        args=()
+        for g in "${groups[@]}"; do [[ -n "$g" ]] && args+=(--group "$g"); done
+        kwriteconfig6 --file /etc/xdg/kdeglobals "${args[@]}" --key "$key" "$value"
+    done
+    kwriteconfig6 --file /etc/xdg/kdeglobals --group General --key ColorScheme OrielOSDark
+fi
+if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group General --key ColorScheme)" != OrielOSDark ]] ||
+    [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group Colors:Window --key BackgroundNormal)" != \
+        "$(kreadconfig6 --file "$dark_scheme" --group Colors:Window --key BackgroundNormal 2>/dev/null)" ]]; then
+    taskbar_errors+=("/etc/xdg/kdeglobals does not carry OrielOS Dark's colours")
+fi
 if ! python3 -I -c 'import json, sys; sys.exit(json.load(open(sys.argv[1]))["KPlugin"]["Id"] != "org.orielos.desktop")'     "$shell/metadata.json" 2>/dev/null; then
     taskbar_errors+=("the OrielOS shell package is not installed in $shell")
 fi
@@ -221,8 +250,8 @@ if [[ "$(kreadconfig6 --file /etc/xdg/plasmashellrc --group Shell --key ShellPac
 fi
 grep -qx 'PLASMA_DEFAULT_SHELL=org.orielos.desktop' /etc/xdg/plasma-workspace/env/orielos-shell.sh 2>/dev/null ||
     taskbar_errors+=("/etc/xdg/plasma-workspace/env/orielos-shell.sh does not make org.orielos.desktop the fallback shell")
-if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage)" != "$lnf" ]]; then
-    taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf the default look-and-feel")
+if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage)" != "$lnf.dark" ]]; then
+    taskbar_errors+=("/etc/xdg/kdeglobals does not make $lnf.dark the default look-and-feel")
 fi
 for package in "$lnf" "$lnf.dark"; do
     for layout in org.orielos.desktop-layout.js org.kde.plasma.desktop-layout.js; do

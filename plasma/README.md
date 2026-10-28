@@ -43,7 +43,7 @@ Two Plasma 6 look-and-feel packages ("global themes"), installed to `/usr/share/
 
 The logout screen and splash screen come from Breeze, which Plasma falls back to when a look-and-feel package doesn't have its own; the lock screen comes from the OrielOS shell.
 
-`image/build/20-desktop.sh` makes OrielOS the default for every user with `LookAndFeelPackage=org.orielos.desktop` in the `[KDE]` group of `/etc/xdg/kdeglobals`, and makes the two packages Plasma's light and dark choices for the Day-Night Cycle (`DefaultLightLookAndFeel` and `DefaultDarkLookAndFeel`). `/etc/xdg` comes before Fedora's `kde-settings` profile on `XDG_CONFIG_DIRS`, so this overrides Fedora's look-and-feel. `image/build/90-finalise.sh` fails the build if the settings, the packages, the colour schemes, the Start button's icon or the wallpapers are missing.
+OrielOS is dark by default: `image/build/20-desktop.sh` makes OrielOS Dark the default for every user with `LookAndFeelPackage=org.orielos.desktop.dark` in the `[KDE]` group of `/etc/xdg/kdeglobals`, with Breeze's dark icons, and `image/build/90-finalise.sh` copies OrielOS Dark's colours into the same file, because apps read the colours themselves, not the scheme's name. Choosing light in Settings writes the user's own. 20-desktop.sh also makes the two packages Plasma's light and dark choices for the Day-Night Cycle (`DefaultLightLookAndFeel` and `DefaultDarkLookAndFeel`). `/etc/xdg` comes before Fedora's `kde-settings` profile on `XDG_CONFIG_DIRS`, so this overrides Fedora's look-and-feel. `image/build/90-finalise.sh` fails the build if the settings, the packages, the colour schemes, the Start button's icon or the wallpapers are missing.
 
 ## Colour schemes
 
