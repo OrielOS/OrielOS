@@ -131,6 +131,10 @@ else
     done
     place "$staging/kwin/switcher" "$data/kwin/tabbox/org.orielos.switcher"
     place "$staging/kwin/closeorshutdown" "$data/kwin/scripts/orielos-closeorshutdown"
+    if [[ -d "$staging/locale-en@orielos" ]]; then
+        mkdir -p "$data/locale"
+        place "$staging/locale-en@orielos" "$data/locale/en@orielos"
+    fi
     for icon in "$staging"/icons/*.svg; do
         place "$icon" "$data/icons/hicolor/scalable/actions/${icon##*/}"
     done
@@ -239,6 +243,7 @@ main() {
         podman cp "$container:/out/usr/lib64/qt6/plugins/plasma/applets" "$STAGING/plugins/plasma/applets"
         podman cp "$container:/out/usr/lib64/qt6/plugins/org.kde.kdecoration3" "$STAGING/plugins/org.kde.kdecoration3"
         podman cp "$container:/out/usr/lib64/qt6/plugins/plasma/containmentactions" "$STAGING/plugins/plasma/containmentactions"
+        podman cp "$container:/out/usr/share/locale/en@orielos" "$STAGING/locale-en@orielos"
         podman rm -f "$container" >/dev/null
         find "$STAGING/plugins" -type f ! -name 'org.orielos.*' -delete
     fi

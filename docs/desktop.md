@@ -41,7 +41,7 @@ Right-click the desktop for **View** (icon size and arrangement), **Sort by**, *
 
 ## Files
 
-**Files** is where your documents, downloads, pictures and drives are. Open it from the taskbar or with Windows + E. Your folders (Documents, Downloads, Pictures, Music and Videos) are in the panel on the left, with USB sticks and other drives below them when they're plugged in.
+**Files** is where your documents, downloads, pictures and drives are. Open it from the taskbar or with Windows + E. Along the top are back, forward, up and refresh, then New, Cut, Copy, Paste, Rename, Delete, Sort, View and search, with the address bar beneath them. Your folders (Documents, Downloads, Pictures, Music and Videos) are in the panel on the left, with USB sticks and other drives below them when they're plugged in.
 
 ## Taking a screenshot
 
