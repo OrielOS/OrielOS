@@ -12,6 +12,7 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + Tab | Shows all your open windows and desktops |
 | Alt + Tab | Switches between open windows |
 | Windows + I | Opens Settings |
+| Windows + X | Opens the quick links menu above Start: Installed apps, Power options, System, Device Manager, Network connections, Terminal, Task Manager, Settings, Files, Search, Run, Shut down or sign out, and Desktop. Press the underlined letter to choose one; right-clicking Start opens it too |
 | Windows + Shift + S | Screenshot: drag to choose part of the screen to capture |
 | Windows + V | Clipboard history: everything you copied recently |
 | Windows + . | Emoji picker |
@@ -27,7 +28,7 @@ Settings is OrielOS's Settings app (see [Settings](settings.md)). Process Manage
 
 ## Snap layouts
 
-Press Windows + Z to see four layouts for the window you're using: two halves, three thirds, two thirds beside one third, and four quarters. Click an area to move the window there. With the keyboard, the arrow keys move to the next area in that direction (Up and Down between the top and bottom quarters), Tab steps through every area, and Enter or Space snaps the window; Escape closes the layouts without changing anything.
+Press Windows + Z, or rest the pointer on a window's maximise button, to see six layouts for the window you're using: two halves, two thirds beside one third, three thirds, a half beside two quarters, four quarters, and a half between two quarters. Click an area to move the window there. With the keyboard, the arrow keys move to the next area in that direction (Up and Down between the top and bottom quarters), Tab steps through every area, and Enter or Space snaps the window; Escape closes the layouts without changing anything.
 
 ## Changing a shortcut
 

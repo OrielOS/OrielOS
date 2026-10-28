@@ -97,6 +97,8 @@ To try a change without a new user, log in as a test user with no `plasma-org.or
 
 `startmenu/` is a Plasma 6 widget, `org.orielos.startmenu`, built with libplasma's `plasma_add_applet()`: its QML is compiled into `/usr/lib64/qt6/plugins/plasma/applets/org.orielos.startmenu.so`, and the app build runs qmllint over it with no warnings allowed. Its `metadata.json` says it provides `org.kde.plasma.launchermenu`, which is what Plasma's Win-key shortcut opens.
 
+Its applet class, `startapplet.cpp`, adds Windows' power user menu: it registers Win+X with KGlobalAccel (plasmashell's "power user menu" action) and calls the QML's `openPowerUserMenu()`, which a right-click on the Start button calls too. `PowerUserMenu.qml` draws the menu as a Plasma pop-up above the button (a `QMenu` opened from a shortcut gets no input event to anchor to on Wayland, so it never shows), with an underlined access key on each item and Shut down or sign out folding open on U; the applet class runs the chosen item: OrielOS Settings pages, Terminal, Terminal (Admin) (`run0` in the terminal), Process Manager, Files, Search (Start), Run (KRunner), sign out, sleep, shut down, restart and the desktop.
+
 Pressing Win or clicking the Start button opens it:
 
 - **Search** on top. Typing lists apps, settings, files, Store results and calculations, but runs nothing: only Enter, or a click, opens a result.
