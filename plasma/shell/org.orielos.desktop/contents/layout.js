@@ -52,7 +52,20 @@ tasks.writeConfig("fill", false);
 panel.addWidget("org.kde.plasma.panelspacer");
 
 // The system tray holds the notifications, network, sound and other status icons.
-panel.addWidget("org.kde.plasma.systemtray");
+// Network, sound, Bluetooth, battery, brightness and media move into Quick Settings, next to the
+// tray. Plasma's own widgets for them stay loaded, among the hidden icons, because the volume and
+// media keys belong to them.
+var tray = panel.addWidget("org.kde.plasma.systemtray");
+tray.currentConfigGroup = ["General"];
+tray.writeConfig("hiddenItems", [
+    "org.kde.plasma.networkmanagement",
+    "org.kde.plasma.volume",
+    "org.kde.plasma.bluetooth",
+    "org.kde.plasma.battery",
+    "org.kde.plasma.brightness",
+    "org.kde.plasma.mediacontroller",
+]);
+panel.addWidget("org.orielos.quicksettings");
 
 var clock = panel.addWidget("org.kde.plasma.digitalclock");
 clock.currentConfigGroup = ["Appearance"];

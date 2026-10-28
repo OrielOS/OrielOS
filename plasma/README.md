@@ -25,6 +25,8 @@ Contains:
 - `contents/applet/CompactApplet.qml`: the popup of a widget on the taskbar, plasma-desktop 6.7.5's with three changes: popups float 12 px above the taskbar with all their corners rounded, a widget whose root item declares `centredPopup: true` (Start) opens in the middle of the taskbar instead of over itself, and an open widget is lit by a rounded highlight instead of Plasma's tab. Plasma's other `applet/` files are used as they are.
 - `contents/updates/orielos-desktop-1.js`: carries a user's earlier desktop over (see [Update scripts](#update-scripts)).
 - `contents/updates/orielos-buttons-1.js`: adds the Search and Task View buttons after Start on taskbars made before they existed.
+- `contents/updates/orielos-sliver-1.js`: swaps Plasma's Show Desktop button for OrielOS's show desktop sliver.
+- `contents/updates/orielos-quicksettings-1.js`: adds Quick Settings after the tray and moves the icons it covers among the tray's hidden icons.
 
 **Which shell runs.** `plasmashell` and the lock screen read `ShellPackage` from `[Shell]` in `plasmashellrc`, then `PLASMA_DEFAULT_SHELL`, then use `org.kde.plasma.desktop`. The image's `/etc/xdg/plasmashellrc` names `org.orielos.desktop`, and `/etc/xdg/plasma-workspace/env/orielos-shell.sh` sets `PLASMA_DEFAULT_SHELL` to it too, because applying a global theme can write an empty `ShellPackage` into the user's own `plasmashellrc`, and an empty value falls through to `PLASMA_DEFAULT_SHELL` rather than to `/etc/xdg`.
 
@@ -112,6 +114,17 @@ Right-click an app, or press the Menu key, to pin it to or unpin it from Start. 
 A Plasma update can change that API, so check the Start menu after every Plasma update; this one was written against Plasma 6.7.5.
 
 **Pinned apps** are kept in the widget's own settings, the `favorites` key in the user's `~/.config/plasma-org.orielos.desktop-appletsrc`, so they survive restarts and OS updates. `main.xml` holds the default pins: Files, Firefox, Store, Settings, Konsole, Process Manager and Screenshot. A pinned app that isn't installed yet, such as Firefox before the first-boot install finishes, stays in the list and shows up as soon as it's installed.
+
+## Taskbar widgets
+
+QML-only Plasma widgets in `plasmoids/`, installed to `/usr/share/plasma/plasmoids/`. Plasma draws a widget's own taskbar button from its full representation when it has no popup, so the three buttons without one use `preferredRepresentation: fullRepresentation`.
+
+- `org.orielos.search`: the Search button after Start; opens Start with the search field ready.
+- `org.orielos.taskview`: the Task View button (KWin's Overview), with the short line that sets the apps apart after it.
+- `org.orielos.showdesktop`: the show desktop sliver at the far end of the taskbar (KWin's Show Desktop).
+- `org.orielos.quicksettings`: Quick Settings, between the hidden icons and the clock: one button with the network, volume and battery icons, opening the panel of what's playing, tiles for Wi-Fi, Bluetooth, airplane mode, energy saver, night light and accessibility, the brightness and volume sliders, and the battery. It uses the same Plasma services as Plasma's own network, sound, Bluetooth, power, brightness and media widgets (their QML modules, some of them private to Plasma, so a Plasma update can change them: check Quick Settings after one). Those widgets stay loaded among the hidden icons because the volume and media keys belong to them. The wheel over the button changes the volume by 2 %.
+
+OrielOS's own line icons for these, drawn like Breeze's where Breeze has none in OrielOS's style, are in `artwork/icons/*-symbolic.svg` and installed to `hicolor/scalable/actions`.
 
 ## Snap layouts
 

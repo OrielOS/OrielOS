@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Wi-Fi, Bluetooth, sound, brightness, night light and battery in one place",
+        "Icon": "configure",
+        "Id": "org.orielos.quicksettings",
+        "License": "GPL-3.0-or-later",
+        "Name": "Quick Settings",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
