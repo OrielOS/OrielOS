@@ -214,6 +214,7 @@ main() {
         container="$(podman create "$APP_IMAGE" true)" || die "can't use $APP_IMAGE; run tools/test-apps.sh first"
         mkdir -p "$STAGING/plugins/plasma"
         podman cp "$container:/out/usr/lib64/qt6/plugins/plasma/applets" "$STAGING/plugins/plasma/applets"
+        podman cp "$container:/out/usr/lib64/qt6/plugins/org.kde.kdecoration3" "$STAGING/plugins/org.kde.kdecoration3"
         podman rm -f "$container" >/dev/null
         find "$STAGING/plugins" -type f ! -name 'org.orielos.*' -delete
     fi

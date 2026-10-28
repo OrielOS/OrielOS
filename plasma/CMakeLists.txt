@@ -8,6 +8,7 @@ find_package(Plasma 6.0 REQUIRED)
 
 # The Start menu widget.
 add_subdirectory(startmenu)
+add_subdirectory(decoration)
 
 # OrielOS's wording for some of Plasma's own text, such as "Pin to taskbar" in the taskbar's menu,
 # as catalogues for the language en@orielos, which
@@ -37,7 +38,8 @@ install(DIRECTORY shell/org.orielos.desktop DESTINATION ${KDE_INSTALL_DATADIR}/p
 # /etc/xdg/plasmarc makes it the default.
 install(DIRECTORY desktoptheme/orielos DESTINATION ${KDE_INSTALL_DATADIR}/plasma/desktoptheme)
 
-# The taskbar's Search and Task View buttons, QML-only Plasma widgets.
+# OrielOS's taskbar widgets, QML-only Plasma widgets: Search, Task View, the show desktop sliver,
+# Quick Settings, and the clock with the notification centre.
 install(DIRECTORY plasmoids/org.orielos.search plasmoids/org.orielos.taskview plasmoids/org.orielos.showdesktop
     plasmoids/org.orielos.quicksettings plasmoids/org.orielos.clock DESTINATION ${KDE_INSTALL_DATADIR}/plasma/plasmoids)
 

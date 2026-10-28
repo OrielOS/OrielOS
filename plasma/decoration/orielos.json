@@ -1,0 +1,11 @@
+{
+    "KPlugin": {
+        "Description": "OrielOS's window frames: a flat title bar, wide minimise, maximise and close buttons, and rounded corners",
+        "EnabledByDefault": true,
+        "Name": "OrielOS"
+    },
+    "org.kde.kdecoration3": {
+        "blur": false,
+        "recommendedBorderSize": "None"
+    }
+}

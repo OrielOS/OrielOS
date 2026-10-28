@@ -249,7 +249,8 @@ shell_id='import json, sys; print(json.load(open(sys.argv[1]))["KPlugin"]["Id"])
 if [[ "$(python3 -I -c "$shell_id" "$shell/metadata.json" 2>/dev/null)" != org.orielos.desktop ]]; then
     taskbar_errors+=("the OrielOS shell package is not installed in $shell")
 fi
-for f in contents/layout.js contents/lockscreen/LockScreen.qml contents/lockscreen/LockScreenUi.qml contents/updates/orielos-desktop-1.js; do
+for f in contents/layout.js contents/lockscreen/LockScreen.qml contents/lockscreen/LockScreenUi.qml contents/applet/CompactApplet.qml \
+    contents/updates/orielos-desktop-1.js; do
     [[ -f "$shell/$f" ]] || taskbar_errors+=("the OrielOS shell package has no $f")
 done
 for f in metadata.json widgets/panel-background.svg widgets/tasks.svg dialogs/background.svg translucent/dialogs/background.svg; do
@@ -284,6 +285,16 @@ fi
 # The layout script puts OrielOS's Start menu on the taskbar; Plasma would leave a gap without it.
 if [[ ! -f /usr/lib64/qt6/plugins/plasma/applets/org.orielos.startmenu.so ]]; then
     taskbar_errors+=("the Start menu widget, org.orielos.startmenu.so, is not installed")
+fi
+# The layout script's other widgets on the taskbar, and the window frames /etc/xdg/kwinrc chooses.
+for widget in org.orielos.search org.orielos.taskview org.orielos.quicksettings org.orielos.clock org.orielos.showdesktop; do
+    [[ -f "/usr/share/plasma/plasmoids/$widget/metadata.json" ]] || taskbar_errors+=("the taskbar widget $widget is not installed")
+done
+if [[ ! -f /usr/lib64/qt6/plugins/org.kde.kdecoration3/org.orielos.decoration.so ]]; then
+    taskbar_errors+=("OrielOS's window frames, org.orielos.decoration.so, are not installed")
+fi
+if [[ "$(kreadconfig6 --file /etc/xdg/kwinrc --group org.kde.kdecoration2 --key library)" != org.orielos.decoration ]]; then
+    taskbar_errors+=("/etc/xdg/kwinrc does not make org.orielos.decoration the window frames")
 fi
 # It uses the menu models from plasma-workspace's private kicker QML module.
 if [[ ! -f /usr/lib64/qt6/qml/org/kde/plasma/private/kicker/qmldir ]]; then

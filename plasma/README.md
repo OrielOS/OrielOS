@@ -128,6 +128,15 @@ QML-only Plasma widgets in `plasmoids/`, installed to `/usr/share/plasma/plasmoi
 
 OrielOS's own line icons for these, drawn like Breeze's where Breeze has none in OrielOS's style, are in `artwork/icons/*-symbolic.svg` and installed to `hicolor/scalable/actions`.
 
+## Window frames
+
+`decoration/` is OrielOS's KWin window decoration, a C++ plugin on KDecoration3 (`org.orielos.decoration`, installed to `/usr/lib64/qt6/plugins/org.kde.kdecoration3/`), which `/etc/xdg/kwinrc` chooses with the buttons Windows has: minimise, maximise and close on the right, nothing on the left.
+
+- **Title bar:** 40 px, the window's own colour (the colour scheme's window background), with the app's icon and its title on the left; a window menu button, if the user adds one on the left, shows the icon instead.
+- **Buttons:** 46 px wide and the bar's full height, flat; hovering lights them faintly and pressing a little more, and Close turns Windows' red with a white cross. The glyphs are 10 px lines; maximise turns into restore while the window is maximised. Other button types are hidden.
+- **Corners and edges:** 8 px rounded corners (the decoration rounds the title bar; KWin rounds the bottom through the decoration's border radius), a hairline outline in the text colour, and an 8 px band outside the sides and bottom to grab for resizing. Maximised windows are square and opaque.
+- **Shadow:** a wide soft shadow 8 px below the window and a tight one around it, made once (`shadow.cpp`) and fainter for windows not in use.
+
 ## Snap layouts
 
 `kwin/snaplayouts/` is a KWin effect package, `orielos-snaplayouts`, installed to `/usr/share/kwin/effects/` and on by default. It's a QML scene effect (`SceneEffect`, `X-Plasma-API: declarativescript`), so while it shows it has the keyboard and the mouse, as KWin's overview does. Its `ShortcutHandler` registers Win+Z as the `kwin` component's "Snap Layouts" action, so it can be changed under Shortcuts like KWin's own.

@@ -6,3 +6,13 @@ NoiseStrength=4
 
 [Plugins]
 blurEnabled=true
+
+# OrielOS's window frames: Sill's flat title bar with the app's icon and title, and minimise,
+# maximise and close on the right.
+[org.kde.kdecoration2]
+library=org.orielos.decoration
+theme=
+ButtonsOnLeft=
+ButtonsOnRight=IAX
+BorderSize=None
+BorderSizeAuto=false
