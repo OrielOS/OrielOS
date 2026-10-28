@@ -30,6 +30,14 @@ PlasmoidItem {
     // "bluetooth" or "sound".
     property bool open: false
     property string page: ""
+    // Whether the tiles are being edited: unpinned, added back and put in a new order.
+    property bool editing: false
+    // The tiles shown, in order; Edit changes them through setTiles().
+    readonly property var configuredTiles: Plasmoid.configuration.tiles
+
+    function setTiles(ids: var) {
+        Plasmoid.configuration.tiles = ids;
+    }
     // The gap Sill leaves between the taskbar, or the screen's edge, and the cards.
     readonly property int gap: 12
 
@@ -116,6 +124,7 @@ PlasmoidItem {
             } else {
                 root.open = false;
                 root.page = "";
+                root.editing = false;
             }
         }
 

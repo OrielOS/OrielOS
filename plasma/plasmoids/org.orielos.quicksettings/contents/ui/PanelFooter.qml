@@ -17,6 +17,8 @@ PlasmaExtras.PlasmoidHeading {
 
     required property var quickSettings
     property int inset: 0
+    // The tile grid, whose unpinned tiles Add offers while editing.
+    property var tiles: null
 
     readonly property var battery: footer.quickSettings.battery
 
@@ -59,13 +61,13 @@ PlasmaExtras.PlasmoidHeading {
         Kirigami.Icon {
             Layout.preferredWidth: 16
             Layout.preferredHeight: 16
-            visible: footer.quickSettings.hasBattery
+            visible: footer.quickSettings.hasBattery && !footer.quickSettings.editing
             source: footer.quickSettings.batteryIcon
         }
 
         PC3.Label {
             Layout.fillWidth: true
-            visible: footer.quickSettings.hasBattery
+            visible: footer.quickSettings.hasBattery && !footer.quickSettings.editing
             textFormat: Text.PlainText
             font.pixelSize: 12
             elide: Text.ElideRight
@@ -83,22 +85,58 @@ PlasmaExtras.PlasmoidHeading {
             }
         }
 
+        // While editing: Add, a menu of the unpinned tiles, then Done.
+        PC3.ToolButton {
+            id: addButton
+
+            visible: footer.quickSettings.editing
+            enabled: (footer.tiles?.unpinned.length ?? 0) > 0
+            icon.name: "list-add"
+            text: i18nc("@action:button Add a tile to Quick Settings", "Add")
+            font.pixelSize: 12
+            onClicked: addMenu.popup(addButton, 0, -addMenu.implicitHeight)
+        }
+
+        PC3.Menu {
+            id: addMenu
+
+            Instantiator {
+                model: footer.tiles?.unpinned ?? []
+                delegate: PC3.MenuItem {
+                    required property string modelData
+                    text: footer.tiles.tileName(modelData)
+                    onTriggered: footer.tiles.pin(modelData)
+                }
+                onObjectAdded: (index, object) => addMenu.insertItem(index, object)
+                onObjectRemoved: (index, object) => addMenu.removeItem(object)
+            }
+        }
+
         Item {
             Layout.fillWidth: true
-            visible: !footer.quickSettings.hasBattery
+            visible: !footer.quickSettings.hasBattery || footer.quickSettings.editing
+        }
+
+        PC3.Button {
+            visible: footer.quickSettings.editing
+            text: i18nc("@action:button Finish editing Quick Settings", "Done")
+            font.pixelSize: 12
+            onClicked: footer.quickSettings.editing = false
         }
 
         PC3.ToolButton {
+            visible: !footer.quickSettings.editing
             icon.name: "orielos-edit-symbolic"
             display: PC3.AbstractButton.IconOnly
             text: i18nc("@action:button Change which Quick Settings show", "Edit")
             Accessible.name: text
             PC3.ToolTip.text: text
             PC3.ToolTip.visible: hovered
-            enabled: false
+            onClicked: footer.quickSettings.editing = true
         }
 
         PC3.ToolButton {
+            visible: !footer.quickSettings.editing
             icon.name: "orielos-settings-symbolic"
             display: PC3.AbstractButton.IconOnly
             text: i18nc("@action:button", "Settings")
