@@ -18,6 +18,8 @@ ki18n_install(translations)
 
 # Snap layouts: a KWin effect that Win+Z opens, to snap the active window into a layout.
 install(DIRECTORY kwin/snaplayouts/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snaplayouts)
+# Alt+Tab's window switcher, which /etc/xdg/kwinrc chooses.
+install(DIRECTORY kwin/switcher/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/tabbox/org.orielos.switcher)
 
 # The first-run setup's network page, for computers without Wi-Fi, and its power page, as Plasma
 # Setup packages. image/build/41-first-run.sh puts every page in order and shows this logo on the

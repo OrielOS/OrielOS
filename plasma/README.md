@@ -148,6 +148,10 @@ OrielOS Settings opens a page from an `orielos-settings:` link (`orielos-setting
 - **Corners and edges:** 8 px rounded corners (the decoration rounds the title bar; KWin rounds the bottom through the decoration's border radius), a hairline outline in the text colour, and an 8 px band outside the sides and bottom to grab for resizing. Maximised windows are square and opaque.
 - **Shadow:** a wide soft shadow 8 px below the window and a tight one around it, made once (`shadow.cpp`) and fainter for windows not in use.
 
+## Alt+Tab
+
+`kwin/switcher/` is KWin's window switcher layout `org.orielos.switcher`, installed to `/usr/share/kwin/tabbox/`, which `/etc/xdg/kwinrc` chooses (`[TabBox] LayoutName`), with windows not brought forward in turn (`HighlightWindows=false`) and only this desktop's windows (`DesktopMode=1`), as Windows does. The screen dims and a pane in the middle holds the windows' thumbnails, 240 px wide in the screen's shape, most recently used first, each with its app's icon and title above it; the selected window is outlined in the highlight colour. Tab, Shift+Tab and the arrow keys move, a click picks, Delete closes the selected window, and hovering a thumbnail shows an X. KWin's own preview, `/usr/libexec/kwin-tabbox-preview <path to contents/ui/main.qml>`, shows it with sample windows.
+
 ## Snap layouts
 
 `kwin/snaplayouts/` is a KWin effect package, `orielos-snaplayouts`, installed to `/usr/share/kwin/effects/` and on by default. It's a QML scene effect (`SceneEffect`, `X-Plasma-API: declarativescript`), so while it shows it has the keyboard and the mouse, as KWin's overview does. Its `ShortcutHandler` registers Win+Z as the `kwin` component's "Snap Layouts" action, so it can be changed under Shortcuts like KWin's own.

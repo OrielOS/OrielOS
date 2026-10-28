@@ -16,3 +16,10 @@ ButtonsOnLeft=
 ButtonsOnRight=IAX
 BorderSize=None
 BorderSizeAuto=false
+
+# Alt+Tab as Windows shows it: OrielOS's switcher, thumbnails over the dimmed screen, without
+# bringing each window forward in turn. Only this desktop's windows, as in Windows.
+[TabBox]
+LayoutName=org.orielos.switcher
+HighlightWindows=false
+DesktopMode=1
