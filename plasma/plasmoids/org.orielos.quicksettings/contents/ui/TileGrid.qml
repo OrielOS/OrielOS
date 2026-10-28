@@ -104,7 +104,7 @@ GridLayout {
             Layout.preferredHeight: 76
             implicitWidth: 107
             // A tile whose hardware isn't there (no Wi-Fi, say) takes no place, except while editing.
-            visible: grid.quickSettings.editing || (loader.item?.available ?? true)
+            visible: grid.quickSettings.editing || ((loader.item as Tile)?.available ?? true)
 
             Loader {
                 id: loader
@@ -206,7 +206,7 @@ GridLayout {
         id: wifiTile
 
         Tile {
-            readonly property bool available: grid.quickSettings.hasWifi
+            available: grid.quickSettings.hasWifi
             text: grid.tileName("wifi")
             iconName: checked ? "network-wireless-on" : "network-wireless-off"
             status: checked ? (grid.quickSettings.wifiName || i18nc("@info:status Wi-Fi is on but not connected", "Not connected")) : ""
@@ -222,7 +222,7 @@ GridLayout {
         id: bluetoothTile
 
         Tile {
-            readonly property bool available: grid.quickSettings.hasBluetooth
+            available: grid.quickSettings.hasBluetooth
             readonly property int connected: BluezQt.Manager.connectedDevices.length
             text: grid.tileName("bluetooth")
             iconName: checked ? "network-bluetooth" : "network-bluetooth-inactive"
@@ -238,7 +238,7 @@ GridLayout {
         id: airplaneTile
 
         Tile {
-            readonly property bool available: grid.quickSettings.hasWifi
+            available: grid.quickSettings.hasWifi
             text: grid.tileName("airplane-mode")
             iconName: "network-flightmode-on"
             checked: PlasmaNM.Configuration.airplaneModeEnabled
@@ -255,7 +255,7 @@ GridLayout {
 
         Tile {
             readonly property var profiles: grid.quickSettings.powerProfiles
-            readonly property bool available: profiles.profiles.includes("power-saver")
+            available: profiles.profiles.includes("power-saver")
             text: grid.tileName("energy-saver")
             iconName: "orielos-energy-saver-symbolic"
             checked: profiles.activeProfile === "power-saver"
@@ -268,7 +268,7 @@ GridLayout {
 
         Tile {
             readonly property var nightLight: grid.quickSettings.nightLight
-            readonly property bool available: nightLight.available
+            available: nightLight.available
             text: grid.tileName("night-light")
             iconName: "orielos-night-light-symbolic"
             checked: nightLight.on
@@ -293,7 +293,6 @@ GridLayout {
         id: accessibilityTile
 
         Tile {
-            readonly property bool available: true
             text: grid.tileName("accessibility")
             iconName: "orielos-accessibility-symbolic"
             onClicked: grid.quickSettings.openSettings("accessibility")

@@ -18,6 +18,8 @@ T.AbstractButton {
     property string iconName
     property string status
     property bool hasDetails: false
+    // Whether the setting is there to change (no Wi-Fi hardware, say, hides the Wi-Fi tile).
+    property bool available: true
 
     signal detailsRequested()
 
