@@ -234,12 +234,14 @@ PY
     done
     kwriteconfig6 --file /etc/xdg/kdeglobals --group General --key ColorScheme OrielOSDark
 fi
+window_default="$(kreadconfig6 --file /etc/xdg/kdeglobals --group Colors:Window --key BackgroundNormal)"
+window_dark="$(kreadconfig6 --file "$dark_scheme" --group Colors:Window --key BackgroundNormal 2>/dev/null)"
 if [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group General --key ColorScheme)" != OrielOSDark ]] ||
-    [[ "$(kreadconfig6 --file /etc/xdg/kdeglobals --group Colors:Window --key BackgroundNormal)" != \
-        "$(kreadconfig6 --file "$dark_scheme" --group Colors:Window --key BackgroundNormal 2>/dev/null)" ]]; then
+    [[ -z "$window_dark" || "$window_default" != "$window_dark" ]]; then
     taskbar_errors+=("/etc/xdg/kdeglobals does not carry OrielOS Dark's colours")
 fi
-if ! python3 -I -c 'import json, sys; sys.exit(json.load(open(sys.argv[1]))["KPlugin"]["Id"] != "org.orielos.desktop")'     "$shell/metadata.json" 2>/dev/null; then
+shell_id='import json, sys; print(json.load(open(sys.argv[1]))["KPlugin"]["Id"])'
+if [[ "$(python3 -I -c "$shell_id" "$shell/metadata.json" 2>/dev/null)" != org.orielos.desktop ]]; then
     taskbar_errors+=("the OrielOS shell package is not installed in $shell")
 fi
 for f in contents/layout.js contents/lockscreen/LockScreen.qml contents/lockscreen/LockScreenUi.qml contents/updates/orielos-desktop-1.js; do
