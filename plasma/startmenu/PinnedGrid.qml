@@ -15,8 +15,8 @@ PC3.ScrollView {
     required property MenuState menu
 
     readonly property GridView view: grid
-    // Room for a large icon and two lines of the app's name.
-    readonly property real tileHeight: Kirigami.Units.iconSizes.large + Kirigami.Units.gridUnit * 2 + Kirigami.Units.largeSpacing * 3
+    // Sill's tile: room for a 38 px icon and two lines of the app's name.
+    readonly property real tileHeight: 84 + Kirigami.Units.smallSpacing
 
     PC3.ScrollBar.horizontal.policy: PC3.ScrollBar.AlwaysOff
 

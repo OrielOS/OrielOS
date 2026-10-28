@@ -38,6 +38,17 @@ ColumnLayout {
             text: KI18n.i18nc("@action:button Show every app", "All apps")
             Accessible.name: text
             Accessible.role: Accessible.Button
+            leftPadding: Kirigami.Units.largeSpacing
+            rightPadding: Kirigami.Units.smallSpacing * 2
+
+            // Sill's small pill button.
+            background: Rectangle {
+                radius: height / 2
+                color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b,
+                               allAppsButton.hovered ? 0.14 : 0.08)
+                border.width: allAppsButton.visualFocus ? 2 : 0
+                border.color: Kirigami.Theme.highlightColor
+            }
 
             contentItem: RowLayout {
                 spacing: Kirigami.Units.smallSpacing
@@ -45,6 +56,7 @@ ColumnLayout {
                 PC3.Label {
                     text: allAppsButton.text
                     textFormat: Text.PlainText
+                    font.pixelSize: 12
                 }
 
                 Kirigami.Icon {

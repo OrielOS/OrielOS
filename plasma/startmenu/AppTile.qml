@@ -32,10 +32,11 @@ PC3.ItemDelegate {
     contentItem: ColumnLayout {
         spacing: Kirigami.Units.smallSpacing
 
+        // Sill: a 38 px icon over a 12 px name.
         Kirigami.Icon {
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: Kirigami.Units.iconSizes.large
-            Layout.preferredHeight: Kirigami.Units.iconSizes.large
+            Layout.preferredWidth: 38
+            Layout.preferredHeight: 38
             source: tile.iconSource
             active: tile.hovered
         }
@@ -45,6 +46,7 @@ PC3.ItemDelegate {
             Layout.fillHeight: true
             text: tile.label
             textFormat: Text.PlainText
+            font.pixelSize: 12
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
             wrapMode: Text.Wrap

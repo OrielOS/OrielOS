@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "Opens Start with the search box ready",
+        "Icon": "search",
+        "Id": "org.orielos.search",
+        "License": "GPL-3.0-or-later",
+        "Name": "Search",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

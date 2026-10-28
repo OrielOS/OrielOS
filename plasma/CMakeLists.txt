@@ -37,6 +37,9 @@ install(DIRECTORY shell/org.orielos.desktop DESTINATION ${KDE_INSTALL_DATADIR}/p
 # /etc/xdg/plasmarc makes it the default.
 install(DIRECTORY desktoptheme/orielos DESTINATION ${KDE_INSTALL_DATADIR}/plasma/desktoptheme)
 
+# The taskbar's Search and Task View buttons, QML-only Plasma widgets.
+install(DIRECTORY plasmoids/org.orielos.search plasmoids/org.orielos.taskview DESTINATION ${KDE_INSTALL_DATADIR}/plasma/plasmoids)
+
 # OrielOS's look-and-feel packages: OrielOS, in light colours, and OrielOS Dark. Their layout is the
 # shell's own, so applying either with its desktop layout gives the OrielOS taskbar, whether Plasma
 # looks it up for the OrielOS shell or for its own desktop shell.

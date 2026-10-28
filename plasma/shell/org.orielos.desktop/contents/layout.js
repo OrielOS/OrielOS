@@ -35,6 +35,10 @@ var start = panel.addWidget("org.orielos.startmenu");
 start.currentConfigGroup = ["General"];
 start.writeConfig("icon", "orielos-start");
 
+// Search and Task View, as Sill's taskbar has them after Start.
+panel.addWidget("org.orielos.search");
+panel.addWidget("org.orielos.taskview");
+
 var tasks = panel.addWidget("org.kde.plasma.icontasks");
 tasks.currentConfigGroup = ["General"];
 tasks.writeConfig("launchers", [

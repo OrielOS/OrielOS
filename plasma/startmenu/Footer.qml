@@ -3,6 +3,7 @@
 
 pragma ComponentBehavior: Bound
 
+import QtCore
 import QtQuick
 import QtQuick.Layouts
 import org.kde.coreaddons as KCoreAddons
@@ -105,10 +106,31 @@ PlasmaExtras.PlasmoidHeading {
             contentItem: RowLayout {
                 spacing: Kirigami.Units.smallSpacing
 
-                Kirigami.Icon {
-                    Layout.preferredWidth: Kirigami.Units.iconSizes.medium
-                    Layout.preferredHeight: Kirigami.Units.iconSizes.medium
-                    source: footer.user.faceIconUrl.toString().length > 0 ? footer.user.faceIconUrl : "user-identity"
+                // Sill: the account's photo, or its initial on OrielOS's blue gradient.
+                Rectangle {
+                    Layout.preferredWidth: 32
+                    Layout.preferredHeight: 32
+                    radius: 16
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "#9CC2FF" }
+                        GradientStop { position: 1.0; color: "#3A66F0" }
+                    }
+
+                    PC3.Label {
+                        anchors.centerIn: parent
+                        visible: !photo.visible
+                        text: accountButton.name.length > 0 ? accountButton.name.charAt(0).toUpperCase() : ""
+                        color: "#FFFFFF"
+                        font.weight: Font.Bold
+                        font.pixelSize: 14
+                    }
+
+                    Kirigami.Icon {
+                        id: photo
+                        anchors.fill: parent
+                        visible: footer.user.faceIconUrl.toString().length > 0
+                        source: footer.user.faceIconUrl
+                    }
                 }
 
                 PC3.Label {
@@ -134,6 +156,41 @@ PlasmaExtras.PlasmoidHeading {
 
         Item {
             Layout.fillWidth: true
+        }
+
+        // Sill: shortcuts next to the power button (Downloads, Files, Settings).
+        Repeater {
+            model: [
+                { text: KI18n.i18nc("@action:button", "Downloads"), icon: "folder-download", url: StandardPaths.writableLocation(StandardPaths.DownloadLocation) },
+                { text: KI18n.i18nc("@action:button", "Files"), icon: "system-file-manager", url: StandardPaths.writableLocation(StandardPaths.HomeLocation) },
+                { text: KI18n.i18nc("@action:button", "Settings"), icon: "settings-configure", app: "org.orielos.Settings.desktop" },
+            ]
+
+            delegate: PC3.ToolButton {
+                required property var modelData
+
+                text: modelData.text
+                icon.name: modelData.icon
+                display: PC3.AbstractButton.IconOnly
+                Accessible.name: text
+                PC3.ToolTip.text: text
+                PC3.ToolTip.delay: Kirigami.Units.toolTipDelay
+                PC3.ToolTip.visible: hovered
+
+                onClicked: {
+                    if (modelData.app) {
+                        const row = footer.menu.allAppsRow(modelData.app);
+                        if (row >= 0) {
+                            footer.menu.launchApp(row);
+                        }
+                    } else {
+                        Qt.openUrlExternally(modelData.url);
+                        footer.menu.close();
+                    }
+                }
+                Keys.onTabPressed: footer.menu.cycleFocus(true)
+                Keys.onBacktabPressed: footer.menu.cycleFocus(false)
+            }
         }
 
         PC3.ToolButton {

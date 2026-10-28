@@ -8,8 +8,11 @@
 # /var/usrlocal/orielos-sideload/manifest, so --undo can take them all away again; undo before
 # moving the computer to an image that has the shell built in.
 #
-# Usage: tools/sideload-shell.sh [--restart USER] [--undo] [--help] HOST
+# Usage: tools/sideload-shell.sh [--apps] [--restart USER] [--undo] [--help] HOST
 #   HOST            an SSH destination (user@host) whose user can use sudo without a password
+#   --apps          also sideload OrielOS's compiled Plasma widgets (such as Start) from the app
+#                   build, localhost/orielos-app-builder (tools/test-apps.sh), or
+#                   ORIELOS_APP_IMAGE; QT_PLUGIN_PATH puts them before the installed ones
 #   --restart USER  restart USER's Plasma desktop afterwards, so a signed-in session shows the change
 #   --undo          remove everything an earlier sideload placed, instead of copying
 # A signed-in session picks up the new search path the next time it signs in; the lock screen shows
@@ -23,6 +26,8 @@ if [[ -n "${ORIELOS_SSH_KEY:-}" ]]; then SSH_OPTS+=(-i "$ORIELOS_SSH_KEY"); fi
 HOST=""
 RESTART_USER=""
 UNDO=0
+APPS=0
+APP_IMAGE="${ORIELOS_APP_IMAGE:-localhost/orielos-app-builder}"
 STAGING=""
 
 die() {
@@ -33,7 +38,7 @@ die() {
 step() { printf '==> %s\n' "$1"; }
 
 usage() {
-    sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 cleanup() {
@@ -50,6 +55,10 @@ parse_args() {
                 ;;
             --undo)
                 UNDO=1
+                shift
+                ;;
+            --apps)
+                APPS=1
                 shift
                 ;;
             -h | --help)
@@ -100,7 +109,7 @@ else
     staging="$(mktemp -d)"
     trap 'rm -rf -- "$staging"' EXIT
     tar -C "$staging" -x
-    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/sddm/themes" /etc/sddm.conf.d
+    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" /etc/sddm.conf.d
     : >"$manifest"
     place() { # place SOURCE TARGET
         cp -a -- "$1" "$2"
@@ -112,13 +121,23 @@ else
     }
     place "$staging/shell/org.orielos.desktop" "$data/plasma/shells/org.orielos.desktop"
     place "$staging/desktoptheme/orielos" "$data/plasma/desktoptheme/orielos"
+    for widget in "$staging"/plasmoids/*; do
+        place "$widget" "$data/plasma/plasmoids/${widget##*/}"
+    done
     place "$staging/etc/plasmashellrc" /etc/xdg/plasmashellrc
     place "$staging/etc/plasmarc" /etc/xdg/plasmarc
     place "$staging/etc/kwinrc" /etc/xdg/kwinrc
     place "$staging/etc/orielos-shell.sh" /etc/xdg/plasma-workspace/env/orielos-shell.sh
+    plugin_path=""
+    if [[ -d "$staging/plugins" ]]; then
+        place "$staging/plugins" "$state/plugins"
+        plugin_path="QT_PLUGIN_PATH=\"$state/plugins\${QT_PLUGIN_PATH:+:\$QT_PLUGIN_PATH}\"
+export QT_PLUGIN_PATH"
+    fi
     write /etc/xdg/plasma-workspace/env/orielos-sideload.sh <<ENV
 XDG_DATA_DIRS="$data:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 export XDG_DATA_DIRS
+$plugin_path
 ENV
     # The sign-in theme is Breeze's with OrielOS's files over it, as the image build makes it.
     theme="$data/sddm/themes/orielos"
@@ -136,10 +155,25 @@ CONF
 fi
 if [[ -n "$restart_user" ]]; then
     uid="$(id -u "$restart_user")"
-    if runuser -u "$restart_user" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
-        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
-        systemctl --user restart plasma-plasmashell.service; then
-        runuser -u "$restart_user" -- env XDG_RUNTIME_DIR="/run/user/$uid"             DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus"             dbus-send --session --dest=org.kde.KWin --type=method_call /KWin org.kde.KWin.reconfigure || true
+    as_user() {
+        runuser -u "$restart_user" -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@"
+    }
+    # A running session read its environment when it started; give it the sideload's.
+    if [[ -d "$state/plugins" ]]; then
+        as_user systemctl --user set-environment "QT_PLUGIN_PATH=$state/plugins" || true
+    else
+        as_user systemctl --user unset-environment QT_PLUGIN_PATH || true
+    fi
+    if [[ "$undo" != 1 ]]; then
+        current="$(as_user systemctl --user show-environment | sed -n 's/^XDG_DATA_DIRS=//p')"
+        case ":$current:" in
+            *":$data:"*) ;;
+            *) as_user systemctl --user set-environment "XDG_DATA_DIRS=$data:${current:-/usr/local/share:/usr/share}" || true ;;
+        esac
+    fi
+    if as_user systemctl --user restart plasma-plasmashell.service; then
+        as_user dbus-send --session --dest=org.kde.KWin --type=method_call /KWin org.kde.KWin.reconfigure || true
         echo "restarted $restart_user's desktop"
     else
         echo "could not restart $restart_user's desktop; sign out and in again to see the change" >&2
@@ -162,12 +196,21 @@ main() {
     mkdir -p "$STAGING/shell" "$STAGING/desktoptheme" "$STAGING/etc" "$STAGING/sddm"
     cp -a "$ROOT/plasma/shell/org.orielos.desktop" "$STAGING/shell/"
     cp -a "$ROOT/plasma/desktoptheme/orielos" "$STAGING/desktoptheme/"
+    cp -a "$ROOT/plasma/plasmoids" "$STAGING/plasmoids"
     cp "$ROOT/image/system/etc/xdg/plasmarc" "$STAGING/etc/plasmarc"
     cp "$ROOT/image/system/etc/xdg/kwinrc" "$STAGING/etc/kwinrc"
     cp "$ROOT/image/system/etc/xdg/plasmashellrc" "$STAGING/etc/plasmashellrc"
     cp "$ROOT/image/system/etc/xdg/plasma-workspace/env/orielos-shell.sh" "$STAGING/etc/orielos-shell.sh"
     cp "$ROOT"/image/sddm/orielos/*.qml "$ROOT/image/sddm/orielos/metadata.desktop" \
         "$ROOT/image/sddm/orielos/theme.conf" "$STAGING/sddm/"
+    if [[ "$APPS" -eq 1 ]]; then
+        local container
+        container="$(podman create "$APP_IMAGE" true)" || die "can't use $APP_IMAGE; run tools/test-apps.sh first"
+        mkdir -p "$STAGING/plugins/plasma"
+        podman cp "$container:/out/usr/lib64/qt6/plugins/plasma/applets" "$STAGING/plugins/plasma/applets"
+        podman rm -f "$container" >/dev/null
+        find "$STAGING/plugins" -type f ! -name 'org.orielos.*' -delete
+    fi
     step "Sideloading the shell from $(git -C "$ROOT" log -1 --format='%h %s' 2>/dev/null || echo "$ROOT") onto $HOST"
     tar -C "$STAGING" -c . | ssh "${SSH_OPTS[@]}" "$HOST" sudo bash -c "$(printf '%q' "$script")" sideload 0 "$(printf '%q' "$RESTART_USER")"
 }

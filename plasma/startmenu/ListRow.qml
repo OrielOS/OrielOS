@@ -35,34 +35,43 @@ PC3.ItemDelegate {
     contentItem: RowLayout {
         spacing: Kirigami.Units.largeSpacing
 
-        Item {
-            id: iconBox
+        // Sill: the icon on a 32 px rounded, tinted square.
+        Rectangle {
+            Layout.preferredWidth: 32
+            Layout.preferredHeight: 32
+            radius: 6
+            color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
 
-            // A picture file, such as a Store app's icon from Flathub's catalogue, shows once it has
-            // loaded. Kirigami.Icon draws nothing for a file that isn't there, not its fallback.
-            readonly property bool isFile: typeof row.iconSource === "string" && row.iconSource.startsWith("file:")
+            Item {
+                id: iconBox
 
-            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
-            Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                // A picture file, such as a Store app's icon from Flathub's catalogue, shows once it has
+                // loaded. Kirigami.Icon draws nothing for a file that isn't there, not its fallback.
+                readonly property bool isFile: typeof row.iconSource === "string" && row.iconSource.startsWith("file:")
 
-            Image {
-                id: picture
+                anchors.centerIn: parent
+                width: 20
+                height: 20
 
-                anchors.fill: parent
-                visible: iconBox.isFile && status === Image.Ready
-                source: iconBox.isFile ? row.iconSource : ""
-                sourceSize.width: width
-                sourceSize.height: height
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-            }
+                Image {
+                    id: picture
 
-            Kirigami.Icon {
-                anchors.fill: parent
-                visible: !picture.visible
-                source: iconBox.isFile ? row.fallbackIcon : row.iconSource
-                fallback: row.fallbackIcon
-                active: row.hovered
+                    anchors.fill: parent
+                    visible: iconBox.isFile && status === Image.Ready
+                    source: iconBox.isFile ? row.iconSource : ""
+                    sourceSize.width: width
+                    sourceSize.height: height
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                }
+
+                Kirigami.Icon {
+                    anchors.fill: parent
+                    visible: !picture.visible
+                    source: iconBox.isFile ? row.fallbackIcon : row.iconSource
+                    fallback: row.fallbackIcon
+                    active: row.hovered
+                }
             }
         }
 
