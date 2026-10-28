@@ -1,12 +1,12 @@
 [Unit]
-Description=Give Alt+F4 to OrielOS's Close or shut down, once
+Description=Give this account OrielOS's Windows shortcuts, once
 Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/keyboard-shortcuts.md
 Before=plasma-kglobalaccel.service
 
 [Service]
-# Runs at each sign-in until it has moved the shortcut once (see the script).
+# Runs at each sign-in until it has set the shortcuts once (see the script).
 Type=oneshot
-ExecStart=/usr/libexec/orielos/close-shortcut
+ExecStart=/usr/libexec/orielos/user-shortcuts
 
 [Install]
 WantedBy=plasma-workspace.target

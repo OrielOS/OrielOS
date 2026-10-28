@@ -14,6 +14,10 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + Tab | Shows all your open windows and desktops |
 | Alt + Tab | Switches between open windows |
 | Windows + I | Opens Settings |
+| Windows + Pause | Opens Settings at About, with this PC's specifications and OrielOS's version |
+| Windows + U | Opens Settings at Accessibility |
+| Windows + N | Opens your notifications and the calendar |
+| Ctrl + Esc | Opens Start, like the Windows key |
 | Windows + X | Opens the quick links menu above Start: Installed apps, Power options, System, Device Manager, Network connections, Terminal, Process Manager, Settings, Files, Search, Run, Shut down or sign out, and Desktop. Press the underlined letter to choose one; right-clicking Start opens it too |
 | Windows + Shift + S | Screenshot: drag to choose part of the screen to capture |
 | Windows + V | Clipboard history: everything you copied recently |

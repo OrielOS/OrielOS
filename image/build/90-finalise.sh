@@ -186,15 +186,15 @@ if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
-# Alt+F4 belongs to OrielOS's Close or shut down KWin script; accounts made before it give it up
-# once at sign-in (new ones get it from /etc/skel).
-systemctl --global enable orielos-close-shortcut.service
-if [[ "$(systemctl --global is-enabled orielos-close-shortcut.service 2>/dev/null)" != "enabled" ]]; then
-    printf 'error: orielos-close-shortcut.service is not enabled for users\n' >&2
+# Alt+F4 belongs to OrielOS's Close or shut down KWin script and Ctrl+Esc opens Start; accounts made
+# before them get both once at sign-in (new ones get them from /etc/skel).
+systemctl --global enable orielos-user-shortcuts.service
+if [[ "$(systemctl --global is-enabled orielos-user-shortcuts.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-user-shortcuts.service is not enabled for users\n' >&2
     exit 1
 fi
-[[ -x /usr/libexec/orielos/close-shortcut ]] || {
-    printf 'error: /usr/libexec/orielos/close-shortcut is not executable\n' >&2
+[[ -x /usr/libexec/orielos/user-shortcuts ]] || {
+    printf 'error: /usr/libexec/orielos/user-shortcuts is not executable\n' >&2
     exit 1
 }
 [[ -f /usr/share/kwin/scripts/orielos-closeorshutdown/metadata.json ]] || {

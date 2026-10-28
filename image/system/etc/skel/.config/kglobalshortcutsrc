@@ -12,3 +12,7 @@ Window Maximize=Meta+Up\tMeta+PgUp,Meta+PgUp,Maximize Window
 Window Minimize=Meta+Down\tMeta+PgDown,Meta+PgDown,Minimize Window
 Window Quick Tile Bottom=none,Meta+Down,Quick Tile Window to the Bottom
 Window Quick Tile Top=none,Meta+Up,Quick Tile Window to the Top
+
+# Ctrl+Esc opens Start, as in Windows, next to the Windows key and Plasma's Alt+F1.
+[plasmashell]
+activate application launcher=Meta\tAlt+F1\tCtrl+Esc,Meta\tAlt+F1,Activate Application Launcher

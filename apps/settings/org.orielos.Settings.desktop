@@ -12,3 +12,14 @@ Categories=Qt;KDE;Settings;
 StartupNotify=true
 SingleMainWindow=true
 X-KDE-Shortcuts=Meta+I
+Actions=About;Accessibility;
+
+[Desktop Action About]
+Name=About this PC
+Exec=orielos-settings about
+X-KDE-Shortcuts=Meta+Pause
+
+[Desktop Action Accessibility]
+Name=Accessibility settings
+Exec=orielos-settings accessibility
+X-KDE-Shortcuts=Meta+U

@@ -71,8 +71,9 @@ tray.writeConfig("hiddenItems", [
 ]);
 panel.addWidget("org.orielos.quicksettings");
 
-// The clock and the bell, which open the notifications and the calendar.
-panel.addWidget("org.orielos.clock");
+// The clock and the bell, which open the notifications and the calendar; Win+N opens them too.
+var clock = panel.addWidget("org.orielos.clock");
+clock.globalShortcut = "Meta+N";
 
 // The sliver at the far right that shows the desktop.
 panel.addWidget("org.orielos.showdesktop");
