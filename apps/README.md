@@ -52,6 +52,13 @@ runapp/               orielos-run-app, Run this app: opens Windows programs (.ex
   qml/Main.qml        the window: confirm, running, and what was added to Start
   org.orielos.RunApp.desktop  the handler for Windows programs, hidden from Start
   autotests/          Qt Test unit tests for the library, with shortcuts built byte by byte
+displaymode/          orielos-display-mode, Display mode on Windows + P: how the screens are used
+  displaylayout.h/.cpp  where each mode puts the screens (static library OrielOSDisplayLayout)
+  displayswitcher.h/.cpp  DisplaySwitcher, the panel's model: reads and applies the screens through libkscreen
+  main.cpp            start-up, the layer-shell panel, one instance (Windows + P again moves on) and --apply
+  qml/Main.qml        the panel: four choices in Sill's card, the one in use marked
+  org.orielos.DisplayMode.desktop  Windows + P, hidden from Start
+  autotests/          Qt Test unit tests for the layouts
 updatesettings/       kcm_orielos_update, the Update settings page (a Plasma settings module)
   updatesettings.h/.cpp  UpdateSettings, the page's model (QML module org.orielos.updatesettings)
   updatecommands.h/.cpp  running orielos-update through pkexec, and following the check unit

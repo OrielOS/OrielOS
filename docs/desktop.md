@@ -36,6 +36,7 @@ Right-click the desktop for **View** (icon size and arrangement), **Sort by**, *
 
 - **See every window** with Windows + Tab, and switch between them with Alt + Tab: hold Alt and press Tab to move along the windows, and let go to switch. While it shows, Delete closes the selected window.
 - **Window buttons:** minimise, maximise and close are at the top right of every window. Close turns red when you point at it.
+- **A second screen or projector:** press Windows + P to choose **PC screen only**, **Duplicate** (the same picture on both), **Extend** (one desktop across both) or **Second screen only**. **Display settings** at the bottom arranges the screens in more detail.
 
 [Keyboard shortcuts](keyboard-shortcuts.md) lists them all, with how snap layouts work from the keyboard.
 

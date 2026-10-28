@@ -112,6 +112,7 @@ SHORTCUT_TABLE=(
     "Meta+I|0x10000049|org.orielos.Settings.desktop|_launch"
     "Meta+Pause|0x11000008|org.orielos.Settings.desktop|About"
     "Meta+U|0x10000055|org.orielos.Settings.desktop|Accessibility"
+    "Meta+P|0x10000050|org.orielos.DisplayMode.desktop|_launch"
     "Meta+Shift+S|0x12000053|org.kde.spectacle.desktop|_launch"
     "Meta+V|0x10000056||show-on-mouse-pos"
     "Meta+.|0x1000002e|org.kde.plasma.emojier.desktop|_launch"

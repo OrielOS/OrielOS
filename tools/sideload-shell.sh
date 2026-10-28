@@ -11,7 +11,7 @@
 #
 # Usage: tools/sideload-shell.sh [--apps] [--restart USER] [--undo] [--help] HOST
 #   HOST            an SSH destination (user@host) whose user can use sudo without a password
-#   --apps          also sideload OrielOS's compiled Plasma widgets (such as Start) and window frames from the app
+#   --apps          also sideload OrielOS's compiled Plasma widgets (such as Start), window frames and Display mode (Win+P) from the app
 #                   build, localhost/orielos-app-builder (tools/test-apps.sh), or
 #                   ORIELOS_APP_IMAGE; QT_PLUGIN_PATH puts them before the installed ones
 #   --restart USER  restart USER's Plasma desktop afterwards, so a signed-in session shows the change
@@ -134,6 +134,17 @@ else
     mkdir -p "$data/applications" "$data/kglobalaccel"
     place "$staging/settings.desktop" "$data/applications/org.orielos.Settings.desktop"
     place "$staging/settings.desktop" "$data/kglobalaccel/org.orielos.Settings.desktop"
+    # Display mode on Win+P, run from the sideload, and Plasma's screen picker without Win+P, as
+    # the image build makes it.
+    if [[ -f "$staging/bin/orielos-display-mode" ]]; then
+        place "$staging/bin" "$state/bin"
+        sed "s|^Exec=orielos-display-mode\$|Exec=$state/bin/orielos-display-mode|" "$staging/displaymode.desktop" |
+            write "$data/applications/org.orielos.DisplayMode.desktop"
+        cp -- "$data/applications/org.orielos.DisplayMode.desktop" "$data/kglobalaccel/org.orielos.DisplayMode.desktop"
+        printf '%s\n' "$data/kglobalaccel/org.orielos.DisplayMode.desktop" >>"$manifest"
+        sed 's/^X-KDE-Shortcuts=Display,Meta+P$/X-KDE-Shortcuts=Display/' /usr/share/kglobalaccel/org.kde.kscreen.desktop |
+            write "$data/kglobalaccel/org.kde.kscreen.desktop"
+    fi
     if [[ -d "$staging/locale-en@orielos" ]]; then
         mkdir -p "$data/locale"
         place "$staging/locale-en@orielos" "$data/locale/en@orielos"
@@ -249,6 +260,9 @@ main() {
         podman cp "$container:/out/usr/lib64/qt6/plugins/org.kde.kdecoration3" "$STAGING/plugins/org.kde.kdecoration3"
         podman cp "$container:/out/usr/lib64/qt6/plugins/plasma/containmentactions" "$STAGING/plugins/plasma/containmentactions"
         podman cp "$container:/out/usr/share/locale/en@orielos" "$STAGING/locale-en@orielos"
+        mkdir -p "$STAGING/bin"
+        podman cp "$container:/out/usr/bin/orielos-display-mode" "$STAGING/bin/orielos-display-mode"
+        cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
         podman rm -f "$container" >/dev/null
         find "$STAGING/plugins" -type f ! -name 'org.orielos.*' -delete
     fi

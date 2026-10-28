@@ -14,6 +14,7 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + Tab | Shows all your open windows and desktops |
 | Alt + Tab | Switches between open windows |
 | Windows + I | Opens Settings |
+| Windows + P | Chooses how your screens are used: PC screen only, Duplicate, Extend or Second screen only. Press P again (holding Windows) to move down the list, then Enter |
 | Windows + Pause | Opens Settings at About, with this PC's specifications and OrielOS's version |
 | Windows + U | Opens Settings at Accessibility |
 | Windows + N | Opens your notifications and the calendar |

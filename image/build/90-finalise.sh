@@ -128,6 +128,10 @@ done
 for f in /usr/share/applications/org.orielos.Settings.desktop /usr/share/kglobalaccel/org.orielos.Settings.desktop; do
     grep -qxF 'X-KDE-Shortcuts=Meta+I' "$f" 2>/dev/null || update_errors+=("$f is missing or doesn't give Settings Win+I")
 done
+# Display mode, on Win+P, which Plasma's screen picker gives up.
+[[ -x /usr/bin/orielos-display-mode ]] || update_errors+=("/usr/bin/orielos-display-mode is missing")
+grep -qxF 'X-KDE-Shortcuts=Meta+P' /usr/share/kglobalaccel/org.orielos.DisplayMode.desktop 2>/dev/null || update_errors+=("Display mode doesn't have Win+P")
+grep -qxF 'X-KDE-Shortcuts=Display' /usr/share/kglobalaccel/org.kde.kscreen.desktop || update_errors+=("Plasma's screen picker still has Win+P")
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
 # Start's and KRunner's search open Settings' pages in Settings, through OrielOS's runner.
 [[ -r /usr/lib64/qt6/plugins/kf6/krunner/krunner_orielos_settings.so ]] || update_errors+=("the settings search runner, krunner_orielos_settings, is missing")

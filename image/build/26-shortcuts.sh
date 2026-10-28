@@ -3,7 +3,8 @@
 # Ctrl+Shift+Esc, KRunner Win+R and Spectacle a Win+PrtSc action that saves a full screenshot
 # without a dialog, moves the Spectacle shortcuts those keys clash with, and renames System
 # Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files, and the taskbar widget
-# to Taskbar. System Settings gives Win+I and its place in Start to OrielOS's Settings app. The
+# to Taskbar. System Settings gives Win+I and its place in Start to OrielOS's Settings app, and
+# Plasma's screen picker gives Win+P to OrielOS's Display mode panel. The
 # KWin shortcuts (Win+Tab and Win+Up/Down) are in system/etc/skel/.config/kglobalshortcutsrc.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
@@ -108,6 +109,10 @@ settings=$apps/systemsettings.desktop
 set_shortcuts "$settings" "Desktop Entry" "Tools,Meta+I" "Tools"
 [[ "$(head -n1 "$settings")" == "[Desktop Entry]" ]] || die "$settings doesn't start with [Desktop Entry]; update $script"
 sed -i '1a NoDisplay=true' "$settings"
+
+# Display mode: OrielOS's own panel (apps/displaymode) has Win+P, so Plasma's screen picker
+# keeps only the Display key. Its entry exists only in kglobalaccel's folder.
+set_shortcuts "$accel/org.kde.kscreen.desktop" "Desktop Action ShowOSD" "Display,Meta+P" "Display"
 
 # Plasma's defaults that OrielOS keeps; fail if a package update moves one of them.
 grep -qxF 'X-KDE-Shortcuts=Meta+E' "$apps/org.kde.dolphin.desktop" || die "Dolphin is no longer on Meta+E; update $script"
