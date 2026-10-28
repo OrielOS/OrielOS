@@ -76,10 +76,16 @@ def rounded_corner(r, c):
     return "M 0,%s L 0,%s A %s,%s 0 0 1 %s,0 L %s,0 L %s,%s Z" % (c, r, r, r, r, c, c, c)
 
 
-def corner_border(r):
-    """The top-left part of a 1 px outline with radius r."""
-    h = 0.5
-    return "M %s,%s L %s,%s A %s,%s 0 0 1 %s,%s" % (h, r + 0.01, h, r, r - h, r - h, r, h)
+def corner_band(r, c, width=1):
+    """The top-left part of an outline `width` px thick with radius r, in a c by c corner piece:
+    straight from the piece's edge to the curve and on to the other edge, as a filled band. Qt
+    measures a stroked line with half its width past each end, so a stroked outline made the piece
+    larger than its slot and Plasma drew it squeezed, leaving a gap beside it; a filled band stays
+    exactly c by c."""
+    w = width
+    inner = max(r - w, 0)
+    return "M 0,%s L 0,%s A %s,%s 0 0 1 %s,0 L %s,0 L %s,%s L %s,%s A %s,%s 0 0 0 %s,%s L %s,%s Z" % (
+        c, r, r, r, r, c, c, w, r, w, inner, inner, w, r, w, c)
 
 
 ROTATE = {
@@ -108,7 +114,7 @@ def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, e
             inner.append('<path d="%s" %s/>' % (rounded_corner(rr, c) if rr else "M 0,0 H %s V %s H 0 Z" % (c, c), fill(*background)))
         sides = [s for s in ("top", "bottom", "left", "right") if s in name]
         if border and all(s in border_sides for s in sides) and rr:
-            inner.append('<path d="%s" class="%s" style="fill:none;stroke:currentColor;stroke-opacity:%s;stroke-width:1"/>' % (corner_border(rr), border[0], border[1]))
+            inner.append('<path d="%s" class="%s" style="fill:currentColor;fill-opacity:%s"/>' % (corner_band(rr, c), border[0], border[1]))
         elif border:
             for s in sides:
                 if s in border_sides:
@@ -259,13 +265,11 @@ def lineedit(path):
     def underline(name, w, h):
         # Sill's inset line: 2 px of the highlight colour along the inside of the pill's lower
         # edge, following its rounded ends. Corners are drawn as the top-left one and flipped, so
-        # the arc is drawn on the corner's outer curve.
+        # the band follows the corner's outer curve.
         if name == "bottom":
             return ['<rect x="0" y="%s" width="%s" height="2" %s/>' % (h - 2, w, fill("ColorScheme-Highlight", 1))]
         if name in ("bottomleft", "bottomright"):
-            r = w
-            return ['<path d="M 1,%s A %s,%s 0 0 1 %s,1" class="ColorScheme-Highlight" '
-                    'style="fill:none;stroke:currentColor;stroke-width:2"/>' % (r, r - 1, r - 1, r)]
+            return ['<path d="%s" class="ColorScheme-Highlight" style="fill:currentColor"/>' % corner_band(w, w, 2)]
         return []
 
     svg = Svg()
