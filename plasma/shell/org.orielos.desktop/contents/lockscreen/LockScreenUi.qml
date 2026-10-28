@@ -5,11 +5,12 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 
-// OrielOS's copy of Plasma's lock screen layout (plasma-desktop 6.7.5,
-// shells/org.kde.plasma.desktop/contents/lockscreen/LockScreenUi.qml). The only change is the
-// clock: it sits under the sill of the OrielOS wallpaper while the screen is idle, in ink on
-// the light wallpaper and white on the dark one, and fades out while the user unlocks.
-// image/build/27-lock-screen.sh installs it over Plasma's file.
+// OrielOS's lock screen, in Sill's style, from Plasma's lock screen layout (plasma-desktop 6.7.5,
+// shells/org.kde.plasma.desktop/contents/lockscreen/LockScreenUi.qml), whose unlocking logic it
+// keeps. While the screen is idle, a large clock shows at the top over the wallpaper; a key press
+// or a click slides it up and away and shows the sign-in (SignInBlock.qml) over the blurred
+// wallpaper, with the account and Switch user at the bottom left and the keyboard layout, the
+// on-screen keyboard, Sleep and the battery at the bottom right.
 
 import QtQml
 import QtQuick
@@ -33,19 +34,6 @@ Item {
     // If we're using software rendering, draw outlines instead of shadows
     // See https://bugs.kde.org/show_bug.cgi?id=398317
     readonly property bool softwareRendering: GraphicsInfo.api === GraphicsInfo.Software
-
-    // Where the bottom of the sill falls on the screen. The OrielOS wallpapers are 16:9 with
-    // the sill's lower edge at 70.7 % of their height, and the lock screen scales and crops
-    // them to fill the screen, so on screens wider than 16:9 the top and bottom are cut off.
-    readonly property real wallpaperAspect: 16 / 9
-    readonly property real sillBottom: 0.707
-    readonly property real sillY: {
-        if (width / height > wallpaperAspect) {
-            const scaledHeight = width / wallpaperAspect;
-            return sillBottom * scaledHeight - (scaledHeight - height) / 2;
-        }
-        return sillBottom * height;
-    }
 
     // The colour scheme decides which wallpaper image shows: Daybreak (light) or Nightfall
     // (dark). The rest of the lock screen uses the complementary colours, so read the window
@@ -261,17 +249,26 @@ Item {
             opacity: clock.opacity
         }
 
-        // The time and date, centred under the sill while the screen is idle, as long as the
-        // user keeps Plasma's "show clock" lock screen setting on.
+        // The time and date, large at the top centre while the screen is idle, as long as the user
+        // keeps Plasma's "show clock" lock screen setting on. They slide up and fade as the
+        // sign-in shows.
         ColumnLayout {
             id: clock
             readonly property bool showWhenIdle: config.alwaysShowClock && !config.hideClockWhenIdle
             anchors.horizontalCenter: parent.horizontalCenter
-            y: Math.min(lockScreenUi.sillY + Kirigami.Units.gridUnit * 1.5,
-                        lockScreenRoot.height - height - Kirigami.Units.gridUnit * 3)
+            y: Math.round(lockScreenRoot.height * 0.02)
             spacing: 0
             opacity: !lockScreenRoot.uiVisible && showWhenIdle ? 1 : 0
             visible: opacity > 0
+            transform: Translate {
+                y: lockScreenRoot.uiVisible ? -(clock.y + clock.height) : 0
+                Behavior on y {
+                    NumberAnimation {
+                        duration: Kirigami.Units.veryLongDuration
+                        easing.type: Easing.OutCubic
+                    }
+                }
+            }
             Behavior on opacity {
                 OpacityAnimator {
                     duration: Kirigami.Units.veryLongDuration
@@ -285,21 +282,21 @@ Item {
                 color: lockScreenUi.clockColor
                 style: lockScreenUi.softwareRendering && !lockScreenUi.lightScheme ? Text.Outline : Text.Normal
                 styleColor: Qt.rgba(0, 0, 0, 0.6)
-                font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 7.2)
+                font.family: "Noto Sans Display"
+                font.pixelSize: Math.round(Math.min(lockScreenRoot.height * 0.105, lockScreenRoot.width * 0.075))
                 font.weight: Font.DemiBold
-                font.letterSpacing: -3.0
-                font.wordSpacing: 3.0
-                renderType: Text.NativeRendering
+                font.letterSpacing: -2.0
+                renderType: Text.QtRendering
                 Layout.alignment: Qt.AlignHCenter
             }
             PlasmaComponents3.Label {
-                text: Qt.formatDate(timeSource.dateTime, Qt.locale(), Locale.LongFormat)
+                text: Qt.locale().toString(timeSource.dateTime, "dddd d MMMM")
                 textFormat: Text.PlainText
                 color: lockScreenUi.clockColor
                 style: lockScreenUi.softwareRendering && !lockScreenUi.lightScheme ? Text.Outline : Text.Normal
                 styleColor: Qt.rgba(0, 0, 0, 0.6)
-                font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 2.4)
-                renderType: Text.NativeRendering
+                font.pixelSize: Math.round(Math.min(lockScreenRoot.height * 0.025, 26))
+                font.weight: Font.Medium
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -335,13 +332,22 @@ Item {
             // this isn't implicit, otherwise items still get processed for the scenegraph
             visible: opacity > 0
 
-            initialItem: MainBlock {
+            initialItem: SignInBlock {
                 id: mainBlock
                 lockScreenUiVisible: lockScreenRoot.uiVisible
 
-                showUserList: userList.y + mainStack.y > 0
-
                 enabled: !graceLockTimer.running
+
+                // The sign-in rises a little as it fades in.
+                transform: Translate {
+                    y: lockScreenRoot.uiVisible ? 0 : Kirigami.Units.gridUnit * 2
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Kirigami.Units.veryLongDuration
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
 
                 StackView.onStatusChanged: {
                     // prepare for presenting again to the user
@@ -369,31 +375,7 @@ Item {
                     authenticator.respond(password)
                 }
 
-                actionItems: [
-                    ActionButton {
-                        text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@action:button", "Slee&p")
-                        icon.name: "system-suspend"
-                        onClicked: sessionManagement.suspend()
-                        visible: sessionManagement.canSuspend
-                    },
-                    ActionButton {
-                        text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@action:button", "&Hibernate")
-                        icon.name: "system-suspend-hibernate"
-                        onClicked: sessionManagement.hibernate()
-                        visible: sessionManagement.canHibernate
-                    },
-                    ActionButton {
-                        text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@action:button", "Switch &User")
-                        icon.name: "system-switch-user"
-                        onClicked: {
-                            sessionManagement.switchUser();
-                        }
-                        visible: sessionManagement.canSwitchUser
-                    }
-                ]
-
                 Loader {
-                    Layout.topMargin: Kirigami.Units.smallSpacing // some distance to the password field
                     Layout.fillWidth: true
                     Layout.preferredHeight: item ? item.implicitHeight : 0
                     active: config.showMediaControls
@@ -424,71 +406,33 @@ Item {
             }
         }
 
-        // Note: Containment masks stretch clickable area of their buttons to
-        // the screen edges, essentially making them adhere to Fitts's law.
-        // Due to virtual keyboard button having an icon, buttons may have
-        // different heights, so fillHeight is required.
-        //
-        // Note for contributors: Keep this in sync with SDDM Main.qml footer.
+        // The account and Switch user at the bottom left; the keyboard layout, the on-screen
+        // keyboard, Sleep and the battery at the bottom right. WallpaperFader shows the footer
+        // with the sign-in. Note for contributors: keep this in step with the sign-in screen's
+        // footer (image/sddm/orielos/Main.qml).
         RowLayout {
             id: footer
             anchors {
                 bottom: parent.bottom
                 left: parent.left
                 right: parent.right
-                margins: Kirigami.Units.smallSpacing
+                margins: Kirigami.Units.gridUnit
             }
             spacing: Kirigami.Units.smallSpacing
 
-            PlasmaComponents3.ToolButton {
-                id: virtualKeyboardButton
+            ColumnLayout {
+                spacing: Kirigami.Units.smallSpacing / 2
 
-                focusPolicy: Qt.TabFocus
-                text: i18ndc("plasma_shell_org.kde.plasma.desktop", "Button to show/hide virtual keyboard", "Virtual Keyboard")
-                icon.name: inputPanel.keyboardActive ? "input-keyboard-virtual-on" : "input-keyboard-virtual-off"
-                onClicked: {
-                    // Otherwise the password field loses focus and virtual keyboard
-                    // keystrokes get eaten
-                    mainBlock.mainPasswordBox.forceActiveFocus();
-                    inputPanel.showHide()
+                FooterTile {
+                    text: users.count > 0 ? users.get(0).realName : ""
+                    avatarSource: users.count > 0 ? users.get(0).icon : ""
+                    current: true
                 }
-
-                visible: inputPanel.status === Loader.Ready
-
-                Layout.fillHeight: true
-                containmentMask: Item {
-                    parent: virtualKeyboardButton
-                    anchors.fill: parent
-                    anchors.leftMargin: -footer.anchors.margins
-                    anchors.bottomMargin: -footer.anchors.margins
-                }
-            }
-
-            PlasmaComponents3.ToolButton {
-                id: keyboardButton
-
-                focusPolicy: Qt.TabFocus
-                Accessible.description: i18ndc("plasma_shell_org.kde.plasma.desktop", "Button to change keyboard layout", "Switch layout")
-                icon.name: "input-keyboard"
-
-                PW.KeyboardLayoutSwitcher {
-                    id: keyboardLayoutSwitcher
-
-                    anchors.fill: parent
-                    acceptedButtons: Qt.NoButton
-                }
-
-                text: keyboardLayoutSwitcher.layoutNames.longName
-                onClicked: keyboardLayoutSwitcher.keyboardLayout.switchToNextLayout()
-
-                visible: keyboardLayoutSwitcher.hasMultipleKeyboardLayouts
-
-                Layout.fillHeight: true
-                containmentMask: Item {
-                    parent: keyboardButton
-                    anchors.fill: parent
-                    anchors.leftMargin: virtualKeyboardButton.visible ? 0 : -footer.anchors.margins
-                    anchors.bottomMargin: -footer.anchors.margins
+                FooterTile {
+                    text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@action:button", "Switch &User").replace("&", "")
+                    iconName: "system-switch-user"
+                    visible: sessionManagement.canSwitchUser
+                    onClicked: sessionManagement.switchUser()
                 }
             }
 
@@ -496,7 +440,56 @@ Item {
                 Layout.fillWidth: true
             }
 
-            Battery {}
+            PlasmaComponents3.ToolButton {
+                id: keyboardButton
+                Layout.alignment: Qt.AlignBottom
+                focusPolicy: Qt.TabFocus
+                Accessible.description: i18ndc("plasma_shell_org.kde.plasma.desktop", "Button to change keyboard layout", "Switch layout")
+                PW.KeyboardLayoutSwitcher {
+                    id: keyboardLayoutSwitcher
+                    anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
+                }
+                text: keyboardLayoutSwitcher.layoutNames.shortName.toUpperCase()
+                onClicked: keyboardLayoutSwitcher.keyboardLayout.switchToNextLayout()
+                visible: keyboardLayoutSwitcher.hasMultipleKeyboardLayouts
+            }
+
+            PlasmaComponents3.ToolButton {
+                id: virtualKeyboardButton
+                Layout.alignment: Qt.AlignBottom
+                focusPolicy: Qt.TabFocus
+                display: PlasmaComponents3.AbstractButton.IconOnly
+                text: i18ndc("plasma_shell_org.kde.plasma.desktop", "Button to show/hide virtual keyboard", "Virtual Keyboard")
+                icon.name: "preferences-desktop-accessibility"
+                checkable: true
+                checked: inputPanel.keyboardActive
+                onClicked: {
+                    // Keep the password field focused, or the keyboard's keystrokes are lost.
+                    mainBlock.mainPasswordBox.forceActiveFocus();
+                    inputPanel.showHide();
+                }
+                visible: inputPanel.status === Loader.Ready
+                PlasmaComponents3.ToolTip.text: text
+                PlasmaComponents3.ToolTip.visible: hovered
+            }
+
+            PlasmaComponents3.ToolButton {
+                id: powerButton
+                Layout.alignment: Qt.AlignBottom
+                focusPolicy: Qt.TabFocus
+                display: PlasmaComponents3.AbstractButton.IconOnly
+                text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@action:button", "Slee&p").replace("&", "")
+                icon.name: "system-suspend"
+                onClicked: sessionManagement.suspend()
+                visible: sessionManagement.canSuspend
+                PlasmaComponents3.ToolTip.text: text
+                PlasmaComponents3.ToolTip.visible: hovered
+            }
+
+            Battery {
+                Layout.alignment: Qt.AlignBottom
+            }
         }
     }
 }
