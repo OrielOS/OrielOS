@@ -4,6 +4,7 @@
 # OrielOS's window frames, a KWin decoration plugin (KDecoration3), org.orielos.decoration.
 # /etc/xdg/kwinrc makes it the default.
 find_package(KDecoration3 REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS DBus)
 find_package(KF6 REQUIRED COMPONENTS CoreAddons)
 
 add_library(orielosdecoration MODULE
@@ -13,6 +14,7 @@ add_library(orielosdecoration MODULE
 )
 set_target_properties(orielosdecoration PROPERTIES OUTPUT_NAME org.orielos.decoration)
 target_link_libraries(orielosdecoration PRIVATE
+    Qt6::DBus
     Qt6::Gui
     KF6::CoreAddons
     KDecoration3::KDecoration

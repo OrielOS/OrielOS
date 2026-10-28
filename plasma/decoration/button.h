@@ -5,6 +5,7 @@
 
 #include <KDecoration3/DecorationButton>
 
+#include <QTimer>
 #include <QVariant>
 
 namespace OrielOSDecoration {
@@ -31,6 +32,10 @@ public:
 
 private:
     void paintGlyph(QPainter *painter, const QRectF &box) const;
+    // Resting the pointer on maximise opens the snap layouts under it, as in Windows.
+    void showSnapLayouts() const;
+
+    QTimer *m_snapLayoutsTimer = nullptr;
 };
 
 } // namespace OrielOSDecoration

@@ -6,6 +6,8 @@
 
 #include <KDecoration3/DecoratedWindow>
 
+#include <QDBusConnection>
+#include <QDBusMessage>
 #include <QPainter>
 #include <QVariant>
 
@@ -20,6 +22,8 @@ const QColor ClosePressed(0xb2, 0x27, 0x1a);
 // The glyphs' size and line width, in logical pixels.
 constexpr qreal GlyphSize = 10;
 constexpr qreal GlyphLine = 1;
+// How long the pointer rests on maximise before the snap layouts show.
+constexpr int SnapLayoutsDelay = 500;
 } // namespace
 
 using KDecoration3::DecorationButtonType;
@@ -29,6 +33,33 @@ Button::Button(DecorationButtonType type, Decoration *decoration, QObject *paren
 {
     connect(this, &KDecoration3::DecorationButton::hoveredChanged, this, [this]() { update(); });
     connect(this, &KDecoration3::DecorationButton::pressedChanged, this, [this]() { update(); });
+
+    if (type == DecorationButtonType::Maximize) {
+        m_snapLayoutsTimer = new QTimer(this);
+        m_snapLayoutsTimer->setSingleShot(true);
+        m_snapLayoutsTimer->setInterval(SnapLayoutsDelay);
+        connect(m_snapLayoutsTimer, &QTimer::timeout, this, &Button::showSnapLayouts);
+        connect(this, &KDecoration3::DecorationButton::hoveredChanged, m_snapLayoutsTimer, [this](bool hovered) {
+            if (hovered && !isPressed()) {
+                m_snapLayoutsTimer->start();
+            } else {
+                m_snapLayoutsTimer->stop();
+            }
+        });
+        connect(this, &KDecoration3::DecorationButton::pressedChanged, m_snapLayoutsTimer, &QTimer::stop);
+    }
+}
+
+void Button::showSnapLayouts() const
+{
+    // OrielOS's snap layouts effect shows them for the window in use, so only that one's button asks.
+    if (!decoration() || !decoration()->window()->isActive() || !isHovered()) {
+        return;
+    }
+    auto message = QDBusMessage::createMethodCall(QStringLiteral("org.kde.kglobalaccel"), QStringLiteral("/component/kwin"),
+        QStringLiteral("org.kde.kglobalaccel.Component"), QStringLiteral("invokeShortcut"));
+    message << QStringLiteral("Snap Layouts Menu");
+    QDBusConnection::sessionBus().send(message);
 }
 
 Button::Button(QObject *parent, const QVariantList &args)

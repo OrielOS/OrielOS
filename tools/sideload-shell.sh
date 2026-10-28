@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Copies the OrielOS shell from this checkout onto a running OrielOS computer over SSH, for trying
-# changes without building an image: the shell package, OrielOS's Plasma theme and widgets, its line
-# icons, the settings that make them the desktop, and the sign-in theme. OrielOS's /usr (and
-# /usr/local) is read-only, so the files go to
-# /var/usrlocal/orielos-sideload/share, which carries /usr's SELinux label: a session environment
+# changes without building an image: the shell package, OrielOS's Plasma theme and widgets, its KWin
+# effects, its line icons, the settings that make them the desktop, and the sign-in theme. OrielOS's
+# /usr (and /usr/local) is read-only, so the files go to /var/usrlocal/orielos-sideload/share,
+# which carries /usr's SELinux label: a session environment
 # script puts it first on XDG_DATA_DIRS for Plasma and the lock screen, and an SDDM setting points
 # the sign-in screen at its themes. Every file it places is listed on the computer in
 # /var/usrlocal/orielos-sideload/manifest, so --undo can take them all away again; undo before
@@ -11,7 +11,7 @@
 #
 # Usage: tools/sideload-shell.sh [--apps] [--restart USER] [--undo] [--help] HOST
 #   HOST            an SSH destination (user@host) whose user can use sudo without a password
-#   --apps          also sideload OrielOS's compiled Plasma widgets (such as Start) from the app
+#   --apps          also sideload OrielOS's compiled Plasma widgets (such as Start) and window frames from the app
 #                   build, localhost/orielos-app-builder (tools/test-apps.sh), or
 #                   ORIELOS_APP_IMAGE; QT_PLUGIN_PATH puts them before the installed ones
 #   --restart USER  restart USER's Plasma desktop afterwards, so a signed-in session shows the change
@@ -110,7 +110,7 @@ else
     staging="$(mktemp -d)"
     trap 'rm -rf -- "$staging"' EXIT
     tar -C "$staging" -x
-    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" "$data/icons/hicolor/scalable/actions" /etc/sddm.conf.d
+    mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" "$data/icons/hicolor/scalable/actions" "$data/kwin/effects" /etc/sddm.conf.d
     : >"$manifest"
     place() { # place SOURCE TARGET
         cp -a -- "$1" "$2"
@@ -124,6 +124,9 @@ else
     place "$staging/desktoptheme/orielos" "$data/plasma/desktoptheme/orielos"
     for widget in "$staging"/plasmoids/*; do
         place "$widget" "$data/plasma/plasmoids/${widget##*/}"
+    done
+    for effect in "$staging"/kwin/*; do
+        place "$effect" "$data/kwin/effects/orielos-${effect##*/}"
     done
     for icon in "$staging"/icons/*.svg; do
         place "$icon" "$data/icons/hicolor/scalable/actions/${icon##*/}"
@@ -202,6 +205,7 @@ main() {
     cp -a "$ROOT/plasma/desktoptheme/orielos" "$STAGING/desktoptheme/"
     cp -a "$ROOT/plasma/plasmoids" "$STAGING/plasmoids"
     mkdir -p "$STAGING/icons"
+    cp -a "$ROOT/plasma/kwin" "$STAGING/kwin"
     cp "$ROOT"/artwork/icons/*-symbolic.svg "$STAGING/icons/"
     cp "$ROOT/image/system/etc/xdg/plasmarc" "$STAGING/etc/plasmarc"
     cp "$ROOT/image/system/etc/xdg/kwinrc" "$STAGING/etc/kwinrc"
