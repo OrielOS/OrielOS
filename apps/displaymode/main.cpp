@@ -43,6 +43,7 @@ int applyMode(const QString &name)
     }
     DisplaySwitcher switcher;
     QObject::connect(&switcher, &DisplaySwitcher::applied, qApp, [](bool succeeded) { QCoreApplication::exit(succeeded ? 0 : 1); });
+    QObject::connect(&switcher, &DisplaySwitcher::unavailable, qApp, []() { QCoreApplication::exit(1); });
     const auto apply = [&switcher, mode = modes.value(name)]() { switcher.apply(int(mode)); };
     if (switcher.ready()) {
         apply();

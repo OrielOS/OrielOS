@@ -24,6 +24,7 @@ void DisplaySwitcher::load()
     connect(operation, &KScreen::ConfigOperation::finished, this, [this](KScreen::ConfigOperation *op) {
         if (op->hasError()) {
             qWarning("orielos-display-mode: can't read the screen configuration: %s", qPrintable(op->errorString()));
+            Q_EMIT unavailable();
             return;
         }
         m_config = qobject_cast<KScreen::GetConfigOperation *>(op)->config();
@@ -77,7 +78,7 @@ QList<Screen> DisplaySwitcher::screens() const
 
 void DisplaySwitcher::apply(int mode)
 {
-    if (!m_config) {
+    if (!m_config || mode < int(Mode::MainOnly) || mode > int(Mode::OthersOnly)) {
         Q_EMIT applied(false);
         return;
     }

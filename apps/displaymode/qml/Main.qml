@@ -67,6 +67,7 @@ Window {
             }
         }
         onApplied: Qt.quit()
+        onUnavailable: Qt.quit()
     }
 
     Rectangle {

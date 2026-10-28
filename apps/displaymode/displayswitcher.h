@@ -19,11 +19,11 @@ class DisplaySwitcher : public QObject
     QML_ELEMENT
 
     // Whether the configuration has been read.
-    Q_PROPERTY(bool ready READ ready NOTIFY changed)
+    Q_PROPERTY(bool ready READ ready NOTIFY changed FINAL)
     // The number of connected screens; the modes other than the main screen need two.
-    Q_PROPERTY(int screenCount READ screenCount NOTIFY changed)
+    Q_PROPERTY(int screenCount READ screenCount NOTIFY changed FINAL)
     // The mode the screens are in, as a DisplayLayout::Mode.
-    Q_PROPERTY(int currentMode READ currentMode NOTIFY changed)
+    Q_PROPERTY(int currentMode READ currentMode NOTIFY changed FINAL)
 
 public:
     explicit DisplaySwitcher(QObject *parent = nullptr);
@@ -38,6 +38,8 @@ public:
 Q_SIGNALS:
     void changed();
     void applied(bool succeeded);
+    // The screen configuration couldn't be read, so nothing can be shown or applied.
+    void unavailable();
 
 private:
     void load();
