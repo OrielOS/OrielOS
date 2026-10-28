@@ -134,6 +134,7 @@ else
     place "$staging/etc/plasmarc" /etc/xdg/plasmarc
     place "$staging/etc/kwinrc" /etc/xdg/kwinrc
     place "$staging/etc/plasmanotifyrc" /etc/xdg/plasmanotifyrc
+    place "$staging/etc/plasmaparc" /etc/xdg/plasmaparc
     place "$staging/etc/orielos-shell.sh" /etc/xdg/plasma-workspace/env/orielos-shell.sh
     plugin_path=""
     if [[ -d "$staging/plugins" ]]; then
@@ -210,6 +211,7 @@ main() {
     cp "$ROOT/image/system/etc/xdg/plasmarc" "$STAGING/etc/plasmarc"
     cp "$ROOT/image/system/etc/xdg/kwinrc" "$STAGING/etc/kwinrc"
     cp "$ROOT/image/system/etc/xdg/plasmanotifyrc" "$STAGING/etc/plasmanotifyrc"
+    cp "$ROOT/image/system/etc/xdg/plasmaparc" "$STAGING/etc/plasmaparc"
     cp "$ROOT/image/system/etc/xdg/plasmashellrc" "$STAGING/etc/plasmashellrc"
     cp "$ROOT/image/system/etc/xdg/plasma-workspace/env/orielos-shell.sh" "$STAGING/etc/orielos-shell.sh"
     cp "$ROOT"/image/sddm/orielos/*.qml "$ROOT/image/sddm/orielos/metadata.desktop" \
