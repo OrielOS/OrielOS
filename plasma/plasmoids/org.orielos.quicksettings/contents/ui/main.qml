@@ -26,6 +26,11 @@ import org.kde.plasma.workspace.dbus as DBus
 PlasmoidItem {
     id: root
 
+    // Whether the panel is open.
+    property bool open: false
+    // The gap Sill leaves between the taskbar, or the screen's edge, and the cards.
+    readonly property int gap: 12
+
     // Volume moves 2 % a step, from the wheel and from the slider.
     readonly property int volumeStep: 2
 
@@ -64,7 +69,7 @@ PlasmoidItem {
 
     // Opens a page of OrielOS's Settings, or Settings itself without one.
     function openSettings(page: string) {
-        root.expanded = false;
+        root.open = false;
         Qt.openUrlExternally("orielos-settings:" + page);
     }
 
@@ -82,12 +87,40 @@ PlasmoidItem {
         return lines.filter(line => line.length > 0).join("\n");
     }
 
-    preferredRepresentation: compactRepresentation
-    compactRepresentation: CompactButton {
+    // Sill draws what's playing and the settings as two cards with a gap. Plasma's popups for
+    // taskbar widgets always draw one pane, so the button is the full representation and the panel
+    // is a window of this widget's own, with no pane, in which the cards are drawn.
+    preferredRepresentation: fullRepresentation
+    fullRepresentation: CompactButton {
         quickSettings: root
     }
-    fullRepresentation: Panel {
-        quickSettings: root
+
+    Plasmoid.onActivated: root.open = !root.open
+
+    PlasmaCore.Dialog {
+        id: panelWindow
+
+        visualParent: root.fullRepresentationItem
+        location: PlasmaCore.Types.BottomEdge
+        type: PlasmaCore.Dialog.AppletPopup
+        flags: Qt.WindowStaysOnTopHint
+        backgroundHints: PlasmaCore.Dialog.NoBackground
+        hideOnWindowDeactivate: true
+        visible: root.open
+
+        onVisibleChanged: {
+            if (visible) {
+                panelWindow.requestActivate();
+            } else {
+                root.open = false;
+            }
+        }
+
+        mainItem: Panel {
+            quickSettings: root
+            focus: true
+            Keys.onEscapePressed: root.open = false
+        }
     }
 
     // Network: Plasma's network applet's services.
@@ -135,7 +168,7 @@ PlasmoidItem {
     // Brightness and night light: Plasma's brightness applet's services.
     Brightness.ScreenBrightnessControl {
         id: screenBrightness
-        isSilent: root.expanded
+        isSilent: root.open
     }
     DBus.Properties {
         id: nightLight

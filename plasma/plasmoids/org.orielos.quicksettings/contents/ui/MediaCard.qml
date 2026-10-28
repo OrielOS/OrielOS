@@ -9,9 +9,9 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import org.kde.plasma.private.mpris as Mpris
 
-// What's playing, at the top of Quick Settings: the cover, the app, the title and the artist,
-// and previous, play or pause, and next.
-Rectangle {
+// What's playing, on its own card above Quick Settings: the cover, the app, the title and the
+// artist, and previous, play or pause, and next.
+Card {
     id: card
 
     required property var player
@@ -19,10 +19,6 @@ Rectangle {
     readonly property bool playing: card.player?.playbackStatus === Mpris.PlaybackStatus.Playing
 
     implicitHeight: content.implicitHeight + 28
-    radius: 8
-    color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
-    border.width: 1
-    border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
 
     RowLayout {
         id: content

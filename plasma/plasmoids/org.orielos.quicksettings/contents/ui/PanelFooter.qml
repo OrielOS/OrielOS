@@ -21,10 +21,37 @@ PlasmaExtras.PlasmoidHeading {
     readonly property var battery: footer.quickSettings.battery
 
     position: PC3.ToolBar.Footer
-    leftPadding: footer.inset + 6
-    rightPadding: footer.inset
+    leftPadding: footer.inset
+    rightPadding: footer.inset - 8
     topPadding: Kirigami.Units.largeSpacing
     bottomPadding: Kirigami.Units.largeSpacing
+
+    // Sill's footer: a darker band under a hairline, rounded at the bottom like its card.
+    background: Item {
+        implicitHeight: 52
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 8
+            color: Qt.rgba(0, 0, 0, 0.18)
+        }
+        // Squares off the band's top corners.
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 8
+            color: Qt.rgba(0, 0, 0, 0.18)
+        }
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 1
+            color: Kirigami.Theme.textColor
+            opacity: 0.08
+        }
+    }
 
     contentItem: RowLayout {
         spacing: Kirigami.Units.smallSpacing

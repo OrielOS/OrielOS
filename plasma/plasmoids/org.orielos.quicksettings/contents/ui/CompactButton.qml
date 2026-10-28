@@ -14,7 +14,6 @@ MouseArea {
 
     required property var quickSettings
 
-    // The open panel lights the button through the shell's popup; hovering lights it here.
     Layout.minimumWidth: row.implicitWidth + 24
     Layout.preferredWidth: row.implicitWidth + 24
     Layout.fillHeight: true
@@ -30,7 +29,7 @@ MouseArea {
     property real wheelSum: 0
 
     onPressed: mouse => {
-        button.wasExpanded = button.quickSettings.expanded;
+        button.wasExpanded = button.quickSettings.open;
     }
     onClicked: mouse => {
         if (mouse.button === Qt.MiddleButton) {
@@ -39,7 +38,7 @@ MouseArea {
             }
             return;
         }
-        button.quickSettings.expanded = !button.wasExpanded;
+        button.quickSettings.open = !button.wasExpanded;
     }
     onWheel: wheel => {
         button.wheelSum += wheel.angleDelta.y;
@@ -51,7 +50,7 @@ MouseArea {
     }
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            button.quickSettings.expanded = !button.quickSettings.expanded;
+            button.quickSettings.open = !button.quickSettings.open;
             event.accepted = true;
         }
     }
@@ -60,7 +59,7 @@ MouseArea {
         anchors.fill: parent
         radius: 6
         color: Kirigami.Theme.textColor
-        opacity: button.pressed ? 0.14 : (button.containsMouse || button.activeFocus ? 0.08 : 0)
+        opacity: button.pressed ? 0.14 : (button.quickSettings.open ? 0.10 : (button.containsMouse || button.activeFocus ? 0.08 : 0))
     }
 
     RowLayout {
