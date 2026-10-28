@@ -91,22 +91,24 @@ ROTATE = {
 EDGE_SIDES = ("top", "bottom", "left", "right")
 
 
-def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, extra=None):
-    """A nine-patch frame: corners c by c rounded with radius r, edges and centre filled with
-    `background` (a (class, opacity) pair or None), an optional 1 px outline `border` on the given
-    sides, and `extra`, a function that adds more drawing to a piece."""
+def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, extra=None, square=()):
+    """A nine-patch frame: corners c by c rounded with radius r (except the corners named in
+    `square`), edges and centre filled with `background` (a (class, opacity) pair or None), an
+    optional 1 px outline `border` on the given sides, and `extra`, a function that adds more
+    drawing to a piece."""
     p = (prefix + "-") if prefix else ""
 
     def corner(name):
         x, y = svg.slot(c, c)
         ox = x + (c if "right" in name else 0)
         oy = y + (c if "bottom" in name else 0)
+        rr = 0 if name in square else r
         inner = []
         if background:
-            inner.append('<path d="%s" %s/>' % (rounded_corner(r, c) if r else "M 0,0 H %s V %s H 0 Z" % (c, c), fill(*background)))
+            inner.append('<path d="%s" %s/>' % (rounded_corner(rr, c) if rr else "M 0,0 H %s V %s H 0 Z" % (c, c), fill(*background)))
         sides = [s for s in ("top", "bottom", "left", "right") if s in name]
-        if border and all(s in border_sides for s in sides) and r:
-            inner.append('<path d="%s" class="%s" style="fill:none;stroke:currentColor;stroke-opacity:%s;stroke-width:1"/>' % (corner_border(r), border[0], border[1]))
+        if border and all(s in border_sides for s in sides) and rr:
+            inner.append('<path d="%s" class="%s" style="fill:none;stroke:currentColor;stroke-opacity:%s;stroke-width:1"/>' % (corner_border(rr), border[0], border[1]))
         elif border:
             for s in sides:
                 if s in border_sides:
@@ -250,6 +252,65 @@ def tasks(path):
     svg.write(path)
 
 
+def lineedit(path):
+    """Text fields, such as Start's search box: Sill's pill, faintly filled with a thin rim; with the
+    keyboard in it, the rim turns the highlight colour and a line underlines it."""
+
+    def underline(name, w, h):
+        # Sill's inset line: 2 px of the highlight colour along the inside of the pill's lower
+        # edge, following its rounded ends. Corners are drawn as the top-left one and flipped, so
+        # the arc is drawn on the corner's outer curve.
+        if name == "bottom":
+            return ['<rect x="0" y="%s" width="%s" height="2" %s/>' % (h - 2, w, fill("ColorScheme-Highlight", 1))]
+        if name in ("bottomleft", "bottomright"):
+            r = w
+            return ['<path d="M 1,%s A %s,%s 0 0 1 %s,1" class="ColorScheme-Highlight" '
+                    'style="fill:none;stroke:currentColor;stroke-width:2"/>' % (r, r - 1, r - 1, r)]
+        return []
+
+    svg = Svg()
+    c = 16
+    frame(svg, "base", c, c, ("ColorScheme-Text", 0.07), border=("ColorScheme-Text", 0.16))
+    frame(svg, "hover", c, c, None, border=("ColorScheme-Text", 0.30))
+    frame(svg, "focus", c, c, None, border=("ColorScheme-Highlight", 0.70), extra=underline)
+    for state in ("base", "hover", "focus"):
+        hints(svg, state, 6, 6, 14, 14)
+    x, y = svg.slot(2, 2)
+    svg.add('<rect id="hint-focus-over-base" x="%s" y="%s" width="2" height="2" fill="#ff00ff"/>' % (x, y))
+    svg.write(path)
+
+
+def viewitem(path):
+    """Rows and tiles in lists and grids, such as Start's pinned apps: a rounded highlight on hover
+    and a highlight-coloured one when selected."""
+    svg = Svg()
+    for state, background in (
+        ("normal", None),
+        ("hover", ("ColorScheme-Text", 0.08)),
+        ("selected", ("ColorScheme-Highlight", 0.22)),
+        ("selected+hover", ("ColorScheme-Highlight", 0.30)),
+    ):
+        frame(svg, state, 6, 6, background)
+    hints(svg, "", 4, 4, 6, 6)
+    svg.write(path)
+
+
+def heading(path):
+    """Headers and footers of pop-ups, such as Start's footer: the footer is a darker band with a
+    hairline along its top, its lower corners rounded to fit the pane; headers stay clear."""
+    svg = Svg()
+    frame(svg, "header", 8, 0, None)
+    frame(svg, "footer", 8, 8, ("ColorScheme-Background", 0.0), border=("ColorScheme-Text", 0.08),
+          border_sides=("top",), square=("topleft", "topright"))
+    # The band itself: black over the pane, which works in dark and light.
+    svg.parts = [part.replace('class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.0"',
+                              'style="fill:#000000;fill-opacity:0.18"') for part in svg.parts]
+    hints(svg, "", 8, 8, 12, 12)
+    x, y = svg.slot(2, 2)
+    svg.add('<rect id="hint-stretch-borders" x="%s" y="%s" width="2" height="2" fill="#ff00ff"/>' % (x, y))
+    svg.write(path)
+
+
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "orielos")
     # Solid pieces are used without compositing; translucent/ ones over Plasma's blur.
@@ -260,6 +321,9 @@ def main():
     panel(os.path.join(out, "widgets", "panel-background.svg"), 0.97)
     panel(os.path.join(out, "translucent", "widgets", "panel-background.svg"), 0.72)
     tasks(os.path.join(out, "widgets", "tasks.svg"))
+    lineedit(os.path.join(out, "widgets", "lineedit.svg"))
+    viewitem(os.path.join(out, "widgets", "viewitem.svg"))
+    heading(os.path.join(out, "widgets", "plasmoidheading.svg"))
     print("wrote the OrielOS Plasma theme to", out)
 
 
