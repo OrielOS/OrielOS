@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Copies the OrielOS shell from this checkout onto a running OrielOS computer over SSH, for trying
 # changes without building an image: the shell package, OrielOS's Plasma theme and widgets, its KWin
-# effects, its line icons, the settings that make them the desktop, and the sign-in theme. OrielOS's
-# /usr (and /usr/local) is read-only, so the files go to /var/usrlocal/orielos-sideload/share,
+# effects, its line icons, Settings' shortcuts, the settings that make them the desktop, and the
+# sign-in theme. OrielOS's /usr (and /usr/local) is read-only, so the files go to /var/usrlocal/orielos-sideload/share,
 # which carries /usr's SELinux label: a session environment
 # script puts it first on XDG_DATA_DIRS for Plasma and the lock screen, and an SDDM setting points
 # the sign-in screen at its themes. Every file it places is listed on the computer in
@@ -131,6 +131,9 @@ else
     done
     place "$staging/kwin/switcher" "$data/kwin/tabbox/org.orielos.switcher"
     place "$staging/kwin/closeorshutdown" "$data/kwin/scripts/orielos-closeorshutdown"
+    mkdir -p "$data/applications" "$data/kglobalaccel"
+    place "$staging/settings.desktop" "$data/applications/org.orielos.Settings.desktop"
+    place "$staging/settings.desktop" "$data/kglobalaccel/org.orielos.Settings.desktop"
     if [[ -d "$staging/locale-en@orielos" ]]; then
         mkdir -p "$data/locale"
         place "$staging/locale-en@orielos" "$data/locale/en@orielos"
@@ -233,6 +236,8 @@ main() {
         done
     done
     cp "$ROOT/image/system/etc/xdg/plasmashellrc" "$STAGING/etc/plasmashellrc"
+    # Settings' desktop entry, whose actions carry its shortcuts (Settings itself is in the image).
+    cp "$ROOT/apps/settings/org.orielos.Settings.desktop" "$STAGING/settings.desktop"
     cp "$ROOT/image/system/etc/xdg/plasma-workspace/env/orielos-shell.sh" "$STAGING/etc/orielos-shell.sh"
     cp "$ROOT"/image/sddm/orielos/*.qml "$ROOT/image/sddm/orielos/metadata.desktop" \
         "$ROOT/image/sddm/orielos/theme.conf" "$STAGING/sddm/"
