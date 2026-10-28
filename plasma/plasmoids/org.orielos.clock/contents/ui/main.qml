@@ -33,6 +33,28 @@ PlasmoidItem {
         return (!isNaN(time) && root.now.getTime() < time) || settings.notificationsInhibitedByApplication;
     }
 
+    // A focus session is Do not disturb until a set time; this is its end, in milliseconds since
+    // the epoch, or 0 when none is running.
+    readonly property double focusEnd: {
+        const until = settings.notificationsInhibitedUntil;
+        const time = until ? until.getTime() : NaN;
+        return !isNaN(time) && time > root.now.getTime() ? time : 0;
+    }
+    // How long a focus session lasts, as last chosen.
+    readonly property int focusMinutes: Plasmoid.configuration.focusMinutes
+
+    // The lengths a focus session can be: 5 to 60 minutes in fives, then up to 4 hours in quarters.
+    function nextFocusLength(minutes: int, step: int): int {
+        if (step > 0) {
+            return Math.min(240, minutes < 60 ? minutes + 5 : minutes + 15);
+        }
+        return Math.max(5, minutes <= 60 ? minutes - 5 : minutes - 15);
+    }
+
+    function setFocusMinutes(minutes: int) {
+        Plasmoid.configuration.focusMinutes = minutes;
+    }
+
     function setDoNotDisturb(minutes: int) {
         if (minutes > 0) {
             settings.notificationsInhibitedUntil = new Date(Date.now() + minutes * 60 * 1000);

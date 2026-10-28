@@ -9,12 +9,32 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 
 // The calendar card: today's date, which folds the month away; the month with arrows to the
-// months before and after; and a focus session at the bottom, which turns on Do not disturb for
-// half an hour.
+// months before and after; and a focus session at the bottom, which turns on Do not disturb for the
+// length chosen with − and + (30 minutes at first) and counts down while it runs.
 Card {
     id: card
 
     required property var clock
+
+    // The time, to the second, for the focus countdown; it only ticks while a session runs and the
+    // card shows.
+    property double tick: Date.now()
+    readonly property bool focusing: card.clock.focusEnd > 0
+    readonly property string focusLeft: {
+        const seconds = Math.max(0, Math.round((card.clock.focusEnd - card.tick) / 1000));
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor(seconds % 3600 / 60);
+        const s = String(seconds % 60).padStart(2, "0");
+        return h > 0 ? h + ":" + String(m).padStart(2, "0") + ":" + s : m + ":" + s;
+    }
+
+    Timer {
+        interval: 1000
+        repeat: true
+        triggeredOnStart: true
+        running: card.focusing && card.visible
+        onTriggered: card.tick = Date.now()
+    }
 
     property bool folded: false
     // The first of the month showing.
@@ -109,7 +129,8 @@ Card {
             opacity: 0.08
         }
 
-        // Focus: Do not disturb for half an hour.
+        // Focus: Do not disturb for the chosen length, with − and + to change it, and the time left
+        // while it runs.
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 52
@@ -125,10 +146,42 @@ Card {
 
             PC3.Label {
                 Layout.fillWidth: true
-                text: card.clock.doNotDisturb ? i18nc("@info:status", "Focusing: Do not disturb is on") : i18nc("@info", "Focus for 30 min")
+                text: {
+                    if (card.focusing) {
+                        return i18nc("@info:status %1 is the time left, such as 24:59", "Focusing · %1 left", card.focusLeft);
+                    }
+                    if (card.clock.doNotDisturb) {
+                        return i18nc("@info:status", "Do not disturb is on");
+                    }
+                    return i18ncp("@info", "Focus for %1 min", "Focus for %1 min", card.clock.focusMinutes);
+                }
                 textFormat: Text.PlainText
                 font.pixelSize: 13
+                font.features: { "tnum": 1 }
                 elide: Text.ElideRight
+            }
+
+            Repeater {
+                model: card.clock.doNotDisturb ? [] : [-1, 1]
+
+                delegate: PC3.ToolButton {
+                    id: stepButton
+
+                    required property int modelData
+
+                    Layout.preferredWidth: 28
+                    Layout.preferredHeight: 28
+                    readonly property string name: modelData < 0 ? i18nc("@action:button Make the focus session shorter", "Shorter")
+                                                                 : i18nc("@action:button Make the focus session longer", "Longer")
+                    // Breeze's remove icon is a red cross, so the signs are drawn as text.
+                    text: modelData < 0 ? "−" : "+"
+                    font.pixelSize: 16
+                    enabled: modelData < 0 ? card.clock.focusMinutes > 5 : card.clock.focusMinutes < 240
+                    Accessible.name: name
+                    PC3.ToolTip.text: name
+                    PC3.ToolTip.visible: hovered
+                    onClicked: card.clock.setFocusMinutes(card.clock.nextFocusLength(card.clock.focusMinutes, modelData))
+                }
             }
 
             PC3.ToolButton {
@@ -138,7 +191,10 @@ Card {
                 icon.height: 12
                 text: card.clock.doNotDisturb ? i18nc("@action:button End a focus session", "Stop") : i18nc("@action:button Start a focus session", "Start")
                 Accessible.name: text
-                onClicked: card.clock.setDoNotDisturb(card.clock.doNotDisturb ? 0 : 30)
+                onClicked: {
+                    card.tick = Date.now();
+                    card.clock.setDoNotDisturb(card.clock.doNotDisturb ? 0 : card.clock.focusMinutes);
+                }
 
                 background: Rectangle {
                     implicitHeight: 32
