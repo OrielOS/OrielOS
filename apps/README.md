@@ -2,10 +2,9 @@
 
 OrielOS's own apps, written in C++ with Qt 6, QML and Kirigami and built with CMake. Every user-visible string goes through KI18n so it can be translated.
 
-Will contain:
+Planned, and not in this folder yet:
 
-- Settings.
-- Game Settings.
+- Game Settings, for per-game options.
 
 ## Layout
 

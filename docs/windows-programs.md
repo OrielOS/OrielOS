@@ -1,5 +1,7 @@
 # Windows programs
 
+> Run this app is in testing builds of OrielOS. It arrives on the stable channel with the next stable release; to try it now, switch to testing in Settings → Update.
+
 Many Windows programs run on OrielOS. Double-click a Windows program (a file ending in `.exe` or `.msi`) and **Run this app** opens. It shows you the file and asks before doing anything, then runs the program through GE-Proton, the same compatibility layer OrielOS uses for games.
 
 Before you reach for a Windows program, check the Store: many apps, such as Discord, Spotify and Steam, have a Linux version there that works better. For games, install Steam from the Store, or a store's own launcher, such as the Epic Games Launcher or GOG Galaxy, with Run this app (see [Games and controllers](games-and-controllers.md)).
