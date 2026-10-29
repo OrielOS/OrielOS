@@ -6,7 +6,7 @@
   "Deployment starting" for the whole download. This runs the deploy in a thread and, every two
   seconds, reports how much of the image has arrived: the image's compressed size from its
   manifest (skopeo), the bytes received from the network interfaces' counters.
-- OrielOS's version, such as v0.0.5, shown whole and as written (core/product.py, ui/helpers.py):
+- OrielOS's version, such as v0.0.7, shown whole and as written (core/product.py, ui/helpers.py):
   Anaconda cuts versions to two parts and writes them in capitals in its title.
 - A warning when a drive that stays is encrypted with BitLocker (modules/storage/checker/utils.py):
   Windows may ask for its recovery key once another system is installed.

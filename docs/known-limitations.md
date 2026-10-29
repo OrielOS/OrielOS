@@ -13,7 +13,7 @@ OrielOS is in early development. This page lists what it can't do yet, and what 
 
 - **Some games won't run, whatever OrielOS does.** A game's publisher decides whether its anti-cheat allows Linux. If they don't, the game refuses to start on any Linux system. Check whether a game supports Linux or the Steam Deck before you buy it. OrielOS itself always starts in the mode that games with anti-cheat need: see [Games with anti-cheat](anti-cheat.md).
 - **There's no Hibernate.** The locked-down start that games with anti-cheat need rules it out. Sleep works as usual.
-- **Windows programs that aren't games** run with a double-click through Run this app, but it's new and has been tried with only a few programs; programs that need special drivers don't run. Games run best through Steam and the other launchers from the Store. See [Windows programs](windows-programs.md).
+- **Windows programs that aren't games** run with a double-click through Run this app **(testing; not yet in stable v0.0.7)**, but it's new and has been tried with only a few programs; programs that need special drivers don't run. Games run best through Steam from the Store, or a store's own launcher installed with Run this app. See [Windows programs](windows-programs.md).
 
 ## Everyday use
 

@@ -1,6 +1,6 @@
 # Games and controllers
 
-OrielOS comes ready for games. You install the game launchers you want from the Store, and the pieces games rely on underneath are already part of the system.
+OrielOS comes ready for games. You install Steam from the Store, or another store's own launcher with Run this app, and the pieces games rely on underneath are already part of the system.
 
 ## Getting games
 
@@ -12,6 +12,8 @@ Get your games the way you would on Windows:
 OrielOS doesn't preinstall any of them.
 
 ## GE-Proton for Windows games in Steam
+
+> GE-Proton as Steam's default is in testing builds of OrielOS. It arrives on the stable channel with the next stable release; to try it now, switch to testing in Settings → Update.
 
 Windows games run on OrielOS through Proton, a compatibility layer. OrielOS makes **GE-Proton** Steam's default: a community build of Valve's Proton that carries newer fixes, and plays many in-game videos and cutscenes that Valve's build can't.
 
