@@ -35,7 +35,7 @@ A touchpad clicks when you tap it, and two fingers scroll the page the way Windo
 ## Windows
 
 - **Snap a window** to one side with Windows + Left or Right arrow, or drag it to the edge of the screen.
-- **Snap layouts:** rest the pointer on a window's maximise button, or press Windows + Z, to choose a half, a third or a quarter of the screen for it.
+- **Snap layouts:** rest the pointer on a window's maximise button, or press Windows + Z, to choose a half, a third or a quarter of the screen for it. Dragging a window to the top of the screen drops the same layouts down as a bar: let go over an area to snap the window there, or at the very top edge to maximise it.
 - **Snap assist:** after a window snaps to one half, the other half shows your other windows; click one to put it beside the first, or press Escape to leave the half empty.
 - **Settings > System > Multitasking** turns each of these on or off: snapping by dragging, the snap layouts on the maximise button and snap assist. It also chooses whether Alt + Tab shows the windows of every desktop or only of the one you're using.
 

@@ -8,6 +8,8 @@ Press the Windows key (Win), or click the Start button in the middle of the task
 
 Start typing as soon as Start opens. The results list apps, settings, files, apps in the Store, and quick calculations such as `12*7`: the best match first, then the rest grouped by kind. The filters above the results (**All**, **Apps**, **Documents**, **Settings** and **Folders**) narrow them to one kind. On the right, the highlighted result shows larger with what you can do with it, such as Open, Pin to Start, Pin to taskbar or the app's own actions. Settings open in [Settings](settings.md), and know Windows' words for them, such as "wifi", "default apps" or "windows update". Typing never opens anything by itself: press Enter to open the highlighted result (the first one, unless you moved with the Up and Down arrow keys), or click a result.
 
+Press **Windows + S**, click the **Search** button next to Start, or click in Start's search box, to search straight away. Before you type, Start shows your **Recent** searches (the ones that opened something) and your **Top apps**, the ones you use most. Click a recent search to run it again; right-click it for **Remove from history**, or click **Clear** to forget them all. Escape goes back to your pinned apps.
+
 ## Pinned apps
 
 Your pinned apps fill the top of Start, two rows at a time. **Settings > Personalisation > Start > Layout** gives them three rows (**More pins**) or one (**More recommendations**), and Recommended the rest. With more than two rows, dots beside them show which page you're on: scroll or click a dot to turn the page. To change them, right-click an app anywhere in Start, or select it and press the Menu key or Shift+F10:
@@ -19,7 +21,7 @@ Your pinned apps fill the top of Start, two rows at a time. **Settings > Persona
 
 Your pinned apps are saved with your account, so they stay the same after a restart or an update. An app you pinned that isn't installed yet appears as soon as it is.
 
-**All apps**, next to the Pinned heading, lists every installed app in alphabetical order. Click a letter heading to see the alphabet, then click a letter to jump to the apps that start with it. **Back** returns to your pinned apps.
+**All apps**, next to the Pinned heading, lists every installed app in alphabetical order. Click a letter heading to see the alphabet, then click a letter to jump to the apps that start with it. **View** chooses how the apps show: **List** (by letter), **Grid** (icons in rows) or **Category** (a box for each kind of app, such as Games, Internet or Office, with its first apps; click an app to open it, or the box to see all of that kind). **Back** returns to your pinned apps.
 
 ## Recommended
 

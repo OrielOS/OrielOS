@@ -42,6 +42,20 @@ Some changes, such as the date and time, ask for an administrator's password. Th
 
 **Personalisation > Taskbar** sets **Taskbar alignment**, Centre or Left, and **Automatically hide the taskbar**, which hides it until you move the pointer to the bottom of the screen. Changes apply at once. If you've rearranged the taskbar's widgets yourself, alignment can't be set here any more; the page says so.
 
+## Storage
+
+**System > Storage** shows how much of the disk is used and what fills it: installed apps, temporary files, the Bin, your Documents, Pictures, Videos, Music, Downloads and Desktop folders, and **System and other** for the rest. Click one to open it in Files (installed apps open the Apps page). **Clean up now** empties the Bin and deletes thumbnails and the temporary files that apps haven't used for 30 days, after asking.
+
+**Storage Sense**, off until you turn it on, frees space by itself once a day: it deletes temporary files that apps haven't used for 30 days and empties Bin items that have been there longer than you choose (1, 14, 30 or 60 days, or never). **Run Storage Sense now** runs it straight away.
+
+## Do not disturb at set times
+
+**System > Do not disturb** turns Do not disturb on by itself during the hours you choose: **From** and **To**, and whether it **Repeats** daily, on weekdays or at weekends. Hours that start in the evening and end in the morning count from the day they start. Notifications still go to the notification centre while it's on.
+
+## Fonts
+
+**Personalisation > Fonts** lists the installed fonts, each with a sample written in it, and a search box. To install fonts for your account, drag TrueType or OpenType files (`.ttf`, `.otf`, `.ttc`) onto the page, or click **Browse and install fonts**. Apps that are already open show new fonts the next time they start.
+
 ## Accent colour
 
 **Personalisation > Accent colour** sets the colour of highlights, selected items and focus rings. Choose one of the colours and it applies straight away; **Use the theme's colour** goes back to the colour your theme came with. Light and dark mode are on the Themes page, and your accent stays when you switch between them.

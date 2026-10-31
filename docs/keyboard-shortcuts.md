@@ -6,6 +6,7 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 |---|---|
 | Windows key | Opens Start |
 | Windows + E | Opens Files |
+| Windows + S | Opens Start ready to search, with your recent searches and most used apps |
 | Windows + R | Opens Run, to start an app or open a file, folder or website by typing its name. The last one you ran is ready to run again, and the list holds the ones before. Windows names such as `cmd`, `explorer`, `control` and `taskmgr` open Terminal, Files, Settings and Process Manager |
 | Windows + L | Locks the screen |
 | Alt + F4 | Closes the window you're using. On the desktop, asks what the computer should do: switch user, sign out, sleep, shut down or restart |

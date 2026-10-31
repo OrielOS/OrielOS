@@ -69,6 +69,12 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - The Quick Settings button's tooltip says how long the battery has left, or that it's charging or plugged in.
 - In a narrow window, Settings hides its categories behind a menu button beside the page's title.
 - OrielOS's own Settings pages (Taskbar, Start, Multitasking, Accent colour and Mouse pointer) end with Related settings, links to the pages that go with them.
+- Windows + S, or the Search button on the taskbar, opens Start ready to search, showing your recent searches and your most used apps before you type. Clicking in Start's search box shows the same. A recent search runs again when you click it, and **Clear** forgets them.
+- All apps in Start has a **View** menu: **List** (by letter, as before), **Grid** (icons in rows) or **Category** (a box for each kind of app with its first apps, which open with a click; click the box for all of them).
+- Settings → System → Storage shows how full the disk is and what fills it (installed apps, temporary files, the Bin, Documents, Pictures, Videos, Music, Downloads and the rest), each opening in Files. **Clean up now** empties the Bin and deletes thumbnails and temporary files apps haven't used for 30 days. **Storage Sense**, off until you turn it on, does that by itself once a day, emptying Bin items older than the age you choose.
+- Settings → Personalisation → Fonts lists the installed fonts, each with a sample in its own font and a search. Drag font files (TrueType or OpenType) onto the page, or choose **Browse and install fonts**, to install them for your account.
+- Settings → System → Do not disturb turns Do not disturb on by itself at the hours you choose, every day, on weekdays or at weekends. Hours that start in the evening end the next morning.
+- Dragging a window to the top of the screen drops down the snap layouts as a bar: let go over one of their areas to snap the window there. Letting go at the very top edge still maximises it.
 - Settings → System → Multitasking turns snapping windows by dragging on or off, and the snap layouts on the maximise button and the suggestions after a snap each on their own, and chooses whether Alt + Tab shows the windows of every desktop.
 - Batteries show in the taskbar, Quick Settings, the lock screen and the power settings, for laptops and for wireless mice, keyboards and controllers. Fingerprint readers and the built-in cameras of many recent Intel laptops work.
 - OrielOS is dark by default: new accounts start with OrielOS Dark's colours, dark icons and the Nightfall wallpaper, and the sign-in screen shows Nightfall too. Light is still one switch away in Settings → Personalisation.
@@ -82,6 +88,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- Windows + A opens Quick Settings again: Plasma's own shortcut for switching activities had taken the key.
 - A stable release's notes list only what that version contains: changes merged after the version was built stay under Unreleased for the next one.
 
 ## [0.0.7] - 2026-10-27
