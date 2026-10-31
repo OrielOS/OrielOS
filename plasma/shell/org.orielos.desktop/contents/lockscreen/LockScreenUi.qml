@@ -7,7 +7,8 @@
 
 // OrielOS's lock screen, in Sill's style, from Plasma's lock screen layout (plasma-desktop 6.7.5,
 // shells/org.kde.plasma.desktop/contents/lockscreen/LockScreenUi.qml), whose unlocking logic it
-// keeps. While the screen is idle, a large clock shows at the top over the wallpaper; a key press
+// keeps. While the screen is idle, a large clock shows at the top over the wallpaper, with the quick
+// status (LockStatus.qml) at the bottom right; a key press
 // or a click slides it up and away and shows the sign-in (SignInBlock.qml) over the blurred
 // wallpaper, with the account and Switch user at the bottom left and the keyboard layout, the
 // on-screen keyboard, Sleep and the battery at the bottom right.
@@ -303,6 +304,26 @@ Item {
             PlasmaClock.Clock {
                 id: timeSource
                 trackSeconds: Qt.locale().timeFormat(Locale.ShortFormat).includes("s")
+            }
+        }
+
+        // New notifications by app, the network and the battery at the bottom right while the
+        // screen is idle; the sign-in's footer takes their place when it shows.
+        LockStatus {
+            anchors {
+                right: parent.right
+                bottom: parent.bottom
+                rightMargin: 28
+                bottomMargin: 26
+            }
+            color: lockScreenUi.clockColor
+            opacity: lockScreenRoot.uiVisible ? 0 : 1
+            visible: opacity > 0
+            Behavior on opacity {
+                OpacityAnimator {
+                    duration: Kirigami.Units.veryLongDuration
+                    easing.type: Easing.InOutQuad
+                }
             }
         }
 
