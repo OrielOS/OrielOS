@@ -51,6 +51,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Touchpads start with tap to click on and scroll the Windows way, the page following your fingers; a touchpad you've already set up keeps its settings, and mouse wheels are unchanged.
 - Screenshots are saved to Pictures/Screenshots as soon as they're taken, as well as copied, as on Windows.
 - A screen reader is built in: Orca, turned on and off with Windows + Ctrl + Enter. Pressing Shift five times asks whether to turn on Sticky Keys, and holding Shift for eight seconds asks about slow keys, as on Windows.
+- Administrator prompts dim the rest of the screen while they ask.
 - Batteries show in the taskbar, Quick Settings, the lock screen and the power settings, for laptops and for wireless mice, keyboards and controllers. Fingerprint readers and the built-in cameras of many recent Intel laptops work.
 - OrielOS is dark by default: new accounts start with OrielOS Dark's colours, dark icons and the Nightfall wallpaper, and the sign-in screen shows Nightfall too. Light is still one switch away in Settings → Personalisation.
 - The desktop is now OrielOS's own: the taskbar, Start and the lock screen run in OrielOS's shell, which will take over more of the desktop in coming versions. Your pinned apps in Start and on the taskbar and your wallpaper carry over the first time it starts, and going back to an earlier version brings back your earlier desktop as you left it.

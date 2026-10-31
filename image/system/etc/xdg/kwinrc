@@ -6,6 +6,8 @@ NoiseStrength=4
 
 [Plugins]
 blurEnabled=true
+# Administrator prompts dim the rest of the screen, as Windows' do.
+dimscreenEnabled=true
 
 # OrielOS's window frames: Sill's flat title bar with the app's icon and title, and minimise,
 # maximise and close on the right. The icon is the window menu button, as in Windows: a click opens
