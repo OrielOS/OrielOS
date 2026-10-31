@@ -23,6 +23,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Changed
 
+- OrielOS has moved to its own organisation on GitHub, and updates now come from `ghcr.io/orielos/orielos`. A computer that already runs OrielOS moves there by itself with the update that brings this change, and keeps checking each update's signature as before.
 - The taskbar has a new look and new buttons, like Windows 11's:
   - **Start** opens in the middle of the screen above the taskbar, floating with rounded corners, with two rows of pinned apps a page (dots turn the pages), a **More** page for Recommended, and Downloads, Files and Settings next to the power button.
   - **Search** and **Task View** buttons follow Start, and a thin strip at the far right shows the desktop.
