@@ -10,14 +10,14 @@ Settings opens on **Home**: the settings you used most recently, then recommende
 
 The categories on the left come in the order you know from Windows:
 
-- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
+- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
-- **Personalisation**: Background, Themes (including dark mode), Accent colour, Lock screen, Start and Taskbar.
+- **Personalisation**: Background, Themes (including dark mode), Accent colour (with Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.
 - **Apps**: Default apps and Startup.
 - **Accounts**: Your info, with your password and other accounts, and Sign-in options: a PIN, fingerprints, dynamic lock, and the sign-in screen's settings.
 - **Time & language**: Date & time, and Language & region.
-- **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys and the visual bell), Zoom and colour filters, and On-screen keyboard.
+- **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys and the visual bell), Zoom and colour filters, Mouse pointer (a white or black pointer, from 24 to 96 pixels) and On-screen keyboard.
 - **Privacy & security**: Device security, Firewall, App permissions, Activity history, and Diagnostics & feedback.
 - **Update**: OrielOS updates (see [Updates](updates.md)).
 - **More settings**: everything else, such as Fonts, so every setting is in one place.

@@ -10,7 +10,7 @@ Start typing as soon as Start opens. The results list apps, settings, files, app
 
 ## Pinned apps
 
-Your pinned apps fill the top of Start, two rows at a time. With more than two rows, dots beside them show which page you're on: scroll or click a dot to turn the page. To change them, right-click an app anywhere in Start, or select it and press the Menu key or Shift+F10:
+Your pinned apps fill the top of Start, two rows at a time. **Settings > Personalisation > Start > Layout** gives them three rows (**More pins**) or one (**More recommendations**), and Recommended the rest. With more than two rows, dots beside them show which page you're on: scroll or click a dot to turn the page. To change them, right-click an app anywhere in Start, or select it and press the Menu key or Shift+F10:
 
 - **Pin to Start** adds it to the end of your pinned apps.
 - **Unpin from Start** removes it.
@@ -19,7 +19,7 @@ Your pinned apps fill the top of Start, two rows at a time. With more than two r
 
 Your pinned apps are saved with your account, so they stay the same after a restart or an update. An app you pinned that isn't installed yet appears as soon as it is.
 
-**All apps**, next to the Pinned heading, lists every installed app in alphabetical order. **Back** returns to your pinned apps.
+**All apps**, next to the Pinned heading, lists every installed app in alphabetical order. Click a letter heading to see the alphabet, then click a letter to jump to the apps that start with it. **Back** returns to your pinned apps.
 
 ## Recommended
 
@@ -32,8 +32,8 @@ Until you hide them, Recommended also suggests apps to get started with: Steam, 
 At the bottom of Start:
 
 - **Your name** opens Account settings, and lets you Lock the screen, Switch user or Sign out.
-- **Downloads**, **Files** and **Settings** open your Downloads folder, your home folder and Settings.
-- **The power button** offers Sleep, Restart and Shut down. There is no Hibernate: see [Games with anti-cheat](anti-cheat.md) for why.
+- **Downloads**, **Files** and **Settings** open your Downloads folder, your home folder and Settings. **Settings > Personalisation > Start** chooses which of these show next to the power button, and adds Documents, Music, Pictures, Videos, Network or your personal folder.
+- **The power button** offers Sleep, Restart and Shut down. When an update is waiting, Restart and Shut down say **Update and restart** and **Update and shut down**: either one starts the new version next time. There is no Hibernate: see [Games with anti-cheat](anti-cheat.md) for why.
 
 ## Using the keyboard
 

@@ -6,7 +6,7 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 |---|---|
 | Windows key | Opens Start |
 | Windows + E | Opens Files |
-| Windows + R | Opens Run, to start an app or open a file by typing its name |
+| Windows + R | Opens Run, to start an app or open a file, folder or website by typing its name. The last one you ran is ready to run again, and the list holds the ones before. Windows names such as `cmd`, `explorer`, `control` and `taskmgr` open Terminal, Files, Settings and Process Manager |
 | Windows + L | Locks the screen |
 | Alt + F4 | Closes the window you're using. On the desktop, asks what the computer should do: switch user, sign out, sleep, shut down or restart |
 | Ctrl + Alt + Del | Shows Lock, Switch user, Sign out, Change a password and Process Manager, with the power button at the bottom right |
@@ -53,7 +53,7 @@ Settings is OrielOS's Settings app (see [Settings](settings.md)). Process Manage
 
 ## Snap layouts
 
-Press Windows + Z, or rest the pointer on a window's maximise button, to see six layouts for the window you're using: two halves, two thirds beside one third, three thirds, a half beside two quarters, four quarters, and a half between two quarters. Click an area to move the window there. With the keyboard, the arrow keys move to the next area in that direction (Up and Down between the top and bottom quarters), Tab steps through every area, and Enter or Space snaps the window; Escape closes the layouts without changing anything.
+Press Windows + Z, or rest the pointer on a window's maximise button, to see six layouts for the window you're using: two halves, two thirds beside one third, three thirds, a half beside two quarters, four quarters, and a half between two quarters. Click an area to move the window there. With the keyboard, the arrow keys move to the next area in that direction (Up and Down between the top and bottom quarters), Tab steps through every area, and Enter or Space snaps the window. Each layout also shows a number: press it, then the number that appears in the area you want. Escape closes the layouts without changing anything.
 
 ## Changing a shortcut
 
