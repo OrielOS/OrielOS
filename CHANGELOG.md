@@ -53,6 +53,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - A screen reader is built in: Orca, turned on and off with Windows + Ctrl + Enter. Pressing Shift five times asks whether to turn on Sticky Keys, and holding Shift for eight seconds asks about slow keys, as on Windows.
 - Administrator prompts dim the rest of the screen while they ask.
 - Files: Send to (a desktop shortcut, Documents or a compressed folder) in a file's right-click menu, Ctrl + Shift + C to copy a path, Alt + P for the preview and details pane, and double-clicking a disc image opens it as a drive.
+- The first-run setup asks for the computer's name, before the account, as Windows does.
 - Batteries show in the taskbar, Quick Settings, the lock screen and the power settings, for laptops and for wireless mice, keyboards and controllers. Fingerprint readers and the built-in cameras of many recent Intel laptops work.
 - OrielOS is dark by default: new accounts start with OrielOS Dark's colours, dark icons and the Nightfall wallpaper, and the sign-in screen shows Nightfall too. Light is still one switch away in Settings → Personalisation.
 - The desktop is now OrielOS's own: the taskbar, Start and the lock screen run in OrielOS's shell, which will take over more of the desktop in coming versions. Your pinned apps in Start and on the taskbar and your wallpaper carry over the first time it starts, and going back to an earlier version brings back your earlier desktop as you left it.

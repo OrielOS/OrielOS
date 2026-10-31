@@ -60,7 +60,7 @@ The installer doesn't ask for an account: OrielOS asks for it when it first star
 
 - **On a PC with Windows**, a menu lists OrielOS and Windows for five seconds at every start; OrielOS starts if you don't choose.
 - During the very first start, a red line about **"Load Kernel Modules"** may flash past. It's expected: your PC doesn't trust OrielOS's extra drivers yet (the next step fixes that).
-- **The first-run setup** asks for your language, keyboard layout, network, time zone and power settings, then creates your account.
+- **The first-run setup** asks for your language, keyboard layout, network, time zone, power settings and a name for the computer, then creates your account.
 
   ![The first-run setup's Language page over the desktop wallpaper, with a list of languages to choose from](images/first-start-language.webp)
 

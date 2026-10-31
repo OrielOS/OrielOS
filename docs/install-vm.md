@@ -98,7 +98,8 @@ The first start takes under a minute. Then the setup opens with a "Welcome to Pl
 3. a network: a list of Wi-Fi networks if your PC has Wi-Fi, or otherwise whether its cable connection reaches the internet (a virtual machine is usually connected already);
 4. your time zone;
 5. when the computer goes to sleep and when the screen turns off, if you don't use it. It starts with sleep after 15 minutes and the screen off after 10;
-6. your name, a user name and a password. This account is an administrator.
+6. a name for the computer, which other devices on the network see;
+7. your name, a user name and a password. This account is an administrator.
 
 When you click **Finish**, Plasma Setup creates your account and shows the login screen. Log in with the password you chose. Plasma Setup does not appear again on later starts.
 

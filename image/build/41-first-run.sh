@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The first-run setup, Plasma Setup: puts its pages in OrielOS's order (language, keyboard, network,
-# time zone, power, account), removes the display and device-name pages, which OrielOS doesn't ask
-# about, and shows the OrielOS logo on the last page instead of Konqi. OrielOS's own network and
+# time zone, power, the computer's name, account), removes the display page, which OrielOS doesn't
+# ask about, and shows the OrielOS logo on the last page instead of Konqi. OrielOS's own network and
 # power pages come from plasma/firstrun. Plasma Setup orders its pages by each package's
 # X-KDE-Weight, so this changes the weights in place. It fails the build unless every file it
 # changes is the version it was written for, so a Plasma update can't be changed blindly; then
@@ -23,8 +23,9 @@ declare -A METADATA_SUMS=(
 )
 # The weights OrielOS gives Plasma Setup's pages. OrielOS's network page is 11 and its power page
 # 18; the finished page stays at 200.
-declare -A WEIGHTS=([language]=0 [keyboard]=5 [wifi]=10 [time]=15 [account]=20)
-REMOVE=(prepare hostname)
+# The computer's name comes after the power page (18) and before the account, as Windows asks it.
+declare -A WEIGHTS=([language]=0 [keyboard]=5 [wifi]=10 [time]=15 [hostname]=19 [account]=20)
+REMOVE=(prepare)
 FINISHED_UI="$PACKAGES/org.kde.plasmasetup.finished/contents/ui"
 # sha256 of the finished page's konqi-calling.png in plasma-setup 6.7.5.
 KONQI_SUM=7183631a020d2017997b259ac925519f48beaf4fc173b4c126cc688415ed3be1

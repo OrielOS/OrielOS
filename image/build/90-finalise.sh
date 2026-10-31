@@ -40,7 +40,7 @@ first_run_errors=()
 first_run_order="$(for f in /usr/share/plasma/packages/*/metadata.json; do
     jq -r 'select(.KPackageStructure == "KDE/PlasmaSetup") | "\(."X-KDE-Weight") \(.KPlugin.Id)"' "$f"
 done | sort -n | cut -d' ' -f2 | paste -sd ' ' -)"
-first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.kde.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.account org.kde.plasmasetup.finished"
+first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.kde.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.hostname org.kde.plasmasetup.account org.kde.plasmasetup.finished"
 if [[ "$first_run_order" != "$first_run_expected" ]]; then
     first_run_errors+=("Plasma Setup's pages are in the wrong order: $first_run_order")
 fi
