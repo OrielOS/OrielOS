@@ -24,6 +24,11 @@ ecm_add_test(powermodetest.cpp
     LINK_LIBRARIES OrielOSPowerMode Qt6::Test
 )
 
+ecm_add_test(signinoptionstest.cpp
+    TEST_NAME signinoptionstest
+    LINK_LIBRARIES OrielOSSignIn Qt6::Test
+)
+
 ecm_add_test(shellsettingstest.cpp
     TEST_NAME shellsettingstest
     LINK_LIBRARIES OrielOSStart OrielOSTaskbar Qt6::Qml Qt6::Test
@@ -35,7 +40,7 @@ ecm_add_test(pagesloadtest.cpp
     TEST_NAME pagesloadtest
     LINK_LIBRARIES KF6::KCMUtilsQuick KF6::CoreAddons Qt6::Quick Qt6::Test
 )
-add_dependencies(pagesloadtest kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security kcm_orielos_powermode)
+add_dependencies(pagesloadtest kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security kcm_orielos_powermode kcm_orielos_signin)
 set_tests_properties(pagesloadtest PROPERTIES
     ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:kcm_orielos_accent>/../../..;QT_QPA_PLATFORM=offscreen"
 )

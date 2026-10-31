@@ -118,7 +118,7 @@ done
 [[ -x /usr/bin/orielos-settings ]] || update_errors+=("Settings, /usr/bin/orielos-settings, is missing")
 # OrielOS's own Settings pages besides Update.
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
-    kcm_orielos_powermode; do
+    kcm_orielos_powermode kcm_orielos_signin; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -378,6 +378,9 @@ for widget in org.orielos.search org.orielos.taskview org.orielos.quicksettings 
 done
 if [[ ! -f /usr/lib64/qt6/plugins/plasma/containmentactions/org.orielos.desktopmenu.so ]]; then
     taskbar_errors+=("the desktop's right-click menu, org.orielos.desktopmenu.so, is not installed")
+fi
+if [[ ! -f /usr/lib64/qt6/plugins/plasma/containmentactions/org.orielos.panelmenu.so ]]; then
+    taskbar_errors+=("the taskbar's right-click menu, org.orielos.panelmenu.so, is not installed")
 fi
 if [[ ! -f /usr/lib64/qt6/plugins/org.kde.kdecoration3/org.orielos.decoration.so ]]; then
     taskbar_errors+=("OrielOS's window frames, org.orielos.decoration.so, are not installed")

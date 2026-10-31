@@ -167,9 +167,9 @@ PageCatalogue PageCatalogue::standard()
             keywords(
                 i18nc("@info:keywords Search words for the Start page, separated by ;", "start;start menu;recommended;recent files;recently added;new apps")),
             QStringLiteral("kcm_orielos_start"), { } },
-        { QStringLiteral("taskbar"), personalisation, i18nc("@title Settings page", "Taskbar"), i18nc("@info", "Alignment, and hiding the taskbar"),
+        { QStringLiteral("taskbar"), personalisation, i18nc("@title Settings page", "Taskbar"), i18nc("@info", "Taskbar items, alignment, combining buttons and hiding the taskbar"),
             keywords(i18nc("@info:keywords Search words for the Taskbar page, separated by ;",
-                "taskbar;panel;taskbar alignment;centre;center;left;auto-hide;autohide;hide taskbar")),
+                "taskbar;panel;taskbar alignment;centre;center;left;auto-hide;autohide;hide taskbar;combine;labels;task view;search button;seconds;clock")),
             QStringLiteral("kcm_orielos_taskbar"), { } },
         { QStringLiteral("default-apps"), apps, i18nc("@title Settings page", "Default apps"),
             i18nc("@info", "Which app opens web pages, email, music and more"),
@@ -183,6 +183,11 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc(
                 "@info:keywords Search words for the Your info page, separated by ;", "accounts;users;your info;password;account picture;add user;family")),
             QStringLiteral("kcm_users"), { } },
+        { QStringLiteral("sign-in-options"), accounts, i18nc("@title Settings page", "Sign-in options"),
+            i18nc("@info", "PIN, fingerprint, dynamic lock and the sign-in screen"),
+            keywords(i18nc("@info:keywords Search words for the Sign-in options page, separated by ;",
+                "sign-in options;pin;fingerprint;face;windows hello;dynamic lock;ctrl+alt+delete;startup sound;sign in;lock;wake")),
+            QStringLiteral("kcm_orielos_signin"), { } },
         { QStringLiteral("date-time"), time, i18nc("@title Settings page", "Date & time"), i18nc("@info", "Time zone and setting the clock"),
             keywords(i18nc("@info:keywords Search words for the Date & time page, separated by ;", "date;time;clock;time zone;timezone;ntp")),
             QStringLiteral("kcm_clock"), { } },

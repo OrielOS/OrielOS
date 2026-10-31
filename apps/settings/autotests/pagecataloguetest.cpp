@@ -119,6 +119,8 @@ private Q_SLOTS:
         QTest::newRow("firewall") << QStringLiteral("firewall") << QStringLiteral("firewall");
         QTest::newRow("best performance") << QStringLiteral("best performance") << QStringLiteral("power-mode");
         QTest::newRow("battery saver") << QStringLiteral("battery saver") << QStringLiteral("power-mode");
+        QTest::newRow("windows hello") << QStringLiteral("windows hello") << QStringLiteral("sign-in-options");
+        QTest::newRow("pin") << QStringLiteral("pin") << QStringLiteral("sign-in-options");
     }
 
     void searchFindsWindowsTerms()

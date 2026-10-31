@@ -3,15 +3,15 @@
 
 # OrielOS's own settings pages, as Plasma settings modules that Settings hosts like Plasma's:
 # Accessory apps (kcm_orielos_accessories), Accent colour (kcm_orielos_accent), Start
-# (kcm_orielos_start), Taskbar (kcm_orielos_taskbar), Device security (kcm_orielos_security) and
-# Power mode (kcm_orielos_powermode).
+# (kcm_orielos_start), Taskbar (kcm_orielos_taskbar), Device security (kcm_orielos_security), Power
+# mode (kcm_orielos_powermode) and Sign-in options (kcm_orielos_signin).
 # Each page and its model are a static QML module of their own, so qmllint checks the page and the
 # unit tests can use the model; each settings module links its own. Two settings modules can't
 # share one: Settings loads them all into one process, where a QML module can be registered only
 # once. Everything linked into a settings module, the module's generated resource objects
 # included, must be position-independent.
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Gui DBus Concurrent)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Gui DBus Concurrent Network)
 find_package(KF6 6.0 REQUIRED COMPONENTS KCMUtils Config KIO Service JobWidgets)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -24,6 +24,7 @@ add_subdirectory(start)
 add_subdirectory(taskbar)
 add_subdirectory(security)
 add_subdirectory(power)
+add_subdirectory(signin)
 
 if(BUILD_TESTING)
     add_subdirectory(autotests)
