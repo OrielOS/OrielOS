@@ -6,14 +6,14 @@
 # (tools/mirror-pins.sh, run by .github/workflows/mirror.yml), so a pin keeps working after its
 # upstream registry has dropped it.
 
-PINS_MIRROR="${PINS_MIRROR:-ghcr.io/ncjsvr/mirror}"
+PINS_MIRROR="${PINS_MIRROR:-ghcr.io/orielos/mirror}"
 
 # The images pinned by digest in image/pins.env.
 # shellcheck disable=SC2034 # used by the tools that source this file
 PINNED_IMAGES=(BASE_IMAGE AKMODS_IMAGE AKMODS_NVIDIA_IMAGE BUILDER_IMAGE)
 
 # OrielOS's copy of a pinned image, by the same digest: mirror_ref <name:tag@sha256:digest>
-# For example quay.io/fedora/fedora:44@sha256:… becomes ghcr.io/ncjsvr/mirror/fedora@sha256:…
+# For example quay.io/fedora/fedora:44@sha256:… becomes ghcr.io/orielos/mirror/fedora@sha256:…
 mirror_ref() {
     local repo="${1%@*}"
     repo="${repo%:*}"

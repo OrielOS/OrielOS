@@ -16,9 +16,9 @@ For where OrielOS stands and the latest download, see https://orielos.org/.
 - [Release notes](https://orielos.org/releases/): what changed in each release, newest first
 - [Press](https://orielos.org/press/): descriptions, a fact sheet, the logo and screenshots for writers
 - [Credits](https://orielos.org/credits/): the projects OrielOS is built on, and the artwork, fonts and sounds with their licences
-- [Source code](https://github.com/ncjsvr/OrielOS): the code, image recipe, artwork and website
-- [User documentation](https://github.com/ncjsvr/OrielOS/tree/main/docs)
-- [Discussions](https://github.com/ncjsvr/OrielOS/discussions): questions and ideas
+- [Source code](https://github.com/OrielOS/OrielOS): the code, image recipe, artwork and website
+- [User documentation](https://github.com/OrielOS/OrielOS/tree/main/docs)
+- [Discussions](https://github.com/OrielOS/OrielOS/discussions): questions and ideas
 - [Discord](https://discord.gg/RnpZYaKbHA): the official server, for live chat and quick help
-- [Contributing guide](https://github.com/ncjsvr/OrielOS/blob/main/CONTRIBUTING.md)
-- [Security policy](https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md)
+- [Contributing guide](https://github.com/OrielOS/OrielOS/blob/main/CONTRIBUTING.md)
+- [Security policy](https://github.com/OrielOS/OrielOS/blob/main/SECURITY.md)

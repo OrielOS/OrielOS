@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copies every image pinned in image/pins.env to OrielOS's own registry (ghcr.io/ncjsvr/mirror),
+# Copies every image pinned in image/pins.env to OrielOS's own registry (ghcr.io/orielos/mirror),
 # keeping its digest, so builds still find it after the upstream registry stops serving it.
 # Images already copied are left as they are. Needs skopeo, and a login to ghcr.io with
 # permission to write packages (CI uses the workflow's token).

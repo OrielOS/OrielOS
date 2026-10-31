@@ -1,6 +1,6 @@
 [Unit]
 Description=Install the apps OrielOS ships from Flathub
-Documentation=https://github.com/ncjsvr/OrielOS
+Documentation=https://github.com/OrielOS/OrielOS
 After=network-online.target
 Wants=network-online.target
 ConditionPathExists=!/var/lib/orielos/flatpak-setup.done

@@ -26,7 +26,7 @@ test("an empty token means the bot does not run", () => {
 
 test("configuration has defaults", () => {
   const config = readConfig({});
-  assert.equal(config.repo, "ncjsvr/OrielOS");
+  assert.equal(config.repo, "OrielOS/OrielOS");
   assert.equal(config.linkClientId, "");
   assert.equal(config.guildId, "");
   assert.equal(config.linkMessage, "");
@@ -113,7 +113,7 @@ test("sendPosts sends each post with no mentions and does not crosspost merges",
     ref: "refs/heads/main",
     commits: [{ message: "Fix a thing (#4)", author: { name: "Alice", username: "alice" } }],
   };
-  const messages = messagesFor("push", payload, "ncjsvr/OrielOS");
+  const messages = messagesFor("push", payload, "OrielOS/OrielOS");
   await sendPosts(rest, { id: "10", type: 5 }, messages);
   assert.equal(rest.calls.length, 1);
   assert.deepEqual(rest.calls[0].options.body.allowed_mentions, { parse: [] });
@@ -132,7 +132,7 @@ test("sendPosts crossposts releases to an announcement channel", async () => {
 test("sendPosts pings everyone for a full release only", async () => {
   const release = {
     name: "1.0",
-    html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1.0",
+    html_url: "https://github.com/OrielOS/OrielOS/releases/tag/v1.0",
     draft: false,
     prerelease: false,
   };

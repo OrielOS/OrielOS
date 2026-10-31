@@ -516,7 +516,7 @@ function imageSizer(outDir) {
 }
 
 export async function build({ offline = false, outDir = siteDir } = {}) {
-  const repo = process.env.GITHUB_REPOSITORY || "ncjsvr/OrielOS";
+  const repo = process.env.GITHUB_REPOSITORY || "OrielOS/OrielOS";
   const token = process.env.GITHUB_TOKEN || "";
 
   await rm(outDir, { recursive: true, force: true });

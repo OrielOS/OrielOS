@@ -2,7 +2,7 @@ name: Image
 
 # Builds the OS image when a change that affects it merges into main, or by hand: smoke-tests it in
 # a VM, checks that Flathub has the NVIDIA driver extension it needs, then publishes it to
-# ghcr.io/ncjsvr/orielos under its version (v0.0.1, v0.0.2, ...), signs it with cosign and moves the
+# ghcr.io/orielos/orielos under its version (v0.0.1, v0.0.2, ...), signs it with cosign and moves the
 # testing tag to it. The Testing release workflow then gives the build a GitHub pre-release saying
 # what's new in it.
 # A pull request that changes this workflow or the build script only builds: changes are booted
@@ -44,7 +44,11 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  REPOSITORY: ghcr.io/ncjsvr/orielos
+  REPOSITORY: ghcr.io/orielos/orielos
+  # The image's address before OrielOS moved to its own organisation on GitHub. Builds published
+  # there still count when numbering, and the newest of them is copied here before the first
+  # publish (see "Publish, sign and move testing").
+  PREVIOUS_REPOSITORY: ghcr.io/ncjsvr/orielos
 
 jobs:
   build:
@@ -124,14 +128,18 @@ jobs:
           path: ${{ runner.temp }}/apt-archives/*.deb
           key: ${{ steps.apt-key.outputs.key }}
 
-      # Each published build is the next version after the highest one in the registry
+      # Each published build is the next version after the highest one in either registry
       # (tools/next-version.sh): v0.0.1, v0.0.2 and on, rolling over after v0.0.10 to v0.1.0. A
       # pull request's build gets the number the next publish would, but never publishes it. If
-      # the registry can't be read, the job stops rather than count from v0.0.1 again.
+      # the earlier registry can't be read, the job stops rather than count from v0.0.1 again; the
+      # new one has nothing until its first publish.
       - name: Choose the version
         id: tag
         run: |
-          tags="$(skopeo list-tags "docker://${REPOSITORY}" | jq -r '.Tags[]')"
+          tags="$(skopeo list-tags "docker://${PREVIOUS_REPOSITORY}" | jq -r '.Tags[]')"
+          if current="$(skopeo list-tags "docker://${REPOSITORY}" 2>/dev/null)"; then
+              tags+=$'\n'"$(jq -r '.Tags[]' <<<"${current}")"
+          fi
           tag="$(tools/next-version.sh <<<"${tags}")"
           [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::tools/next-version.sh gave '${tag}'"; exit 1; }
           echo "tag=${tag}" >>"${GITHUB_OUTPUT}"
@@ -247,6 +255,16 @@ jobs:
         run: |
           printf '%s' "${GITHUB_TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
           printf '%s' "${GITHUB_TOKEN}" | cosign login ghcr.io --username "${ACTOR}" --password-stdin
+          # Once, before the first publish here: copy the newest build from the earlier address, with
+          # its signature, so the testing release workflow finds the build before this one.
+          if ! skopeo list-tags "docker://${REPOSITORY}" 2>/dev/null | jq -e '.Tags | any(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' >/dev/null; then
+              latest="$(skopeo list-tags "docker://${PREVIOUS_REPOSITORY}" | jq -r '.Tags[]' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
+              earlier="$(skopeo inspect --format '{{.Digest}}' "docker://${PREVIOUS_REPOSITORY}:${latest}")"
+              skopeo copy --preserve-digests "docker://${PREVIOUS_REPOSITORY}:${latest}" "docker://${REPOSITORY}:${latest}"
+              signature="sha256-${earlier#sha256:}.sig"
+              skopeo copy --preserve-digests "docker://${PREVIOUS_REPOSITORY}:${signature}" "docker://${REPOSITORY}:${signature}"
+              echo "::notice::Copied ${latest} (${earlier}) from ${PREVIOUS_REPOSITORY}"
+          fi
           # A version names one build for good, so an existing tag is never pushed over.
           if skopeo inspect --raw "docker://${REPOSITORY}:${TAG}" >/dev/null 2>&1; then
               echo "::error::${REPOSITORY}:${TAG} already exists; versions are never reused"

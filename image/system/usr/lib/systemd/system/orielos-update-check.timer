@@ -1,6 +1,6 @@
 [Unit]
 Description=Check for OrielOS updates in the background
-Documentation=https://github.com/ncjsvr/OrielOS
+Documentation=https://github.com/OrielOS/OrielOS
 
 [Timer]
 # A while after start-up, so the check doesn't compete with logging in, then about every six

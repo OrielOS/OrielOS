@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  REPOSITORY: ghcr.io/ncjsvr/orielos
+  REPOSITORY: ghcr.io/orielos/orielos
 
 jobs:
   promote:

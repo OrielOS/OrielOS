@@ -10,7 +10,7 @@
 
 OrielOS is a free and open-source Linux desktop, tuned for gaming and development, that feels familiar from the first boot. It runs on desktop PCs, starting with NVIDIA RTX graphics. If you're coming from Windows, the taskbar, Start menu, keyboard shortcuts and Settings are where you expect them, and Windows games and programs run through Proton.
 
-**Status:** early development. The installer, `OrielOS.iso`, is on the [latest release](https://github.com/ncjsvr/OrielOS/releases/latest): see [Install OrielOS](docs/install.md). It installs the stable version; [Status](docs/status.md) lists what works, what doesn't yet and what's planned.
+**Status:** early development. The installer, `OrielOS.iso`, is on the [latest release](https://github.com/OrielOS/OrielOS/releases/latest): see [Install OrielOS](docs/install.md). It installs the stable version; [Status](docs/status.md) lists what works, what doesn't yet and what's planned.
 
 ## Goals
 
@@ -63,7 +63,7 @@ Each folder has a short README describing what belongs there.
 
 ## Contributing
 
-OrielOS is developed in the open on GitHub. Changes go through pull requests into `main`. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and please follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as described in [SECURITY.md](SECURITY.md). Ask questions, share ideas and follow announcements in [GitHub Discussions](https://github.com/ncjsvr/OrielOS/discussions); [SUPPORT.md](SUPPORT.md) says where everything else goes. For live chat, join [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA). It's the only official one.
+OrielOS is developed in the open on GitHub. Changes go through pull requests into `main`. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and please follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as described in [SECURITY.md](SECURITY.md). Ask questions, share ideas and follow announcements in [GitHub Discussions](https://github.com/OrielOS/OrielOS/discussions); [SUPPORT.md](SUPPORT.md) says where everything else goes. For live chat, join [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA). It's the only official one.
 
 ## Licence
 

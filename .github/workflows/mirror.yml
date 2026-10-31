@@ -1,6 +1,6 @@
 name: Mirror
 
-# Copies every image pinned in image/pins.env to ghcr.io/ncjsvr/mirror with the same digest
+# Copies every image pinned in image/pins.env to ghcr.io/orielos/mirror with the same digest
 # (tools/mirror-pins.sh). Upstream registries stop serving old digests, Fedora's within about a
 # day, and the build tools fall back to these copies, so a pin keeps building after that.
 # Runs when the pins change on main or in a pull request from this repository (Renovate's), and
