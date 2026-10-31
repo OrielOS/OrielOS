@@ -101,5 +101,29 @@ KCM.SimpleKCM {
                 }
             }
         }
+
+        // Related settings, as Windows lists them at the foot of a page.
+        Kirigami.Heading {
+            Layout.topMargin: Kirigami.Units.gridUnit
+            level: 4
+            textFormat: Text.PlainText
+            text: root.l10n.i18nc("@title:group", "Related settings")
+        }
+
+        Repeater {
+            model: [
+                { page: "mouse", text: root.l10n.i18nc("@action:button A related Settings page", "Mouse") },
+                { page: "accessibility", text: root.l10n.i18nc("@action:button A related Settings page", "Screen reader and keyboard") },
+            ]
+
+            delegate: Kirigami.LinkButton {
+                id: related
+
+                required property var modelData
+
+                text: related.modelData.text
+                onClicked: Qt.openUrlExternally("orielos-settings:" + related.modelData.page)
+            }
+        }
     }
 }

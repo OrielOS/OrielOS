@@ -183,6 +183,36 @@ private Q_SLOTS:
         QVERIFY(accent.transparency());
         QCOMPARE(reconfigures, 2);
     }
+
+    void showsTheAccentOnTheTaskbar()
+    {
+        const QString plasmarc = m_dir.filePath(QStringLiteral("plasmarc"));
+        const QString record = m_dir.filePath(QStringLiteral("theme.log"));
+        const QString program = m_dir.filePath(QStringLiteral("apply-theme"));
+        QFile script(program);
+        QVERIFY(script.open(QIODevice::WriteOnly));
+        script.write(QStringLiteral("#!/bin/sh\necho \"$1\" >>'%1'\n").arg(record).toUtf8());
+        script.close();
+        script.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+
+        AccentColour accent;
+        accent.setThemeForTesting(plasmarc, program);
+        QVERIFY(!accent.accentOnTaskbar());
+        accent.setAccentOnTaskbar(true);
+        QVERIFY(accent.accentOnTaskbar());
+        QTRY_VERIFY(QFile::exists(record));
+        QFile log(record);
+        QVERIFY(log.open(QIODevice::ReadOnly));
+        QCOMPARE(QString::fromUtf8(log.readAll()).trimmed(), QStringLiteral("orielos-accent"));
+
+        {
+            KConfig written(plasmarc, KConfig::SimpleConfig);
+            KConfigGroup(&written, QStringLiteral("Theme")).writeEntry("name", QStringLiteral("orielos-accent"));
+        }
+        AccentColour again;
+        again.setThemeForTesting(plasmarc, program);
+        QVERIFY(again.accentOnTaskbar());
+    }
 };
 
 QTEST_GUILESS_MAIN(AccentColourTest)

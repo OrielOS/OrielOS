@@ -144,5 +144,30 @@ KCM.SimpleKCM {
                 }
             }
         }
+
+        // Related settings, as Windows lists them at the foot of a page.
+        Kirigami.Heading {
+            Layout.topMargin: Kirigami.Units.gridUnit
+            level: 4
+            textFormat: Text.PlainText
+            text: root.l10n.i18nc("@title:group", "Related settings")
+        }
+
+        Repeater {
+            model: [
+                { page: "start", text: root.l10n.i18nc("@action:button A related Settings page", "Start") },
+                { page: "multitasking", text: root.l10n.i18nc("@action:button A related Settings page", "Multitasking") },
+                { page: "notifications", text: root.l10n.i18nc("@action:button A related Settings page", "Notifications") },
+            ]
+
+            delegate: Kirigami.LinkButton {
+                id: related
+
+                required property var modelData
+
+                text: related.modelData.text
+                onClicked: Qt.openUrlExternally("orielos-settings:" + related.modelData.page)
+            }
+        }
     }
 }

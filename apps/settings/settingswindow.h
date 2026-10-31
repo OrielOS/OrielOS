@@ -18,6 +18,7 @@ class QListWidgetItem;
 class QPushButton;
 class QQmlEngine;
 class QStackedWidget;
+class QToolButton;
 
 namespace OrielOSSettings {
 
@@ -45,8 +46,12 @@ public:
     // Show Home.
     void openFirst();
 
+    // Whether the window is narrow enough that the sidebar hides behind the menu button.
+    bool isNarrow() const;
+
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     void showHome();
@@ -62,11 +67,15 @@ private:
     QWidget *pageWidget(const Page &page);
     KCModule *currentModule() const;
     void updateButtons();
+    // Shows or hides the sidebar for the window's width; showSidebar opens it in a narrow window.
+    void fitSidebar(bool showSidebar = false);
 
     PageCatalogue m_catalogue;
     QLineEdit *m_search = nullptr;
     QListWidget *m_categories = nullptr;
     QLabel *m_heading = nullptr;
+    QWidget *m_sidebar = nullptr;
+    QToolButton *m_menuButton = nullptr;
     QStackedWidget *m_stack = nullptr;
     // A category's pages, or the search results.
     QListWidget *m_list = nullptr;

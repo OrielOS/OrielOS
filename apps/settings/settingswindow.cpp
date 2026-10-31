@@ -26,7 +26,9 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QQmlEngine>
+#include <QResizeEvent>
 #include <QStackedWidget>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 namespace OrielOSSettings {
@@ -107,9 +109,9 @@ SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     sidebar->addWidget(account);
     sidebar->addWidget(m_search);
     sidebar->addWidget(m_categories, 1);
-    auto *sidebarWidget = new QWidget;
-    sidebarWidget->setLayout(sidebar);
-    sidebarWidget->setFixedWidth(280);
+    m_sidebar = new QWidget;
+    m_sidebar->setLayout(sidebar);
+    m_sidebar->setFixedWidth(280);
 
     // The page area: a heading, then the list or a page, then the buttons.
     m_heading = new QLabel;
@@ -143,19 +145,33 @@ SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     m_buttonBar = new QWidget;
     m_buttonBar->setLayout(buttons);
 
+    // In a narrow window the sidebar hides, as Windows' Settings does, and this button shows it.
+    m_menuButton = new QToolButton;
+    m_menuButton->setIcon(QIcon::fromTheme(QStringLiteral("application-menu")));
+    m_menuButton->setAutoRaise(true);
+    m_menuButton->setToolTip(i18nc("@info:tooltip", "Show the categories"));
+    m_menuButton->setAccessibleName(i18nc("@action:button", "Categories"));
+    connect(m_menuButton, &QToolButton::clicked, this, [this]() { fitSidebar(m_sidebar->isHidden()); });
+    auto *headingRow = new QHBoxLayout;
+    headingRow->addWidget(m_menuButton);
+    headingRow->addWidget(m_heading, 1);
+
     auto *content = new QVBoxLayout;
-    content->addWidget(m_heading);
+    content->addLayout(headingRow);
     content->addWidget(m_stack, 1);
     content->addWidget(m_buttonBar);
 
     auto *layout = new QHBoxLayout(this);
-    layout->addWidget(sidebarWidget);
+    layout->addWidget(m_sidebar);
     layout->addLayout(content, 1);
 
-    // Staying on a page with unsaved changes puts the sidebar back on that page's category.
+    // Staying on a page with unsaved changes puts the sidebar back on that page's category. In a
+    // narrow window, choosing a category puts the sidebar away again.
     const auto openCategory = [this](QListWidgetItem *item) {
         if (!open(item->data(idRole).toString())) {
             selectCategory(m_currentCategory);
+        } else if (isNarrow()) {
+            fitSidebar();
         }
     };
     connect(m_categories, &QListWidget::itemClicked, this, openCategory);
@@ -471,6 +487,30 @@ void SettingsWindow::updateButtons()
     m_defaults->setEnabled(!module->representsDefaults());
     // Modules that apply changes straight away have no buttons at all.
     m_buttonBar->setVisible(m_defaults->isVisible() || m_apply->isVisible());
+}
+
+namespace {
+// Below this width the page would be squeezed beside the 280 px sidebar.
+constexpr int narrowWidth = 760;
+} // namespace
+
+bool SettingsWindow::isNarrow() const
+{
+    return width() < narrowWidth;
+}
+
+void SettingsWindow::fitSidebar(bool showSidebar)
+{
+    m_menuButton->setVisible(isNarrow());
+    m_sidebar->setVisible(!isNarrow() || showSidebar);
+}
+
+void SettingsWindow::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    // Crossing the width keeps the sidebar as it was in a narrow window that already had it open.
+    const int before = event->oldSize().width();
+    fitSidebar(isNarrow() && m_sidebar->isVisible() && before >= 0 && before < narrowWidth);
 }
 
 } // namespace OrielOSSettings

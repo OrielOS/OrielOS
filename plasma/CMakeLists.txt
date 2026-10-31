@@ -44,7 +44,7 @@ install(DIRECTORY shell/org.orielos.desktop DESTINATION ${KDE_INSTALL_DATADIR}/p
 # OrielOS's Plasma theme, orielos, in Sill's look: the taskbar, pop-ups, tooltips and task buttons.
 # desktoptheme/src/generate.py writes its SVGs; any file it doesn't have comes from Breeze.
 # /etc/xdg/plasmarc makes it the default.
-install(DIRECTORY desktoptheme/orielos DESTINATION ${KDE_INSTALL_DATADIR}/plasma/desktoptheme)
+install(DIRECTORY desktoptheme/orielos desktoptheme/orielos-accent DESTINATION ${KDE_INSTALL_DATADIR}/plasma/desktoptheme)
 
 # OrielOS's taskbar widgets, QML-only Plasma widgets: Search, Task View, the show desktop sliver,
 # Quick Settings, and the clock with the notification centre.

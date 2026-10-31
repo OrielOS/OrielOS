@@ -83,5 +83,27 @@ KCM.SimpleKCM {
                 currentIndex = Qt.binding(() => root.options.altTabAllDesktops ? 1 : 0);
             }
         }
+
+        Item {
+            Kirigami.FormData.isSection: true
+        }
+
+        // Related settings, as Windows lists them at the foot of a page.
+        Repeater {
+            model: [
+                { page: "display", label: root.l10n.i18nc("@title:group", "Related settings:"), text: root.l10n.i18nc("@action:button A related Settings page", "Display") },
+                { page: "taskbar", label: "", text: root.l10n.i18nc("@action:button A related Settings page", "Taskbar") },
+            ]
+
+            delegate: Kirigami.LinkButton {
+                id: related
+
+                required property var modelData
+
+                Kirigami.FormData.label: related.modelData.label
+                text: related.modelData.text
+                onClicked: Qt.openUrlExternally("orielos-settings:" + related.modelData.page)
+            }
+        }
     }
 }

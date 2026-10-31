@@ -97,11 +97,11 @@ ROTATE = {
 EDGE_SIDES = ("top", "bottom", "left", "right")
 
 
-def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, extra=None, square=()):
+def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, extra=None, square=(), tint=None):
     """A nine-patch frame: corners c by c rounded with radius r (except the corners named in
-    `square`), edges and centre filled with `background` (a (class, opacity) pair or None), an
-    optional 1 px outline `border` on the given sides, and `extra`, a function that adds more
-    drawing to a piece."""
+    `square`), edges and centre filled with `background` (a (class, opacity) pair or None) and,
+    over it, `tint` (the same, or None), an optional 1 px outline `border` on the given sides, and
+    `extra`, a function that adds more drawing to a piece."""
     p = (prefix + "-") if prefix else ""
 
     def corner(name):
@@ -110,8 +110,10 @@ def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, e
         oy = y + (c if "bottom" in name else 0)
         rr = 0 if name in square else r
         inner = []
-        if background:
-            inner.append('<path d="%s" %s/>' % (rounded_corner(rr, c) if rr else "M 0,0 H %s V %s H 0 Z" % (c, c), fill(*background)))
+        shape = rounded_corner(rr, c) if rr else "M 0,0 H %s V %s H 0 Z" % (c, c)
+        for layer in (background, tint):
+            if layer:
+                inner.append('<path d="%s" %s/>' % (shape, fill(*layer)))
         sides = [s for s in ("top", "bottom", "left", "right") if s in name]
         if border and all(s in border_sides for s in sides) and rr:
             inner.append('<path d="%s" class="%s" style="fill:currentColor;fill-opacity:%s"/>' % (corner_band(rr, c), border[0], border[1]))
@@ -131,8 +133,9 @@ def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, e
         w, h = (1, c) if name in ("top", "bottom") else (c, 1)
         x, y = svg.slot(w, h)
         inner = ['<rect x="0" y="0" width="%s" height="%s" style="fill:none"/>' % (w, h)]
-        if background:
-            inner.append('<rect x="0" y="0" width="%s" height="%s" %s/>' % (w, h, fill(*background)))
+        for layer in (background, tint):
+            if layer:
+                inner.append('<rect x="0" y="0" width="%s" height="%s" %s/>' % (w, h, fill(*layer)))
         if border and name in border_sides:
             bx = {"top": (0, 0, w, 1), "bottom": (0, h - 1, w, 1), "left": (0, 0, 1, h), "right": (w - 1, 0, 1, h)}[name]
             inner.append('<rect x="%s" y="%s" width="%s" height="%s" %s/>' % (bx + (fill(*border),)))
@@ -146,8 +149,9 @@ def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, e
         edge(name)
     x, y = svg.slot(c, c)
     centre = '<rect x="0" y="0" width="%s" height="%s" style="fill:none"/>' % (c, c)
-    if background:
-        centre += '<rect x="0" y="0" width="%s" height="%s" %s/>' % (c, c, fill(*background))
+    for layer in (background, tint):
+        if layer:
+            centre += '<rect x="0" y="0" width="%s" height="%s" %s/>' % (c, c, fill(*layer))
     svg.add('<g id="%scenter" transform="translate(%s,%s)">%s</g>' % (p, x, y, centre))
 
 
@@ -197,11 +201,11 @@ def shadows(svg, top, bottom, side, alpha):
     hints(svg, "shadow", top, bottom, side, side)
 
 
-def pane(path, opacity, radius=8, margin=12):
+def pane(path, opacity, radius=8, margin=12, tint=None):
     """Pop-ups: Start, Quick Settings, notifications, the calendar and menus. A rounded pane of the
     window colour with a thin light rim and a soft shadow; translucent over Plasma's blur."""
     svg = Svg()
-    frame(svg, "", radius, radius, ("ColorScheme-Background", opacity), border=("ColorScheme-Text", 0.13))
+    frame(svg, "", radius, radius, ("ColorScheme-Background", opacity), border=("ColorScheme-Text", 0.13), tint=tint)
     hints(svg, "", margin, margin, margin, margin)
     masks(svg, radius, radius)
     shadows(svg, top=10, bottom=28, side=20, alpha=0.32)
@@ -217,11 +221,11 @@ def tooltip(path, opacity):
     svg.write(path)
 
 
-def panel(path, opacity):
+def panel(path, opacity, tint=None):
     """The taskbar: a full-width bar of the window colour with a hairline along its top. Plasma
     leaves out the edges that touch the screen's edges."""
     svg = Svg()
-    frame(svg, "", 4, 0, ("ColorScheme-Background", opacity), border=("ColorScheme-Text", 0.09), border_sides=("top",))
+    frame(svg, "", 4, 0, ("ColorScheme-Background", opacity), border=("ColorScheme-Text", 0.09), border_sides=("top",), tint=tint)
     hints(svg, "", 4, 4, 4, 4)
     masks(svg, 4, 0)
     shadows(svg, top=8, bottom=8, side=8, alpha=0.18)
@@ -323,19 +327,51 @@ def heading(path):
     svg.write(path)
 
 
+ACCENT_METADATA = """{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "",
+        "Description": "OrielOS's Plasma theme with the accent colour on Start, the taskbar and pop-ups",
+        "Id": "orielos-accent",
+        "License": "GPL-3.0-or-later",
+        "Name": "OrielOS with accent colour",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API": "5.0"
+}
+"""
+
+
 def main():
-    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "orielos")
+    # --accent writes orielos-accent: the same theme with the accent colour over Start, the taskbar
+    # and pop-ups, as Windows' "Show accent colour on Start and taskbar". Settings' Accent colour
+    # page switches between the two. A theme takes missing pieces from Breeze, not from another
+    # theme, so the variant is a whole theme of its own.
+    args = [a for a in sys.argv[1:] if a != "--accent"]
+    accent = len(args) != len(sys.argv) - 1
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    out = args[0] if args else os.path.join(here, "orielos-accent" if accent else "orielos")
+    tint = ("ColorScheme-Highlight", 0.3) if accent else None
     # Solid pieces are used without compositing; translucent/ ones over Plasma's blur.
-    pane(os.path.join(out, "dialogs", "background.svg"), 0.97)
-    pane(os.path.join(out, "translucent", "dialogs", "background.svg"), 0.68)
+    pane(os.path.join(out, "dialogs", "background.svg"), 0.97, tint=tint)
+    pane(os.path.join(out, "translucent", "dialogs", "background.svg"), 0.68, tint=tint)
     tooltip(os.path.join(out, "widgets", "tooltip.svg"), 0.97)
     tooltip(os.path.join(out, "translucent", "widgets", "tooltip.svg"), 0.78)
-    panel(os.path.join(out, "widgets", "panel-background.svg"), 0.97)
-    panel(os.path.join(out, "translucent", "widgets", "panel-background.svg"), 0.72)
+    panel(os.path.join(out, "widgets", "panel-background.svg"), 0.97, tint=tint)
+    panel(os.path.join(out, "translucent", "widgets", "panel-background.svg"), 0.72, tint=tint)
     tasks(os.path.join(out, "widgets", "tasks.svg"))
     lineedit(os.path.join(out, "widgets", "lineedit.svg"))
     viewitem(os.path.join(out, "widgets", "viewitem.svg"))
     heading(os.path.join(out, "widgets", "plasmoidheading.svg"))
+    if accent:
+        with open(os.path.join(out, "metadata.json"), "w", encoding="utf-8", newline="\n") as f:
+            f.write(ACCENT_METADATA)
+        with open(os.path.join(out, "plasmarc"), "w", encoding="utf-8", newline="\n") as f:
+            f.write("[AdaptiveTransparency]\nenabled=true\n")
     print("wrote the OrielOS Plasma theme to", out)
 
 

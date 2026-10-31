@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 OrielOS contributors -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Written by plasma/desktoptheme/src/generate.py; change that and run it again. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="18">
+<defs><style id="current-color-scheme" type="text/css">.ColorScheme-Background { color:#1a1f2e; } .ColorScheme-Text { color:#ffffff; } .ColorScheme-Highlight { color:#3a66f0; } .ColorScheme-NegativeText { color:#e05a5a; }</style>
+</defs>
+<g id="header-topleft" transform="translate(0,0) "><rect x="0" y="0" width="8" height="8" style="fill:none"/></g>
+<g id="header-topright" transform="translate(26,0) scale(-1,1)"><rect x="0" y="0" width="8" height="8" style="fill:none"/></g>
+<g id="header-bottomleft" transform="translate(36,8) scale(1,-1)"><rect x="0" y="0" width="8" height="8" style="fill:none"/></g>
+<g id="header-bottomright" transform="translate(62,8) scale(-1,-1)"><rect x="0" y="0" width="8" height="8" style="fill:none"/></g>
+<g id="header-top" transform="translate(72,0)"><rect x="0" y="0" width="1" height="8" style="fill:none"/></g>
+<g id="header-bottom" transform="translate(83,0)"><rect x="0" y="0" width="1" height="8" style="fill:none"/></g>
+<g id="header-left" transform="translate(94,0)"><rect x="0" y="0" width="8" height="1" style="fill:none"/></g>
+<g id="header-right" transform="translate(112,0)"><rect x="0" y="0" width="8" height="1" style="fill:none"/></g>
+<g id="header-center" transform="translate(130,0)"><rect x="0" y="0" width="8" height="8" style="fill:none"/></g>
+<g id="footer-topleft" transform="translate(148,0) "><rect x="0" y="0" width="8" height="8" style="fill:none"/><path d="M 0,0 H 8 V 8 H 0 Z" style="fill:#000000;fill-opacity:0.18"/><rect x="0" y="0" width="8" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="footer-topright" transform="translate(174,0) scale(-1,1)"><rect x="0" y="0" width="8" height="8" style="fill:none"/><path d="M 0,0 H 8 V 8 H 0 Z" style="fill:#000000;fill-opacity:0.18"/><rect x="0" y="0" width="8" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="footer-bottomleft" transform="translate(184,8) scale(1,-1)"><rect x="0" y="0" width="8" height="8" style="fill:none"/><path d="M 0,8 L 0,8 A 8,8 0 0 1 8,0 L 8,0 L 8,8 Z" style="fill:#000000;fill-opacity:0.18"/></g>
+<g id="footer-bottomright" transform="translate(210,8) scale(-1,-1)"><rect x="0" y="0" width="8" height="8" style="fill:none"/><path d="M 0,8 L 0,8 A 8,8 0 0 1 8,0 L 8,0 L 8,8 Z" style="fill:#000000;fill-opacity:0.18"/></g>
+<g id="footer-top" transform="translate(220,0)"><rect x="0" y="0" width="1" height="8" style="fill:none"/><rect x="0" y="0" width="1" height="8" style="fill:#000000;fill-opacity:0.18"/><rect x="0" y="0" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="footer-bottom" transform="translate(231,0)"><rect x="0" y="0" width="1" height="8" style="fill:none"/><rect x="0" y="0" width="1" height="8" style="fill:#000000;fill-opacity:0.18"/></g>
+<g id="footer-left" transform="translate(242,0)"><rect x="0" y="0" width="8" height="1" style="fill:none"/><rect x="0" y="0" width="8" height="1" style="fill:#000000;fill-opacity:0.18"/></g>
+<g id="footer-right" transform="translate(260,0)"><rect x="0" y="0" width="8" height="1" style="fill:none"/><rect x="0" y="0" width="8" height="1" style="fill:#000000;fill-opacity:0.18"/></g>
+<g id="footer-center" transform="translate(278,0)"><rect x="0" y="0" width="8" height="8" style="fill:none"/><rect x="0" y="0" width="8" height="8" style="fill:#000000;fill-opacity:0.18"/></g>
+<rect id="hint-top-margin" x="296" y="0" width="2" height="8" fill="#ff00ff"/>
+<rect id="hint-bottom-margin" x="308" y="0" width="2" height="8" fill="#ff00ff"/>
+<rect id="hint-left-margin" x="320" y="0" width="12" height="2" fill="#ff00ff"/>
+<rect id="hint-right-margin" x="342" y="0" width="12" height="2" fill="#ff00ff"/>
+<rect id="hint-stretch-borders" x="364" y="0" width="2" height="2" fill="#ff00ff"/>
+</svg>

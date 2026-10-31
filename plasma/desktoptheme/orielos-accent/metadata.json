@@ -1,0 +1,16 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "",
+        "Description": "OrielOS's Plasma theme with the accent colour on Start, the taskbar and pop-ups",
+        "Id": "orielos-accent",
+        "License": "GPL-3.0-or-later",
+        "Name": "OrielOS with accent colour",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API": "5.0"
+}

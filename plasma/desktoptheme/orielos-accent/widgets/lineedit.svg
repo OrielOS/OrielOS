@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 OrielOS contributors -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Written by plasma/desktoptheme/src/generate.py; change that and run it again. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="56">
+<defs><style id="current-color-scheme" type="text/css">.ColorScheme-Background { color:#1a1f2e; } .ColorScheme-Text { color:#ffffff; } .ColorScheme-Highlight { color:#3a66f0; } .ColorScheme-NegativeText { color:#e05a5a; }</style>
+</defs>
+<g id="base-topleft" transform="translate(0,0) "><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.16"/></g>
+<g id="base-topright" transform="translate(46,0) scale(-1,1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.16"/></g>
+<g id="base-bottomleft" transform="translate(56,18) scale(1,-1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.16"/></g>
+<g id="base-bottomright" transform="translate(102,18) scale(-1,-1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.16"/></g>
+<g id="base-top" transform="translate(112,0)"><rect x="0" y="0" width="1" height="18" style="fill:none"/><rect x="0" y="0" width="1" height="18" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/><rect x="0" y="0" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.16"/></g>
+<g id="base-bottom" transform="translate(123,0)"><rect x="0" y="0" width="1" height="18" style="fill:none"/><rect x="0" y="0" width="1" height="18" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/><rect x="0" y="17" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.16"/></g>
+<g id="base-left" transform="translate(134,0)"><rect x="0" y="0" width="18" height="1" style="fill:none"/><rect x="0" y="0" width="18" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/><rect x="0" y="0" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.16"/></g>
+<g id="base-right" transform="translate(162,0)"><rect x="0" y="0" width="18" height="1" style="fill:none"/><rect x="0" y="0" width="18" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/><rect x="17" y="0" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.16"/></g>
+<g id="base-center" transform="translate(190,0)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><rect x="0" y="0" width="18" height="18" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.07"/></g>
+<g id="hover-topleft" transform="translate(218,0) "><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="hover-topright" transform="translate(264,0) scale(-1,1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="hover-bottomleft" transform="translate(274,18) scale(1,-1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="hover-bottomright" transform="translate(320,18) scale(-1,-1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="hover-top" transform="translate(330,0)"><rect x="0" y="0" width="1" height="18" style="fill:none"/><rect x="0" y="0" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="hover-bottom" transform="translate(341,0)"><rect x="0" y="0" width="1" height="18" style="fill:none"/><rect x="0" y="17" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="hover-left" transform="translate(352,0)"><rect x="0" y="0" width="18" height="1" style="fill:none"/><rect x="0" y="0" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="hover-right" transform="translate(380,0)"><rect x="0" y="0" width="18" height="1" style="fill:none"/><rect x="17" y="0" width="1" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="hover-center" transform="translate(408,0)"><rect x="0" y="0" width="18" height="18" style="fill:none"/></g>
+<g id="focus-topleft" transform="translate(436,0) "><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.7"/></g>
+<g id="focus-topright" transform="translate(482,0) scale(-1,1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.7"/></g>
+<g id="focus-bottomleft" transform="translate(492,18) scale(1,-1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.7"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,2 L 18,2 A 16,16 0 0 0 2,18 L 2,18 Z" class="ColorScheme-Highlight" style="fill:currentColor"/></g>
+<g id="focus-bottomright" transform="translate(538,18) scale(-1,-1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,1 L 18,1 A 17,17 0 0 0 1,18 L 1,18 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.7"/><path d="M 0,18 L 0,18 A 18,18 0 0 1 18,0 L 18,0 L 18,2 L 18,2 A 16,16 0 0 0 2,18 L 2,18 Z" class="ColorScheme-Highlight" style="fill:currentColor"/></g>
+<g id="focus-top" transform="translate(548,0)"><rect x="0" y="0" width="1" height="18" style="fill:none"/><rect x="0" y="0" width="1" height="1" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.7"/></g>
+<g id="focus-bottom" transform="translate(559,0)"><rect x="0" y="0" width="1" height="18" style="fill:none"/><rect x="0" y="17" width="1" height="1" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.7"/><rect x="0" y="16" width="1" height="2" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:1"/></g>
+<g id="focus-left" transform="translate(570,0)"><rect x="0" y="0" width="18" height="1" style="fill:none"/><rect x="0" y="0" width="1" height="1" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.7"/></g>
+<g id="focus-right" transform="translate(0,28)"><rect x="0" y="0" width="18" height="1" style="fill:none"/><rect x="17" y="0" width="1" height="1" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.7"/></g>
+<g id="focus-center" transform="translate(28,28)"><rect x="0" y="0" width="18" height="18" style="fill:none"/></g>
+<g id="focusframe-topleft" transform="translate(56,28) "><rect x="0" y="0" width="18" height="18" style="fill:none"/></g>
+<g id="focusframe-topright" transform="translate(102,28) scale(-1,1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/></g>
+<g id="focusframe-bottomleft" transform="translate(112,46) scale(1,-1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/></g>
+<g id="focusframe-bottomright" transform="translate(158,46) scale(-1,-1)"><rect x="0" y="0" width="18" height="18" style="fill:none"/></g>
+<g id="focusframe-top" transform="translate(168,28)"><rect x="0" y="0" width="1" height="18" style="fill:none"/></g>
+<g id="focusframe-bottom" transform="translate(179,28)"><rect x="0" y="0" width="1" height="18" style="fill:none"/></g>
+<g id="focusframe-left" transform="translate(190,28)"><rect x="0" y="0" width="18" height="1" style="fill:none"/></g>
+<g id="focusframe-right" transform="translate(218,28)"><rect x="0" y="0" width="18" height="1" style="fill:none"/></g>
+<g id="focusframe-center" transform="translate(246,28)"><rect x="0" y="0" width="18" height="18" style="fill:none"/></g>
+<rect id="base-hint-top-margin" x="274" y="28" width="2" height="11" fill="#ff00ff"/>
+<rect id="base-hint-bottom-margin" x="286" y="28" width="2" height="11" fill="#ff00ff"/>
+<rect id="base-hint-left-margin" x="298" y="28" width="14" height="2" fill="#ff00ff"/>
+<rect id="base-hint-right-margin" x="322" y="28" width="14" height="2" fill="#ff00ff"/>
+<rect id="hover-hint-top-margin" x="346" y="28" width="2" height="1" fill="#ff00ff"/>
+<rect id="hover-hint-bottom-margin" x="358" y="28" width="2" height="1" fill="#ff00ff"/>
+<rect id="hover-hint-left-margin" x="370" y="28" width="1" height="2" fill="#ff00ff"/>
+<rect id="hover-hint-right-margin" x="381" y="28" width="1" height="2" fill="#ff00ff"/>
+<rect id="focus-hint-top-margin" x="392" y="28" width="2" height="1" fill="#ff00ff"/>
+<rect id="focus-hint-bottom-margin" x="404" y="28" width="2" height="1" fill="#ff00ff"/>
+<rect id="focus-hint-left-margin" x="416" y="28" width="1" height="2" fill="#ff00ff"/>
+<rect id="focus-hint-right-margin" x="427" y="28" width="1" height="2" fill="#ff00ff"/>
+<rect id="focusframe-hint-top-margin" x="438" y="28" width="2" height="1" fill="#ff00ff"/>
+<rect id="focusframe-hint-bottom-margin" x="450" y="28" width="2" height="1" fill="#ff00ff"/>
+<rect id="focusframe-hint-left-margin" x="462" y="28" width="1" height="2" fill="#ff00ff"/>
+<rect id="focusframe-hint-right-margin" x="473" y="28" width="1" height="2" fill="#ff00ff"/>
+<rect id="hint-focus-over-base" x="484" y="28" width="2" height="2" fill="#ff00ff"/>
+</svg>

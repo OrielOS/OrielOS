@@ -28,6 +28,8 @@ AccentColour::AccentColour(QObject *parent)
     , m_program(QStringLiteral("plasma-apply-colorscheme"))
     , m_watcher(KConfigWatcher::create(KSharedConfig::openConfig(QStringLiteral("kdeglobals"))))
     , m_kwinConfig(QStringLiteral("kwinrc"))
+    , m_plasmaConfig(QStringLiteral("plasmarc"))
+    , m_themeProgram(QStringLiteral("plasma-apply-desktoptheme"))
     , m_reconfigure([]() {
         QDBusConnection::sessionBus().send(QDBusMessage::createMethodCall(
             QStringLiteral("org.kde.KWin"), QStringLiteral("/KWin"), QStringLiteral("org.kde.KWin"), QStringLiteral("reconfigure")));
@@ -89,7 +91,31 @@ void AccentColour::reload()
     // OrielOS turns the blur on in /etc/xdg/kwinrc.
     const KConfig kwin(m_kwinConfig);
     m_transparency = KConfigGroup(&kwin, QStringLiteral("Plugins")).readEntry("blurEnabled", true);
+    const KConfig plasma(m_plasmaConfig);
+    m_accentOnTaskbar = KConfigGroup(&plasma, QStringLiteral("Theme")).readEntry("name", QString()) == QLatin1String("orielos-accent");
     Q_EMIT changed();
+}
+
+void AccentColour::setAccentOnTaskbar(bool accent)
+{
+    if (accent == m_accentOnTaskbar) {
+        return;
+    }
+    // The tool records the theme in plasmarc and tells the desktop, which redraws at once.
+    if (QProcess::startDetached(m_themeProgram, { accent ? QStringLiteral("orielos-accent") : QStringLiteral("orielos") })) {
+        m_accentOnTaskbar = accent;
+        m_error.clear();
+    } else {
+        m_error = i18nc("@info", "The accent colour couldn't be shown on Start and the taskbar.");
+    }
+    Q_EMIT changed();
+}
+
+void AccentColour::setThemeForTesting(const QString &config, const QString &program)
+{
+    m_plasmaConfig = config;
+    m_themeProgram = program;
+    reload();
 }
 
 void AccentColour::setTransparency(bool transparency)

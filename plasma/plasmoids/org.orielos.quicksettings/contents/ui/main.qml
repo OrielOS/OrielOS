@@ -11,6 +11,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import org.kde.bluezqt as BluezQt
+import org.kde.coreaddons as KCoreAddons
 import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.core as PlasmaCore
@@ -91,8 +92,18 @@ PlasmoidItem {
         if (root.hasSink) {
             lines.push(i18nc("@info:tooltip", "Volume %1%", root.volumePercent));
         }
+        // As Windows' battery tooltip: the time left on battery, or whether it's charging.
         if (root.hasBattery) {
-            lines.push(i18nc("@info:tooltip", "Battery %1%", battery.percent));
+            if (battery.state === Battery.BatteryControlModel.Discharging && battery.smoothedRemainingMsec > 0) {
+                const left = KCoreAddons.Format.formatDuration(battery.smoothedRemainingMsec, KCoreAddons.FormatTypes.HideSeconds);
+                lines.push(i18nc("@info:tooltip %1 is the charge, %2 the time left", "Battery %1%, %2 left", battery.percent, left));
+            } else if (battery.state === Battery.BatteryControlModel.Charging) {
+                lines.push(i18nc("@info:tooltip", "Battery %1%, charging", battery.percent));
+            } else if (battery.pluggedIn) {
+                lines.push(i18nc("@info:tooltip", "Battery %1%, plugged in", battery.percent));
+            } else {
+                lines.push(i18nc("@info:tooltip", "Battery %1%", battery.percent));
+            }
         }
         return lines.filter(line => line.length > 0).join("\n");
     }
