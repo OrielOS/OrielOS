@@ -1,0 +1,17 @@
+[Unit]
+Description=Play OrielOS's startup sound when the sign-in screen first appears
+Documentation=https://github.com/ncjsvr/OrielOS
+# Once per boot, so signing out doesn't play it again. Turned off by creating
+# /etc/orielos/startup-sound-off.
+After=display-manager.service
+ConditionPathExists=!/etc/orielos/startup-sound-off
+
+[Service]
+Type=oneshot
+# The sign-in screen runs as sddm, with its own sound server; play through that.
+User=sddm
+ExecStart=/usr/libexec/orielos/startup-sound
+TimeoutStartSec=60
+
+[Install]
+WantedBy=graphical.target

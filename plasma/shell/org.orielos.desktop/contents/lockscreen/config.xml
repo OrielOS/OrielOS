@@ -19,6 +19,14 @@
       <label>If true, shows any currently playing media along with controls to pause it.</label>
       <default>true</default>
     </entry>
+    <entry name="requireCtrlAltDel" type="Bool">
+      <label>Ask for Ctrl+Alt+Delete before showing the sign-in.</label>
+      <default>false</default>
+    </entry>
+    <entry name="detailedStatusCalendars" type="StringList">
+      <label>The calendar plugins whose next item the idle lock screen shows, within a week.</label>
+      <default>holidaysevents</default>
+    </entry>
   </group>
 
 </kcfg>

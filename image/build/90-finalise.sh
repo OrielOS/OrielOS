@@ -190,6 +190,20 @@ if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
+# The startup sound plays once per boot, when the sign-in screen first appears, through the sign-in
+# screen's own sound server.
+systemctl enable orielos-startup-sound.service
+if [[ "$(systemctl is-enabled orielos-startup-sound.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-startup-sound.service is not enabled\n' >&2
+    exit 1
+fi
+for cmd in paplay pactl; do
+    command -v "$cmd" >/dev/null || {
+        printf 'error: %s, which the startup sound needs, is not installed\n' "$cmd" >&2
+        exit 1
+    }
+done
+
 # Alt+F4 belongs to OrielOS's Close or shut down KWin script and Ctrl+Esc opens Start; accounts made
 # before them get both once at sign-in (new ones get them from /etc/skel).
 systemctl --global enable orielos-user-shortcuts.service
@@ -214,6 +228,18 @@ if [[ "$(systemctl --global is-enabled orielos-desktop-bin.service 2>/dev/null)"
 fi
 [[ -x /usr/libexec/orielos/desktop-bin ]] || {
     printf 'error: /usr/libexec/orielos/desktop-bin is not executable\n' >&2
+    exit 1
+}
+
+# Dynamic lock: locks the session when the phone chosen in Settings goes out of range; the unit
+# runs only for users who chose one.
+systemctl --global enable orielos-dynamic-lock.service
+if [[ "$(systemctl --global is-enabled orielos-dynamic-lock.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-dynamic-lock.service is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/dynamic-lock ]] || {
+    printf 'error: /usr/libexec/orielos/dynamic-lock is not executable\n' >&2
     exit 1
 }
 

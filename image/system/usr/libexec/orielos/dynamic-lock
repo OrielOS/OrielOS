@@ -1,0 +1,65 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Dynamic lock, as in Windows: locks the session when the user's paired phone has been out of
+# Bluetooth range for about a minute. The phone is the one named in ~/.config/orielos/dynamic-lock
+# (`device=AA:BB:CC:DD:EE:FF`, written by Settings); "out of range" means BlueZ saw it connected and
+# has since lost the connection. Nothing happens while the phone was never connected, so a phone
+# that is switched off or never came near doesn't lock anyone out of an unlocked computer.
+# Run by orielos-dynamic-lock.service.
+set -Eeuo pipefail
+
+config="${XDG_CONFIG_HOME:-$HOME/.config}/orielos/dynamic-lock"
+poll=10
+# Polls in a row without the phone before locking.
+away_polls=6
+
+device="$(sed -n 's/^device=\([0-9A-Fa-f:]\{17\}\)$/\1/p' "$config" | head -n 1)"
+if [[ -z "$device" ]]; then
+    printf 'dynamic-lock: %s names no phone (device=AA:BB:CC:DD:EE:FF)\n' "$config" >&2
+    exit 0
+fi
+object_suffix="dev_${device//:/_}"
+
+# BlueZ's object path for the phone on whichever adapter knows it, or nothing.
+device_path() {
+    busctl --system --list tree org.bluez 2>/dev/null | grep -m 1 -i "/${object_suffix}\$" || true
+}
+
+connected() {
+    local path
+    path="$(device_path)"
+    [[ -n "$path" ]] || return 1
+    [[ "$(busctl --system get-property org.bluez "$path" org.bluez.Device1 Connected 2>/dev/null)" == "b true" ]]
+}
+
+# The desktop's screen locker, on the session bus.
+screensaver() {
+    busctl --user call org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver "$@"
+}
+
+locked() {
+    [[ "$(screensaver GetActive 2>/dev/null)" == "b true" ]]
+}
+
+seen=false
+missing=0
+while sleep "$poll"; do
+    if connected; then
+        seen=true
+        missing=0
+        continue
+    fi
+    "$seen" || continue
+    missing=$((missing + 1))
+    if ((missing >= away_polls)); then
+        if ! locked; then
+            printf 'dynamic-lock: %s out of range; locking\n' "$device"
+            screensaver Lock >/dev/null
+        fi
+        # Wait for the phone to come back before locking again.
+        seen=false
+        missing=0
+    fi
+done

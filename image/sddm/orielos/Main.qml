@@ -35,6 +35,9 @@ Item {
     height: 900
 
     property string notificationMessage
+    // With "press Ctrl+Alt+Delete to sign in" on, the sign-in shows only after those keys, which no
+    // app can fake.
+    property bool ctrlAltDelPressed: String(config.requireCtrlAltDel) !== "true"
     // The account the sign-in is for: an index in userModel, or -1 for Other user.
     property int currentUser: userModel.lastIndex >= 0 ? userModel.lastIndex : 0
     readonly property bool otherUser: currentUser < 0 || userModel.count === 0
@@ -59,6 +62,14 @@ Item {
         }
         root.notificationMessage = "";
         submitButton.forceActiveFocus();
+        if (lockout.phrase !== "") {
+            if (!lockout.answer(passwordBox.text)) {
+                shake.start();
+            }
+            passwordBox.text = "";
+            passwordBox.forceActiveFocus();
+            return;
+        }
         sddm.login(name, passwordBox.text, sessionModel.lastIndex >= 0 ? sessionModel.lastIndex : 0);
     }
 
@@ -70,6 +81,11 @@ Item {
 
     LayoutMirroring.enabled: Application.layoutDirection === Qt.RightToLeft
     LayoutMirroring.childrenInherit: true
+
+    // Slows down guessing after repeated wrong passwords.
+    Lockout {
+        id: lockout
+    }
 
     KeyboardIndicator.KeyState {
         id: capsLockState
@@ -112,10 +128,34 @@ Item {
     }
 
     // A StackView, as Breeze's, because WallpaperFader and the on-screen keyboard expect one.
+    FocusScope {
+        anchors.fill: parent
+        visible: !root.ctrlAltDelPressed
+        focus: visible
+
+        PlasmaComponents3.Label {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: Math.round(root.height * 0.45)
+            text: i18ndc("plasma-desktop-sddm-theme", "@info:usagetip", "Press Ctrl+Alt+Delete to sign in")
+            textFormat: Text.PlainText
+            color: "#FFFFFF"
+            font.pixelSize: 20
+        }
+
+        Keys.onPressed: event => {
+            if (event.key === Qt.Key_Delete && (event.modifiers & Qt.ControlModifier) && (event.modifiers & Qt.AltModifier)) {
+                root.ctrlAltDelPressed = true;
+                (root.otherUser ? userNameBox : passwordBox).forceActiveFocus();
+            }
+            event.accepted = true;
+        }
+    }
+
     QQC2.StackView {
         id: signIn
         anchors.fill: parent
-        focus: true
+        visible: root.ctrlAltDelPressed
+        focus: visible
 
         initialItem: FocusScope {
             id: signInPage
@@ -126,7 +166,7 @@ Item {
 
             Timer {
                 // SDDM may not give the window focus until after it shows.
-                running: true
+                running: root.ctrlAltDelPressed
                 interval: 200
                 onTriggered: (root.otherUser ? userNameBox : passwordBox).forceActiveFocus()
             }
@@ -205,8 +245,18 @@ Item {
                         Layout.fillWidth: true
                         background: null
                         font.pixelSize: 15
-                        placeholderText: i18ndc("plasma-desktop-sddm-theme", "@info:placeholder in text field", "Password")
+                        placeholderText: lockout.phrase !== ""
+                            ? i18ndc("plasma-desktop-sddm-theme", "@info:placeholder in text field, %1 is a phrase such as A1B2C3", "Type %1", lockout.phrase)
+                            : i18ndc("plasma-desktop-sddm-theme", "@info:placeholder in text field", "Password")
+                        enabled: lockout.secondsLeft === 0
                         onAccepted: root.login()
+
+                        // The phrase is shown as it's typed.
+                        Binding on showPassword {
+                            value: true
+                            when: lockout.phrase !== ""
+                            restoreMode: Binding.RestoreBindingOrValue
+                        }
                     }
 
                     PlasmaComponents3.ToolButton {
@@ -228,6 +278,11 @@ Item {
                     Layout.preferredWidth: passwordField.Layout.preferredWidth
                     text: {
                         const parts = [];
+                        if (lockout.phrase !== "") {
+                            parts.push(i18ndc("plasma-desktop-sddm-theme", "@info:status", "Too many wrong passwords. Type the characters shown to carry on."));
+                        } else if (lockout.secondsLeft > 0) {
+                            parts.push(i18ndcp("plasma-desktop-sddm-theme", "@info:status", "Try again in %1 second.", "Try again in %1 seconds.", lockout.secondsLeft));
+                        }
                         if (capsLockState.locked) {
                             parts.push(i18ndc("plasma-desktop-sddm-theme", "@info:status", "Caps Lock is on"));
                         }
@@ -384,6 +439,7 @@ Item {
         target: sddm
         function onLoginFailed() {
             root.notificationMessage = i18ndc("plasma-desktop-sddm-theme", "@info:status", "Login Failed");
+            lockout.failed();
             passwordBox.text = "";
             passwordBox.forceActiveFocus();
             shake.start();

@@ -1,0 +1,14 @@
+[Unit]
+Description=Lock the computer when the paired phone goes out of range
+Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/desktop.md
+# Runs only for someone who chose a phone in Settings › Accounts › Sign-in options.
+ConditionPathExists=%h/.config/orielos/dynamic-lock
+After=plasma-workspace.target
+
+[Service]
+ExecStart=/usr/libexec/orielos/dynamic-lock
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=plasma-workspace.target

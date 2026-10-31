@@ -30,6 +30,10 @@ main() {
     for f in /sddm/*.qml /sddm/metadata.desktop /sddm/theme.conf; do
         install -m 0644 "$f" "$theme/${f##*/}"
     done
+    # SDDM reads theme.conf.user over theme.conf. /usr is read-only, so it links to a file in /etc,
+    # where a setting such as "press Ctrl+Alt+Delete to sign in" can be changed; until then the
+    # link points nowhere and SDDM skips it.
+    ln -sf /etc/sddm/orielos-theme.conf "$theme/theme.conf.user"
 
     # Fedora's /usr/lib/sddm/sddm.conf.d chooses its own Breeze variant; /etc/sddm.conf.d comes after
     # it, so this setting wins.

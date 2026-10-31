@@ -68,6 +68,12 @@ OrielOS has a light and a dark look. Switch between them in **Settings > Persona
 
 ## Locking and signing out
 
-Press Windows + L to lock the screen. While it is locked, the bottom right of the screen shows the apps that sent you notifications since you locked it, with how many from each, and the network and battery; the screen turns off after a minute without input. After you sign in, a Welcome screen shows your picture and name until the desktop is ready. Your account and the power button at the bottom of Start sign you out, lock, put the PC to sleep, restart it or shut it down.
+Press Windows + L to lock the screen. While it is locked, the bottom right of the screen shows the apps that sent you notifications since you locked it, with how many from each, and the network and battery; above the bottom, the next item in your calendar within the week. The screen turns off after a minute without input. After you sign in, a Welcome screen shows your picture and name until the desktop is ready. Your account and the power button at the bottom of Start sign you out, lock, put the PC to sleep, restart it or shut it down.
+
+After five wrong passwords in a row, the lock screen and the sign-in screen ask you to type the characters they show, such as A1B2C3, and then wait 30 seconds before taking a password again; each time after that, the wait doubles, up to 15 minutes.
+
+**Dynamic lock** locks the computer about a minute after your phone goes out of Bluetooth range. Pair the phone in Settings → Bluetooth & devices, then choose it under Settings → Accounts → Sign-in options. It locks only after it has seen the phone connected, so a phone that is switched off doesn't lock you out.
+
+A short startup sound plays when the sign-in screen first appears after the computer starts, not after signing out.
 
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder).

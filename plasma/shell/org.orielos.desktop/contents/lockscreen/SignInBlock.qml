@@ -28,6 +28,10 @@ FocusScope {
     property bool lockScreenUiVisible: false
     property ListModel userListModel
     property string notificationMessage
+    // After repeated wrong passwords (Lockout.qml): a phrase to type instead, and the seconds until
+    // a password is taken again.
+    property string challenge: ""
+    property int waitSeconds: 0
     // The y position kept visible above the on-screen keyboard.
     readonly property int visibleBoundary: column.y + field.y + field.height + Kirigami.Units.smallSpacing
     default property alias extraContent: extras.data
@@ -36,11 +40,16 @@ FocusScope {
     readonly property string userIcon: userListModel && userListModel.count > 0 ? userListModel.get(0).icon : ""
 
     signal passwordResult(string password)
+    signal challengeResult(string text)
 
     function startLogin() {
         // Moving focus off the field first also works round QTBUG-55460.
         submitButton.forceActiveFocus();
-        passwordResult(passwordBox.text);
+        if (challenge !== "") {
+            challengeResult(passwordBox.text);
+        } else {
+            passwordResult(passwordBox.text);
+        }
     }
 
     function playHighlightAnimation() {
@@ -119,9 +128,11 @@ FocusScope {
                     background: null
                     font.pixelSize: 15
                     text: PasswordSync.password
-                    placeholderText: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder in text field", "Password")
+                    placeholderText: block.challenge !== ""
+                        ? i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder in text field, %1 is a phrase such as A1B2C3", "Type %1", block.challenge)
+                        : i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder in text field", "Password")
                     focus: true
-                    enabled: !authenticator.graceLocked
+                    enabled: !authenticator.graceLocked && block.waitSeconds === 0
                     // The field stays focused while hidden, to wake the screen on a key press;
                     // a blinking cursor there would keep redrawing it.
                     cursorVisible: visible
@@ -143,6 +154,15 @@ FocusScope {
                             block.playHighlightAnimation();
                         }
                     }
+                }
+
+                // The phrase is shown as it's typed.
+                Binding {
+                    target: passwordBox
+                    property: "showPassword"
+                    value: true
+                    when: block.challenge !== ""
+                    restoreMode: Binding.RestoreBindingOrValue
                 }
 
                 Binding {

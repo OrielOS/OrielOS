@@ -7,9 +7,9 @@
 
 // OrielOS's lock screen, in Sill's style, from Plasma's lock screen layout (plasma-desktop 6.7.5,
 // shells/org.kde.plasma.desktop/contents/lockscreen/LockScreenUi.qml), whose unlocking logic it
-// keeps. While the screen is idle, a large clock shows at the top over the wallpaper, with the quick
-// status (LockStatus.qml) at the bottom right; a key press
-// or a click slides it up and away and shows the sign-in (SignInBlock.qml) over the blurred
+// keeps. While the screen is idle, a large clock shows at the top over the wallpaper, with the next
+// calendar item (LockDetail.qml) above the bottom and the quick status (LockStatus.qml) at the bottom
+// right; a key press or a click slides it up and away and shows the sign-in (SignInBlock.qml) over the blurred
 // wallpaper, with the account and Switch user at the bottom left and the keyboard layout, the
 // on-screen keyboard, Sleep and the battery at the bottom right.
 
@@ -68,6 +68,7 @@ Item {
                 return;
             }
             const msg = i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Unlocking failed");
+            lockout.failed();
             lockScreenUi.handleMessage(msg);
             graceLockTimer.restart();
             notificationRemoveTimer.restart();
@@ -109,6 +110,10 @@ Item {
         id: sessionManagement
     }
 
+    Lockout {
+        id: lockout
+    }
+
     KeyboardIndicator.KeyState {
         id: capsLockState
         key: Qt.Key_CapsLock
@@ -131,6 +136,10 @@ Item {
 
         property bool uiVisible: false
         property bool seenPositionChange: false
+        // With "press Ctrl+Alt+Delete to sign in" on, only that brings up the sign-in; the keys
+        // can't be faked by an app, so whoever types the password is talking to the real screen.
+        readonly property bool needsCtrlAltDel: config.requireCtrlAltDel && !ctrlAltDelPressed
+        property bool ctrlAltDelPressed: false
         property bool blockUI: containsMouse && (mainStack.depth > 1 || mainBlock.mainPasswordBox.text.length > 0 || inputPanel.keyboardActive)
 
         x: parent.x
@@ -140,12 +149,15 @@ Item {
         hoverEnabled: true
         cursorShape: uiVisible ? Qt.ArrowCursor : Qt.BlankCursor
         drag.filterChildren: true
-        onPressed: uiVisible = true;
+        onPressed: uiVisible = !needsCtrlAltDel;
         onPositionChanged: {
-            uiVisible = seenPositionChange;
+            uiVisible = seenPositionChange && !needsCtrlAltDel;
             seenPositionChange = true;
         }
         onUiVisibleChanged: {
+            if (!uiVisible) {
+                ctrlAltDelPressed = false;
+            }
             if (uiVisible) {
                 Window.window.requestActivate();
             }
@@ -180,6 +192,14 @@ Item {
             }
         }
         Keys.onPressed: event => {
+            if (needsCtrlAltDel) {
+                if (event.key === Qt.Key_Delete && (event.modifiers & Qt.ControlModifier) && (event.modifiers & Qt.AltModifier)) {
+                    ctrlAltDelPressed = true;
+                    uiVisible = true;
+                }
+                event.accepted = true;
+                return;
+            }
             uiVisible = true;
             event.accepted = false;
         }
@@ -309,6 +329,37 @@ Item {
 
         // New notifications by app, the network and the battery at the bottom right while the
         // screen is idle; the sign-in's footer takes their place when it shows.
+        PlasmaComponents3.Label {
+            anchors {
+                horizontalCenter: parent.horizontalCenter
+                bottom: parent.bottom
+                bottomMargin: 180
+            }
+            visible: config.requireCtrlAltDel && !lockScreenRoot.uiVisible
+            text: i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:usagetip", "Press Ctrl+Alt+Delete to unlock")
+            textFormat: Text.PlainText
+            color: lockScreenUi.clockColor
+            font.pixelSize: 18
+        }
+
+        LockDetail {
+            anchors {
+                horizontalCenter: parent.horizontalCenter
+                bottom: parent.bottom
+                bottomMargin: 120
+            }
+            textColor: "#FFFFFF"
+            calendars: config.detailedStatusCalendars
+            opacity: lockScreenRoot.uiVisible ? 0 : 1
+            visible: text !== "" && opacity > 0
+            Behavior on opacity {
+                OpacityAnimator {
+                    duration: Kirigami.Units.veryLongDuration
+                    easing.type: Easing.InOutQuad
+                }
+            }
+        }
+
         LockStatus {
             anchors {
                 right: parent.right
@@ -379,10 +430,16 @@ Item {
                     }
                 }
                 userListModel: users
-
+                challenge: lockout.phrase
+                waitSeconds: lockout.secondsLeft
 
                 notificationMessage: {
                     const parts = [];
+                    if (lockout.phrase !== "") {
+                        parts.push(i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Too many wrong passwords. Type the characters shown to carry on."));
+                    } else if (lockout.secondsLeft > 0) {
+                        parts.push(i18ndcp("plasma_shell_org.kde.plasma.desktop", "@info:status", "Try again in %1 second.", "Try again in %1 seconds.", lockout.secondsLeft));
+                    }
                     if (capsLockState.locked) {
                         parts.push(i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Caps Lock is on"));
                     }
@@ -394,6 +451,13 @@ Item {
 
                 onPasswordResult: password => {
                     authenticator.respond(password)
+                }
+                onChallengeResult: text => {
+                    if (!lockout.answer(text)) {
+                        rejectPasswordAnimation.start();
+                    }
+                    root.notification = "";
+                    root.clearPassword();
                 }
 
                 Loader {
