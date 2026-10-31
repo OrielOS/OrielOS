@@ -8,12 +8,12 @@ Settings opens on **Home**: the settings you used most recently, then recommende
 
 ![Settings open on System, with the categories on the left and System's pages, such as Display, Sound and Power mode, on the right](images/settings.webp)
 
-The categories on the left come in the order you know from Windows:
+The categories on the left come in the order you know from Windows (in a narrow window they hide behind the menu button beside the page's title):
 
 - **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
-- **Personalisation**: Background, Themes (including dark mode), Accent colour (with Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.
+- **Personalisation**: Background, Themes (including dark mode), Accent colour (with Show accent colour on Start and taskbar, and Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.
 - **Apps**: Default apps and Startup.
 - **Accounts**: Your info, with your password and other accounts, and Sign-in options: a PIN, fingerprints, dynamic lock, and the sign-in screen's settings.
 - **Time & language**: Date & time, and Language & region.
@@ -30,7 +30,7 @@ You can also search from Start: type what you're looking for, such as "wifi", "d
 
 Some pages change things as soon as you choose them. Others show **Apply** and **Reset** at the bottom: Apply keeps your changes, and Reset puts back the settings you had. **Defaults** puts back OrielOS's own settings. If you leave a page, or close Settings, with changes you haven't applied, Settings asks whether to apply or discard them.
 
-Some changes, such as the date and time, ask for an administrator's password.
+Some changes, such as the date and time, ask for an administrator's password. The prompt dims the rest of the screen and asks "Do you want to allow this app to make changes to your device?", with the app's name and its publisher: OrielOS, or the maker of the service that asks, for anything that comes with OrielOS, and **Publisher: Unknown** in red for a program from anywhere else. **Show more details** shows the program's location and the command it runs. Type the password (or your PIN) and choose **Yes**, or choose **No**.
 
 ## Power mode
 

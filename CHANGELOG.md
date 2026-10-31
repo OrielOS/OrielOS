@@ -62,9 +62,13 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - When an update is waiting, Start's power menu says Update and restart and Update and shut down. Settings → Personalisation → Start has Windows' Layout choice (More pins, Default or More recommendations), and the Taskbar page can turn on peeking at the desktop by pointing at the far corner of the taskbar.
 - Windows + R opens a Run box like Windows': type a program, folder, document or website, with the ones you ran before in its list and Browse to pick a file. Windows names such as `cmd`, `explorer`, `control` and `taskmgr` open their OrielOS equivalents. Alt + F2 still opens KRunner.
 - For the first hour after signing in to a new version of OrielOS, Do not disturb is on, as Windows does after an update; notifications still go to the notification centre.
-- Settings → Personalisation → Accent colour has Windows' Transparency effects switch: off, the taskbar, Start and pop-ups are solid instead of showing the blurred desktop through them.
+- Settings → Personalisation → Accent colour can show the accent colour on Start, the taskbar and pop-ups, and has Windows' Transparency effects switch: off, the taskbar, Start and pop-ups are solid instead of showing the blurred desktop through them.
 - Settings → Accessibility → Mouse pointer makes the pointer white or black and bigger, up to 96 pixels.
 - Windows + Z numbers the snap layouts: press a layout's number, then an area's, as on Windows 11.
+- Administrator prompts look like Windows': the screen dims and the prompt asks whether to allow the app to make changes, with its name and publisher (Publisher: Unknown, in red, for a program that isn't part of OrielOS), Show more details, the password or PIN, and Yes and No.
+- The Quick Settings button's tooltip says how long the battery has left, or that it's charging or plugged in.
+- In a narrow window, Settings hides its categories behind a menu button beside the page's title.
+- OrielOS's own Settings pages (Taskbar, Start, Multitasking, Accent colour and Mouse pointer) end with Related settings, links to the pages that go with them.
 - Settings → System → Multitasking turns snapping windows by dragging on or off, and the snap layouts on the maximise button and the suggestions after a snap each on their own, and chooses whether Alt + Tab shows the windows of every desktop.
 - Batteries show in the taskbar, Quick Settings, the lock screen and the power settings, for laptops and for wireless mice, keyboards and controllers. Fingerprint readers and the built-in cameras of many recent Intel laptops work.
 - OrielOS is dark by default: new accounts start with OrielOS Dark's colours, dark icons and the Nightfall wallpaper, and the sign-in screen shows Nightfall too. Light is still one switch away in Settings → Personalisation.
