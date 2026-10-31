@@ -5,7 +5,8 @@
 # Accessory apps (kcm_orielos_accessories), Accent colour (kcm_orielos_accent), Start
 # (kcm_orielos_start), Taskbar (kcm_orielos_taskbar), Device security (kcm_orielos_security), Power
 # mode (kcm_orielos_powermode), Sign-in options (kcm_orielos_signin), Multitasking
-# (kcm_orielos_multitasking) and Mouse pointer (kcm_orielos_pointer).
+# (kcm_orielos_multitasking), Mouse pointer (kcm_orielos_pointer), Storage (kcm_orielos_storage),
+# Fonts (kcm_orielos_fonts) and Do not disturb (kcm_orielos_donotdisturb).
 # Each page and its model are a static QML module of their own, so qmllint checks the page and the
 # unit tests can use the model; each settings module links its own. Two settings modules can't
 # share one: Settings loads them all into one process, where a QML module can be registered only
@@ -28,6 +29,9 @@ add_subdirectory(power)
 add_subdirectory(signin)
 add_subdirectory(multitasking)
 add_subdirectory(pointer)
+add_subdirectory(storage)
+add_subdirectory(fonts)
+add_subdirectory(donotdisturb)
 
 if(BUILD_TESTING)
     add_subdirectory(autotests)

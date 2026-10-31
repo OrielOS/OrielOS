@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "What fills the disk, clean-up and Storage Sense",
+        "Icon": "drive-harddisk",
+        "Name": "Storage"
+    },
+    "X-KDE-Keywords": "storage,disk space,free space,storage sense,clean up,temporary files,bin,recycle bin,disk usage",
+    "X-KDE-System-Settings-Parent-Category": "hardware",
+    "X-KDE-Weight": 40
+}

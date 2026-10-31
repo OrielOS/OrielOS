@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "The installed fonts, and installing more",
+        "Icon": "preferences-desktop-font",
+        "Name": "Fonts"
+    },
+    "X-KDE-Keywords": "fonts,font,install font,add font,typeface,ttf,otf",
+    "X-KDE-System-Settings-Parent-Category": "themes",
+    "X-KDE-Weight": 60
+}

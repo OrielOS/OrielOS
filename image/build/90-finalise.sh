@@ -323,6 +323,31 @@ fi
     exit 1
 }
 
+# Do not disturb at set times: at each sign-in, for hours that had started; Settings turns on the
+# timer that starts them.
+systemctl --global enable orielos-dnd-schedule.service
+if [[ "$(systemctl --global is-enabled orielos-dnd-schedule.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-dnd-schedule.service is not enabled for users
+' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/dnd-schedule ]] || {
+    printf 'error: /usr/libexec/orielos/dnd-schedule is not executable
+' >&2
+    exit 1
+}
+
+# Storage Sense: frees space once a day for users who turned it on in Settings › System › Storage.
+systemctl --global enable orielos-storage-sense.timer
+if [[ "$(systemctl --global is-enabled orielos-storage-sense.timer 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-storage-sense.timer is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/storage-sense ]] || {
+    printf 'error: /usr/libexec/orielos/storage-sense is not executable\n' >&2
+    exit 1
+}
+
 # Dynamic lock: locks the session when the phone chosen in Settings goes out of range; the unit
 # runs only for users who chose one.
 systemctl --global enable orielos-dynamic-lock.service

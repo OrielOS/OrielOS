@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Storage Sense once a day
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/settings.md
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target

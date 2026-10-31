@@ -59,6 +59,9 @@ private Q_SLOTS:
         QTest::newRow("sign-in options") << QStringLiteral("kcm_orielos_signin") << QStringLiteral("Sign-in Options") << QStringLiteral("security-privacy");
         QTest::newRow("multitasking") << QStringLiteral("kcm_orielos_multitasking") << QStringLiteral("Multitasking") << QStringLiteral("windowmanagement");
         QTest::newRow("mouse pointer") << QStringLiteral("kcm_orielos_pointer") << QStringLiteral("Mouse Pointer") << QStringLiteral("accessibility");
+        QTest::newRow("do not disturb") << QStringLiteral("kcm_orielos_donotdisturb") << QStringLiteral("Do Not Disturb") << QStringLiteral("workspace");
+        QTest::newRow("fonts") << QStringLiteral("kcm_orielos_fonts") << QStringLiteral("Fonts") << QStringLiteral("themes");
+        QTest::newRow("storage") << QStringLiteral("kcm_orielos_storage") << QStringLiteral("Storage") << QStringLiteral("hardware");
     }
 
     void loadsThePage()

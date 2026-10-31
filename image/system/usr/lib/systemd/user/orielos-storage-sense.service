@@ -1,0 +1,9 @@
+[Unit]
+Description=Free up space with Storage Sense, when it's turned on
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/settings.md
+
+[Service]
+Type=oneshot
+Nice=19
+IOSchedulingClass=idle
+ExecStart=/usr/libexec/orielos/storage-sense

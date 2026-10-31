@@ -303,6 +303,8 @@ main() {
         # The administrator prompt's program only, for trying it by hand: the session keeps its agent.
         podman cp "$CONTAINER:/out/usr/libexec/orielos-polkit-agent" "$STAGING/bin/orielos-polkit-agent"
         cp "$ROOT/apps/runbox/org.orielos.Run.desktop" "$STAGING/run.desktop"
+        # Storage Sense, for Settings' clean-up buttons (its daily timer comes with an image).
+        install -m 0755 "$ROOT/image/system/usr/libexec/orielos/storage-sense" "$STAGING/bin/orielos-storage-sense"
         cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
         podman rm -f "$CONTAINER" >/dev/null
         CONTAINER=""
