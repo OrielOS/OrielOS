@@ -1,0 +1,34 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Windows' touchpad defaults for each touchpad the first time it's seen: tap to click, and the page
+# following the fingers (two fingers moving up scroll the page down), where Plasma starts with
+# neither. KWin keeps each device's settings in kcminputrc when they change, so this sets them
+# through KWin and then leaves them alone: a touchpad that already has settings there, or that this
+# has set before, keeps what it has, and Settings › Bluetooth & devices › Touchpad changes them.
+# Mouse wheels are untouched. Run at each sign-in by orielos-touchpad-defaults.service.
+set -Eeuo pipefail
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/touchpads-set"
+config="${XDG_CONFIG_HOME:-$HOME/.config}/kcminputrc"
+mkdir -p -- "${state%/*}"
+touch -- "$state"
+
+# The devices' system names, such as event5, from busctl's 'as 2 "event4" "event5"'.
+names="$(busctl --user get-property org.kde.KWin /org/kde/KWin/InputDevice org.kde.KWin.InputDeviceManager devicesSysNames)"
+read -r -a devices <<<"$(sed -e 's/^as [0-9]*//' -e 's/"//g' <<<"$names")"
+
+for device in "${devices[@]}"; do
+    path="/org/kde/KWin/InputDevice/$device"
+    [[ "$(busctl --user get-property org.kde.KWin "$path" org.kde.KWin.InputDevice touchpad 2>/dev/null)" == "b true" ]] || continue
+    name="$(busctl --user get-property org.kde.KWin "$path" org.kde.KWin.InputDevice name | sed -e 's/^s "//' -e 's/"$//')"
+    [[ -n "$name" ]] || continue
+    if grep -qxF -- "$name" "$state" || grep -qF -- "][$name]" "$config" 2>/dev/null; then
+        continue
+    fi
+    busctl --user set-property org.kde.KWin "$path" org.kde.KWin.InputDevice naturalScroll b true || true
+    busctl --user set-property org.kde.KWin "$path" org.kde.KWin.InputDevice tapToClick b true || true
+    printf '%s\n' "$name" >>"$state"
+    printf 'touchpad-defaults: %s now has tap to click and scrolls with the fingers\n' "$name"
+done

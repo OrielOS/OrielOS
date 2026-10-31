@@ -28,6 +28,10 @@ The **Bin** sits at the top left of the desktop, and shows when it has something
 
 Right-click the desktop for **View** (icon size and arrangement), **Sort by**, **Refresh**, **New** (a folder or a document), **Display settings**, **Personalise** (the wallpaper and colours) and **Open in Terminal**. **Show more options** has the rest, such as emptying the Bin and adding widgets.
 
+## Touchpads
+
+A touchpad clicks when you tap it, and two fingers scroll the page the way Windows does: move them up to go down the page. A two-finger tap is a right-click. Four fingers swiping up show all your windows, and swiping left or right switches desktops. Change any of this in **Settings > Bluetooth & devices > Touchpad**.
+
 ## Windows
 
 - **Snap a window** to one side with Windows + Left or Right arrow, or drag it to the edge of the screen.

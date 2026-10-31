@@ -268,6 +268,17 @@ python3 -I -c 'import hashlib; hashlib.scrypt(b"0", salt=b"0", n=2, r=8, p=1)' |
     exit 1
 }
 
+# Windows' touchpad defaults (tap to click, the page following the fingers) for each new touchpad.
+systemctl --global enable orielos-touchpad-defaults.service
+if [[ "$(systemctl --global is-enabled orielos-touchpad-defaults.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-touchpad-defaults.service is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/touchpad-defaults ]] || {
+    printf 'error: /usr/libexec/orielos/touchpad-defaults is not executable\n' >&2
+    exit 1
+}
+
 # Dynamic lock: locks the session when the phone chosen in Settings goes out of range; the unit
 # runs only for users who chose one.
 systemctl --global enable orielos-dynamic-lock.service
