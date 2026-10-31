@@ -13,7 +13,8 @@
 #   HOST            an SSH destination (user@host) whose user can use sudo without a password
 #   --apps          also sideload OrielOS's compiled Plasma widgets (such as Start), window frames and Display mode (Win+P) from the app
 #                   build, localhost/orielos-app-builder (tools/test-apps.sh), or
-#                   ORIELOS_APP_IMAGE; QT_PLUGIN_PATH puts them before the installed ones
+#                   ORIELOS_APP_IMAGE; QT_PLUGIN_PATH puts them before the installed ones. Without
+#                   it, the compiled parts an earlier sideload placed stay as they are
 #   --restart USER  restart USER's Plasma desktop afterwards, so a signed-in session shows the change
 #   --undo          remove everything an earlier sideload placed, instead of copying
 # A signed-in session picks up the new search path the next time it signs in; the lock screen shows
@@ -30,6 +31,7 @@ UNDO=0
 APPS=0
 APP_IMAGE="${ORIELOS_APP_IMAGE:-localhost/orielos-app-builder}"
 STAGING=""
+CONTAINER=""
 
 die() {
     printf 'error: %s\n' "$1" >&2
@@ -39,11 +41,12 @@ die() {
 step() { printf '==> %s\n' "$1"; }
 
 usage() {
-    sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 cleanup() {
     if [[ -n "$STAGING" ]]; then rm -rf -- "$STAGING"; fi
+    if [[ -n "$CONTAINER" ]]; then podman rm -f "$CONTAINER" >/dev/null 2>&1 || true; fi
 }
 
 parse_args() {
@@ -80,8 +83,8 @@ parse_args() {
     fi
 }
 
-# The script that runs on the computer, as root, with the arguments UNDO and RESTART_USER. It reads
-# the files to place from a tar stream on standard input (nothing for --undo).
+# The script that runs on the computer, as root, with the arguments UNDO, RESTART_USER and KEEP_APPS.
+# It reads the files to place from a tar stream on standard input (nothing for --undo).
 remote_script() {
     cat <<'REMOTE'
 set -Eeuo pipefail
@@ -90,6 +93,7 @@ data="$state/share"
 manifest="$state/manifest"
 undo="$1"
 restart_user="$2"
+keep_apps="$3"
 
 remove_placed() {
     if [[ -f "$manifest" ]]; then
@@ -103,13 +107,23 @@ remove_placed() {
     rm -rf -- "$state"
 }
 
-remove_placed
 if [[ "$undo" == 1 ]]; then
+    remove_placed
     echo "removed the sideloaded shell"
 else
     staging="$(mktemp -d)"
     trap 'rm -rf -- "$staging"' EXIT
     tar -C "$staging" -x
+    # Without --apps, the compiled parts an earlier sideload placed stay, as if sent again.
+    if [[ "$keep_apps" == 1 && ! -d "$staging/plugins" ]]; then
+        if [[ -d "$state/plugins" ]]; then cp -a -- "$state/plugins" "$staging/plugins"; fi
+        if [[ -d "$state/bin" ]]; then cp -a -- "$state/bin" "$staging/bin"; fi
+        if [[ -f "$data/applications/org.orielos.DisplayMode.desktop" ]]; then
+            cp -- "$data/applications/org.orielos.DisplayMode.desktop" "$staging/displaymode.desktop"
+        fi
+        if [[ -d "$data/locale/en@orielos" ]]; then cp -a -- "$data/locale/en@orielos" "$staging/locale-en@orielos"; fi
+    fi
+    remove_placed
     mkdir -p "$data/plasma/shells" "$data/plasma/desktoptheme" "$data/plasma/plasmoids" "$data/sddm/themes" "$data/icons/hicolor/scalable/actions" "$data/kwin/effects" "$data/kwin/tabbox" "$data/kwin/scripts" "$data/plasma/look-and-feel" /etc/sddm.conf.d
     : >"$manifest"
     place() { # place SOURCE TARGET
@@ -158,6 +172,7 @@ else
     place "$staging/etc/plasmanotifyrc" /etc/xdg/plasmanotifyrc
     place "$staging/etc/plasmaparc" /etc/xdg/plasmaparc
     place "$staging/etc/ksmserverrc" /etc/xdg/ksmserverrc
+    place "$staging/etc/ksplashrc" /etc/xdg/ksplashrc
     place "$staging/etc/orielos-shell.sh" /etc/xdg/plasma-workspace/env/orielos-shell.sh
     plugin_path=""
     if [[ -d "$staging/plugins" ]]; then
@@ -219,7 +234,7 @@ main() {
     script="$(remote_script)"
     if [[ "$UNDO" -eq 1 ]]; then
         step "Removing the sideloaded shell from $HOST"
-        ssh "${SSH_OPTS[@]}" "$HOST" sudo bash -c "$(printf '%q' "$script")" sideload 1 "$(printf '%q' "$RESTART_USER")" </dev/null
+        ssh "${SSH_OPTS[@]}" "$HOST" sudo bash -c "$(printf '%q' "$script")" sideload 1 "$(printf '%q' "$RESTART_USER")" 0 </dev/null
         return
     fi
     trap cleanup EXIT
@@ -236,12 +251,14 @@ main() {
     cp "$ROOT/image/system/etc/xdg/plasmanotifyrc" "$STAGING/etc/plasmanotifyrc"
     cp "$ROOT/image/system/etc/xdg/plasmaparc" "$STAGING/etc/plasmaparc"
     cp "$ROOT/image/system/etc/xdg/ksmserverrc" "$STAGING/etc/ksmserverrc"
-    # The look-and-feel packages as the image installs them: with the shell's layout and the
-    # Ctrl+Alt+Del screen.
+    cp "$ROOT/image/system/etc/xdg/ksplashrc" "$STAGING/etc/ksplashrc"
+    # The look-and-feel packages as the image installs them: with the shell's layout, the
+    # Ctrl+Alt+Del screen and the welcome screen.
     for lnf in org.orielos.desktop org.orielos.desktop.dark; do
         cp -a "$ROOT/plasma/look-and-feel/$lnf" "$STAGING/look-and-feel/"
         mkdir -p "$STAGING/look-and-feel/$lnf/contents/layouts"
-        cp -a "$ROOT/plasma/look-and-feel/logout" "$STAGING/look-and-feel/$lnf/contents/"
+        cp -a "$ROOT/plasma/look-and-feel/logout" "$ROOT/plasma/look-and-feel/splash" "$STAGING/look-and-feel/$lnf/contents/"
+        cp "$ROOT/image/sddm/orielos/AccountPicture.qml" "$STAGING/look-and-feel/$lnf/contents/splash/"
         for shell in org.orielos.desktop org.kde.plasma.desktop; do
             cp "$ROOT/plasma/shell/org.orielos.desktop/contents/layout.js" "$STAGING/look-and-feel/$lnf/contents/layouts/$shell-layout.js"
         done
@@ -253,21 +270,21 @@ main() {
     cp "$ROOT"/image/sddm/orielos/*.qml "$ROOT/image/sddm/orielos/metadata.desktop" \
         "$ROOT/image/sddm/orielos/theme.conf" "$STAGING/sddm/"
     if [[ "$APPS" -eq 1 ]]; then
-        local container
-        container="$(podman create "$APP_IMAGE" true)" || die "can't use $APP_IMAGE; run tools/test-apps.sh first"
+        CONTAINER="$(podman create "$APP_IMAGE" true)" || die "can't use $APP_IMAGE; run tools/test-apps.sh first"
         mkdir -p "$STAGING/plugins/plasma"
-        podman cp "$container:/out/usr/lib64/qt6/plugins/plasma/applets" "$STAGING/plugins/plasma/applets"
-        podman cp "$container:/out/usr/lib64/qt6/plugins/org.kde.kdecoration3" "$STAGING/plugins/org.kde.kdecoration3"
-        podman cp "$container:/out/usr/lib64/qt6/plugins/plasma/containmentactions" "$STAGING/plugins/plasma/containmentactions"
-        podman cp "$container:/out/usr/share/locale/en@orielos" "$STAGING/locale-en@orielos"
+        podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/plasma/applets" "$STAGING/plugins/plasma/applets"
+        podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/org.kde.kdecoration3" "$STAGING/plugins/org.kde.kdecoration3"
+        podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/plasma/containmentactions" "$STAGING/plugins/plasma/containmentactions"
+        podman cp "$CONTAINER:/out/usr/share/locale/en@orielos" "$STAGING/locale-en@orielos"
         mkdir -p "$STAGING/bin"
-        podman cp "$container:/out/usr/bin/orielos-display-mode" "$STAGING/bin/orielos-display-mode"
+        podman cp "$CONTAINER:/out/usr/bin/orielos-display-mode" "$STAGING/bin/orielos-display-mode"
         cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
-        podman rm -f "$container" >/dev/null
+        podman rm -f "$CONTAINER" >/dev/null
+        CONTAINER=""
         find "$STAGING/plugins" -type f ! -name 'org.orielos.*' -delete
     fi
     step "Sideloading the shell from $(git -C "$ROOT" log -1 --format='%h %s' 2>/dev/null || echo "$ROOT") onto $HOST"
-    tar -C "$STAGING" -c . | ssh "${SSH_OPTS[@]}" "$HOST" sudo bash -c "$(printf '%q' "$script")" sideload 0 "$(printf '%q' "$RESTART_USER")"
+    tar -C "$STAGING" -c . | ssh "${SSH_OPTS[@]}" "$HOST" sudo bash -c "$(printf '%q' "$script")" sideload 0 "$(printf '%q' "$RESTART_USER")" "$((1 - APPS))"
 }
 
 main "$@"
