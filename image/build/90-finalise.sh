@@ -132,6 +132,10 @@ done
 [[ -x /usr/bin/orielos-display-mode ]] || update_errors+=("/usr/bin/orielos-display-mode is missing")
 grep -qxF 'X-KDE-Shortcuts=Meta+P' /usr/share/kglobalaccel/org.orielos.DisplayMode.desktop 2>/dev/null || update_errors+=("Display mode doesn't have Win+P")
 grep -qxF 'X-KDE-Shortcuts=Display' /usr/share/kglobalaccel/org.kde.kscreen.desktop || update_errors+=("Plasma's screen picker still has Win+P")
+# The administrator prompt, in place of Plasma's polkit agent.
+[[ -x /usr/libexec/orielos-polkit-agent ]] || update_errors+=("/usr/libexec/orielos-polkit-agent is missing")
+grep -qxF 'ExecStart=/usr/libexec/orielos-polkit-agent' /usr/lib/systemd/user/plasma-polkit-agent.service.d/orielos.conf 2>/dev/null ||
+    update_errors+=("plasma-polkit-agent.service doesn't start OrielOS's administrator prompt")
 # The Run box, on Win+R, which KRunner gives up.
 [[ -x /usr/bin/orielos-run ]] || update_errors+=("/usr/bin/orielos-run is missing")
 grep -qxF 'X-KDE-Shortcuts=Meta+R' /usr/share/kglobalaccel/org.orielos.Run.desktop 2>/dev/null || update_errors+=("the Run box doesn't have Win+R")
@@ -400,6 +404,8 @@ for f in contents/layout.js contents/lockscreen/LockScreen.qml contents/lockscre
 done
 for f in metadata.json widgets/panel-background.svg widgets/tasks.svg dialogs/background.svg translucent/dialogs/background.svg; do
     [[ -f "/usr/share/plasma/desktoptheme/orielos/$f" ]] || taskbar_errors+=("OrielOS's Plasma theme has no $f")
+    # Its variant with the accent colour, which Settings' Accent colour page switches to.
+    [[ -f "/usr/share/plasma/desktoptheme/orielos-accent/$f" ]] || taskbar_errors+=("OrielOS's accent Plasma theme has no $f")
 done
 if [[ "$(kreadconfig6 --file /etc/xdg/plasmarc --group Theme --key name)" != orielos ]]; then
     taskbar_errors+=("/etc/xdg/plasmarc does not make orielos the Plasma theme")

@@ -136,6 +136,7 @@ else
     }
     place "$staging/shell/org.orielos.desktop" "$data/plasma/shells/org.orielos.desktop"
     place "$staging/desktoptheme/orielos" "$data/plasma/desktoptheme/orielos"
+    place "$staging/desktoptheme/orielos-accent" "$data/plasma/desktoptheme/orielos-accent"
     for widget in "$staging"/plasmoids/*; do
         place "$widget" "$data/plasma/plasmoids/${widget##*/}"
     done
@@ -258,7 +259,7 @@ main() {
     STAGING="$(mktemp -d)"
     mkdir -p "$STAGING/shell" "$STAGING/desktoptheme" "$STAGING/etc" "$STAGING/sddm"
     cp -a "$ROOT/plasma/shell/org.orielos.desktop" "$STAGING/shell/"
-    cp -a "$ROOT/plasma/desktoptheme/orielos" "$STAGING/desktoptheme/"
+    cp -a "$ROOT/plasma/desktoptheme/orielos" "$ROOT/plasma/desktoptheme/orielos-accent" "$STAGING/desktoptheme/"
     cp -a "$ROOT/plasma/plasmoids" "$STAGING/plasmoids"
     mkdir -p "$STAGING/icons" "$STAGING/look-and-feel"
     cp -a "$ROOT/plasma/kwin" "$STAGING/kwin"
@@ -299,6 +300,8 @@ main() {
         podman cp "$CONTAINER:/out/usr/bin/orielos-display-mode" "$STAGING/bin/orielos-display-mode"
         podman cp "$CONTAINER:/out/usr/bin/orielos-settings" "$STAGING/bin/orielos-settings"
         podman cp "$CONTAINER:/out/usr/bin/orielos-run" "$STAGING/bin/orielos-run"
+        # The administrator prompt's program only, for trying it by hand: the session keeps its agent.
+        podman cp "$CONTAINER:/out/usr/libexec/orielos-polkit-agent" "$STAGING/bin/orielos-polkit-agent"
         cp "$ROOT/apps/runbox/org.orielos.Run.desktop" "$STAGING/run.desktop"
         cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
         podman rm -f "$CONTAINER" >/dev/null
