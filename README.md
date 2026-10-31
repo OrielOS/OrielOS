@@ -16,10 +16,10 @@ OrielOS is a free and open-source Linux desktop, tuned for gaming and developmen
 
 - **Familiar from the first boot.** A centred taskbar, a Start menu with search and pinned apps, the keyboard shortcuts you know from Windows (Win+E, Win+Shift+S, Win+V, Ctrl+Shift+Esc and more), and a Settings app organised by task.
 - **No terminal needed.** Installing apps, updating, changing settings and running games all have a graphical path.
-- **Tuned for gaming.** Native Linux games and Windows games through Proton, with GE-Proton as the default. Performance is measured against Windows on the same PC and published.
+- **Tuned for gaming.** Native Linux games and Windows games through Proton, with GE-Proton as the default. Performance will be measured against Windows on the same PC, and the results published.
 - **Ready for development.** Code editors such as VS Code, AI coding tools and containers for your toolchains, with a proper terminal whenever you want one.
 - **Updates you can trust.** Updates download in the background and apply on "Restart to update". If something goes wrong, go back to the previous version in one click, or pick it from the boot menu.
-- **Windows programs open with a double-click.** A "Run this app" dialog installs and runs `.exe` and `.msi` files through Proton, and suggests a native version when one exists.
+- **Windows programs open with a double-click.** A "Run this app" dialog installs and runs `.exe` and `.msi` files through Proton. Offering the Store's version first, when one exists, is planned.
 - **No telemetry.** OrielOS itself collects nothing.
 
 ## How it's built
@@ -39,7 +39,7 @@ The first release targets desktop PCs with NVIDIA RTX (20-series or newer) graph
 
 ## Known limitations
 
-- **Some online games won't run.** Games whose publishers block Linux through their anti-cheat (for example Valorant, League of Legends, Call of Duty and Battlefield 6) can't be played on any Linux distribution. OrielOS shows which games work and which are blocked, and boots in a way that meets Easy Anti-Cheat's Linux requirements so games that allow Linux can run.
+- **Some online games won't run.** Games whose publishers block Linux through their anti-cheat (for example Valorant, League of Legends, Call of Duty and Battlefield 6) can't be played on any Linux distribution. OrielOS starts in a way that meets Easy Anti-Cheat's Linux requirements, so games that allow Linux can run. A way to check whether a game works before you buy it is planned.
 - **No hibernation.** The secure boot configuration that anti-cheat needs disables hibernation. Sleep works as normal.
 - **Microsoft 365 and Adobe apps** have no Linux versions. Use the web versions or Linux alternatives.
 - **Not affiliated with Microsoft.** OrielOS follows layouts and habits people know from Windows, but uses none of Microsoft's logos, fonts, icons, sounds or wallpapers.
@@ -48,11 +48,11 @@ The first release targets desktop PCs with NVIDIA RTX (20-series or newer) graph
 
 ```text
 image/     OS image recipe: Containerfile, build scripts, system configuration
-apps/      OrielOS apps: Settings, Game Settings, Run this app, updates
+apps/      OrielOS apps: Settings and its pages, Run this app, the first-run setup and the update tray icon and page
 plasma/    Start menu, window snapping and desktop layout for KDE Plasma
 artwork/   Logo, wallpapers, sounds, boot and login themes
-data/      Compatibility data and app recipes used by installed systems
-tests/     Boot, update and rollback tests, benchmarks
+data/      (empty for now) compatibility data and app recipes that installed systems will fetch
+tests/     Boot, update and rollback tests
 tools/     Developer scripts
 docs/      User documentation
 website/   The orielos.org website and its build

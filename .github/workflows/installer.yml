@@ -3,9 +3,11 @@ name: Installer
 # Builds OrielOS.iso, the network installer (installer/build-iso.sh), which installs the current
 # stable build. It downloads OrielOS while it installs, so it's only rebuilt when the installer
 # itself changes:
-# - a pull request that changes the installer builds it, to check it, and publishes nothing;
+# - a pull request that changes the installer, or the pinned image it's built in, builds it, to
+#   check it, and publishes nothing;
 # - a merge into main that changes it, or a run by hand, replaces OrielOS.iso and SHA256SUMS on
-#   the latest release;
+#   the latest release (a refresh of the pinned images alone doesn't: it reaches the installer
+#   with the next release);
 # - a new release (the Promote workflow) gets them too, so the latest release always carries the
 #   installer, and the website's download section links it from there.
 # After an upload the website is rebuilt, so its download link follows at once.
@@ -16,14 +18,15 @@ on:
     paths:
       - installer/**
       - image/keys/orielos-cosign.pub
-      - image/pins.env
       - tools/lib/pins.sh
       - .github/workflows/installer.yml
       - "!**.md"
   pull_request:
     paths:
       - installer/**
+      - image/pins.env
       - .github/workflows/installer.yml
+      - "!**.md"
   release:
     types: [published]
   workflow_dispatch:

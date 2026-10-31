@@ -11,7 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 <section aria-labelledby="faq-bazzite">
   <h2 id="faq-bazzite">How is OrielOS different from Bazzite?</h2>
-  <p>Both are Fedora Atomic desktops: the system is one image, and an update replaces that image instead of changing it piece by piece. OrielOS is its own desktop on that base. It uses KDE Plasma with OrielOS’s taskbar and Start menu, Steam from the Store, and Proton with GE-Proton for Windows games. .exe and .msi files open through Run this app. Updates download in the background, and you can go back to the previous version from Settings. OrielOS collects no telemetry. It’s early, and it targets desktop PCs with NVIDIA RTX graphics, 20-series or newer.</p>
+  <p>Both are Fedora Atomic desktops: the system is one image, and an update replaces that image instead of changing it piece by piece. OrielOS is its own desktop on that base. It uses KDE Plasma with OrielOS’s taskbar and Start menu, and Steam from the Store. In testing builds, Windows games use Proton with GE-Proton as the default, and .exe and .msi files open through Run this app; both reach the stable version with its next release. Updates download in the background, and you can go back to the previous version from Settings. OrielOS collects no telemetry. It’s early, and it targets desktop PCs with NVIDIA RTX graphics, 20-series or newer.</p>
 </section>
 
 <section aria-labelledby="faq-download">
@@ -21,12 +21,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 <section aria-labelledby="faq-hardware">
   <h2 id="faq-hardware">What hardware does it need?</h2>
-  <p>A desktop PC with NVIDIA RTX graphics, 20-series or newer, a 64-bit Intel or AMD processor, and UEFI with Secure Boot. It needs at least 60 GB free, as a whole drive or unused space next to Windows, a USB stick of 2 GB or more, and internet during the install. PCs with only AMD or Intel graphics aren’t supported yet. So far it has been checked on a laptop with an NVIDIA GeForce RTX 4050 Laptop GPU; laptops aren’t what it’s built for. <a href="/guides/status/#hardware-verified">Status</a> lists every PC checked, and <a href="/guides/install/">Install OrielOS</a> has the full list.</p>
+  <p>A desktop PC with NVIDIA RTX graphics, 20-series or newer, a 64-bit Intel or AMD processor, and UEFI with Secure Boot. It needs at least 60 GB free, as a whole drive or unused space next to Windows, a USB stick of 2 GB or more, and internet during the install. PCs with only AMD or Intel graphics aren’t supported yet. So far it has been checked on a laptop with an NVIDIA GeForce RTX 4050 Laptop GPU; laptops aren’t what it’s built for. <a href="/guides/status/#hardware-verified">Status</a> lists every PC checked, and <a href="/guides/install/">Install OrielOS</a> has the full requirements.</p>
 </section>
 
 <section aria-labelledby="faq-exe">
   <h2 id="faq-exe">Does it run .exe/.msi files?</h2>
-  <p>Yes, through Run this app. Double-click a .exe or .msi file and OrielOS shows the file and where it came from, then asks before doing anything. It runs the program through GE-Proton, in a Windows set-up of its own, and shortcuts its installer creates can appear in Start. It’s new and has only been tried with a few programs. Programs that need special drivers don’t run, and Microsoft 365 and Adobe apps don’t run. A Linux version from the Store is a better choice when there is one. See <a href="/guides/windows-programs/">Windows programs</a>.</p>
+  <p>Yes, in testing builds, through Run this app. It reaches the stable version with its next release. Double-click a .exe or .msi file and OrielOS shows the file and where it came from, then asks before doing anything. It runs the program through GE-Proton, in a Windows set-up of its own, and shortcuts its installer creates can appear in Start. It’s new and has only been tried with a few programs. Programs that need special drivers don’t run, and Microsoft 365 and Adobe apps don’t run. A Linux version from the Store is a better choice when there is one. See <a href="/guides/windows-programs/">Windows programs</a>.</p>
 </section>
 
 <section aria-labelledby="faq-anticheat">
@@ -61,7 +61,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       "name": "How is OrielOS different from Bazzite?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Both are Fedora Atomic desktops: the system is one image, and an update replaces that image instead of changing it piece by piece. OrielOS is its own desktop on that base. It uses KDE Plasma with OrielOS’s taskbar and Start menu, Steam from the Store, and Proton with GE-Proton for Windows games. .exe and .msi files open through Run this app. Updates download in the background, and you can go back to the previous version from Settings. OrielOS collects no telemetry. It’s early, and it targets desktop PCs with NVIDIA RTX graphics, 20-series or newer."
+        "text": "Both are Fedora Atomic desktops: the system is one image, and an update replaces that image instead of changing it piece by piece. OrielOS is its own desktop on that base. It uses KDE Plasma with OrielOS’s taskbar and Start menu, and Steam from the Store. In testing builds, Windows games use Proton with GE-Proton as the default, and .exe and .msi files open through Run this app; both reach the stable version with its next release. Updates download in the background, and you can go back to the previous version from Settings. OrielOS collects no telemetry. It’s early, and it targets desktop PCs with NVIDIA RTX graphics, 20-series or newer."
       }
     },
     {
@@ -77,7 +77,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       "name": "What hardware does it need?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "A desktop PC with NVIDIA RTX graphics, 20-series or newer, a 64-bit Intel or AMD processor, and UEFI with Secure Boot. It needs at least 60 GB free, as a whole drive or unused space next to Windows, a USB stick of 2 GB or more, and internet during the install. PCs with only AMD or Intel graphics aren’t supported yet. So far it has been checked on a laptop with an NVIDIA GeForce RTX 4050 Laptop GPU; laptops aren’t what it’s built for. Status lists every PC checked, and Install OrielOS has the full list."
+        "text": "A desktop PC with NVIDIA RTX graphics, 20-series or newer, a 64-bit Intel or AMD processor, and UEFI with Secure Boot. It needs at least 60 GB free, as a whole drive or unused space next to Windows, a USB stick of 2 GB or more, and internet during the install. PCs with only AMD or Intel graphics aren’t supported yet. So far it has been checked on a laptop with an NVIDIA GeForce RTX 4050 Laptop GPU; laptops aren’t what it’s built for. Status lists every PC checked, and Install OrielOS has the full requirements."
       }
     },
     {
@@ -85,7 +85,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
       "name": "Does it run .exe/.msi files?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes, through Run this app. Double-click a .exe or .msi file and OrielOS shows the file and where it came from, then asks before doing anything. It runs the program through GE-Proton, in a Windows set-up of its own, and shortcuts its installer creates can appear in Start. It’s new and has only been tried with a few programs. Programs that need special drivers don’t run, and Microsoft 365 and Adobe apps don’t run. A Linux version from the Store is a better choice when there is one. See Windows programs."
+        "text": "Yes, in testing builds, through Run this app. It reaches the stable version with its next release. Double-click a .exe or .msi file and OrielOS shows the file and where it came from, then asks before doing anything. It runs the program through GE-Proton, in a Windows set-up of its own, and shortcuts its installer creates can appear in Start. It’s new and has only been tried with a few programs. Programs that need special drivers don’t run, and Microsoft 365 and Adobe apps don’t run. A Linux version from the Store is a better choice when there is one. See Windows programs."
       }
     },
     {

@@ -8,6 +8,9 @@ name: Image
 # A pull request that changes this workflow or the build script only builds: changes are booted
 # and update-tested locally before they merge, so pull requests don't smoke-test on GitHub, and
 # they never publish.
+# A merge that changes only image/pins.env (Renovate's weekly refresh of the upstream images)
+# doesn't build either: the new digests are boot-tested locally before they merge, and go out in
+# the next build that a change to OrielOS itself, or a run by hand, makes.
 
 on:
   push:
@@ -25,6 +28,7 @@ on:
       - tests/lib/vm.sh
       - .github/workflows/image.yml
       - "!**.md"
+      - "!image/pins.env"
   pull_request:
     paths:
       - tools/build-image.sh

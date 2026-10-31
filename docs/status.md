@@ -2,7 +2,9 @@
 
 OrielOS is in early development. This page lists what works today, what doesn't work yet and what's planned, so you know what to expect before you install it. "Checked on the laptop" means it was checked on a real PC, an MSI laptop with an RTX 4050; "checked in virtual machines" means it's tested automatically in virtual machines with Secure Boot on, on every change.
 
-Last updated: 27 October 2026.
+Some features below are in testing builds only and will reach stable in its next release; they're marked **(testing)**.
+
+Last updated: 29 October 2026.
 
 ## Hardware verified
 
@@ -42,7 +44,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 - **The Store** installs apps from Flathub; Firefox arrives on the first start. See [Installing apps](apps.md). Checked on the laptop, and in virtual machines.
 - **Steam from the Store** sees the NVIDIA graphics card. Checked on the laptop.
-- **GE-Proton is Steam's default** for Windows games: OrielOS installs it with Steam and sets it once, keeping any default you chose. See [Games and controllers](games-and-controllers.md#ge-proton-for-windows-games-in-steam).
+- **GE-Proton is Steam's default** for Windows games: OrielOS installs it with Steam and sets it once, keeping any default you chose. See [Games and controllers](games-and-controllers.md#ge-proton-for-windows-games-in-steam). **(testing; not yet in stable v0.0.7)**
 
 ### Games and drivers
 
@@ -54,7 +56,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 - **Few real PCs so far.** Only one laptop has run OrielOS. Desktop PCs with NVIDIA graphics are what it's for, and the first one is still to be tested.
 - **PCs with only AMD or Intel graphics** aren't supported yet: OrielOS is built and tested for NVIDIA. (On the laptop, Intel graphics drive its own screen alongside the RTX 4050, as on most laptops.)
-- **Run this app is new:** Windows programs run with a double-click, but it has been tried with only a few programs (see [Windows programs](windows-programs.md)).
+- **Run this app is new:** Windows programs run with a double-click, but it has been tried with only a few programs (see [Windows programs](windows-programs.md)). **(testing; not yet in stable v0.0.7)**
 - **No game has been played on OrielOS yet** in its tests: Steam and the graphics driver work, but playing games is the next step.
 - **Sleep and wake** haven't been checked on a real PC yet.
 - **The first start's welcome page** still says "Welcome to Plasma Desktop", over Plasma's own picture.

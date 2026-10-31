@@ -26,9 +26,9 @@ jobs:
           persist-credentials: false
 
       # apps is a required check, so the job always runs and reports, and only the build is
-      # skipped when nothing it reads has changed. A pull request's checkout is the pull request
-      # merged into its base branch, so HEAD^1 is the base. A push of more than one commit, or a
-      # comparison that fails, counts as a change.
+      # skipped when nothing it reads has changed; Markdown files never count. A pull request's
+      # checkout is the pull request merged into its base branch, so HEAD^1 is the base. A push of
+      # more than one commit, or a comparison that fails, counts as a change.
       - name: Check whether the change affects the apps
         id: changes
         env:
@@ -42,7 +42,8 @@ jobs:
               git diff --quiet HEAD^1 HEAD -- \
                   apps plasma artwork CMakeLists.txt \
                   image/Containerfile image/build/apps-builder.sh image/pins.env \
-                  .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh .github/workflows/apps.yml || rc=$?
+                  .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh .github/workflows/apps.yml \
+                  ':(exclude)*.md' || rc=$?
           fi
           case "${rc}" in
               0)

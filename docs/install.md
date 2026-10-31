@@ -32,7 +32,7 @@ Plug in the stick and restart. Open your PC's boot menu as it starts (usually **
 
 If the stick isn't offered, open the firmware settings instead (usually **Del** or **F2** as the PC starts) and check two things: **Secure Boot** is on, with the standard or Microsoft keys ("Windows UEFI mode" on some boards), and booting from USB is allowed. Turn off **CSM** or **Legacy boot** if it's on; OrielOS needs UEFI.
 
-Choose **Install OrielOS** in the menu that appears. The menu and the installer show the version of OrielOS that was current when the ISO was made, such as v0.0.5; the installer always downloads the newest stable version.
+Choose **Install OrielOS** in the menu that appears. The menu and the installer show the version of OrielOS that was current when the ISO was made, such as v0.0.7; the installer always downloads the newest stable version.
 
 ## 4. The installer
 
