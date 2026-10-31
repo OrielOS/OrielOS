@@ -43,7 +43,7 @@ Every option can be used from the keyboard: hold Alt to see each one's underline
 
 ## What's in each version
 
-Every version has notes on [orielos.org's release notes](https://orielos.org/releases/) and on [GitHub's releases page](https://github.com/ncjsvr/OrielOS/releases):
+Every version has notes on [orielos.org's release notes](https://orielos.org/releases/) and on [GitHub's releases page](https://github.com/OrielOS/OrielOS/releases):
 
 - **Testing builds** are marked Testing. Each one lists what's new since the build before it, so if you're on the testing channel you can see what the latest update brought. Each also says which stable version includes it, once there is one. A build that was taken back is marked Withdrawn.
 - **Stable versions** list everything that's new since the previous stable version, and which testing builds they bring together.

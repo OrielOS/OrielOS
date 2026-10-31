@@ -37,9 +37,9 @@ IMAGE_VERSION=$version
 LOGO=orielos-logo-icon
 DEFAULT_HOSTNAME="orielos"
 HOME_URL="https://orielos.org/"
-DOCUMENTATION_URL="https://github.com/ncjsvr/OrielOS/tree/main/docs"
-SUPPORT_URL="https://github.com/ncjsvr/OrielOS/discussions"
-BUG_REPORT_URL="https://github.com/ncjsvr/OrielOS/issues"
+DOCUMENTATION_URL="https://github.com/OrielOS/OrielOS/tree/main/docs"
+SUPPORT_URL="https://github.com/OrielOS/OrielOS/discussions"
+BUG_REPORT_URL="https://github.com/OrielOS/OrielOS/issues"
 EOF
 install -m 0644 "$tmp" "$file"
 rm -f "$tmp"

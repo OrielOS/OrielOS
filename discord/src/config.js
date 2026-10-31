@@ -13,7 +13,7 @@ export function readConfig(env) {
     token: text("DISCORD_TOKEN"),
     linkClientId: text("LINK_CLIENT_ID"),
     githubToken: text("GITHUB_TOKEN"),
-    repo: text("GITHUB_REPOSITORY", "ncjsvr/OrielOS"),
+    repo: text("GITHUB_REPOSITORY", "OrielOS/OrielOS"),
     guildId: text("DISCORD_GUILD_ID"),
     linkMessage: text("LINK_MESSAGE"),
     names: {

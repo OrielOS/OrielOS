@@ -1,6 +1,6 @@
 [Unit]
 Description=Update the apps from the Store in the background
-Documentation=https://github.com/ncjsvr/OrielOS
+Documentation=https://github.com/OrielOS/OrielOS
 
 [Timer]
 # A few minutes after start-up, so an OS update that changed the NVIDIA driver soon gets the

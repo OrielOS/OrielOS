@@ -11,7 +11,7 @@
     "Id": "org.orielos.desktop",
     "License": "GPL-3.0-or-later",
     "Name": "OrielOS",
-    "Website": "https://github.com/ncjsvr/OrielOS"
+    "Website": "https://github.com/OrielOS/OrielOS"
   },
   "Keywords": "Desktop;Workspace;Appearance;Look and Feel;Taskbar;",
   "X-Plasma-APIVersion": "2"

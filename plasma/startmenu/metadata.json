@@ -12,7 +12,7 @@
         "Id": "org.orielos.startmenu",
         "License": "GPL-3.0-or-later",
         "Name": "Start",
-        "Website": "https://github.com/ncjsvr/OrielOS"
+        "Website": "https://github.com/OrielOS/OrielOS"
     },
     "X-Plasma-API-Minimum-Version": "6.0",
     "X-Plasma-Provides": [

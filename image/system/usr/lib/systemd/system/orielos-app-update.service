@@ -1,6 +1,6 @@
 [Unit]
 Description=Update the apps from the Store
-Documentation=https://github.com/ncjsvr/OrielOS
+Documentation=https://github.com/OrielOS/OrielOS
 After=network-online.target
 Wants=network-online.target
 # A failure is tried again every 15 minutes, for as long as it takes, for example while offline.

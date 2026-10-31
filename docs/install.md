@@ -20,7 +20,7 @@ This guide takes you from download to desktop: making the USB stick, making room
 
 ## 1. Download
 
-Download **OrielOS.iso** from the [latest release](https://github.com/ncjsvr/OrielOS/releases/latest), with **SHA256SUMS** next to it. To check the download, compare the ISO's SHA-256 with the line in SHA256SUMS (it's also shown on [orielos.org/download](https://orielos.org/download/)): in Windows PowerShell, `Get-FileHash OrielOS.iso`; on macOS, `shasum -a 256 OrielOS.iso`; on Linux, `sha256sum -c SHA256SUMS --ignore-missing`. If they don't match, download the ISO again.
+Download **OrielOS.iso** from the [latest release](https://github.com/OrielOS/OrielOS/releases/latest), with **SHA256SUMS** next to it. To check the download, compare the ISO's SHA-256 with the line in SHA256SUMS (it's also shown on [orielos.org/download](https://orielos.org/download/)): in Windows PowerShell, `Get-FileHash OrielOS.iso`; on macOS, `shasum -a 256 OrielOS.iso`; on Linux, `sha256sum -c SHA256SUMS --ignore-missing`. If they don't match, download the ISO again.
 
 ## 2. Make the USB stick
 
@@ -77,4 +77,4 @@ The installer doesn't ask for an account: OrielOS asks for it when it first star
 - **The PC starts Windows, not the stick**: open the boot menu again, or put USB first in the firmware's boot order.
 - **The installer's screen freezes before it starts**: restart and start from the stick again.
 - **Reinstalling next to Windows**: in Installation Destination, tick "Free up space", select **Done**, and delete only the earlier OrielOS's two partitions (an ext4 one of about 2 GiB and a btrfs one named `orielos`), never the EFI System Partition or Windows' ntfs partitions. Then select **Reclaim space**.
-- **Ask for help** in the [Q&A](https://github.com/ncjsvr/OrielOS/discussions/categories/q-a) category of GitHub Discussions, or on [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA), with a photo of the screen.
+- **Ask for help** in the [Q&A](https://github.com/OrielOS/OrielOS/discussions/categories/q-a) category of GitHub Discussions, or on [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA), with a photo of the screen.

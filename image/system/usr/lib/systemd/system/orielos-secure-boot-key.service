@@ -1,6 +1,6 @@
 [Unit]
 Description=Queue Universal Blue's driver-signing key for Secure Boot
-Documentation=https://github.com/ncjsvr/OrielOS
+Documentation=https://github.com/OrielOS/OrielOS
 After=local-fs.target sys-firmware-efi-efivars.mount
 # Done before the login screen, so the session's notification reads this boot's state.
 Before=display-manager.service

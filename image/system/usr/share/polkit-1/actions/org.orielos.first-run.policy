@@ -13,7 +13,7 @@ finished.
 -->
 <policyconfig>
   <vendor>OrielOS</vendor>
-  <vendor_url>https://github.com/ncjsvr/OrielOS</vendor_url>
+  <vendor_url>https://github.com/OrielOS/OrielOS</vendor_url>
   <icon_name>preferences-system-power-management</icon_name>
 
   <action id="org.orielos.first-run.power">

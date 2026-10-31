@@ -85,7 +85,7 @@ jobs:
   post:
     name: post
     if: >-
-      (github.repository == 'OrielOS/OrielOS' || github.repository == 'ncjsvr/OrielOS') &&
+      github.repository == 'OrielOS/OrielOS' &&
       (github.event_name == 'release' ||
       github.event_name == 'issues' ||
       github.event_name == 'discussion' ||
@@ -125,7 +125,7 @@ jobs:
   sync:
     name: sync
     if: >-
-      (github.repository == 'OrielOS/OrielOS' || github.repository == 'ncjsvr/OrielOS') &&
+      github.repository == 'OrielOS/OrielOS' &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||

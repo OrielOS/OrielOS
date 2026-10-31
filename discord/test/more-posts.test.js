@@ -14,7 +14,7 @@ import {
 } from "../src/posts.js";
 import { dedupeOptIns, parseRecord, planOptIns, serialiseRecord } from "../src/store.js";
 
-const repo = "ncjsvr/OrielOS";
+const repo = "OrielOS/OrielOS";
 const person = { login: "alice", type: "User", html_url: "https://github.com/alice" };
 const bot = { login: "dependabot[bot]", type: "Bot", html_url: "https://github.com/apps/dependabot" };
 
@@ -22,7 +22,7 @@ const issue = {
   number: 12,
   title: "Fix the_thing",
   state: "open",
-  html_url: "https://github.com/ncjsvr/OrielOS/issues/12",
+  html_url: "https://github.com/OrielOS/OrielOS/issues/12",
   user: person,
   labels: [{ name: "type: bug" }],
   created_at: "2026-10-25T10:00:00Z",
@@ -65,7 +65,7 @@ function push(commits, ref = "refs/heads/main") {
 function commit(message, username, name = username) {
   return {
     message,
-    url: "https://github.com/ncjsvr/OrielOS/commit/abc",
+    url: "https://github.com/OrielOS/OrielOS/commit/abc",
     timestamp: "2026-10-25T12:00:00Z",
     author: { name, username },
   };
@@ -93,10 +93,10 @@ test("a welcome links the pull request, or the commit when there is no pull requ
   const message = welcomeMessage(withPull, repo);
   assert.equal(message.embeds[0].title, "Welcome, alice: first contribution merged");
   assert.equal(message.embeds[0].description, "feat: add a thing (#7)");
-  assert.equal(message.embeds[0].url, "https://github.com/ncjsvr/OrielOS/pull/7");
+  assert.equal(message.embeds[0].url, "https://github.com/OrielOS/OrielOS/pull/7");
   assert.deepEqual(message.embeds[0].author, { name: "alice", url: "https://github.com/alice" });
   const [direct] = firstContributionCandidates(push([commit("fix: tidy", "bob")]));
-  assert.equal(welcomeMessage(direct, repo).embeds[0].url, "https://github.com/ncjsvr/OrielOS/commit/abc");
+  assert.equal(welcomeMessage(direct, repo).embeds[0].url, "https://github.com/OrielOS/OrielOS/commit/abc");
 });
 
 test("star milestones: none on the first run, one at a time, never back", () => {
@@ -105,7 +105,7 @@ test("star milestones: none on the first run, one at a time, never back", () => 
   const crossed = planStarPost(26, 10, repo);
   assert.equal(crossed.announced, 25);
   assert.equal(crossed.post.embeds[0].title, "OrielOS has 25 stars on GitHub");
-  assert.equal(crossed.post.embeds[0].url, "https://github.com/ncjsvr/OrielOS/stargazers");
+  assert.equal(crossed.post.embeds[0].url, "https://github.com/OrielOS/OrielOS/stargazers");
   const jumped = planStarPost(1200, 100, repo);
   assert.equal(jumped.announced, 1000);
   assert.equal(jumped.post.embeds[0].title, "OrielOS has 1,000 stars on GitHub");
@@ -115,13 +115,13 @@ test("star milestones: none on the first run, one at a time, never back", () => 
 
 const discussion = {
   title: "How do I add a printer?",
-  html_url: "https://github.com/ncjsvr/OrielOS/discussions/9",
+  html_url: "https://github.com/OrielOS/OrielOS/discussions/9",
   user: { login: "bob", type: "User" },
   category: { slug: "q-a", name: "Q&A" },
   answer_chosen_at: "2026-10-25T13:00:00Z",
 };
 const answer = {
-  html_url: "https://github.com/ncjsvr/OrielOS/discussions/9#discussioncomment-1",
+  html_url: "https://github.com/OrielOS/OrielOS/discussions/9#discussioncomment-1",
   user: person,
   created_at: "2026-10-25T12:30:00Z",
 };
@@ -143,7 +143,7 @@ test("answers by bots, or without an answer, are not posted", () => {
 });
 
 test("a full release still pings everyone and is crossposted", () => {
-  const release = { name: "1.0", html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1.0", prerelease: false };
+  const release = { name: "1.0", html_url: "https://github.com/OrielOS/OrielOS/releases/tag/v1.0", prerelease: false };
   const [message] = messagesFor("release", { action: "published", release }, repo);
   assert.equal(message.content, "@everyone");
   assert.deepEqual(message.mentions, { parse: ["everyone"] });
@@ -224,7 +224,7 @@ function fakeFetch(body, status = 200) {
 test("fetchCommitCountByAuthor asks main for the author's commits and caps at two", async () => {
   const { calls, fetchFn } = fakeFetch([{}, {}]);
   assert.equal(await fetchCommitCountByAuthor(repo, "alice", "t", fetchFn), 2);
-  assert.match(calls[0], /\/repos\/ncjsvr\/OrielOS\/commits\?sha=main&author=alice&per_page=2$/);
+  assert.match(calls[0], /\/repos\/OrielOS\/OrielOS\/commits\?sha=main&author=alice&per_page=2$/);
   assert.equal(await fetchCommitCountByAuthor(repo, "bob", "", fakeFetch([{}]).fetchFn), 1);
   await assert.rejects(fetchCommitCountByAuthor(repo, "x", "", fakeFetch({}, 500).fetchFn), /500/);
 });
