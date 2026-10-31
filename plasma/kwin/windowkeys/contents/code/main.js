@@ -175,3 +175,12 @@ registerShortcut("OrielOS Date and Time", "Open the clock's calendar and notific
             }
         });
 });
+
+// Peek at the desktop from the show desktop strip, when that's on in Taskbar settings: the strip
+// invokes these, which have no keys, as the pointer rests on it and leaves.
+registerShortcut("OrielOS Peek Start", "Show the desktop while the pointer rests on the show desktop strip", "", function () {
+    workspace.showingDesktop = true;
+});
+registerShortcut("OrielOS Peek End", "Bring the windows back when the pointer leaves the show desktop strip", "", function () {
+    workspace.showingDesktop = false;
+});

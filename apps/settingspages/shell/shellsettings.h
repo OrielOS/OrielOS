@@ -6,6 +6,7 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 #include <optional>
@@ -36,6 +37,16 @@ struct ShellState
     bool combineButtons = true;
     bool hasClock = false;
     bool showSeconds = false;
+    // Pointing at the show desktop strip at the far end peeks at the desktop.
+    bool hasSliver = false;
+    bool peek = false;
+    // A taskbar on every display, each listing that display's windows.
+    bool allDisplays = false;
+    // The shortcuts next to Start's power button, by ID (settings, files, documents, downloads,
+    // music, pictures, videos, network, personal), in Windows' order.
+    QStringList startFolders = { QStringLiteral("files"), QStringLiteral("downloads"), QStringLiteral("settings") };
+    // Start's layout: morePins, default or moreRecommendations.
+    QString startLayout = QStringLiteral("default");
 
     // The state a script printed, or nothing if the output isn't that JSON.
     static std::optional<ShellState> fromJson(const QString &json);
@@ -59,7 +70,31 @@ public:
         ShowTaskView,
         CombineButtons,
         ShowSeconds,
+        Peek,
+        AllDisplays,
+        // One shortcut next to Start's power button each.
+        FolderSettings,
+        FolderFiles,
+        FolderDocuments,
+        FolderDownloads,
+        FolderMusic,
+        FolderPictures,
+        FolderVideos,
+        FolderNetwork,
+        FolderPersonal,
+        // Start's layout; a change to true chooses it.
+        LayoutMorePins,
+        LayoutDefault,
+        LayoutMoreRecommendations,
     };
+
+    // A layout setting's name in Start's settings, or empty for any other setting.
+    static QString layoutId(Setting setting);
+
+    // A folder setting's ID in Start's folders list, or empty for any other setting.
+    static QString folderId(Setting setting);
+    // The folder setting for an ID, if there is one.
+    static std::optional<Setting> folderSetting(const QString &id);
     using Change = std::pair<Setting, bool>;
 
     // Runs a script in the desktop, then calls done with whether it ran, and what it printed or

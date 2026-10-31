@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// What Start shows under Recommended. Each switch changes the Start menu on the taskbar at once.
+pragma ComponentBehavior: Bound
+
+// Start's layout, what it shows under Recommended and the folders next to the power button. Each
+// change applies to the Start menu on the taskbar at once.
 
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -49,6 +52,20 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             enabled: root.options.available
 
+            QQC2.ComboBox {
+                Kirigami.FormData.label: root.l10n.i18nc("@label:listbox How Start shares its space between pinned apps and Recommended", "Layout:")
+                model: [
+                    root.l10n.i18nc("@item:inlistbox Start's layout", "More pins"),
+                    root.l10n.i18nc("@item:inlistbox Start's layout", "Default"),
+                    root.l10n.i18nc("@item:inlistbox Start's layout", "More recommendations"),
+                ]
+                currentIndex: root.options.layout
+                onActivated: index => {
+                    root.options.layout = index;
+                    currentIndex = Qt.binding(() => root.options.layout);
+                }
+            }
+
             QQC2.Switch {
                 Kirigami.FormData.label: root.l10n.i18nc("@title:group The Recommended section of Start", "Recommended:")
                 text: root.l10n.i18nc("@option:check", "Show recently added apps")
@@ -75,6 +92,36 @@ KCM.SimpleKCM {
                 wrapMode: Text.Wrap
                 font: Kirigami.Theme.smallFont
                 text: root.l10n.i18nc("@info", "Apps you installed in the last few days, and the files you opened most recently, show under Recommended in Start.")
+            }
+
+            // The shortcuts next to the power button, as Windows' Folders setting offers them.
+            Repeater {
+                model: [
+                    { id: "settings", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Settings") },
+                    { id: "files", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Files") },
+                    { id: "documents", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Documents") },
+                    { id: "downloads", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Downloads") },
+                    { id: "music", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Music") },
+                    { id: "pictures", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Pictures") },
+                    { id: "videos", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Videos") },
+                    { id: "network", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Network") },
+                    { id: "personal", text: root.l10n.i18nc("@option:check A shortcut next to Start's power button", "Personal folder") },
+                ]
+
+                delegate: QQC2.Switch {
+                    id: folder
+
+                    required property var modelData
+                    required property int index
+
+                    Kirigami.FormData.label: folder.index === 0 ? root.l10n.i18nc("@title:group", "Next to the power button:") : ""
+                    text: folder.modelData.text
+                    checked: root.options.folders.includes(folder.modelData.id)
+                    onToggled: {
+                        root.options.setFolder(folder.modelData.id, checked);
+                        checked = Qt.binding(() => root.options.folders.includes(folder.modelData.id));
+                    }
+                }
             }
         }
     }

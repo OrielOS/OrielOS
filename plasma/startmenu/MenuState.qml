@@ -34,12 +34,20 @@ QtObject {
     property bool showingMore: false
 
     readonly property int pinnedColumns: 6
-    // Rows on each page of pinned apps.
-    readonly property int pinnedRows: 2
+    // Rows on each page of pinned apps, from the layout chosen on Settings' Start page; Recommended
+    // takes the rest.
+    readonly property int pinnedRows: Plasmoid.configuration.layout === "morePins" ? 3 : Plasmoid.configuration.layout === "moreRecommendations" ? 1 : 2
     readonly property int recommendedLimit: showingMore ? 30 : 6
     // What Recommended lists, set on Settings' Start page.
     readonly property bool showRecentlyAdded: Plasmoid.configuration.showRecentlyAdded ?? true
     readonly property bool showRecentFiles: Plasmoid.configuration.showRecentFiles ?? true
+    // The shortcuts next to the power button, by ID, from Settings' Start page.
+    // A list from the file, but whatever a script last wrote until the file is read again: a list,
+    // text, or a list holding the text. Joined and split, each reads the same.
+    readonly property var folders: {
+        const value = Plasmoid.configuration.folders;
+        return String(value ?? "").split(",").map(id => id.trim()).filter(id => id.length > 0);
+    }
     onShowRecentlyAddedChanged: state.rebuildRecommended()
     onShowRecentFilesChanged: state.rebuildRecommended()
 

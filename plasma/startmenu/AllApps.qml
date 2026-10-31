@@ -10,7 +10,8 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import org.kde.plasma.extras as PlasmaExtras
 
-// Every app, alphabetically, under letter headings.
+// Every app, alphabetically, under letter headings. Clicking a heading shows every letter, as
+// Windows does, to jump straight to that part of the list.
 ColumnLayout {
     id: allApps
 
@@ -19,6 +20,32 @@ ColumnLayout {
     readonly property Item backButton: backButton
     readonly property ListView view: list
     readonly property bool mirrored: Application.layoutDirection === Qt.RightToLeft
+    // Whether the letters to jump to show over the list.
+    property bool choosingLetter: false
+    // The first row of each letter's apps, by letter, while the letters show.
+    property var firstRows: ({})
+
+    function showLetters() {
+        const rows = {};
+        for (let row = 0; row < list.count; ++row) {
+            const letter = String(allApps.menu.allAppsData(row, "group") ?? "").charAt(0).toUpperCase();
+            if (letter.length > 0 && !(letter in rows)) {
+                rows[letter] = row;
+            }
+        }
+        allApps.firstRows = rows;
+        allApps.choosingLetter = true;
+    }
+
+    function jumpTo(letter: string) {
+        const row = allApps.firstRows[letter];
+        allApps.choosingLetter = false;
+        if (row !== undefined) {
+            list.currentIndex = row;
+            list.positionViewAtIndex(row, ListView.Beginning);
+            list.forceActiveFocus();
+        }
+    }
 
     spacing: Kirigami.Units.largeSpacing
 
@@ -48,6 +75,7 @@ ColumnLayout {
     PC3.ScrollView {
         Layout.fillWidth: true
         Layout.fillHeight: true
+        visible: !allApps.choosingLetter
 
         PC3.ScrollBar.horizontal.policy: PC3.ScrollBar.AlwaysOff
 
@@ -66,11 +94,29 @@ ColumnLayout {
             // language needs it, or "#" for a digit and "&" for a symbol, as in Kickoff.
             section.property: "group"
             section.criteria: ViewSection.FirstCharacter
-            section.delegate: PlasmaExtras.ListSectionHeader {
+            // The header lays out its own children, so the click area sits beside it, not in it.
+            section.delegate: Item {
+                id: sectionItem
+
                 required property string section
 
                 width: list.width
-                text: section.toUpperCase()
+                height: header.implicitHeight
+
+                PlasmaExtras.ListSectionHeader {
+                    id: header
+
+                    width: parent.width
+                    text: sectionItem.section.toUpperCase()
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    Accessible.role: Accessible.Button
+                    Accessible.name: KI18n.i18nc("@action:button", "Jump to a letter")
+                    onClicked: allApps.showLetters()
+                }
             }
 
             function openMenuForCurrent() {
@@ -99,6 +145,11 @@ ColumnLayout {
             Keys.onTabPressed: allApps.menu.cycleFocus(true)
             Keys.onBacktabPressed: allApps.menu.cycleFocus(false)
             Keys.onPressed: event => {
+                if (allApps.choosingLetter && event.key === Qt.Key_Escape) {
+                    allApps.choosingLetter = false;
+                    event.accepted = true;
+                    return;
+                }
                 if (allApps.menu.isContextMenuKey(event)) {
                     list.openMenuForCurrent();
                     event.accepted = true;
@@ -141,6 +192,36 @@ ColumnLayout {
                     }
                     event.accepted = true;
                     break;
+                }
+            }
+        }
+    }
+
+    // The letters, over the list: those with apps can be clicked.
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        visible: allApps.choosingLetter
+        color: Kirigami.Theme.backgroundColor
+        radius: 8
+
+        Grid {
+            anchors.centerIn: parent
+            columns: 6
+            spacing: Kirigami.Units.smallSpacing
+
+            Repeater {
+                model: ["&", "#", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+
+                delegate: PC3.ToolButton {
+                    required property string modelData
+
+                    width: 44
+                    height: 44
+                    text: modelData
+                    enabled: modelData in allApps.firstRows
+                    font.pixelSize: 16
+                    onClicked: allApps.jumpTo(modelData)
                 }
             }
         }

@@ -60,4 +60,18 @@ void TaskbarOptions::setShowSeconds(bool show)
     }
 }
 
+void TaskbarOptions::setPeek(bool peek)
+{
+    if (hasSliver() && peek != this->peek()) {
+        m_settings->change(ShellSettings::Setting::Peek, peek);
+    }
+}
+
+void TaskbarOptions::setAllDisplays(bool all)
+{
+    if (isAvailable() && all != allDisplays()) {
+        m_settings->change(ShellSettings::Setting::AllDisplays, all);
+    }
+}
+
 } // namespace OrielOSSettingsPages

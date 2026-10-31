@@ -32,4 +32,34 @@ void StartOptions::setShowRecentFiles(bool show)
     }
 }
 
+namespace {
+const QList<ShellSettings::Setting> layouts
+    = { ShellSettings::Setting::LayoutMorePins, ShellSettings::Setting::LayoutDefault, ShellSettings::Setting::LayoutMoreRecommendations };
+} // namespace
+
+int StartOptions::layout() const
+{
+    for (qsizetype i = 0; i < layouts.size(); ++i) {
+        if (ShellSettings::layoutId(layouts.at(i)) == m_settings->state().startLayout) {
+            return int(i);
+        }
+    }
+    return 1;
+}
+
+void StartOptions::setLayout(int layout)
+{
+    if (isAvailable() && layout >= 0 && layout < layouts.size() && layout != this->layout()) {
+        m_settings->change(layouts.at(layout), true);
+    }
+}
+
+void StartOptions::setFolder(const QString &id, bool shown)
+{
+    const std::optional<ShellSettings::Setting> setting = ShellSettings::folderSetting(id);
+    if (isAvailable() && setting && folders().contains(id) != shown) {
+        m_settings->change(*setting, shown);
+    }
+}
+
 } // namespace OrielOSSettingsPages

@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // The show desktop sliver at the far end of the taskbar: a click shows the desktop, and a second
-// click brings the windows back (KWin's Show Desktop). Sill: an 8 px strip with a faint line at
-// its start, lit when hovered.
+// click brings the windows back (KWin's Show Desktop). With peek on (Settings › Personalisation ›
+// Taskbar), resting the pointer on it shows the desktop until the pointer leaves, as Windows' Peek
+// does. Sill: an 8 px strip with a faint line at its start, lit when hovered.
 
 import QtQuick
 import QtQuick.Layouts
@@ -15,6 +16,22 @@ PlasmoidItem {
     id: root
 
     readonly property string command: "dbus-send --session --dest=org.kde.kglobalaccel --type=method_call /component/kwin org.kde.kglobalaccel.Component.invokeShortcut 'string:Show Desktop'"
+    // Whether the desktop shows because of a peek, to bring the windows back when it ends.
+    property bool peeking: false
+
+    // Through OrielOS's window shortcuts KWin script, which sets KWin's showing desktop.
+    function showDesktop(show: bool) {
+        runner.connectSource("dbus-send --session --dest=org.kde.kglobalaccel --type=method_call /component/kwin org.kde.kglobalaccel.Component.invokeShortcut 'string:OrielOS Peek "
+            + (show ? "Start" : "End") + "'");
+    }
+
+    function endPeek() {
+        peekTimer.stop();
+        if (root.peeking) {
+            root.peeking = false;
+            root.showDesktop(false);
+        }
+    }
 
     preferredRepresentation: fullRepresentation
     toolTipMainText: Plasmoid.title
@@ -24,6 +41,15 @@ PlasmoidItem {
         id: runner
         engine: "executable"
         onNewData: source => disconnectSource(source)
+    }
+
+    Timer {
+        id: peekTimer
+        interval: 500
+        onTriggered: {
+            root.peeking = true;
+            root.showDesktop(true);
+        }
     }
 
     fullRepresentation: MouseArea {
@@ -38,7 +64,22 @@ PlasmoidItem {
         Accessible.role: Accessible.Button
         Accessible.name: Plasmoid.title
 
-        onClicked: runner.connectSource(root.command)
+        onContainsMouseChanged: {
+            if (containsMouse && Plasmoid.configuration.peek) {
+                peekTimer.restart();
+            } else {
+                root.endPeek();
+            }
+        }
+        onClicked: {
+            // A click while peeking keeps the desktop shown, as in Windows.
+            if (root.peeking) {
+                root.peeking = false;
+            } else {
+                peekTimer.stop();
+                runner.connectSource(root.command);
+            }
+        }
         Keys.onReturnPressed: runner.connectSource(root.command)
         Keys.onSpacePressed: runner.connectSource(root.command)
 

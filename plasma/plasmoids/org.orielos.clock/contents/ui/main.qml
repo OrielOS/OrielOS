@@ -67,7 +67,7 @@ PlasmoidItem {
             path: "/PlasmaShell",
             iface: "org.kde.PlasmaShell",
             member: "evaluateScript",
-            arguments: ["panels().forEach(function (panel) { panel.widgets(\"org.kde.plasma.icontasks\").forEach(function (tasks) {"
+            arguments: ["panels().forEach(function (panel) { panel.widgets(\"org.kde.plasma.icontasks\").concat(panel.widgets(\"org.kde.plasma.taskmanager\")).forEach(function (tasks) {"
                 + " tasks.currentConfigGroup = [\"General\"]; tasks.writeConfig(\"smartLaunchersEnabled\", " + show + "); tasks.reloadConfig(); }); });"],
         });
     }

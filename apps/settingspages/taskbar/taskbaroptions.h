@@ -33,6 +33,9 @@ class TaskbarOptions : public QObject
     Q_PROPERTY(bool combineButtons READ combineButtons WRITE setCombineButtons NOTIFY changed)
     Q_PROPERTY(bool hasClock READ hasClock NOTIFY changed)
     Q_PROPERTY(bool showSeconds READ showSeconds WRITE setShowSeconds NOTIFY changed)
+    Q_PROPERTY(bool allDisplays READ allDisplays WRITE setAllDisplays NOTIFY changed)
+    Q_PROPERTY(bool hasSliver READ hasSliver NOTIFY changed)
+    Q_PROPERTY(bool peek READ peek WRITE setPeek NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
 
 public:
@@ -59,6 +62,11 @@ public:
     bool hasClock() const { return m_settings->state().hasClock; }
     bool showSeconds() const { return m_settings->state().showSeconds; }
     void setShowSeconds(bool show);
+    bool allDisplays() const { return m_settings->state().allDisplays; }
+    void setAllDisplays(bool all);
+    bool hasSliver() const { return m_settings->state().hasSliver; }
+    bool peek() const { return m_settings->state().peek; }
+    void setPeek(bool peek);
     QString error() const { return m_settings->error(); }
 
 Q_SIGNALS:

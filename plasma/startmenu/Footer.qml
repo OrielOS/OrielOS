@@ -12,6 +12,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.components as PC3
 import org.kde.plasma.extras as PlasmaExtras
+import org.kde.plasma.plasma5support as P5Support
 
 // The bar along the bottom: the account button on the left, the power button on the right.
 PlasmaExtras.PlasmoidHeading {
@@ -23,6 +24,10 @@ PlasmaExtras.PlasmoidHeading {
     readonly property Item powerButton: powerButton
 
     readonly property KCoreAddons.KUser user: KCoreAddons.KUser {}
+
+    // Whether an update is waiting: the next restart or shut down installs it, so the power menu
+    // says so, as Windows' "Update and restart" does. Checked each time Start opens.
+    property bool updateWaiting: false
 
     // The menu entries for these session actions, in this order, when the system offers them.
     // Hibernation is left out on purpose: OrielOS doesn't support it.
@@ -77,8 +82,10 @@ PlasmaExtras.PlasmoidHeading {
     function openPowerMenu(fromKeyboard: bool) {
         const entries = footer.sessionEntries([
             { id: "suspend", text: KI18n.i18nc("@action:inmenu Suspend to RAM", "Sleep") },
-            { id: "reboot", text: KI18n.i18nc("@action:inmenu", "Restart") },
-            { id: "shutdown", text: KI18n.i18nc("@action:inmenu", "Shut down") },
+            { id: "reboot", text: footer.updateWaiting ? KI18n.i18nc("@action:inmenu Restart, installing the waiting update", "Update and restart")
+                : KI18n.i18nc("@action:inmenu", "Restart") },
+            { id: "shutdown", text: footer.updateWaiting ? KI18n.i18nc("@action:inmenu Shut down, installing the waiting update", "Update and shut down")
+                : KI18n.i18nc("@action:inmenu", "Shut down") },
         ]);
         powerMenu.showAbove(entries, powerButton, fromKeyboard);
     }
@@ -157,13 +164,24 @@ PlasmaExtras.PlasmoidHeading {
             Layout.fillWidth: true
         }
 
-        // Sill: shortcuts next to the power button (Downloads, Files, Settings).
+        // Shortcuts next to the power button, those chosen in Settings' Start page (Sill shows
+        // Downloads, Files and Settings), with Settings nearest the power button as in Windows.
         Repeater {
-            model: [
-                { text: KI18n.i18nc("@action:button", "Downloads"), icon: "folder-download", url: StandardPaths.writableLocation(StandardPaths.DownloadLocation) },
-                { text: KI18n.i18nc("@action:button", "Files"), icon: "document-open-folder", url: StandardPaths.writableLocation(StandardPaths.HomeLocation) },
-                { text: KI18n.i18nc("@action:button", "Settings"), icon: "orielos-settings-symbolic", app: "org.orielos.Settings.desktop" },
-            ]
+            model: {
+                const shortcuts = {
+                    settings: { text: KI18n.i18nc("@action:button", "Settings"), icon: "orielos-settings-symbolic", app: "org.orielos.Settings.desktop" },
+                    files: { text: KI18n.i18nc("@action:button", "Files"), icon: "document-open-folder", url: StandardPaths.writableLocation(StandardPaths.HomeLocation) },
+                    documents: { text: KI18n.i18nc("@action:button", "Documents"), icon: "folder-documents", url: StandardPaths.writableLocation(StandardPaths.DocumentsLocation) },
+                    downloads: { text: KI18n.i18nc("@action:button", "Downloads"), icon: "folder-download", url: StandardPaths.writableLocation(StandardPaths.DownloadLocation) },
+                    music: { text: KI18n.i18nc("@action:button", "Music"), icon: "folder-music", url: StandardPaths.writableLocation(StandardPaths.MusicLocation) },
+                    pictures: { text: KI18n.i18nc("@action:button", "Pictures"), icon: "folder-pictures", url: StandardPaths.writableLocation(StandardPaths.PicturesLocation) },
+                    videos: { text: KI18n.i18nc("@action:button", "Videos"), icon: "folder-videos", url: StandardPaths.writableLocation(StandardPaths.MoviesLocation) },
+                    network: { text: KI18n.i18nc("@action:button", "Network"), icon: "folder-network", url: "remote:/" },
+                    personal: { text: KI18n.i18nc("@action:button The home folder", "Personal folder"), icon: "user-home", url: StandardPaths.writableLocation(StandardPaths.HomeLocation) },
+                };
+                const order = ["personal", "network", "videos", "pictures", "music", "downloads", "documents", "files", "settings"];
+                return order.filter(id => footer.menu.folders.includes(id)).map(id => shortcuts[id]);
+            }
 
             delegate: PC3.ToolButton {
                 required property var modelData
@@ -228,6 +246,31 @@ PlasmaExtras.PlasmoidHeading {
 
         onFocusOwnerLost: footer.menu.focusSearch()
     }
+
+    // An update downloaded in the background waits as a staged deployment until the next start.
+    P5Support.DataSource {
+        id: updateCheck
+
+        readonly property string command: "test -e /run/ostree/staged-deployment && echo waiting"
+
+        engine: "executable"
+        onNewData: (source, data) => {
+            footer.updateWaiting = String(data.stdout).trim() === "waiting";
+            disconnectSource(source);
+        }
+    }
+
+    Connections {
+        target: footer.menu.plasmoidItem
+
+        function onExpandedChanged() {
+            if (footer.menu.plasmoidItem.expanded) {
+                updateCheck.connectSource(updateCheck.command);
+            }
+        }
+    }
+
+    Component.onCompleted: updateCheck.connectSource(updateCheck.command)
 
     PopupMenu {
         id: powerMenu

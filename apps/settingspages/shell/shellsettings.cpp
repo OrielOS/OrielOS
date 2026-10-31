@@ -9,6 +9,7 @@
 #include <QDBusMessage>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -50,6 +51,120 @@ function first(type) {
     found[0].currentConfigGroup = ["General"];
     return found[0];
 }
+
+// Start's folders next to the power button, in Windows' order.
+var folderOrder = ["settings", "files", "documents", "downloads", "music", "pictures", "videos", "network", "personal"];
+function startFolders() {
+    return String(start.readConfig("folders", "files,downloads,settings")).split(",").filter(function (id) {
+        return folderOrder.indexOf(id) >= 0;
+    });
+}
+function setStartFolder(id, shown) {
+    var folders = startFolders().filter(function (other) { return other !== id; });
+    if (shown) {
+        folders.push(id);
+    }
+    folders.sort(function (a, b) { return folderOrder.indexOf(a) - folderOrder.indexOf(b); });
+    // A list, as Start reads it; text would reach Start as one string until the file is read again.
+    start.writeConfig("folders", folders);
+    start.reloadConfig();
+}
+
+// Whether a panel is one of the taskbars added for the other displays.
+function isExtraTaskbar(other) {
+    other.currentConfigGroup = ["General"];
+    return flag(other.readConfig("orielosExtraTaskbar", false));
+}
+
+// Adds a taskbar to every display that has none, laid out as the main one with Start, Search, Task
+// View, the display's own windows, the clock and the show desktop strip (the system tray stays on
+// the main display, as in Windows); with show false, takes them away again.
+function taskbarsEverywhere(show) {
+    all.filter(isExtraTaskbar).forEach(function (other) {
+        if (!show) {
+            other.remove();
+        }
+    });
+    if (show) {
+        for (var screen = 0; screen < screenCount; ++screen) {
+            var covered = panels().some(function (other) {
+                return other.screen === screen && other.widgets("org.orielos.startmenu").length > 0;
+            });
+            if (covered) {
+                continue;
+            }
+            var extra = new Panel;
+            extra.screen = screen;
+            extra.location = "bottom";
+            extra.height = panel.height;
+            extra.lengthMode = "fill";
+            extra.floating = false;
+            extra.hiding = panel.hiding;
+            extra.currentConfigGroup = ["General"];
+            extra.writeConfig("orielosExtraTaskbar", true);
+            extra.addWidget("org.kde.plasma.panelspacer");
+            var extraStart = extra.addWidget("org.orielos.startmenu");
+            extraStart.currentConfigGroup = ["General"];
+            extraStart.writeConfig("icon", "orielos-start");
+            extraStart.writeConfig("favorites", start.readConfig("favorites", ""));
+            extra.addWidget("org.orielos.search");
+            extra.addWidget("org.orielos.taskview");
+            var extraTasks = extra.addWidget(tasks ? tasks.type : "org.kde.plasma.icontasks");
+            extraTasks.currentConfigGroup = ["General"];
+            if (tasks) {
+                extraTasks.writeConfig("launchers", tasks.readConfig("launchers", ""));
+                extraTasks.writeConfig("groupingStrategy", tasks.readConfig("groupingStrategy", 1));
+            }
+            extraTasks.writeConfig("fill", false);
+            extraTasks.writeConfig("showOnlyCurrentScreen", true);
+            extra.addWidget("org.kde.plasma.panelspacer");
+            extra.addWidget("org.orielos.clock");
+            extra.addWidget("org.orielos.showdesktop");
+        }
+    }
+    // With a taskbar on every display, each lists that display's windows.
+    if (tasks) {
+        tasks.writeConfig("showOnlyCurrentScreen", show);
+        tasks.reloadConfig();
+    }
+}
+
+// Puts a task manager of another kind in the old one's place, with all its settings (pinned apps
+// among them). Plasma's icon-only task manager and its labelled one are the same code under two
+// names, and which name a widget has decides whether its buttons show the windows' titles.
+function replaceTasks(old, type, inPanel) {
+    var keys = old.configKeys;
+    var values = {};
+    keys.forEach(function (key) { values[key] = old.readConfig(key); });
+    var place = old.geometry;
+    // Added at the old one's coordinates, the panel puts it in the old one's place.
+    var replacement = (inPanel || panel).addWidget(type, place.x + 2, place.y + 2, place.width, place.height);
+    replacement.currentConfigGroup = ["General"];
+    keys.forEach(function (key) { replacement.writeConfig(key, values[key]); });
+    old.remove();
+    return replacement;
+}
+
+// Combined, each app's windows share one icon (grouping 1); never combined, each window gets its
+// own button with its title, as Windows shows them. On every taskbar, the other displays' too.
+function combineEverywhere(combine) {
+    var wanted = combine ? "org.kde.plasma.icontasks" : "org.kde.plasma.taskmanager";
+    var change = function (old, inPanel) {
+        old.currentConfigGroup = ["General"];
+        var changed = old.type === wanted ? old : replaceTasks(old, wanted, inPanel);
+        changed.writeConfig("groupingStrategy", combine ? 1 : 0);
+        changed.reloadConfig();
+        return changed;
+    };
+    if (tasks) {
+        tasks = change(tasks, panel);
+    }
+    panels().filter(isExtraTaskbar).forEach(function (extra) {
+        extra.widgets("org.kde.plasma.icontasks").concat(extra.widgets("org.kde.plasma.taskmanager")).forEach(function (old) {
+            change(old, extra);
+        });
+    });
+}
 var start = null;
 var all = panels();
 for (var i = 0; i < all.length && !start; ++i) {
@@ -70,8 +185,9 @@ if (start) {
     }
     var search = first("org.orielos.search");
     var taskView = first("org.orielos.taskview");
-    var tasks = first("org.kde.plasma.icontasks");
+    var tasks = first("org.kde.plasma.icontasks") || first("org.kde.plasma.taskmanager");
     var clock = first("org.orielos.clock");
+    var sliver = first("org.orielos.showdesktop");
     /*CHANGE*/
     state.hasStart = true;
     state.showRecentlyAdded = flag(start.readConfig("showRecentlyAdded", true));
@@ -84,10 +200,17 @@ if (start) {
     state.hasTaskView = taskView !== null;
     state.showTaskView = taskView === null || flag(taskView.readConfig("shown", true));
     state.hasTasks = tasks !== null;
-    // 1 groups by app, Plasma's default; 0 doesn't group.
-    state.combineButtons = tasks === null || String(tasks.readConfig("groupingStrategy", 1)) !== "0";
+    // Combined: the icon-only task manager, grouping by app (1, Plasma's default); never combined:
+    // the labelled one, not grouping (0).
+    state.combineButtons = tasks === null
+        || (tasks.type === "org.kde.plasma.icontasks" && String(tasks.readConfig("groupingStrategy", 1)) !== "0");
     state.hasClock = clock !== null;
     state.showSeconds = clock !== null && flag(clock.readConfig("showSeconds", false));
+    state.hasSliver = sliver !== null;
+    state.peek = sliver !== null && flag(sliver.readConfig("peek", false));
+    state.allDisplays = panels().some(isExtraTaskbar);
+    state.startFolders = startFolders();
+    state.startLayout = String(start.readConfig("layout", "default"));
 }
 print(JSON.stringify(state));
 )JS";
@@ -110,10 +233,30 @@ QString changeScript(const ShellSettings::Change &change)
     case ShellSettings::Setting::ShowTaskView:
         return QStringLiteral("if (taskView) {\n        taskView.writeConfig(\"shown\", %1);\n        taskView.reloadConfig();\n    }").arg(value);
     case ShellSettings::Setting::CombineButtons:
-        // 1 groups each app's windows on one button, Plasma's default; 0 gives each its own.
-        return QStringLiteral("if (tasks) {\n        tasks.writeConfig(\"groupingStrategy\", %1 ? 1 : 0);\n        tasks.reloadConfig();\n    }").arg(value);
+        return QStringLiteral("combineEverywhere(%1);").arg(value);
     case ShellSettings::Setting::ShowSeconds:
         return QStringLiteral("if (clock) {\n        clock.writeConfig(\"showSeconds\", %1);\n        clock.reloadConfig();\n    }").arg(value);
+    case ShellSettings::Setting::Peek:
+        return QStringLiteral("if (sliver) {\n        sliver.writeConfig(\"peek\", %1);\n        sliver.reloadConfig();\n    }").arg(value);
+    case ShellSettings::Setting::AllDisplays:
+        return QStringLiteral("taskbarsEverywhere(%1);").arg(value);
+    case ShellSettings::Setting::FolderSettings:
+    case ShellSettings::Setting::FolderFiles:
+    case ShellSettings::Setting::FolderDocuments:
+    case ShellSettings::Setting::FolderDownloads:
+    case ShellSettings::Setting::FolderMusic:
+    case ShellSettings::Setting::FolderPictures:
+    case ShellSettings::Setting::FolderVideos:
+    case ShellSettings::Setting::FolderNetwork:
+    case ShellSettings::Setting::FolderPersonal:
+        return QStringLiteral("setStartFolder(\"%1\", %2);").arg(ShellSettings::folderId(change.first), value);
+    case ShellSettings::Setting::LayoutMorePins:
+    case ShellSettings::Setting::LayoutDefault:
+    case ShellSettings::Setting::LayoutMoreRecommendations:
+        if (!change.second) {
+            return { };
+        }
+        return QStringLiteral("start.writeConfig(\"layout\", \"%1\");\n    start.reloadConfig();").arg(ShellSettings::layoutId(change.first));
     }
     return { };
 }
@@ -143,6 +286,18 @@ std::optional<ShellState> ShellState::fromJson(const QString &json)
     state.combineButtons = object.value(QStringLiteral("combineButtons")).toBool(true);
     state.hasClock = object.value(QStringLiteral("hasClock")).toBool(false);
     state.showSeconds = object.value(QStringLiteral("showSeconds")).toBool(false);
+    state.allDisplays = object.value(QStringLiteral("allDisplays")).toBool(false);
+    state.hasSliver = object.value(QStringLiteral("hasSliver")).toBool(false);
+    state.peek = object.value(QStringLiteral("peek")).toBool(false);
+    if (object.value(QStringLiteral("startLayout")).isString()) {
+        state.startLayout = object.value(QStringLiteral("startLayout")).toString();
+    }
+    if (object.value(QStringLiteral("startFolders")).isArray()) {
+        state.startFolders.clear();
+        for (const QJsonValue &id : object.value(QStringLiteral("startFolders")).toArray()) {
+            state.startFolders.append(id.toString());
+        }
+    }
     return state;
 }
 
@@ -257,7 +412,64 @@ void ShellSettings::apply(ShellState &state, const Change &change)
     case Setting::ShowSeconds:
         state.showSeconds = change.second;
         break;
+    case Setting::Peek:
+        state.peek = change.second;
+        break;
+    case Setting::AllDisplays:
+        state.allDisplays = change.second;
+        break;
+    case Setting::LayoutMorePins:
+    case Setting::LayoutDefault:
+    case Setting::LayoutMoreRecommendations:
+        if (change.second) {
+            state.startLayout = layoutId(change.first);
+        }
+        break;
+    default: {
+        const QString id = folderId(change.first);
+        if (!id.isEmpty()) {
+            state.startFolders.removeAll(id);
+            if (change.second) {
+                state.startFolders.append(id);
+            }
+        }
+        break;
     }
+    }
+}
+
+namespace {
+const QStringList folderIds = { QStringLiteral("settings"), QStringLiteral("files"), QStringLiteral("documents"), QStringLiteral("downloads"),
+    QStringLiteral("music"), QStringLiteral("pictures"), QStringLiteral("videos"), QStringLiteral("network"), QStringLiteral("personal") };
+} // namespace
+
+QString ShellSettings::layoutId(Setting setting)
+{
+    switch (setting) {
+    case Setting::LayoutMorePins:
+        return QStringLiteral("morePins");
+    case Setting::LayoutDefault:
+        return QStringLiteral("default");
+    case Setting::LayoutMoreRecommendations:
+        return QStringLiteral("moreRecommendations");
+    default:
+        return { };
+    }
+}
+
+QString ShellSettings::folderId(Setting setting)
+{
+    const int index = int(setting) - int(Setting::FolderSettings);
+    return index >= 0 && index < folderIds.size() ? folderIds.at(index) : QString();
+}
+
+std::optional<ShellSettings::Setting> ShellSettings::folderSetting(const QString &id)
+{
+    const qsizetype index = folderIds.indexOf(id);
+    if (index < 0) {
+        return std::nullopt;
+    }
+    return Setting(int(Setting::FolderSettings) + int(index));
 }
 
 } // namespace OrielOSSettingsPages
