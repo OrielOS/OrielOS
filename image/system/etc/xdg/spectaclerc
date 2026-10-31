@@ -1,0 +1,6 @@
+# Screenshots as in Windows: each one is saved to Pictures/Screenshots straight away (Spectacle's
+# own default folder) and copied to the clipboard, and its notification shows a thumbnail that opens
+# the editor. A user's own choices in Spectacle's settings win.
+[General]
+autoSaveImage=true
+clipboardGroup=PostScreenshotCopyImage

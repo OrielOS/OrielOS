@@ -52,7 +52,7 @@ A touchpad clicks when you tap it, and two fingers scroll the page the way Windo
 
 ## Taking a screenshot
 
-- **Windows + Shift + S** or **PrtSc:** drag to choose part of the screen. Screenshot then shows it, ready to copy, save or draw on.
+- **Windows + Shift + S** or **PrtSc:** drag to choose part of the screen. The screenshot is saved to **Pictures > Screenshots** and copied, ready to paste; Screenshot then shows it, ready to draw on.
 - **Windows + PrtSc:** saves the whole screen to **Pictures > Screenshots**.
 - **Alt + PrtSc:** captures the window you're using.
 
