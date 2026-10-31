@@ -5,17 +5,49 @@
 # Gives accounts made before them the Windows shortcuts that live in each user's
 # kglobalshortcutsrc (new accounts get the same from /etc/skel):
 #   - Alt+F4 for OrielOS's Close or shut down KWin script, which KWin's Close Window gives up;
-#   - Ctrl+Esc for Start, next to the Windows key and Alt+F1.
-# A shortcut the user changed is left as it is. Run once per user, before Plasma's shortcut service
-# starts, by orielos-user-shortcuts.service.
+#   - Ctrl+Esc for Start, next to the Windows key and Alt+F1;
+#   - (second round) Win+Up and Win+Down for OrielOS's Window shortcuts KWin script, which KWin's
+#     Maximise, Minimise and quick tiles give up; Alt+Space for the window menu; Win+Shift+Up for
+#     stretching a window to the full height.
+# A shortcut the user changed is left as it is. Each round runs once per user, before Plasma's
+# shortcut service starts, by orielos-user-shortcuts.service.
 set -Eeuo pipefail
 
-state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/user-shortcuts-1"
-[[ -e "$state" ]] && exit 0
-mkdir -p -- "${state%/*}"
-
+states="${XDG_STATE_HOME:-$HOME/.local/state}/orielos"
+mkdir -p -- "$states"
 config="${XDG_CONFIG_HOME:-$HOME/.config}/kglobalshortcutsrc"
 tab=$'\t'
+
+# Sets a KWin shortcut to value when it is unset or still one of the given old shortcuts.
+#   kwin_shortcut <action key> <value> <old shortcut>...
+kwin_shortcut() {
+    local key="$1" value="$2" current old
+    shift 2
+    current="$(kreadconfig6 --file "$config" --group kwin --key "$key" 2>/dev/null || true)"
+    if [[ -z "$current" ]]; then
+        kwriteconfig6 --file "$config" --group kwin --key "$key" "$value"
+        return
+    fi
+    for old in "$@"; do
+        if [[ "${current%%,*}" == "$old" ]]; then
+            kwriteconfig6 --file "$config" --group kwin --key "$key" "$value"
+            return
+        fi
+    done
+}
+
+if [[ ! -e "$states/user-shortcuts-2" ]]; then
+    kwin_shortcut "Window Maximize" "Meta+PgUp,Meta+PgUp,Maximize Window" "Meta+PgUp" "Meta+Up${tab}Meta+PgUp"
+    kwin_shortcut "Window Minimize" "Meta+PgDown,Meta+PgDown,Minimize Window" "Meta+PgDown" "Meta+Down${tab}Meta+PgDown"
+    kwin_shortcut "Window Quick Tile Top" "none,Meta+Up,Quick Tile Window to the Top" "Meta+Up"
+    kwin_shortcut "Window Quick Tile Bottom" "none,Meta+Down,Quick Tile Window to the Bottom" "Meta+Down"
+    kwin_shortcut "Window Maximize Vertical" "Meta+Shift+Up,none,Maximize Window Vertically" "none"
+    kwin_shortcut "Window Operations Menu" "Alt+Space${tab}Alt+F3,Alt+F3,Window Menu" "Alt+F3"
+    touch -- "$states/user-shortcuts-2"
+fi
+
+state="$states/user-shortcuts-1"
+[[ -e "$state" ]] && exit 0
 
 close="$(kreadconfig6 --file "$config" --group kwin --key "Window Close" 2>/dev/null || true)"
 if [[ -z "$close" || "${close%%,*}" == "Alt+F4" ]]; then

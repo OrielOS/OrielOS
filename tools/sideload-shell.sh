@@ -145,6 +145,7 @@ else
     done
     place "$staging/kwin/switcher" "$data/kwin/tabbox/org.orielos.switcher"
     place "$staging/kwin/closeorshutdown" "$data/kwin/scripts/orielos-closeorshutdown"
+    place "$staging/kwin/windowkeys" "$data/kwin/scripts/orielos-windowkeys"
     mkdir -p "$data/applications" "$data/kglobalaccel"
     place "$staging/settings.desktop" "$data/applications/org.orielos.Settings.desktop"
     place "$staging/settings.desktop" "$data/kglobalaccel/org.orielos.Settings.desktop"

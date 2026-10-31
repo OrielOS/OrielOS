@@ -26,8 +26,17 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Ctrl + Shift + Esc | Opens Process Manager, to see what's running and end a program that has stopped responding |
 | Windows + Left or Right arrow | Snaps the window to the left or right half of the screen |
 | Windows + Z | Snap layouts: choose where the window goes, such as a half, a third or a quarter of the screen |
-| Windows + Up arrow | Maximises the window |
-| Windows + Down arrow | Minimises the window |
+| Windows + Up arrow | Maximises the window; a window snapped to a half goes to that half's top quarter |
+| Windows + Down arrow | Restores a maximised window and minimises any other; a window snapped to a half goes to its bottom quarter |
+| Windows + Shift + Up arrow | Stretches the window to the full height of the screen |
+| Windows + Shift + Left or Right arrow | Moves the window to the next screen in that direction |
+| Windows + M | Minimises every window; Windows + Shift + M brings them back |
+| Windows + Home | Minimises every window but the one you're using; press it again to bring them back |
+| Alt + Esc | Sends the window to the back and switches to the next one |
+| Alt + Space | Opens the window's menu: Restore, Move, Size, Minimise, Maximise and Close. Clicking the app's icon at the top left of a window opens it too; double-clicking the icon closes the window |
+| Windows + A | Opens Quick Settings |
+| Windows + B | Opens the hidden icons in the system tray |
+| Windows + 1 to 9 | Opens, or switches to, the app in that place on the taskbar |
 | Windows + PrtSc | Saves a screenshot of the whole screen to Pictures/Screenshots |
 | Alt + PrtSc | Captures the active window |
 

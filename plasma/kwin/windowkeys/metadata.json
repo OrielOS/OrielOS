@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Window Management",
+        "Description": "Windows' window shortcuts: Win+Up and Win+Down, Win+M, Win+Shift+M, Win+Home and Alt+Esc",
+        "EnabledByDefault": true,
+        "Id": "orielos-windowkeys",
+        "License": "GPL-3.0-or-later",
+        "Name": "Window shortcuts"
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}

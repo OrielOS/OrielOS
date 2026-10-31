@@ -8,12 +8,14 @@ NoiseStrength=4
 blurEnabled=true
 
 # OrielOS's window frames: Sill's flat title bar with the app's icon and title, and minimise,
-# maximise and close on the right.
+# maximise and close on the right. The icon is the window menu button, as in Windows: a click opens
+# the window menu, a double-click closes the window.
 [org.kde.kdecoration2]
 library=org.orielos.decoration
 theme=
-ButtonsOnLeft=
+ButtonsOnLeft=M
 ButtonsOnRight=IAX
+CloseOnDoubleClickOnMenu=true
 BorderSize=None
 BorderSizeAuto=false
 

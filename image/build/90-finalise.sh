@@ -219,6 +219,10 @@ fi
     printf 'error: the Close or shut down KWin script is not installed\n' >&2
     exit 1
 }
+[[ -f /usr/share/kwin/scripts/orielos-windowkeys/metadata.json ]] || {
+    printf 'error: the Window shortcuts KWin script is not installed\n' >&2
+    exit 1
+}
 
 # The Bin on each user's desktop, put there once at sign-in, as Windows has its Recycle Bin.
 systemctl --global enable orielos-desktop-bin.service
