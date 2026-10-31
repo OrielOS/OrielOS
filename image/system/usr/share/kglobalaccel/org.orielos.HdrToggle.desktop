@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Turn HDR on or off
+Comment=Turns HDR on for every screen that can show it, or off again
+Exec=/usr/libexec/orielos/hdr-toggle
+Icon=video-display
+NoDisplay=true
+X-KDE-Shortcuts=Meta+Alt+B

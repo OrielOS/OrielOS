@@ -1,0 +1,47 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Win+Alt+B, as in Windows: turns HDR on for every screen that can show it, or off again if any
+# screen has it on, and says which in the on-screen display. Run by Plasma's shortcut service from
+# org.orielos.HdrToggle.desktop, inside the signed-in session, where kscreen-doctor can reach the
+# display settings.
+set -Eeuo pipefail
+
+osd() {
+    dbus-send --session --type=method_call --dest=org.kde.plasmashell /org/kde/osdService \
+        org.kde.osdService.showText "string:$1" "string:$2" || true
+}
+
+# Each enabled screen's name and whether HDR is on (1) or off (0), from kscreen-doctor's JSON.
+screens="$(kscreen-doctor -j | python3 -I -c '
+import json, sys
+for output in json.load(sys.stdin).get("outputs", []):
+    if output.get("enabled") and "hdr" in output:
+        print(output["name"], 1 if output["hdr"] else 0)
+')"
+if [[ -z "$screens" ]]; then
+    osd video-display "HDR isn't available"
+    exit 0
+fi
+
+if grep -q ' 1$' <<<"$screens"; then
+    action=disable
+else
+    action=enable
+fi
+changed=0
+while read -r name _; do
+    # A screen that can't show HDR refuses; the others still change.
+    if kscreen-doctor "output.$name.hdr.$action" >/dev/null 2>&1; then
+        changed=1
+    fi
+done <<<"$screens"
+
+if [[ "$changed" -eq 0 ]]; then
+    osd video-display "HDR isn't available on this screen"
+elif [[ "$action" == enable ]]; then
+    osd video-display "HDR on"
+else
+    osd video-display "HDR off"
+fi

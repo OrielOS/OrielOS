@@ -37,6 +37,9 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + Ctrl + D | Adds a desktop and switches to it; its name shows for a moment |
 | Windows + Ctrl + Left or Right arrow | Switches to the desktop on that side |
 | Windows + Ctrl + F4 | Closes the desktop you're on; its windows move to the one beside it |
+| Windows + Alt + D | Opens the calendar, like clicking the clock |
+| Windows + Alt + B | Turns HDR on or off on screens that can show it |
+| Windows + Space | Switches to the next keyboard layout |
 | Windows + A | Opens Quick Settings |
 | Windows + B | Opens the hidden icons in the system tray |
 | Windows + 1 to 9 | Opens, or switches to, the app in that place on the taskbar |

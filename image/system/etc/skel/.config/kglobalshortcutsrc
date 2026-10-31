@@ -18,6 +18,10 @@ Window Operations Menu=Alt+Space\tAlt+F3,Alt+F3,Window Menu
 Window Quick Tile Bottom=none,Meta+Down,Quick Tile Window to the Bottom
 Window Quick Tile Top=none,Meta+Up,Quick Tile Window to the Top
 
+# Win+Space moves to the next keyboard layout, as in Windows, besides Plasma's Win+Alt+K.
+[KDE Keyboard Layout Switcher]
+Switch to Next Keyboard Layout=Meta+Space\tMeta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Layout
+
 # Ctrl+Esc opens Start, as in Windows, next to the Windows key and Plasma's Alt+F1.
 [plasmashell]
 activate application launcher=Meta\tAlt+F1\tCtrl+Esc,Meta\tAlt+F1,Activate Application Launcher

@@ -9,6 +9,7 @@
 //   Win+Home    minimises every window but the one in use; again brings them back
 //   Alt+Esc     sends the window in use to the back and switches to the next, with no switcher
 //   Win+Ctrl+D  adds a desktop and switches to it; Win+Ctrl+F4 closes the one in use
+//   Win+Alt+D   opens the clock's calendar, as Win+N does (a taskbar widget has only one shortcut)
 // and, switching desktops, shows the desktop's name in the middle of the screen for a moment.
 // KWin's own Maximise and Minimise give Win+Up and Win+Down up for this (the user's
 // kglobalshortcutsrc, from /etc/skel or the orielos-user-shortcuts user unit).
@@ -160,4 +161,17 @@ workspace.currentDesktopChanged.connect(function () {
     if (workspace.desktops.length > 1) {
         callDBus("org.kde.plasmashell", "/org/kde/osdService", "org.kde.osdService", "showText", "virtual-desktops", workspace.currentDesktop.name);
     }
+});
+
+// The clock is a taskbar widget, with Win+N as its own shortcut; ask the desktop which widget it is,
+// then invoke that widget's shortcut action.
+registerShortcut("OrielOS Date and Time", "Open the clock's calendar and notifications", "Meta+Alt+D", function () {
+    callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell", "evaluateScript",
+        "var id = -1; panels().forEach(function (p) { p.widgets(\"org.orielos.clock\").forEach(function (w) { if (id < 0) { id = w.id; } }); }); print(id);",
+        function (id) {
+            if (String(id).trim() !== "-1") {
+                callDBus("org.kde.kglobalaccel", "/component/plasmashell", "org.kde.kglobalaccel.Component", "invokeShortcut",
+                    "activate widget " + String(id).trim());
+            }
+        });
 });
