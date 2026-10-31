@@ -140,6 +140,7 @@ else
         place "$widget" "$data/plasma/plasmoids/${widget##*/}"
     done
     place "$staging/kwin/snaplayouts" "$data/kwin/effects/orielos-snaplayouts"
+    place "$staging/kwin/snapassist" "$data/kwin/effects/orielos-snapassist"
     for lnf in "$staging"/look-and-feel/*; do
         place "$lnf" "$data/plasma/look-and-feel/${lnf##*/}"
     done

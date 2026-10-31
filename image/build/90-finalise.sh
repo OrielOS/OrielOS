@@ -219,6 +219,10 @@ fi
     printf 'error: the Close or shut down KWin script is not installed\n' >&2
     exit 1
 }
+[[ -f /usr/share/kwin/effects/orielos-snapassist/metadata.json ]] || {
+    printf 'error: the Snap Assist KWin effect is not installed\n' >&2
+    exit 1
+}
 [[ -f /usr/share/kwin/scripts/orielos-windowkeys/metadata.json ]] || {
     printf 'error: the Window shortcuts KWin script is not installed\n' >&2
     exit 1

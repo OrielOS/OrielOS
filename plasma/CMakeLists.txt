@@ -19,6 +19,7 @@ ki18n_install(translations)
 
 # Snap layouts: a KWin effect that Win+Z opens, to snap the active window into a layout.
 install(DIRECTORY kwin/snaplayouts/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snaplayouts)
+install(DIRECTORY kwin/snapassist/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snapassist)
 # Alt+F4: closes the window in use, or on the desktop offers to shut down. On by default.
 install(DIRECTORY kwin/closeorshutdown/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/scripts/orielos-closeorshutdown)
 install(DIRECTORY kwin/windowkeys/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/scripts/orielos-windowkeys)

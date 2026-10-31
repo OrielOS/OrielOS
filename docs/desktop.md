@@ -32,6 +32,7 @@ Right-click the desktop for **View** (icon size and arrangement), **Sort by**, *
 
 - **Snap a window** to one side with Windows + Left or Right arrow, or drag it to the edge of the screen.
 - **Snap layouts:** rest the pointer on a window's maximise button, or press Windows + Z, to choose a half, a third or a quarter of the screen for it.
+- **Snap assist:** after a window snaps to one half, the other half shows your other windows; click one to put it beside the first, or press Escape to leave the half empty.
 
   ![Snap layouts open over Files, showing layouts of halves, thirds and quarters to choose from](images/snap-layouts.webp)
 
