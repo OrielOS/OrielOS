@@ -40,9 +40,14 @@ kde-settings-sddm
 # wallpapers, which the wizard uses.
 plasma-setup
 
-# Settings, power and hardware integration.
+# Settings, power and hardware integration. UPower reports batteries (for laptops, and for
+# wireless mice, keyboards and controllers) to PowerDevil and the shell; without it nothing shows a
+# battery. fprintd drives fingerprint readers, for signing in and confirming who you are.
 plasma-systemsettings
 powerdevil
+upower
+fprintd
+fprintd-pam
 tuned-ppd
 switcheroo-control
 plasma-disks
@@ -118,6 +123,13 @@ zd1211-firmware
 atmel-firmware
 intel-vsc-firmware
 dvb-firmware
+
+# Built-in cameras that sit on the processor's camera interface rather than USB, as in many recent
+# Intel laptops: libcamera drives them and its PipeWire plugin hands them to apps (through the
+# camera portal for Flatpak apps). USB webcams work without these.
+libcamera
+libcamera-ipa
+pipewire-plugin-libcamera
 
 # Bluetooth, including sending files to and from phones.
 bluez
