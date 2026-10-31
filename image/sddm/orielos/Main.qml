@@ -245,11 +245,27 @@ Item {
                         Layout.fillWidth: true
                         background: null
                         font.pixelSize: 15
+                        readonly property bool pinMode: signInOptions.pinMode && lockout.phrase === ""
                         placeholderText: lockout.phrase !== ""
                             ? i18ndc("plasma-desktop-sddm-theme", "@info:placeholder in text field, %1 is a phrase such as A1B2C3", "Type %1", lockout.phrase)
-                            : i18ndc("plasma-desktop-sddm-theme", "@info:placeholder in text field", "Password")
+                            : pinMode
+                                ? i18ndc("plasma-desktop-sddm-theme", "@info:placeholder in text field", "PIN")
+                                : i18ndc("plasma-desktop-sddm-theme", "@info:placeholder in text field", "Password")
                         enabled: lockout.secondsLeft === 0
+                        validator: pinMode ? digitsOnly : null
+                        inputMethodHints: pinMode ? Qt.ImhDigitsOnly : Qt.ImhNone
                         onAccepted: root.login()
+                        // Signing in on the PIN's last digit, without Enter; never for a password.
+                        onTextChanged: {
+                            if (pinMode && text.length === signInOptions.pinLength) {
+                                Qt.callLater(root.login);
+                            }
+                        }
+
+                        RegularExpressionValidator {
+                            id: digitsOnly
+                            regularExpression: /[0-9]*/
+                        }
 
                         // The phrase is shown as it's typed.
                         Binding on showPassword {
@@ -296,6 +312,20 @@ Item {
                     font.pixelSize: 12
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
+                }
+
+                SignInOptions {
+                    id: signInOptions
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: Kirigami.Units.smallSpacing
+                    loginName: root.currentName
+                    domain: "plasma-desktop-sddm-theme"
+                    onPinModeChanged: {
+                        passwordBox.text = "";
+                        passwordBox.forceActiveFocus();
+                    }
+                    onForgotPin: root.notificationMessage = i18ndc("plasma-desktop-sddm-theme", "@info:status",
+                        "Sign in with your password, then set a new PIN in Settings › Accounts › Sign-in options.")
                 }
             }
         }
@@ -438,7 +468,9 @@ Item {
     Connections {
         target: sddm
         function onLoginFailed() {
-            root.notificationMessage = i18ndc("plasma-desktop-sddm-theme", "@info:status", "Login Failed");
+            root.notificationMessage = passwordBox.pinMode
+                ? i18ndc("plasma-desktop-sddm-theme", "@info:status", "The PIN is incorrect. Try again.")
+                : i18ndc("plasma-desktop-sddm-theme", "@info:status", "Login Failed");
             lockout.failed();
             passwordBox.text = "";
             passwordBox.forceActiveFocus();

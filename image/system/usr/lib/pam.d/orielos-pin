@@ -1,0 +1,5 @@
+#%PAM-1.0
+# OrielOS's PIN service (/usr/libexec/orielos/pin-service) checks an account's password here before
+# setting or removing its PIN: the password only, never the PIN.
+auth        substack      password-auth
+account     include       password-auth

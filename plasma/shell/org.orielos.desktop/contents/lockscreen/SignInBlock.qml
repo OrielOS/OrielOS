@@ -17,6 +17,7 @@ import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.kirigami as Kirigami
 import org.kde.kscreenlocker as ScreenLocker
+import org.kde.coreaddons as KCoreAddons
 
 import org.kde.breeze.components
 
@@ -38,6 +39,12 @@ FocusScope {
 
     readonly property string userName: userListModel && userListModel.count > 0 ? userListModel.get(0).realName : ""
     readonly property string userIcon: userListModel && userListModel.count > 0 ? userListModel.get(0).icon : ""
+    // With a PIN, the box takes the PIN and signs in on its last digit (SignInOptions.qml).
+    readonly property bool pinMode: signInOptions.pinMode && challenge === ""
+
+    KCoreAddons.KUser {
+        id: account
+    }
 
     signal passwordResult(string password)
     signal challengeResult(string text)
@@ -130,7 +137,11 @@ FocusScope {
                     text: PasswordSync.password
                     placeholderText: block.challenge !== ""
                         ? i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder in text field, %1 is a phrase such as A1B2C3", "Type %1", block.challenge)
-                        : i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder in text field", "Password")
+                        : block.pinMode
+                            ? i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder in text field", "PIN")
+                            : i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:placeholder in text field", "Password")
+                    validator: block.pinMode ? digitsOnly : null
+                    inputMethodHints: block.pinMode ? Qt.ImhDigitsOnly : Qt.ImhNone
                     focus: true
                     enabled: !authenticator.graceLocked && block.waitSeconds === 0
                     // The field stays focused while hidden, to wake the screen on a key press;
@@ -141,6 +152,18 @@ FocusScope {
                         if (block.lockScreenUiVisible) {
                             block.startLogin();
                         }
+                    }
+                    // Signing in on the PIN's last digit, without Enter. Never for a password,
+                    // which would count failed attempts and give away its length.
+                    onTextChanged: {
+                        if (block.pinMode && block.lockScreenUiVisible && text.length === signInOptions.pinLength) {
+                            Qt.callLater(block.startLogin);
+                        }
+                    }
+
+                    RegularExpressionValidator {
+                        id: digitsOnly
+                        regularExpression: /[0-9]*/
                     }
 
                     Connections {
@@ -201,6 +224,17 @@ FocusScope {
                     duration: Kirigami.Units.shortDuration
                 }
             }
+        }
+
+        SignInOptions {
+            id: signInOptions
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: Kirigami.Units.smallSpacing
+            loginName: account.loginName
+            domain: "plasma_shell_org.kde.plasma.desktop"
+            onPinModeChanged: root.clearPassword()
+            onForgotPin: root.notification = i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status",
+                "Sign in with your password, then set a new PIN in Settings › Accounts › Sign-in options.")
         }
 
         component FailableLabel: PlasmaComponents3.Label {

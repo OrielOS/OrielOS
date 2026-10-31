@@ -1,0 +1,16 @@
+[Unit]
+Description=OrielOS's PIN service
+Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/desktop.md
+
+[Service]
+ExecStart=/usr/libexec/orielos/pin-service
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+StateDirectory=orielos
+TimeoutSec=60
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes

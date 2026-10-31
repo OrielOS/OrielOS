@@ -1,0 +1,264 @@
+#!/usr/bin/python3 -I
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""OrielOS's PIN service: keeps each user's sign-in PIN and checks it, as Windows Hello's PIN does.
+
+Started by orielos-pin.socket for each connection (Accept=yes), as root, with the connection on
+standard input and output. A client sends one JSON request on one line and gets one JSON answer:
+
+    {"op": "info"}                                   -> {"pin": true, "length": 6}
+    {"op": "check", "user": NAME, "pin": "123456"}   -> {"ok": true} or {"ok": false, "wait": SECONDS}
+    {"op": "set", "pin": "123456", "credential": C}  -> {"ok": true} or {"ok": false, "error": TEXT}
+    {"op": "remove", "credential": C}                -> {"ok": true} or {"ok": false, "error": TEXT}
+
+"info", "set" and "remove" are about the caller's own account. "check" is for the caller's own
+account, or any account when the caller is root (the sign-in screen and administrator prompts, through
+pam_exec and /usr/libexec/orielos/pin-auth). Setting or removing a PIN needs the account's password
+or its current PIN as C, so nothing running as the user can give itself a PIN to answer
+administrator prompts with.
+
+Each PIN is kept as a salted scrypt hash, encrypted with systemd-creds: sealed to the TPM where the
+computer has one, so the file is useless on any other computer, or to the computer's own credential
+key otherwise. After five wrong PINs in a row, checks are refused for 30 seconds, then for twice as
+long after each further wrong PIN, up to 15 minutes; the password always works.
+"""
+
+import ctypes
+import ctypes.util
+import fcntl
+import hashlib
+import hmac
+import json
+import os
+import pwd
+import socket
+import struct
+import subprocess
+import sys
+import time
+
+STORE = "/var/lib/orielos/pin"
+# World-readable notes for the sign-in and lock screens, which can only load QML files: whether an
+# account has a PIN and how long it is, so the box can sign in on the last digit.
+INFO = "/var/lib/orielos/pin-info"
+CREDENTIAL_NAME = "orielos-pin"
+MIN_LENGTH = 4
+MAX_LENGTH = 12
+ALLOWED_FAILURES = 5
+FIRST_WAIT = 30
+LONGEST_WAIT = 900
+SCRYPT = {"n": 2**15, "r": 8, "p": 1, "maxmem": 64 * 1024 * 1024}
+
+
+def peer_uid():
+    sock = socket.socket(fileno=os.dup(0))
+    creds = sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i"))
+    sock.detach()
+    return struct.unpack("3i", creds)[1]
+
+
+def paths(uid):
+    return f"{STORE}/{uid}.cred", f"{STORE}/{uid}.state"
+
+
+def read_pin(uid):
+    """The stored record ({"salt", "hash", "length"}), or None."""
+    cred, _ = paths(uid)
+    if not os.path.exists(cred):
+        return None
+    out = subprocess.run(["systemd-creds", "decrypt", f"--name={CREDENTIAL_NAME}", cred, "-"],
+                         capture_output=True, check=True, timeout=30).stdout
+    return json.loads(out)
+
+
+def write_pin(uid, pin):
+    salt = os.urandom(16)
+    record = {"salt": salt.hex(), "hash": hashlib.scrypt(pin.encode(), salt=salt, **SCRYPT).hex(),
+              "length": len(pin)}
+    cred, _ = paths(uid)
+    subprocess.run(["systemd-creds", "encrypt", f"--name={CREDENTIAL_NAME}", "--with-key=auto", "-", cred + ".new"],
+                   input=json.dumps(record).encode(), capture_output=True, check=True, timeout=30)
+    os.chmod(cred + ".new", 0o600)
+    os.replace(cred + ".new", cred)
+
+
+def matches(record, pin):
+    if len(pin) != record["length"]:
+        return False
+    digest = hashlib.scrypt(pin.encode(), salt=bytes.fromhex(record["salt"]), **SCRYPT).hex()
+    return hmac.compare_digest(digest, record["hash"])
+
+
+class State:
+    """Wrong tries and the wait they caused, kept per account under an exclusive lock, so checks
+    running side by side count every try."""
+
+    def __init__(self, uid):
+        _, path = paths(uid)
+        self.file = open(path, "a+", encoding="utf-8")
+        os.chmod(path, 0o600)
+        fcntl.flock(self.file, fcntl.LOCK_EX)
+        self.file.seek(0)
+        try:
+            self.data = json.loads(self.file.read() or "{}")
+        except ValueError:
+            self.data = {}
+        self.data.setdefault("failures", 0)
+        self.data.setdefault("lockouts", 0)
+        self.data.setdefault("until", 0)
+
+    def save(self):
+        self.file.seek(0)
+        self.file.truncate()
+        json.dump(self.data, self.file)
+        self.file.flush()
+        os.fsync(self.file.fileno())
+
+    def wait(self):
+        return max(0, int(self.data["until"] - time.time()))
+
+    def failed(self):
+        self.data["failures"] += 1
+        if self.data["failures"] >= ALLOWED_FAILURES:
+            self.data["until"] = time.time() + min(LONGEST_WAIT, FIRST_WAIT * 2 ** self.data["lockouts"])
+            self.data["lockouts"] += 1
+            # One more wrong PIN after the wait locks again.
+            self.data["failures"] = ALLOWED_FAILURES - 1
+
+    def succeeded(self):
+        self.data.update(failures=0, lockouts=0, until=0)
+
+
+def check(uid, pin):
+    if not pin.isdigit() or not MIN_LENGTH <= len(pin) <= MAX_LENGTH:
+        # A password typed into the box isn't a wrong PIN.
+        return {"ok": False}
+    record = read_pin(uid)
+    if record is None:
+        return {"ok": False}
+    state = State(uid)
+    if state.wait():
+        return {"ok": False, "wait": state.wait()}
+    if matches(record, pin):
+        state.succeeded()
+        state.save()
+        return {"ok": True}
+    state.failed()
+    state.save()
+    return {"ok": False, "wait": state.wait()}
+
+
+def password_ok(user, password):
+    """Checks an account's password through PAM's password stack (orielos-pin, without the PIN)."""
+    pam = ctypes.CDLL(ctypes.util.find_library("pam"))
+    libc = ctypes.CDLL(ctypes.util.find_library("c"))
+    libc.calloc.restype = ctypes.c_void_p
+    libc.strdup.restype = ctypes.c_void_p
+
+    class Message(ctypes.Structure):
+        _fields_ = [("style", ctypes.c_int), ("msg", ctypes.c_char_p)]
+
+    class Response(ctypes.Structure):
+        _fields_ = [("resp", ctypes.c_void_p), ("retcode", ctypes.c_int)]
+
+    conv_type = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.POINTER(Message)),
+                                 ctypes.POINTER(ctypes.POINTER(Response)), ctypes.c_void_p)
+
+    class Conversation(ctypes.Structure):
+        _fields_ = [("conv", conv_type), ("data", ctypes.c_void_p)]
+
+    def answer(count, messages, responses, _data):
+        responses[0] = ctypes.cast(libc.calloc(count, ctypes.sizeof(Response)), ctypes.POINTER(Response))
+        for i in range(count):
+            if messages[i].contents.style == 1:  # PAM_PROMPT_ECHO_OFF
+                responses[0][i].resp = libc.strdup(password.encode())
+        return 0
+
+    conversation = Conversation(conv_type(answer), None)
+    handle = ctypes.c_void_p()
+    if pam.pam_start(b"orielos-pin", user.encode(), ctypes.byref(conversation), ctypes.byref(handle)) != 0:
+        return False
+    result = pam.pam_authenticate(handle, 0)
+    pam.pam_end(handle, result)
+    return result == 0
+
+
+def credential_ok(account, credential):
+    if not isinstance(credential, str) or not credential:
+        return False
+    if credential.isdigit() and check(account.pw_uid, credential)["ok"]:
+        return True
+    return password_ok(account.pw_name, credential)
+
+
+def write_info(account, length):
+    path = f"{INFO}/{account.pw_name}.qml"
+    if length is None:
+        if os.path.exists(path):
+            os.remove(path)
+        return
+    with open(path + ".new", "w", encoding="utf-8") as f:
+        f.write("import QtQuick\nItem {\n    readonly property int pinLength: %d\n}\n" % length)
+    os.chmod(path + ".new", 0o644)
+    os.replace(path + ".new", path)
+
+
+def handle(request, caller):
+    op = request.get("op")
+    if op == "check":
+        try:
+            account = pwd.getpwnam(str(request.get("user", "")))
+        except KeyError:
+            return {"ok": False}
+        if caller != 0 and caller != account.pw_uid:
+            return {"ok": False, "error": "not allowed"}
+        return check(account.pw_uid, str(request.get("pin", "")))
+
+    account = pwd.getpwuid(caller)
+    if op == "info":
+        record = read_pin(caller)
+        return {"pin": record is not None, "length": record["length"] if record else 0}
+    if op in ("set", "remove"):
+        has_pin = read_pin(caller) is not None
+        if not credential_ok(account, request.get("credential")):
+            return {"ok": False, "error": "wrong password or PIN"}
+        if op == "remove":
+            if has_pin:
+                os.remove(paths(caller)[0])
+            write_info(account, None)
+            return {"ok": True}
+        pin = str(request.get("pin", ""))
+        if not pin.isdigit() or not MIN_LENGTH <= len(pin) <= MAX_LENGTH:
+            return {"ok": False, "error": f"a PIN is {MIN_LENGTH} to {MAX_LENGTH} digits"}
+        write_pin(caller, pin)
+        state = State(caller)
+        state.succeeded()
+        state.save()
+        write_info(account, len(pin))
+        return {"ok": True}
+    return {"ok": False, "error": "unknown request"}
+
+
+def main():
+    os.umask(0o077)
+    os.makedirs(STORE, mode=0o700, exist_ok=True)
+    os.makedirs(INFO, mode=0o755, exist_ok=True)
+    os.chmod(INFO, 0o755)
+    caller = peer_uid()
+    line = sys.stdin.buffer.readline(4096)
+    try:
+        request = json.loads(line)
+        if not isinstance(request, dict):
+            raise ValueError
+        answer = handle(request, caller)
+    except (ValueError, UnicodeDecodeError):
+        answer = {"ok": False, "error": "bad request"}
+    except subprocess.CalledProcessError as error:
+        print(f"pin-service: systemd-creds failed: {error.stderr.decode(errors='replace').strip()}", file=sys.stderr)
+        answer = {"ok": False, "error": "the PIN store can't be read"}
+    sys.stdout.write(json.dumps(answer) + "\n")
+    sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    main()

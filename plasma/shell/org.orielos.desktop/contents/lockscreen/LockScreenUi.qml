@@ -67,7 +67,9 @@ Item {
             if (kind != 0) { // if this is coming from the noninteractive authenticators
                 return;
             }
-            const msg = i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Unlocking failed");
+            const msg = mainBlock.pinMode
+                ? i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "The PIN is incorrect. Try again.")
+                : i18ndc("plasma_shell_org.kde.plasma.desktop", "@info:status", "Unlocking failed");
             lockout.failed();
             lockScreenUi.handleMessage(msg);
             graceLockTimer.restart();

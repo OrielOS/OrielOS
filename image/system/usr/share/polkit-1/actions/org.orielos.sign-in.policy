@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+What Settings › Accounts › Sign-in options may change for the whole computer through pkexec: whether
+the sign-in screen asks for Ctrl+Alt+Delete, and whether the startup sound plays. Both need an
+administrator, as in Windows.
+-->
+<policyconfig>
+  <vendor>OrielOS</vendor>
+  <vendor_url>https://github.com/ncjsvr/OrielOS</vendor_url>
+  <icon_name>preferences-system-users</icon_name>
+
+  <action id="org.orielos.sign-in.settings">
+    <description>Change the sign-in screen's settings</description>
+    <message>Authentication is needed to change the sign-in screen's settings</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/orielos/sign-in-settings</annotate>
+  </action>
+</policyconfig>

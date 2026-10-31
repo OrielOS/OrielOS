@@ -1,0 +1,35 @@
+#!/usr/bin/python3 -I
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Signs in with a PIN: run by pam_exec (with expose_authtok) for the sign-in screen, the lock screen
+and administrator prompts, before the password is tried. Reads what was typed from standard input,
+asks OrielOS's PIN service (/usr/libexec/orielos/pin-service) whether it is PAM_USER's PIN, and exits
+0 if it is. Anything else, including a password or no PIN set, exits 1, and PAM goes on to the
+password with the same text."""
+
+import json
+import os
+import socket
+import sys
+
+SOCKET = "/run/orielos/pin.socket"
+
+
+def main():
+    typed = sys.stdin.buffer.read(256).split(b"\0", 1)[0].decode(errors="replace").strip("\n")
+    user = os.environ.get("PAM_USER", "")
+    if not typed.isdigit() or not user:
+        return 1
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+            sock.settimeout(20)
+            sock.connect(SOCKET)
+            sock.sendall((json.dumps({"op": "check", "user": user, "pin": typed}) + "\n").encode())
+            answer = json.loads(sock.makefile("rb").readline(4096) or b"{}")
+    except (OSError, ValueError):
+        return 1
+    return 0 if answer.get("ok") is True else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

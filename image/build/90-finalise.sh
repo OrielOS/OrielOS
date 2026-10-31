@@ -231,6 +231,35 @@ fi
     exit 1
 }
 
+# Quick sign-in: the PIN service, started for each request by its socket, which the sign-in screen,
+# the lock screen and administrator prompts ask through pin-auth (29-quick-sign-in.sh) and Settings
+# asks to set or remove a PIN.
+systemctl enable orielos-pin.socket
+if [[ "$(systemctl is-enabled orielos-pin.socket 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-pin.socket is not enabled\n' >&2
+    exit 1
+fi
+for f in /usr/libexec/orielos/pin-service /usr/libexec/orielos/pin-auth; do
+    [[ -x "$f" ]] || {
+        printf 'error: %s is not executable\n' "$f" >&2
+        exit 1
+    }
+done
+for f in /etc/pam.d/sddm /etc/pam.d/kde /etc/pam.d/polkit-1; do
+    grep -q 'orielos/pin-auth' "$f" || {
+        printf 'error: %s does not ask for the PIN\n' "$f" >&2
+        exit 1
+    }
+done
+[[ -f /usr/lib/pam.d/orielos-pin ]] || {
+    printf 'error: /usr/lib/pam.d/orielos-pin, which the PIN service checks passwords with, is missing\n' >&2
+    exit 1
+}
+python3 -I -c 'import hashlib; hashlib.scrypt(b"0", salt=b"0", n=2, r=8, p=1)' || {
+    printf 'error: python3 with scrypt, which the PIN service needs, is missing\n' >&2
+    exit 1
+}
+
 # Dynamic lock: locks the session when the phone chosen in Settings goes out of range; the unit
 # runs only for users who chose one.
 systemctl --global enable orielos-dynamic-lock.service
