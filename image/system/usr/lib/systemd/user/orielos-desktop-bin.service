@@ -1,6 +1,6 @@
 [Unit]
 Description=Put the Bin on the desktop, once
-Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/desktop.md
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/desktop.md
 Before=plasma-plasmashell.service
 
 [Service]

@@ -1,6 +1,6 @@
 [Unit]
 Description=OrielOS's PIN service
-Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/desktop.md
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/desktop.md
 
 [Socket]
 ListenStream=/run/orielos/pin.socket

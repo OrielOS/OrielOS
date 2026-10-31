@@ -12,7 +12,7 @@ administrator, as in Windows.
 -->
 <policyconfig>
   <vendor>OrielOS</vendor>
-  <vendor_url>https://github.com/ncjsvr/OrielOS</vendor_url>
+  <vendor_url>https://github.com/OrielOS/OrielOS</vendor_url>
   <icon_name>preferences-system-users</icon_name>
 
   <action id="org.orielos.sign-in.settings">

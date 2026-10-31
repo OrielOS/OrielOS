@@ -1,6 +1,6 @@
 [Unit]
 Description=Give new touchpads Windows' tap to click and scrolling direction
-Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/desktop.md
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/desktop.md
 After=plasma-kwin_wayland.service
 
 [Service]
