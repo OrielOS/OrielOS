@@ -18,6 +18,11 @@ Window Operations Menu=Alt+Space\tAlt+F3,Alt+F3,Window Menu
 Window Quick Tile Bottom=none,Meta+Down,Quick Tile Window to the Bottom
 Window Quick Tile Top=none,Meta+Up,Quick Tile Window to the Top
 
+# Win+Ctrl+Enter turns the screen reader on and off, as Windows does Narrator, besides Plasma's
+# Win+Alt+S.
+[kaccess]
+Toggle Screen Reader On and Off=Meta+Ctrl+Return\tMeta+Alt+S,Meta+Alt+S,Toggle Screen Reader On and Off
+
 # Win+Space moves to the next keyboard layout, as in Windows, besides Plasma's Win+Alt+K.
 [KDE Keyboard Layout Switcher]
 Switch to Next Keyboard Layout=Meta+Space\tMeta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Layout

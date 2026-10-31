@@ -131,6 +131,14 @@ libcamera
 libcamera-ipa
 pipewire-plugin-libcamera
 
+# The screen reader, Orca, as Windows has Narrator built in: Win+Ctrl+Enter or Settings turns it on.
+# It speaks through Speech Dispatcher with the eSpeak NG voices.
+orca
+speech-dispatcher
+speech-dispatcher-espeak-ng
+espeak-ng
+python3-speechd
+
 # Bluetooth, including sending files to and from phones.
 bluez
 bluez-obexd
