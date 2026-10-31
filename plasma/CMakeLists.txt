@@ -56,6 +56,10 @@ install(DIRECTORY look-and-feel/org.orielos.desktop look-and-feel/org.orielos.de
 foreach(lnf org.orielos.desktop org.orielos.desktop.dark)
     # The Ctrl+Alt+Del screen, Plasma's log-out screen in Windows' layout.
     install(DIRECTORY look-and-feel/logout DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents)
+    # The welcome screen after signing in, with the sign-in screen's account picture.
+    install(DIRECTORY look-and-feel/splash DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents)
+    install(FILES ${PROJECT_SOURCE_DIR}/image/sddm/orielos/AccountPicture.qml
+        DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents/splash)
     foreach(shell org.orielos.desktop org.kde.plasma.desktop)
         install(FILES shell/org.orielos.desktop/contents/layout.js
             DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents/layouts

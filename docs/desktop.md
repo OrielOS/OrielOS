@@ -68,6 +68,6 @@ OrielOS has a light and a dark look. Switch between them in **Settings > Persona
 
 ## Locking and signing out
 
-Press Windows + L to lock the screen. Your account and the power button at the bottom of Start sign you out, lock, put the PC to sleep, restart it or shut it down.
+Press Windows + L to lock the screen. While it is locked, the bottom right of the screen shows the apps that sent you notifications since you locked it, with how many from each, and the network and battery; the screen turns off after a minute without input. After you sign in, a Welcome screen shows your picture and name until the desktop is ready. Your account and the power button at the bottom of Start sign you out, lock, put the PC to sleep, restart it or shut it down.
 
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder).
