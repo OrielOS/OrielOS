@@ -1,0 +1,12 @@
+[Unit]
+Description=Turn on Do not disturb for the first hour after an update
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/desktop.md
+Before=plasma-plasmashell.service
+
+[Service]
+# Each sign-in; only the first one into a new version changes anything (see the script).
+Type=oneshot
+ExecStart=/usr/libexec/orielos/quiet-after-update
+
+[Install]
+WantedBy=plasma-workspace.target

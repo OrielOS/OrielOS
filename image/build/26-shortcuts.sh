@@ -65,9 +65,10 @@ add_keywords "$monitor" "System monitor" "processes;tasks;end task;not respondin
 set_shortcuts "$monitor" "Desktop Entry" "Meta+Esc" "Ctrl+Shift+Esc,Meta+Esc"
 link_accel org.kde.plasma-systemmonitor.desktop
 
-# Run: KRunner on Win+R, and Alt+Space goes to the window menu, as in Windows. Spectacle's region
+# Run: Win+R opens OrielOS's Run box (its own desktop entry gives it the key), KRunner keeps Alt+F2
+# and the Search key, and Alt+Space goes to the window menu, as in Windows. Spectacle's region
 # recording had Win+R as its second shortcut; it keeps Win+Shift+R.
-set_shortcuts "$accel/org.kde.krunner.desktop" "Desktop Entry" "Alt+Space,Alt+F2,Search" "Meta+R,Alt+F2,Search"
+set_shortcuts "$accel/org.kde.krunner.desktop" "Desktop Entry" "Alt+Space,Alt+F2,Search" "Alt+F2,Search"
 
 # Screenshot: Spectacle. Win+Shift+S (a rectangular region) is Plasma's default. Win+PrtSc
 # saves the whole desktop to Pictures/Screenshots without opening Spectacle's window, as on

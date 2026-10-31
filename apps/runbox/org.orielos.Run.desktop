@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Run
+Comment=Open a program, folder, document or website by typing its name
+Keywords=run;run box;command;open;
+Exec=orielos-run
+Icon=system-run
+Terminal=false
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Meta+R

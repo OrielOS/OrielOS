@@ -118,7 +118,7 @@ done
 [[ -x /usr/bin/orielos-settings ]] || update_errors+=("Settings, /usr/bin/orielos-settings, is missing")
 # OrielOS's own Settings pages besides Update.
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
-    kcm_orielos_powermode kcm_orielos_signin; do
+    kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -132,6 +132,10 @@ done
 [[ -x /usr/bin/orielos-display-mode ]] || update_errors+=("/usr/bin/orielos-display-mode is missing")
 grep -qxF 'X-KDE-Shortcuts=Meta+P' /usr/share/kglobalaccel/org.orielos.DisplayMode.desktop 2>/dev/null || update_errors+=("Display mode doesn't have Win+P")
 grep -qxF 'X-KDE-Shortcuts=Display' /usr/share/kglobalaccel/org.kde.kscreen.desktop || update_errors+=("Plasma's screen picker still has Win+P")
+# The Run box, on Win+R, which KRunner gives up.
+[[ -x /usr/bin/orielos-run ]] || update_errors+=("/usr/bin/orielos-run is missing")
+grep -qxF 'X-KDE-Shortcuts=Meta+R' /usr/share/kglobalaccel/org.orielos.Run.desktop 2>/dev/null || update_errors+=("the Run box doesn't have Win+R")
+grep -qxF 'X-KDE-Shortcuts=Alt+F2,Search' /usr/share/kglobalaccel/org.kde.krunner.desktop || update_errors+=("KRunner still has Win+R")
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
 # One settings app: System Settings' and kcmshell6's commands open Settings, and NVIDIA's settings are
 # a page of Settings rather than a second settings app in Start.
@@ -301,6 +305,17 @@ if [[ "$(systemctl --global is-enabled orielos-touchpad-defaults.service 2>/dev/
 fi
 [[ -x /usr/libexec/orielos/touchpad-defaults ]] || {
     printf 'error: /usr/libexec/orielos/touchpad-defaults is not executable\n' >&2
+    exit 1
+}
+
+# Do not disturb for the first hour after an update.
+systemctl --global enable orielos-quiet-after-update.service
+if [[ "$(systemctl --global is-enabled orielos-quiet-after-update.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-quiet-after-update.service is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/quiet-after-update ]] || {
+    printf 'error: /usr/libexec/orielos/quiet-after-update is not executable\n' >&2
     exit 1
 }
 

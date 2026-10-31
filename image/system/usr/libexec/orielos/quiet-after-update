@@ -1,0 +1,32 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Do not disturb for the first hour after an update, as Windows does after a feature update: at the
+# first sign-in into a new OrielOS version, notifications stay quiet for an hour (they still go to
+# the notification centre). Do not disturb already on for longer is left as it is. The first
+# sign-in of a new account only notes the version. Run at each sign-in by
+# orielos-quiet-after-update.service.
+set -Eeuo pipefail
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/last-version"
+config="${XDG_CONFIG_HOME:-$HOME/.config}/plasmanotifyrc"
+mkdir -p -- "${state%/*}"
+
+version="$(. /usr/lib/os-release && printf '%s' "${IMAGE_VERSION:-$VERSION_ID}")"
+[[ -n "$version" ]] || exit 0
+previous="$(cat -- "$state" 2>/dev/null || true)"
+printf '%s\n' "$version" >"$state"
+[[ -n "$previous" && "$previous" != "$version" ]] || exit 0
+
+# KConfig keeps the time as year,month,day,hour,minute,second.
+until="$(date -d '+1 hour' '+%Y,%-m,%-d,%-H,%-M,%-S')"
+current="$(kreadconfig6 --file "$config" --group DoNotDisturb --key Until 2>/dev/null || true)"
+if [[ -n "$current" ]]; then
+    IFS=, read -r y mo d h mi s <<<"$current"
+    if [[ -n "${s:-}" ]] && (($(date -d "$y-$mo-$d $h:$mi:$s" +%s 2>/dev/null || echo 0) > $(date -d '+1 hour' +%s))); then
+        exit 0
+    fi
+fi
+kwriteconfig6 --file "$config" --group DoNotDisturb --key Until --notify "$until"
+printf 'quiet-after-update: OrielOS %s is new since %s; Do not disturb until %s\n' "$version" "$previous" "$until"

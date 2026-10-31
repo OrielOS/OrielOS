@@ -105,7 +105,7 @@ The Windows keyboard shortcuts work for every new user, and open the tools that 
 |---|---|---|
 | Win | Start (OrielOS's Start menu, as the taskbar's launcher), from `kwinrc`'s `ModifierOnlyShortcuts` | unchanged |
 | Win+E | Dolphin (`X-KDE-Shortcuts=Meta+E`) | unchanged; Dolphin is named Files |
-| Win+R | Spectacle's region recording (`Meta+Shift+R,Meta+R`); KRunner is on `Alt+Space,Alt+F2,Search` | KRunner (Run) gets `Meta+R`; region recording keeps `Meta+Shift+R` |
+| Win+R | Spectacle's region recording (`Meta+Shift+R,Meta+R`); KRunner is on `Alt+Space,Alt+F2,Search` | OrielOS's Run box (`orielos-run`) gets `Meta+R`; KRunner keeps `Alt+F2,Search`; region recording keeps `Meta+Shift+R` |
 | Win+L | Lock Session (ksmserver) | unchanged |
 | Win+D | Show Desktop (KWin) | unchanged |
 | Win+Tab | KWin's Walk Through Windows, together with Alt+Tab (and Win+Shift+Tab with Alt+Shift+Tab for the reverse) | KWin's Overview, which a second press closes, and which keeps Win+W; Walk Through Windows keeps Alt+Tab and Alt+Shift+Tab only |

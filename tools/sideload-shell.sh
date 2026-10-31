@@ -161,6 +161,16 @@ else
         sed 's/^X-KDE-Shortcuts=Display,Meta+P$/X-KDE-Shortcuts=Display/' /usr/share/kglobalaccel/org.kde.kscreen.desktop |
             write "$data/kglobalaccel/org.kde.kscreen.desktop"
     fi
+    # The Run box on Win+R, and KRunner without it, as the image build makes them.
+    if [[ -f "$staging/bin/orielos-run" ]]; then
+        sed "s|^Exec=orielos-run\$|Exec=$state/bin/orielos-run|" "$staging/run.desktop" |
+            write "$data/applications/org.orielos.Run.desktop"
+        cp -- "$data/applications/org.orielos.Run.desktop" "$data/kglobalaccel/org.orielos.Run.desktop"
+        printf '%s
+' "$data/kglobalaccel/org.orielos.Run.desktop" >>"$manifest"
+        sed '0,/^X-KDE-Shortcuts=/s/^X-KDE-Shortcuts=.*/X-KDE-Shortcuts=Alt+F2,Search/' /usr/share/kglobalaccel/org.kde.krunner.desktop |
+            write "$data/kglobalaccel/org.kde.krunner.desktop"
+    fi
     # Settings itself, run from the sideload, so pages added since the image show.
     if [[ -f "$staging/bin/orielos-settings" ]]; then
         sed "s|^Exec=orielos-settings|Exec=$state/bin/orielos-settings|" "$staging/settings.desktop" |
@@ -288,6 +298,8 @@ main() {
         mkdir -p "$STAGING/bin"
         podman cp "$CONTAINER:/out/usr/bin/orielos-display-mode" "$STAGING/bin/orielos-display-mode"
         podman cp "$CONTAINER:/out/usr/bin/orielos-settings" "$STAGING/bin/orielos-settings"
+        podman cp "$CONTAINER:/out/usr/bin/orielos-run" "$STAGING/bin/orielos-run"
+        cp "$ROOT/apps/runbox/org.orielos.Run.desktop" "$STAGING/run.desktop"
         cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
         podman rm -f "$CONTAINER" >/dev/null
         CONTAINER=""
