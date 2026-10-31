@@ -17,6 +17,7 @@ import QtQuick
 import org.kde.notificationmanager as NotificationManager
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
+import org.kde.plasma.workspace.dbus as DBus
 
 PlasmoidItem {
     id: root
@@ -56,6 +57,21 @@ PlasmoidItem {
     function setFocusMinutes(minutes: int) {
         Plasmoid.configuration.focusMinutes = minutes;
     }
+
+    // While Do not disturb or a focus session is on, the taskbar's apps don't show badges or
+    // progress, as in Windows' focus. Plasma's task manager has a setting for it; this changes it on
+    // every task manager through the desktop's scripting, as a change in its settings would.
+    function showTaskBadges(show: bool) {
+        DBus.SessionBus.asyncCall({
+            service: "org.kde.plasmashell",
+            path: "/PlasmaShell",
+            iface: "org.kde.PlasmaShell",
+            member: "evaluateScript",
+            arguments: ["panels().forEach(function (panel) { panel.widgets(\"org.kde.plasma.icontasks\").forEach(function (tasks) {"
+                + " tasks.currentConfigGroup = [\"General\"]; tasks.writeConfig(\"smartLaunchersEnabled\", " + show + "); tasks.reloadConfig(); }); });"],
+        });
+    }
+    onDoNotDisturbChanged: showTaskBadges(!doNotDisturb)
 
     function setDoNotDisturb(minutes: int) {
         if (minutes > 0) {
@@ -136,14 +152,15 @@ PlasmoidItem {
         live: true
     }
 
-    // The history, newest first, as the notification centre lists it.
+    // The history, newest first, as the notification centre lists it: an app's notifications under
+    // its name, as Windows groups them, once it has more than one.
     NotificationManager.Notifications {
         id: history
         showExpired: true
         showDismissed: true
         showJobs: false
         sortMode: NotificationManager.Notifications.SortByDate
-        groupMode: NotificationManager.Notifications.GroupDisabled
+        groupMode: NotificationManager.Notifications.GroupApplicationsFlat
         blacklistedDesktopEntries: settings.historyBlacklistedApplications
         blacklistedNotifyRcNames: settings.historyBlacklistedServices
         urgencies: NotificationManager.Notifications.CriticalUrgency | NotificationManager.Notifications.NormalUrgency

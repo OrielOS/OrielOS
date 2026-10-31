@@ -5,12 +5,14 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Qt.labs.qmlmodels
 import org.kde.kirigami as Kirigami
 import org.kde.notificationmanager as NotificationManager
 import org.kde.plasma.components as PC3
 
 // The notifications card: its heading with Do not disturb and Clear all, then the notifications,
-// newest first, or a line saying there are none.
+// newest first, or a line saying there are none. An app with more than one notification gets a row
+// with its name and a button that clears them all.
 Card {
     id: card
 
@@ -94,10 +96,54 @@ Card {
             model: card.history
             reuseItems: false
 
-            delegate: NotificationItem {
-                width: list.width
-                history: card.history
-                now: card.clock.now
+            delegate: DelegateChooser {
+                role: "isGroup"
+
+                DelegateChoice {
+                    roleValue: true
+
+                    delegate: RowLayout {
+                        id: group
+
+                        required property int index
+                        required property string applicationName
+                        required property string applicationIconName
+
+                        width: list.width
+                        spacing: 8
+
+                        Kirigami.Icon {
+                            Layout.preferredWidth: 16
+                            Layout.preferredHeight: 16
+                            source: group.applicationIconName || "preferences-desktop-notification-bell"
+                        }
+                        PC3.Label {
+                            Layout.fillWidth: true
+                            text: group.applicationName
+                            textFormat: Text.PlainText
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                            elide: Text.ElideRight
+                        }
+                        PC3.ToolButton {
+                            icon.name: "window-close"
+                            display: PC3.AbstractButton.IconOnly
+                            text: i18nc("@action:button %1 is an app's name", "Clear %1's notifications", group.applicationName)
+                            Accessible.name: text
+                            PC3.ToolTip.text: text
+                            PC3.ToolTip.visible: hovered
+                            onClicked: card.history.close(card.history.index(group.index, 0))
+                        }
+                    }
+                }
+
+                DelegateChoice {
+                    delegate: NotificationItem {
+                        width: list.width
+                        history: card.history
+                        now: card.clock.now
+                    }
+                }
             }
         }
 
