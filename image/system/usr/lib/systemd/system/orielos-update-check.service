@@ -1,6 +1,6 @@
 [Unit]
 Description=Check for an OrielOS update and stage it for the next restart
-Documentation=https://github.com/ncjsvr/OrielOS
+Documentation=https://github.com/OrielOS/OrielOS
 After=network-online.target
 Wants=network-online.target
 

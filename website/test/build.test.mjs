@@ -44,7 +44,7 @@ test("renders without a release or contributors", () => {
 });
 
 test("renders a release without an installer", () => {
-  const release = { name: "OrielOS 1.0", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1.0", iso: null };
+  const release = { name: "OrielOS 1.0", url: "https://github.com/OrielOS/OrielOS/releases/tag/v1.0", iso: null };
   const html = renderPage(template, { contributors: [], release });
   assert.doesNotMatch(html, leftovers);
   assert.match(html, /OrielOS 1\.0, the stable version, is out\./);
@@ -55,11 +55,11 @@ test("renders a release without an installer", () => {
 
 test("renders a release with its installer", () => {
   const iso = {
-    url: "https://github.com/ncjsvr/OrielOS/releases/download/v1.0/orielos-installer-x86_64.iso",
+    url: "https://github.com/OrielOS/OrielOS/releases/download/v1.0/orielos-installer-x86_64.iso",
     size: "1.2 GB",
     sha256: "a".repeat(64),
   };
-  const release = { name: "OrielOS 1.0", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1.0", iso };
+  const release = { name: "OrielOS 1.0", url: "https://github.com/OrielOS/OrielOS/releases/tag/v1.0", iso };
   const html = renderPage(template, { contributors: [], release });
   assert.doesNotMatch(html, leftovers);
   assert.match(html, /Download OrielOS 1\.0/);
@@ -126,17 +126,17 @@ test("isHuman filters bots and malformed entries", () => {
 });
 
 test("releaseFrom validates the URL and falls back to the tag", () => {
-  const repo = "ncjsvr/OrielOS";
+  const repo = "OrielOS/OrielOS";
   assert.deepEqual(
     releaseFrom({ name: "One", tag_name: "v1", html_url: "https://evil.example/x" }, repo),
-    { name: "One", version: "v1", url: "https://github.com/ncjsvr/OrielOS/releases/latest", iso: null },
+    { name: "One", version: "v1", url: "https://github.com/OrielOS/OrielOS/releases/latest", iso: null },
   );
   assert.deepEqual(
-    releaseFrom({ name: "", tag_name: "v1", html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1" }, repo),
-    { name: "v1", version: "v1", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1", iso: null },
+    releaseFrom({ name: "", tag_name: "v1", html_url: "https://github.com/OrielOS/OrielOS/releases/tag/v1" }, repo),
+    { name: "v1", version: "v1", url: "https://github.com/OrielOS/OrielOS/releases/tag/v1", iso: null },
   );
   assert.equal(
-    releaseFrom({ name: "One", tag_name: "not a version", html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/x" }, repo).version,
+    releaseFrom({ name: "One", tag_name: "not a version", html_url: "https://github.com/OrielOS/OrielOS/releases/tag/x" }, repo).version,
     "",
   );
 });
@@ -237,7 +237,7 @@ test("the home page passes the search checks", () => {
 test("the home page uses the release's version in its description and structured data", () => {
   const html = renderPage(template, {
     contributors: [],
-    release: { name: "OrielOS v0.0.7", version: "v0.0.7", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v0.0.7", iso: null },
+    release: { name: "OrielOS v0.0.7", version: "v0.0.7", url: "https://github.com/OrielOS/OrielOS/releases/tag/v0.0.7", iso: null },
   });
   assert.doesNotMatch(html, leftovers);
   const description = readHead(html).meta.description;

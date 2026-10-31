@@ -2,7 +2,7 @@
 
 User documentation for OrielOS.
 
-These pages are also published as the repository's [wiki](https://github.com/ncjsvr/OrielOS/wiki), which is generated from this folder.
+These pages are also published as the repository's [wiki](https://github.com/OrielOS/OrielOS/wiki), which is generated from this folder.
 
 Contains:
 
@@ -27,6 +27,6 @@ Will contain:
 
 - Guides for each game's settings.
 
-Need help? Ask in the [Q&A](https://github.com/ncjsvr/OrielOS/discussions/categories/q-a) category of GitHub Discussions, or chat on [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA).
+Need help? Ask in the [Q&A](https://github.com/OrielOS/OrielOS/discussions/categories/q-a) category of GitHub Discussions, or chat on [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA).
 
 Licence: CC BY-SA 4.0 (see `LICENSE` in this folder), not the GPL.

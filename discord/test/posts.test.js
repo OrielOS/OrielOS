@@ -6,12 +6,12 @@ import test from "node:test";
 
 import { clean, formatSize, isoFrom, messagesFor, planPullPosts, truncate } from "../src/posts.js";
 
-const repo = "ncjsvr/OrielOS";
+const repo = "OrielOS/OrielOS";
 
 const release = {
   name: "1.0",
   tag_name: "v1.0",
-  html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/v1.0",
+  html_url: "https://github.com/OrielOS/OrielOS/releases/tag/v1.0",
   body: "Notes for *everyone*",
   draft: false,
   prerelease: false,
@@ -21,7 +21,7 @@ const release = {
       name: "OrielOS.iso",
       state: "uploaded",
       size: 2_400_000_000,
-      browser_download_url: "https://github.com/ncjsvr/OrielOS/releases/download/v1.0/OrielOS.iso",
+      browser_download_url: "https://github.com/OrielOS/OrielOS/releases/download/v1.0/OrielOS.iso",
     },
   ],
 };
@@ -36,7 +36,7 @@ test("a published release becomes one embed", () => {
   assert.deepEqual(embed.fields, [
     {
       name: "Installer",
-      value: "[Download the ISO](https://github.com/ncjsvr/OrielOS/releases/download/v1.0/OrielOS.iso) (2.4 GB)",
+      value: "[Download the ISO](https://github.com/OrielOS/OrielOS/releases/download/v1.0/OrielOS.iso) (2.4 GB)",
     },
   ]);
 });
@@ -86,7 +86,7 @@ test("clean never ends on a lone backslash", () => {
 
 const commit = (message, extra = {}) => ({
   message,
-  url: `https://github.com/ncjsvr/OrielOS/commit/${message.length}`,
+  url: `https://github.com/OrielOS/OrielOS/commit/${message.length}`,
   timestamp: "2026-05-01T10:00:00Z",
   author: { name: "Alice", username: "alice" },
   ...extra,
@@ -102,7 +102,7 @@ test("a squash merge links to its pull request", () => {
   );
   const [embed] = message.embeds;
   assert.equal(embed.title, "Merged: feat: add a thing (#12)");
-  assert.equal(embed.url, "https://github.com/ncjsvr/OrielOS/pull/12");
+  assert.equal(embed.url, "https://github.com/OrielOS/OrielOS/pull/12");
   assert.deepEqual(embed.footer, { text: "alice" });
   assert.equal(embed.timestamp, "2026-05-01T10:00:00Z");
   assert.equal(embed.color, 0x3a66f0);
@@ -153,7 +153,7 @@ const user = { login: "alice", type: "User", html_url: "https://github.com/alice
 const issue = {
   number: 7,
   title: "Fix *the* snake_case bug",
-  html_url: "https://github.com/ncjsvr/OrielOS/issues/7",
+  html_url: "https://github.com/OrielOS/OrielOS/issues/7",
   user,
   labels: [{ name: "bug" }, { name: "good_first" }],
   body: "secret body",
@@ -189,7 +189,7 @@ test("bot issues and other issue actions are skipped", () => {
 const discussion = {
   number: 3,
   title: "How do I _do_ it?",
-  html_url: "https://github.com/ncjsvr/OrielOS/discussions/3",
+  html_url: "https://github.com/OrielOS/OrielOS/discussions/3",
   user,
   category: { name: "Q&A", slug: "q-a" },
   created_at: "2026-05-02T10:00:00Z",
@@ -222,7 +222,7 @@ test("only releases ask to be crossposted", () => {
 const pull = (number, extra = {}) => ({
   number,
   title: `Change ${number}`,
-  html_url: `https://github.com/ncjsvr/OrielOS/pull/${number}`,
+  html_url: `https://github.com/OrielOS/OrielOS/pull/${number}`,
   user,
   draft: false,
   created_at: "2026-05-03T10:00:00Z",
@@ -242,7 +242,7 @@ test("only newer pull requests are posted, oldest first", () => {
     "Pull request #9: Change 9",
   ]);
   const [embed] = plan.posts[0].embeds;
-  assert.equal(embed.url, "https://github.com/ncjsvr/OrielOS/pull/8");
+  assert.equal(embed.url, "https://github.com/OrielOS/OrielOS/pull/8");
   assert.deepEqual(embed.author, { name: "alice", url: "https://github.com/alice" });
   assert.equal(plan.posts[0].crosspost, undefined);
 });

@@ -131,7 +131,7 @@ test("fails when two files map to one page name", () => {
 
 test("parses arguments and defaults", () => {
   assert.deepEqual(parseArguments(["--out", "o"], { GITHUB_REPOSITORY: "a/b" }), { out: "o", repo: "a/b", docs: "docs" });
-  assert.equal(parseArguments(["--out", "o"], {}).repo, "ncjsvr/OrielOS");
+  assert.equal(parseArguments(["--out", "o"], {}).repo, "OrielOS/OrielOS");
   assert.throws(() => parseArguments([], {}), /Missing --out/);
 });
 

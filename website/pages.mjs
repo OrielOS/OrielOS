@@ -12,7 +12,7 @@ import path from "node:path";
 import { escapeHtml, renderMarkdownDocument, renderMarkdownInline, slugify } from "./markdown.mjs";
 
 export const SITE = "https://orielos.org";
-export const REPO_URL = "https://github.com/ncjsvr/OrielOS";
+export const REPO_URL = "https://github.com/OrielOS/OrielOS";
 const BLOB = `${REPO_URL}/blob/main/`;
 const DISCUSSIONS_QA = `${REPO_URL}/discussions/categories/q-a`;
 const DISCORD = "https://discord.gg/RnpZYaKbHA";

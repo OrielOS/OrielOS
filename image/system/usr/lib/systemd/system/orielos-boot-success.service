@@ -1,6 +1,6 @@
 [Unit]
 Description=Mark this boot as good, so the boot menu stays hidden at the next one
-Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/updates.md
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/updates.md
 # Started by each desktop session once Plasma is up (orielos-mark-boot-success.service, a user
 # unit); polkit lets the person at the computer start this unit and nothing else.
 

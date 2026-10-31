@@ -10,18 +10,18 @@ Stuck, or found something that doesn't work? Here's where to look and who to ask
 
 ## Ask a question
 
-- **[GitHub Discussions](https://github.com/ncjsvr/OrielOS/discussions/categories/q-a):** ask in the Q&A category. Answers stay there for the next person with the same question.
+- **[GitHub Discussions](https://github.com/OrielOS/OrielOS/discussions/categories/q-a):** ask in the Q&A category. Answers stay there for the next person with the same question.
 - **[The official OrielOS Discord server](https://discord.gg/RnpZYaKbHA):** chat live and get quick help. It's the only official one: any other server using the name isn't run by the project.
 
 ## Report a problem
 
-If something is broken, open an issue on [GitHub](https://github.com/ncjsvr/OrielOS/issues/new/choose). It helps to include:
+If something is broken, open an issue on [GitHub](https://github.com/OrielOS/OrielOS/issues/new/choose). It helps to include:
 
 - **Your OrielOS version**, from **Settings > Update**, or **Settings > System > About**.
 - **Your PC:** its graphics card, and whether it's a desktop or a laptop.
 - **What you did, what you expected and what happened instead**, with a photo or screenshot of any error.
 
-Security problems are different: please don't post them in public. The [security policy](https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md) says how to report one privately.
+Security problems are different: please don't post them in public. The [security policy](https://github.com/OrielOS/OrielOS/blob/main/SECURITY.md) says how to report one privately.
 
 ## If OrielOS won't start properly
 

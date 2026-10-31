@@ -24,7 +24,7 @@ on:
 permissions: {}
 
 env:
-  REPOSITORY: ghcr.io/ncjsvr/orielos
+  REPOSITORY: ghcr.io/orielos/orielos
 
 jobs:
   notes:

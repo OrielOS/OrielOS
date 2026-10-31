@@ -1,6 +1,6 @@
 [Unit]
 Description=Tell OrielOS this boot reached the desktop, so the boot menu stays hidden at the next one
-Documentation=https://github.com/ncjsvr/OrielOS/blob/main/docs/updates.md
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/updates.md
 # The boot counts as good once the desktop is up, which is when Plasma's shell has started. If the
 # shell fails to start, this doesn't run, and the next boot shows the menu.
 Requires=plasma-plasmashell.service

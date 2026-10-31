@@ -5,7 +5,7 @@
 # v0.100.10 by v1.0.0. MAJOR has no limit. Tags that aren't versions, such as testing, stable or
 # the older date tags (44.20261026), are ignored; with no versions at all, the next is v0.0.1.
 #
-# Usage: skopeo list-tags docker://ghcr.io/ncjsvr/orielos | jq -r '.Tags[]' | tools/next-version.sh
+# Usage: skopeo list-tags docker://ghcr.io/orielos/orielos | jq -r '.Tags[]' | tools/next-version.sh
 #        tools/next-version.sh --help
 set -Eeuo pipefail
 

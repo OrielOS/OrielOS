@@ -89,13 +89,13 @@ test("the nav has the site's sections, with Download, Guides and GitHub on narro
     { label: "News", href: "/news/", narrow: false },
     { label: "Status", href: "/#status", narrow: false },
     { label: "Contribute", href: "/#contribute", narrow: false },
-    { label: "GitHub", href: "https://github.com/ncjsvr/OrielOS", narrow: true },
+    { label: "GitHub", href: "https://github.com/OrielOS/OrielOS", narrow: true },
   ]);
 });
 
 test("the footer links the site's pages and keeps the badges", () => {
   const html = applyIncludes("<!-- include:footer -->", partials);
-  for (const href of ["/guides/", "/faq/", "/news/", "/releases/", "/press/", "/credits/", "https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md"]) {
+  for (const href of ["/guides/", "/faq/", "/news/", "/releases/", "/press/", "/credits/", "https://github.com/OrielOS/OrielOS/blob/main/SECURITY.md"]) {
     assert.ok(html.includes(`href="${href}"`), href);
   }
   assert.match(html, /bestpractices\.dev\/projects\/15906\/badge/);
@@ -172,10 +172,10 @@ test("guide links go to guide pages, the index or GitHub", () => {
   assert.equal(guideLink("./status.md", slugs), "/guides/status/");
   assert.equal(guideLink("README.md", slugs), "/guides/");
   assert.equal(guideLink("README.md#x", slugs), "/guides/#x");
-  assert.equal(guideLink("../CONTRIBUTING.md", slugs), "https://github.com/ncjsvr/OrielOS/blob/main/CONTRIBUTING.md");
-  assert.equal(guideLink("LICENSE", slugs), "https://github.com/ncjsvr/OrielOS/blob/main/docs/LICENSE");
-  assert.equal(guideLink("missing.md", slugs), "https://github.com/ncjsvr/OrielOS/blob/main/docs/missing.md");
-  assert.equal(guideLink("../image/Containerfile", slugs), "https://github.com/ncjsvr/OrielOS/blob/main/image/Containerfile");
+  assert.equal(guideLink("../CONTRIBUTING.md", slugs), "https://github.com/OrielOS/OrielOS/blob/main/CONTRIBUTING.md");
+  assert.equal(guideLink("LICENSE", slugs), "https://github.com/OrielOS/OrielOS/blob/main/docs/LICENSE");
+  assert.equal(guideLink("missing.md", slugs), "https://github.com/OrielOS/OrielOS/blob/main/docs/missing.md");
+  assert.equal(guideLink("../image/Containerfile", slugs), "https://github.com/OrielOS/OrielOS/blob/main/image/Containerfile");
   assert.equal(guideLink("#the-update-settings", slugs), "#the-update-settings");
   assert.equal(guideLink("https://flathub.org", slugs), "https://flathub.org");
   assert.equal(guideLink("/download/", slugs), "/download/");
@@ -214,7 +214,7 @@ test("a guide's title, description, links and images come from its Markdown", ()
   assert.ok(guide.description.startsWith("OrielOS updates in the background. A new version is prepared"));
   assert.match(guide.html, /<a href="\/guides\/install\/#1-download">Install OrielOS<\/a>/);
   assert.match(guide.html, /<a href="\/guides\/">the docs<\/a>/);
-  assert.match(guide.html, /<a href="https:\/\/github\.com\/ncjsvr\/OrielOS\/blob\/main\/docs\/LICENSE">the licence<\/a>/);
+  assert.match(guide.html, /<a href="https:\/\/github\.com\/OrielOS\/OrielOS\/blob\/main\/docs\/LICENSE">the licence<\/a>/);
   assert.match(guide.html, /<figure class="doc-image"><img src="\/guides\/images\/update\.png" alt="The update page in Settings" width="640" height="400"/);
   assert.doesNotMatch(guide.html, /Licence: CC BY-SA/);
 });
@@ -291,7 +291,7 @@ test("a guide page has a breadcrumb, an edit link and previous and next links", 
   const html = guideContent(updates, install, zebra);
   assert.match(html, /<nav class="breadcrumb" aria-label="Breadcrumb"><ol><li><a href="\/guides\/">Guides<\/a><\/li><li><span aria-current="page">Updates and going back<\/span>/);
   assert.match(html, /This guide is licensed under <a [^>]*>CC BY-SA 4\.0<\/a>\./);
-  assert.match(html, /<a href="https:\/\/github\.com\/ncjsvr\/OrielOS\/blob\/main\/docs\/updates\.md">Edit this guide on GitHub<\/a>/);
+  assert.match(html, /<a href="https:\/\/github\.com\/OrielOS\/OrielOS\/blob\/main\/docs\/updates\.md">Edit this guide on GitHub<\/a>/);
   assert.match(html, /rel="prev" href="\/guides\/install\/"/);
   assert.match(html, /rel="next" href="\/guides\/zebra\/"/);
   assert.doesNotMatch(guideContent(install, undefined, updates), /rel="prev"/);
@@ -447,7 +447,7 @@ test("formatDate writes dates in British style", () => {
 // Releases and the feed
 
 const releaseJson = [
-  { tag_name: "v0.0.6", name: "", draft: false, prerelease: false, published_at: "2026-10-20T10:00:00Z", html_url: "https://github.com/ncjsvr/OrielOS/releases/tag/v0.0.6", body: "## Added\n\n- Older." },
+  { tag_name: "v0.0.6", name: "", draft: false, prerelease: false, published_at: "2026-10-20T10:00:00Z", html_url: "https://github.com/OrielOS/OrielOS/releases/tag/v0.0.6", body: "## Added\n\n- Older." },
   { tag_name: "v0.0.8-rc", name: "Candidate", draft: false, prerelease: true, published_at: "2026-10-28T10:00:00Z", html_url: "https://github.com/x", body: "" },
   { tag_name: "v0.0.9", name: "Draft", draft: true, prerelease: false, published_at: null, html_url: "https://github.com/x", body: "" },
   {
@@ -464,28 +464,28 @@ const releaseJson = [
 ];
 
 test("release notes keep only full releases, newest first", () => {
-  const releases = releasesFrom(releaseJson, "ncjsvr/OrielOS");
+  const releases = releasesFrom(releaseJson, "OrielOS/OrielOS");
   assert.deepEqual(releases.map((release) => release.tag), ["v0.0.7", "v0.0.6"]);
   assert.equal(releases[0].name, "OrielOS v0.0.7");
   assert.equal(releases[1].name, "v0.0.6");
-  assert.equal(releases[0].url, "https://github.com/ncjsvr/OrielOS/releases/tag/v0.0.7");
+  assert.equal(releases[0].url, "https://github.com/OrielOS/OrielOS/releases/tag/v0.0.7");
   assert.equal(releases[0].publishedAt, "2026-10-27T15:04:05Z");
   assert.deepEqual(releasesFrom({ message: "Not Found" }, "a/b"), []);
 });
 
 test("release notes are rendered safely, with links to GitHub and headings under the release's own", () => {
-  const [latest] = releasesFrom(releaseJson, "ncjsvr/OrielOS");
+  const [latest] = releasesFrom(releaseJson, "OrielOS/OrielOS");
   const html = releaseHtml(latest);
   assert.match(html, /<h3 id="v007-get-it">Get it<\/h3>/);
   assert.match(html, /<h4 id="v007-added">Added<\/h4>/);
-  assert.match(html, /href="https:\/\/github\.com\/ncjsvr\/OrielOS\/blob\/main\/docs\/install\.md"/);
+  assert.match(html, /href="https:\/\/github\.com\/OrielOS\/OrielOS\/blob\/main\/docs\/install\.md"/);
   assert.match(html, /&lt;script&gt;/);
   assert.doesNotMatch(html, /<script|<img/);
-  const page = releasesContent(releasesFrom(releaseJson, "ncjsvr/OrielOS"));
+  const page = releasesContent(releasesFrom(releaseJson, "OrielOS/OrielOS"));
   assert.match(page, /<article class="release prose" id="v0\.0\.7"/);
   assert.match(page, /<time datetime="2026-10-27T15:04:05Z">27 October 2026<\/time>/);
   assert.ok(page.indexOf('id="v0.0.7"') < page.indexOf('id="v0.0.6"'));
-  assert.match(releasesContent([]), /No releases yet\..*github\.com\/ncjsvr\/OrielOS\/releases/s);
+  assert.match(releasesContent([]), /No releases yet\..*github\.com\/OrielOS\/OrielOS\/releases/s);
 });
 
 const channelJson = [
@@ -497,7 +497,7 @@ const channelJson = [
 ];
 
 test("testing builds are kept and marked with the stable version that includes them", () => {
-  const releases = releasesFrom(channelJson, "ncjsvr/OrielOS");
+  const releases = releasesFrom(channelJson, "OrielOS/OrielOS");
   assert.deepEqual(
     releases.map((release) => [release.tag, release.testing, release.stableIn]),
     [
@@ -509,13 +509,13 @@ test("testing builds are kept and marked with the stable version that includes t
     ],
   );
   assert.deepEqual(latestTesting(releases), { name: "OrielOS v0.1.0 (testing)", version: "v0.1.0" });
-  assert.equal(latestTesting(releasesFrom(channelJson.slice(0, 3), "ncjsvr/OrielOS")), null);
+  assert.equal(latestTesting(releasesFrom(channelJson.slice(0, 3), "OrielOS/OrielOS")), null);
   assert.equal(latestTesting([]), null);
 });
 
 test("a withdrawn testing build is labelled and never offered as the newest", () => {
   const withdrawn = { ...channelJson[4], name: "OrielOS v0.1.0 (testing, withdrawn)" };
-  const releases = releasesFrom([...channelJson.slice(0, 4), withdrawn], "ncjsvr/OrielOS");
+  const releases = releasesFrom([...channelJson.slice(0, 4), withdrawn], "OrielOS/OrielOS");
   assert.equal(releases[0].withdrawn, true);
   assert.deepEqual(latestTesting(releases), { name: "OrielOS v0.0.10 (testing)", version: "v0.0.10" });
   const page = releasesContent(releases);
@@ -523,7 +523,7 @@ test("a withdrawn testing build is labelled and never offered as the newest", ()
 });
 
 test("the release notes label testing builds and say which stable version has them", () => {
-  const page = releasesContent(releasesFrom(channelJson, "ncjsvr/OrielOS"));
+  const page = releasesContent(releasesFrom(channelJson, "OrielOS/OrielOS"));
   const article = (tag) => page.slice(page.indexOf(`id="${tag}"`), page.indexOf("</article>", page.indexOf(`id="${tag}"`)));
   assert.match(article("v0.0.8"), /<span class="release-channel release-channel-testing">Testing<\/span> <span>In stable <a href="#v0\.0\.9">v0\.0\.9<\/a><\/span>/);
   assert.match(article("v0.1.0"), /Testing<\/span> <span>Not in a stable version yet<\/span>/);
@@ -543,16 +543,16 @@ test("renderPage names the newest testing build only when there is one", () => {
 });
 
 test("repoLink sends relative paths to GitHub", () => {
-  assert.equal(repoLink("CHANGELOG.md"), "https://github.com/ncjsvr/OrielOS/blob/main/CHANGELOG.md");
-  assert.equal(repoLink("./docs/install.md#x"), "https://github.com/ncjsvr/OrielOS/blob/main/docs/install.md#x");
-  assert.equal(repoLink("logo/a.svg", "artwork"), "https://github.com/ncjsvr/OrielOS/blob/main/artwork/logo/a.svg");
-  assert.equal(repoLink("../.github/x.png", "artwork"), "https://github.com/ncjsvr/OrielOS/blob/main/.github/x.png");
+  assert.equal(repoLink("CHANGELOG.md"), "https://github.com/OrielOS/OrielOS/blob/main/CHANGELOG.md");
+  assert.equal(repoLink("./docs/install.md#x"), "https://github.com/OrielOS/OrielOS/blob/main/docs/install.md#x");
+  assert.equal(repoLink("logo/a.svg", "artwork"), "https://github.com/OrielOS/OrielOS/blob/main/artwork/logo/a.svg");
+  assert.equal(repoLink("../.github/x.png", "artwork"), "https://github.com/OrielOS/OrielOS/blob/main/.github/x.png");
   assert.equal(repoLink("https://example.com"), "https://example.com");
 });
 
 test("the feed lists posts and releases newest first, with escaped content", () => {
   const posts = postsFrom([{ file: "hello.md", source: post("title: Hello & <welcome>\ndate: 2026-10-28\nsummary: A \"post\".", "See [the guides](/guides/) & **more**.") }]);
-  const releases = releasesFrom(releaseJson, "ncjsvr/OrielOS");
+  const releases = releasesFrom(releaseJson, "OrielOS/OrielOS");
   const xml = atomFeed([
     ...posts.map((item) => postEntry(item, postHtml(item, { forFeed: true }))),
     ...releases.map((item) => releaseEntry(item, releaseHtml(item))),
@@ -601,9 +601,9 @@ test("the download page shows the installer, its checksums and how to check them
   const page = contentPageFrom("download.html", downloadSource);
   assert.equal(page.slug, "download");
   assert.doesNotMatch(page.body, /SPDX/);
-  const iso = { url: "https://github.com/ncjsvr/OrielOS/releases/download/v0.0.7/OrielOS.iso", size: "1.2 GB", sha256: "a".repeat(64) };
-  const release = { name: "v0.0.7", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v0.0.7", iso };
-  const sums = { url: "https://github.com/ncjsvr/OrielOS/releases/download/v0.0.7/SHA256SUMS" };
+  const iso = { url: "https://github.com/OrielOS/OrielOS/releases/download/v0.0.7/OrielOS.iso", size: "1.2 GB", sha256: "a".repeat(64) };
+  const release = { name: "v0.0.7", url: "https://github.com/OrielOS/OrielOS/releases/tag/v0.0.7", iso };
+  const sums = { url: "https://github.com/OrielOS/OrielOS/releases/download/v0.0.7/SHA256SUMS" };
   const html = renderPage(page.body, { release, sums });
   assert.ok(html.includes(`href="${iso.url}"`));
   assert.ok(html.includes(`<code translate="no">${iso.sha256}</code>`));
@@ -615,7 +615,7 @@ test("the download page shows the installer, its checksums and how to check them
   assert.match(html, /What you’ll need/);
   assert.match(html, /href="\/guides\/install\/"/);
   assert.match(html, /href="\/releases\/"/);
-  assert.match(html, /href="https:\/\/github\.com\/ncjsvr\/OrielOS\/releases"/);
+  assert.match(html, /href="https:\/\/github\.com\/OrielOS\/OrielOS\/releases"/);
 
   const noSums = renderPage(page.body, { release });
   assert.doesNotMatch(noSums, /SHA256SUMS --ignore-missing|\{\{sums/);
@@ -664,7 +664,7 @@ test("the FAQ page's structured data repeats the answers on the page", async () 
   const item = contentPageFrom("faq.html", await read("../pages/faq.html"));
   assert.equal(item.title, "OrielOS FAQ: download, hardware and games");
   assert.equal(item.heading, "FAQ");
-  const release = { name: "OrielOS v0.0.7", version: "v0.0.7", url: "https://github.com/ncjsvr/OrielOS/releases/tag/v0.0.7", iso: null };
+  const release = { name: "OrielOS v0.0.7", version: "v0.0.7", url: "https://github.com/OrielOS/OrielOS/releases/tag/v0.0.7", iso: null };
   const rendered = (data) => {
     const body = renderPage(item.body, data);
     return {
@@ -718,6 +718,6 @@ test("artwork credits drop only the title and the note to contributors", () => {
   const html = artworkCreditsHtml("# Artwork credits\n\nEvery file. Add a line here with every new file.\n\n## Fonts\n\nSee [the logo](logo/a.svg).");
   assert.equal(
     html,
-    '<p>Every file.</p>\n<h3 id="artwork-fonts">Fonts</h3>\n<p>See <a href="https://github.com/ncjsvr/OrielOS/blob/main/artwork/logo/a.svg">the logo</a>.</p>',
+    '<p>Every file.</p>\n<h3 id="artwork-fonts">Fonts</h3>\n<p>See <a href="https://github.com/OrielOS/OrielOS/blob/main/artwork/logo/a.svg">the logo</a>.</p>',
   );
 });

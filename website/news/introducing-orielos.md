@@ -42,6 +42,6 @@ OrielOS is in early development, and it's honest about it. Only one PC has run i
 ## Try it, follow along and help
 
 - **Try it:** [download the installer](/download/) and follow [Install OrielOS](/guides/install/), or [try it in a virtual machine](/guides/install-vm/) first.
-- **Follow along:** subscribe to [this news feed](/news/feed.xml), or watch the [repository on GitHub](https://github.com/ncjsvr/OrielOS) for new releases.
-- **Talk to us:** ask questions and share ideas in [GitHub Discussions](https://github.com/ncjsvr/OrielOS/discussions), or chat on [the official Discord server](https://discord.gg/RnpZYaKbHA).
-- **Help build it:** code, docs, artwork and this website all take pull requests. The [contributing guide](https://github.com/ncjsvr/OrielOS/blob/main/CONTRIBUTING.md) is the place to start.
+- **Follow along:** subscribe to [this news feed](/news/feed.xml), or watch the [repository on GitHub](https://github.com/OrielOS/OrielOS) for new releases.
+- **Talk to us:** ask questions and share ideas in [GitHub Discussions](https://github.com/OrielOS/OrielOS/discussions), or chat on [the official Discord server](https://discord.gg/RnpZYaKbHA).
+- **Help build it:** code, docs, artwork and this website all take pull requests. The [contributing guide](https://github.com/OrielOS/OrielOS/blob/main/CONTRIBUTING.md) is the place to start.

@@ -4,7 +4,7 @@ Thank you for helping with OrielOS. This page explains how to report problems, s
 
 ## Reporting bugs and proposing features
 
-- **Questions** belong in the [Q&A](https://github.com/ncjsvr/OrielOS/discussions/categories/q-a) category of GitHub Discussions, and **open-ended ideas** in the [General](https://github.com/ncjsvr/OrielOS/discussions/categories/general) category. Issues are kept for actionable reports.
+- **Questions** belong in the [Q&A](https://github.com/OrielOS/OrielOS/discussions/categories/q-a) category of GitHub Discussions, and **open-ended ideas** in the [General](https://github.com/OrielOS/OrielOS/discussions/categories/general) category. Issues are kept for actionable reports.
 - **Bugs, game compatibility, hardware support and feature requests** use the issue forms. Choose the form that fits when you open a new issue, and fill in every required field. Search existing issues first.
 - **Security problems** must not be reported in public. Follow [SECURITY.md](SECURITY.md).
 - **Live chat** happens on [the official OrielOS Discord server](https://discord.gg/RnpZYaKbHA), the only one the project runs. Decisions are made on GitHub, so write anything that matters up as an issue, a discussion or a pull request.

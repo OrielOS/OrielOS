@@ -8,7 +8,7 @@
 // Turns every top-level docs/*.md file into a wiki page (docs/README.md becomes
 // Home), rewrites relative links so they work on the wiki and on GitHub, and
 // writes a sidebar and a footer. --repo defaults to $GITHUB_REPOSITORY, else
-// ncjsvr/OrielOS. --docs defaults to docs. --out is created if missing and must
+// OrielOS/OrielOS. --docs defaults to docs. --out is created if missing and must
 // be empty. docs/ stays the only source: the wiki is a generated copy.
 
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
@@ -18,7 +18,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
 
-const DEFAULT_REPO = "ncjsvr/OrielOS";
+const DEFAULT_REPO = "OrielOS/OrielOS";
 const HOME = "Home";
 
 // Page naming

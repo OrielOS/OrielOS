@@ -2,9 +2,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please search existing discussions and the [user guides](https://github.com/ncjsvr/OrielOS/tree/main/docs) before you ask.
+        Please search existing discussions and the [user guides](https://github.com/OrielOS/OrielOS/tree/main/docs) before you ask.
 
-        If something is broken, [open an issue](https://github.com/ncjsvr/OrielOS/issues/new/choose) instead. Security problems must be reported as described in [SECURITY.md](https://github.com/ncjsvr/OrielOS/blob/main/SECURITY.md), never posted publicly.
+        If something is broken, [open an issue](https://github.com/OrielOS/OrielOS/issues/new/choose) instead. Security problems must be reported as described in [SECURITY.md](https://github.com/OrielOS/OrielOS/blob/main/SECURITY.md), never posted publicly.
   - type: textarea
     id: question
     attributes:

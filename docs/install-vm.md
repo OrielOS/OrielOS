@@ -18,7 +18,7 @@ The commands need administrator rights and ask for your password through `sudo`.
 Get the source code from GitHub, then build the system image:
 
 ```sh
-git clone https://github.com/ncjsvr/OrielOS.git
+git clone https://github.com/OrielOS/OrielOS.git
 cd OrielOS
 tools/check-env.sh
 tools/build-image.sh --no-archive

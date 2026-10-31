@@ -14,4 +14,4 @@ Check it with `gpg --show-keys --with-fingerprint image/keys/RPM-GPG-KEY-negativ
 
 ## orielos-cosign.pub
 
-The public half of the key that CI signs published OrielOS builds with (see "Publishing" in `image/README.md`). When it's here, `image/build/88-signing.sh` installs it in the image and requires its signature on every update from `ghcr.io/ncjsvr/orielos`. The private half is kept by the maintainer and in the `publish` environment's secrets. The pair was created on 2026-10-26 with `cosign generate-key-pair` (cosign v3.1.4).
+The public half of the key that CI signs published OrielOS builds with (see "Publishing" in `image/README.md`). When it's here, `image/build/88-signing.sh` installs it in the image and requires its signature on every update from `ghcr.io/orielos/orielos` and from `ghcr.io/ncjsvr/orielos`, the image's earlier address. The private half is kept by the maintainer and in the `publish` environment's secrets. The pair was created on 2026-10-26 with `cosign generate-key-pair` (cosign v3.1.4).
