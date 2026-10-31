@@ -8,6 +8,8 @@
 //   Win+M       minimises every window; Win+Shift+M brings them back
 //   Win+Home    minimises every window but the one in use; again brings them back
 //   Alt+Esc     sends the window in use to the back and switches to the next, with no switcher
+//   Win+Ctrl+D  adds a desktop and switches to it; Win+Ctrl+F4 closes the one in use
+// and, switching desktops, shows the desktop's name in the middle of the screen for a moment.
 // KWin's own Maximise and Minimise give Win+Up and Win+Down up for this (the user's
 // kglobalshortcutsrc, from /etc/skel or the orielos-user-shortcuts user unit).
 
@@ -137,5 +139,25 @@ registerShortcut("OrielOS Send to Back", "Send the window to the back and switch
     })[0];
     if (next) {
         workspace.activeWindow = next;
+    }
+});
+
+registerShortcut("OrielOS New Desktop", "Add a desktop and switch to it", "Meta+Ctrl+D", function () {
+    var count = workspace.desktops.length;
+    workspace.createDesktop(count, "Desktop " + (count + 1));
+    workspace.currentDesktop = workspace.desktops[count];
+});
+
+registerShortcut("OrielOS Close Desktop", "Close the desktop in use; its windows move to the one beside it", "Meta+Ctrl+F4", function () {
+    if (workspace.desktops.length > 1) {
+        // KWin moves the closed desktop's windows to the one before it.
+        workspace.removeDesktop(workspace.currentDesktop);
+    }
+});
+
+// Plasma's on-screen display shows the name, as Windows does when switching desktops.
+workspace.currentDesktopChanged.connect(function () {
+    if (workspace.desktops.length > 1) {
+        callDBus("org.kde.plasmashell", "/org/kde/osdService", "org.kde.osdService", "showText", "virtual-desktops", workspace.currentDesktop.name);
     }
 });

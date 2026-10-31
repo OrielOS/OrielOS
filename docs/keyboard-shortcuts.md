@@ -34,6 +34,9 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + Home | Minimises every window but the one you're using; press it again to bring them back |
 | Alt + Esc | Sends the window to the back and switches to the next one |
 | Alt + Space | Opens the window's menu: Restore, Move, Size, Minimise, Maximise and Close. Clicking the app's icon at the top left of a window opens it too; double-clicking the icon closes the window |
+| Windows + Ctrl + D | Adds a desktop and switches to it; its name shows for a moment |
+| Windows + Ctrl + Left or Right arrow | Switches to the desktop on that side |
+| Windows + Ctrl + F4 | Closes the desktop you're on; its windows move to the one beside it |
 | Windows + A | Opens Quick Settings |
 | Windows + B | Opens the hidden icons in the system tray |
 | Windows + 1 to 9 | Opens, or switches to, the app in that place on the taskbar |

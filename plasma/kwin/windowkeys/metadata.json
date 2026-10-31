@@ -7,7 +7,7 @@
             }
         ],
         "Category": "Window Management",
-        "Description": "Windows' window shortcuts: Win+Up and Win+Down, Win+M, Win+Shift+M, Win+Home and Alt+Esc",
+        "Description": "Windows' window and desktop shortcuts: Win+Up and Win+Down, Win+M, Win+Shift+M, Win+Home, Alt+Esc, Win+Ctrl+D and Win+Ctrl+F4",
         "EnabledByDefault": true,
         "Id": "orielos-windowkeys",
         "License": "GPL-3.0-or-later",
