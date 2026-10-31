@@ -6,6 +6,7 @@
 // while it shows. Each screen draws a Picker; only the active window's screen shows the layouts.
 // Hovering over a window's maximise button opens the same layouts as a small menu under the button
 // (OrielOS's window frames invoke the "Snap Layouts Menu" action), without dimming the screen.
+// Dragging a window near the top of the screen drops the layouts down as the snap bar (SnapBar.qml).
 
 import QtQuick
 import org.kde.kwin
@@ -109,6 +110,10 @@ SceneEffect {
     function snap(area) {
         const window = effect.target;
         effect.close();
+        effect.snapWindow(window, area);
+    }
+
+    function snapWindow(window: QtObject, area) {
         if (!window) {
             return;
         }
@@ -123,6 +128,31 @@ SceneEffect {
     }
 
     delegate: Picker {}
+
+    // The snap bar, while a window is dragged near the top of the screen.
+    readonly property SnapBar snapBar: SnapBar {
+        effect: effect
+    }
+
+    // A window is dragged by its title bar: it's the active window by then.
+    Connections {
+        target: Workspace.activeWindow
+        ignoreUnknownSignals: true
+
+        function onInteractiveMoveResizeStarted() {
+            if (Workspace.activeWindow && Workspace.activeWindow.move) {
+                effect.snapBar.start(Workspace.activeWindow);
+            }
+        }
+
+        function onInteractiveMoveResizeStepped() {
+            effect.snapBar.follow();
+        }
+
+        function onInteractiveMoveResizeFinished() {
+            effect.snapBar.drop();
+        }
+    }
 
     ShortcutHandler {
         name: "Snap Layouts"

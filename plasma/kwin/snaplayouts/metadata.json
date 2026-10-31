@@ -7,7 +7,7 @@
             }
         ],
         "Category": "Window Management",
-        "Description": "Win+Z, or resting on a window's maximise button, shows layouts to snap the active window into: halves, thirds, main and side, or quarters",
+        "Description": "Win+Z, resting on a window's maximise button, or dragging a window to the top of the screen shows layouts to snap the window into: halves, thirds, main and side, or quarters",
         "EnabledByDefault": true,
         "Id": "orielos-snaplayouts",
         "License": "GPL-3.0-or-later",
