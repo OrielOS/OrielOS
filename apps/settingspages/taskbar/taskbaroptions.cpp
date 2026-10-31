@@ -32,4 +32,32 @@ void TaskbarOptions::setAutoHide(bool hide)
     }
 }
 
+void TaskbarOptions::setShowSearch(bool show)
+{
+    if (hasSearch() && show != showSearch()) {
+        m_settings->change(ShellSettings::Setting::ShowSearch, show);
+    }
+}
+
+void TaskbarOptions::setShowTaskView(bool show)
+{
+    if (hasTaskView() && show != showTaskView()) {
+        m_settings->change(ShellSettings::Setting::ShowTaskView, show);
+    }
+}
+
+void TaskbarOptions::setCombineButtons(bool combine)
+{
+    if (hasTasks() && combine != combineButtons()) {
+        m_settings->change(ShellSettings::Setting::CombineButtons, combine);
+    }
+}
+
+void TaskbarOptions::setShowSeconds(bool show)
+{
+    if (hasClock() && show != showSeconds()) {
+        m_settings->change(ShellSettings::Setting::ShowSeconds, show);
+    }
+}
+
 } // namespace OrielOSSettingsPages

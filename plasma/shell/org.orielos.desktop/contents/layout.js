@@ -51,6 +51,10 @@ tasks.writeConfig("launchers", [
 ]);
 // Only as wide as its icons, so the spacers can centre it.
 tasks.writeConfig("fill", false);
+// As in Windows: clicking an app with several windows shows their thumbnails to choose from (1),
+// and resting on a thumbnail shows only that window in place (peek).
+tasks.writeConfig("groupedTaskVisualization", 1);
+tasks.writeConfig("highlightWindows", true);
 
 panel.addWidget("org.kde.plasma.panelspacer");
 
@@ -69,7 +73,10 @@ tray.writeConfig("hiddenItems", [
     "org.kde.plasma.mediacontroller",
     "org.kde.plasma.notifications",
 ]);
-panel.addWidget("org.orielos.quicksettings");
+// Win+B opens the hidden icons, and Win+A Quick Settings.
+tray.globalShortcut = "Meta+B";
+var quickSettings = panel.addWidget("org.orielos.quicksettings");
+quickSettings.globalShortcut = "Meta+A";
 
 // The clock and the bell, which open the notifications and the calendar; Win+N opens them too.
 var clock = panel.addWidget("org.orielos.clock");

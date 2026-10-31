@@ -23,6 +23,8 @@ PlasmoidItem {
 
     // The time, to the minute.
     property date now: new Date()
+    readonly property bool showSeconds: Plasmoid.configuration.showSeconds
+    onShowSecondsChanged: tick.restart()
     // Whether the notification centre is open.
     property bool open: false
 
@@ -116,14 +118,16 @@ PlasmoidItem {
 
     Plasmoid.onActivated: root.open = !root.open
 
+    // On the minute, or every second while the taskbar shows seconds.
     Timer {
+        id: tick
         interval: 1000 * (60 - new Date().getSeconds())
         running: true
         repeat: true
         triggeredOnStart: true
         onTriggered: {
             root.now = new Date();
-            interval = 1000 * (60 - root.now.getSeconds());
+            interval = root.showSeconds ? 1000 - root.now.getMilliseconds() : 1000 * (60 - root.now.getSeconds());
         }
     }
 

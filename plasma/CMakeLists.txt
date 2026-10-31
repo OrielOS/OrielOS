@@ -10,6 +10,7 @@ find_package(Plasma 6.0 REQUIRED)
 add_subdirectory(startmenu)
 add_subdirectory(decoration)
 add_subdirectory(desktopmenu)
+add_subdirectory(panelmenu)
 
 # OrielOS's wording for some of Plasma's own text, such as "Pin to taskbar" in the taskbar's menu,
 # as catalogues for the language en@orielos, which
@@ -58,7 +59,7 @@ foreach(lnf org.orielos.desktop org.orielos.desktop.dark)
     install(DIRECTORY look-and-feel/logout DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents)
     # The welcome screen after signing in, with the sign-in screen's account picture.
     install(DIRECTORY look-and-feel/splash DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents)
-    install(FILES ${PROJECT_SOURCE_DIR}/image/sddm/orielos/AccountPicture.qml
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/shell/org.orielos.desktop/contents/lockscreen/AccountPicture.qml
         DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents/splash)
     foreach(shell org.orielos.desktop org.kde.plasma.desktop)
         install(FILES shell/org.orielos.desktop/contents/layout.js

@@ -10,6 +10,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <kcfgfile name=""/>
 
   <group name="General">
+    <entry name="showSeconds" type="Bool">
+      <label>Whether the taskbar clock shows seconds. Settings › Personalisation › Taskbar changes it.</label>
+      <default>false</default>
+    </entry>
     <entry name="focusMinutes" type="Int">
       <label>How long a focus session lasts, in minutes. The focus row under the calendar changes it.</label>
       <default>30</default>

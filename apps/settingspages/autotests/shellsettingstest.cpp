@@ -185,6 +185,50 @@ private Q_SLOTS:
         QCOMPARE(shown->evaluate(QStringLiteral("taskbar.hiding")).toString(), QStringLiteral("none"));
     }
 
+    void changesTheTaskbarsItems()
+    {
+        // Search, Task View and the clock on the taskbar too, as layout.js lays it out.
+        const QString full = orielosTaskbar + QStringLiteral(R"JS(
+var search = makeWidget(6, "org.orielos.search", {});
+var taskView = makeWidget(7, "org.orielos.taskview", {});
+var clock = makeWidget(8, "org.orielos.clock", {});
+taskbar.list.push(search, taskView, clock);
+)JS");
+        const auto before = runScript(full);
+        QVERIFY(before);
+        const ShellState state = printedState(*before);
+        QVERIFY(state.hasSearch && state.showSearch);
+        QVERIFY(state.hasTaskView && state.showTaskView);
+        QVERIFY(state.hasTasks && state.combineButtons);
+        QVERIFY(state.hasClock && !state.showSeconds);
+
+        const auto hidden = runScript(full, ShellSettings::Change { ShellSettings::Setting::ShowTaskView, false });
+        QVERIFY(hidden);
+        QCOMPARE(hidden->evaluate(QStringLiteral("taskView.config.shown")).toBool(), false);
+        QCOMPARE(hidden->evaluate(QStringLiteral("taskView.reloads")).toInt(), 1);
+        QVERIFY(!printedState(*hidden).showTaskView);
+        QVERIFY(printedState(*hidden).showSearch);
+
+        const auto apart = runScript(full, ShellSettings::Change { ShellSettings::Setting::CombineButtons, false });
+        QVERIFY(apart);
+        QCOMPARE(apart->evaluate(QStringLiteral("taskbar.list[2].config.groupingStrategy")).toInt(), 0);
+        QVERIFY(!printedState(*apart).combineButtons);
+
+        const auto seconds = runScript(full, ShellSettings::Change { ShellSettings::Setting::ShowSeconds, true });
+        QVERIFY(seconds);
+        QCOMPARE(seconds->evaluate(QStringLiteral("clock.config.showSeconds")).toBool(), true);
+        QVERIFY(printedState(*seconds).showSeconds);
+    }
+
+    void withoutTheItemsNothingChanges()
+    {
+        // The plain taskbar has no Search, Task View or clock; asking for them changes nothing.
+        const auto engine = runScript(orielosTaskbar, ShellSettings::Change { ShellSettings::Setting::ShowSearch, false });
+        QVERIFY(engine);
+        QVERIFY(!printedState(*engine).hasSearch);
+        QVERIFY(!printedState(*engine).hasClock);
+    }
+
     void findsStartOnAnyPanel()
     {
         const auto engine = runScript(

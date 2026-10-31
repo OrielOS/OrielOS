@@ -56,7 +56,10 @@ RowLayout {
             PC3.Label {
                 id: timeLabel
                 Layout.alignment: Qt.AlignRight
-                text: buttons.clock.now.toLocaleTimeString(Qt.locale(), Locale.ShortFormat)
+                // With seconds, the locale's short time with the seconds after the minutes.
+                text: buttons.clock.showSeconds
+                    ? buttons.clock.now.toLocaleTimeString(Qt.locale(), Qt.locale().timeFormat(Locale.ShortFormat).replace(/mm/, "mm:ss"))
+                    : buttons.clock.now.toLocaleTimeString(Qt.locale(), Locale.ShortFormat)
                 textFormat: Text.PlainText
                 font.pixelSize: 12
             }

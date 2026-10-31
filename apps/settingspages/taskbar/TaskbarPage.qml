@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// The taskbar's alignment and whether it hides itself. Each change applies to the taskbar at once.
+// The taskbar's items (Search and Task View), its alignment, whether it hides itself, whether each
+// app's windows share one button, and seconds in the clock. Each change applies to the taskbar at
+// once.
 
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -77,6 +79,49 @@ KCM.SimpleKCM {
                 onToggled: {
                     root.options.autoHide = checked;
                     checked = Qt.binding(() => root.options.autoHide);
+                }
+            }
+
+            QQC2.ComboBox {
+                Kirigami.FormData.label: root.l10n.i18nc("@label:listbox", "Combine taskbar buttons:")
+                enabled: root.options.hasTasks
+                model: [root.l10n.i18nc("@item:inlistbox Combine taskbar buttons", "Always"), root.l10n.i18nc("@item:inlistbox Combine taskbar buttons", "Never")]
+                currentIndex: root.options.combineButtons ? 0 : 1
+                onActivated: index => {
+                    root.options.combineButtons = index === 0;
+                    currentIndex = Qt.binding(() => root.options.combineButtons ? 0 : 1);
+                }
+            }
+
+            QQC2.Switch {
+                Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Taskbar items:")
+                visible: root.options.hasSearch
+                text: root.l10n.i18nc("@option:check", "Search")
+                checked: root.options.showSearch
+                onToggled: {
+                    root.options.showSearch = checked;
+                    checked = Qt.binding(() => root.options.showSearch);
+                }
+            }
+
+            QQC2.Switch {
+                visible: root.options.hasTaskView
+                text: root.l10n.i18nc("@option:check", "Task View")
+                checked: root.options.showTaskView
+                onToggled: {
+                    root.options.showTaskView = checked;
+                    checked = Qt.binding(() => root.options.showTaskView);
+                }
+            }
+
+            QQC2.Switch {
+                Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Clock:")
+                visible: root.options.hasClock
+                text: root.l10n.i18nc("@option:check", "Show seconds in the clock")
+                checked: root.options.showSeconds
+                onToggled: {
+                    root.options.showSeconds = checked;
+                    checked = Qt.binding(() => root.options.showSeconds);
                 }
             }
         }

@@ -12,4 +12,4 @@ Containment=org.kde.panel
 ToolBox=org.kde.paneltoolbox
 
 [Panel][ContainmentActions]
-RightButton;NoModifier=org.kde.contextmenu
+RightButton;NoModifier=org.orielos.panelmenu

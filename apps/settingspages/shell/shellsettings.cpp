@@ -41,6 +41,15 @@ function order(panel) {
 
 var state = { hasStart: false };
 var panel = null;
+// The first widget of a type on the taskbar, with its General settings at hand, or null.
+function first(type) {
+    var found = panel.widgets(type);
+    if (found.length === 0) {
+        return null;
+    }
+    found[0].currentConfigGroup = ["General"];
+    return found[0];
+}
 var start = null;
 var all = panels();
 for (var i = 0; i < all.length && !start; ++i) {
@@ -59,6 +68,10 @@ if (start) {
     if (spacer) {
         spacer.currentConfigGroup = ["General"];
     }
+    var search = first("org.orielos.search");
+    var taskView = first("org.orielos.taskview");
+    var tasks = first("org.kde.plasma.icontasks");
+    var clock = first("org.orielos.clock");
     /*CHANGE*/
     state.hasStart = true;
     state.showRecentlyAdded = flag(start.readConfig("showRecentlyAdded", true));
@@ -66,6 +79,15 @@ if (start) {
     state.canAlign = spacer !== null;
     state.centred = spacer === null || flag(spacer.readConfig("expanding", true));
     state.autoHide = panel.hiding === "autohide";
+    state.hasSearch = search !== null;
+    state.showSearch = search === null || flag(search.readConfig("shown", true));
+    state.hasTaskView = taskView !== null;
+    state.showTaskView = taskView === null || flag(taskView.readConfig("shown", true));
+    state.hasTasks = tasks !== null;
+    // 1 groups by app, Plasma's default; 0 doesn't group.
+    state.combineButtons = tasks === null || String(tasks.readConfig("groupingStrategy", 1)) !== "0";
+    state.hasClock = clock !== null;
+    state.showSeconds = clock !== null && flag(clock.readConfig("showSeconds", false));
 }
 print(JSON.stringify(state));
 )JS";
@@ -83,6 +105,15 @@ QString changeScript(const ShellSettings::Change &change)
         return QStringLiteral("if (spacer) {\n        spacer.writeConfig(\"expanding\", %1);\n        spacer.reloadConfig();\n    }").arg(value);
     case ShellSettings::Setting::AutoHide:
         return QStringLiteral("panel.hiding = %1 ? \"autohide\" : \"none\";").arg(value);
+    case ShellSettings::Setting::ShowSearch:
+        return QStringLiteral("if (search) {\n        search.writeConfig(\"shown\", %1);\n        search.reloadConfig();\n    }").arg(value);
+    case ShellSettings::Setting::ShowTaskView:
+        return QStringLiteral("if (taskView) {\n        taskView.writeConfig(\"shown\", %1);\n        taskView.reloadConfig();\n    }").arg(value);
+    case ShellSettings::Setting::CombineButtons:
+        // 1 groups each app's windows on one button, Plasma's default; 0 gives each its own.
+        return QStringLiteral("if (tasks) {\n        tasks.writeConfig(\"groupingStrategy\", %1 ? 1 : 0);\n        tasks.reloadConfig();\n    }").arg(value);
+    case ShellSettings::Setting::ShowSeconds:
+        return QStringLiteral("if (clock) {\n        clock.writeConfig(\"showSeconds\", %1);\n        clock.reloadConfig();\n    }").arg(value);
     }
     return { };
 }
@@ -104,6 +135,14 @@ std::optional<ShellState> ShellState::fromJson(const QString &json)
     state.canAlign = object.value(QStringLiteral("canAlign")).toBool(false);
     state.centred = object.value(QStringLiteral("centred")).toBool(true);
     state.autoHide = object.value(QStringLiteral("autoHide")).toBool(false);
+    state.hasSearch = object.value(QStringLiteral("hasSearch")).toBool(false);
+    state.showSearch = object.value(QStringLiteral("showSearch")).toBool(true);
+    state.hasTaskView = object.value(QStringLiteral("hasTaskView")).toBool(false);
+    state.showTaskView = object.value(QStringLiteral("showTaskView")).toBool(true);
+    state.hasTasks = object.value(QStringLiteral("hasTasks")).toBool(false);
+    state.combineButtons = object.value(QStringLiteral("combineButtons")).toBool(true);
+    state.hasClock = object.value(QStringLiteral("hasClock")).toBool(false);
+    state.showSeconds = object.value(QStringLiteral("showSeconds")).toBool(false);
     return state;
 }
 
@@ -205,6 +244,18 @@ void ShellSettings::apply(ShellState &state, const Change &change)
         break;
     case Setting::AutoHide:
         state.autoHide = change.second;
+        break;
+    case Setting::ShowSearch:
+        state.showSearch = change.second;
+        break;
+    case Setting::ShowTaskView:
+        state.showTaskView = change.second;
+        break;
+    case Setting::CombineButtons:
+        state.combineButtons = change.second;
+        break;
+    case Setting::ShowSeconds:
+        state.showSeconds = change.second;
         break;
     }
 }

@@ -29,12 +29,15 @@ PlasmoidItem {
     fullRepresentation: MouseArea {
         id: button
 
-        implicitWidth: 44
+        // Settings › Personalisation › Taskbar can hide the button; it then takes no room.
+        visible: Plasmoid.configuration.shown
+        implicitWidth: visible ? 44 : 0
         implicitHeight: 40
-        Layout.minimumWidth: 44
+        Layout.minimumWidth: visible ? 44 : 0
+        Layout.maximumWidth: visible ? 44 : 0
         Layout.minimumHeight: 40
         Layout.fillHeight: true
-        Layout.preferredWidth: 44
+        Layout.preferredWidth: visible ? 44 : 0
         hoverEnabled: true
         activeFocusOnTab: true
         Accessible.role: Accessible.Button

@@ -159,6 +159,11 @@ else
         sed 's/^X-KDE-Shortcuts=Display,Meta+P$/X-KDE-Shortcuts=Display/' /usr/share/kglobalaccel/org.kde.kscreen.desktop |
             write "$data/kglobalaccel/org.kde.kscreen.desktop"
     fi
+    # Settings itself, run from the sideload, so pages added since the image show.
+    if [[ -f "$staging/bin/orielos-settings" ]]; then
+        sed "s|^Exec=orielos-settings|Exec=$state/bin/orielos-settings|" "$staging/settings.desktop" |
+            write "$data/applications/org.orielos.Settings.desktop"
+    fi
     if [[ -d "$staging/locale-en@orielos" ]]; then
         mkdir -p "$data/locale"
         place "$staging/locale-en@orielos" "$data/locale/en@orielos"
@@ -258,7 +263,7 @@ main() {
         cp -a "$ROOT/plasma/look-and-feel/$lnf" "$STAGING/look-and-feel/"
         mkdir -p "$STAGING/look-and-feel/$lnf/contents/layouts"
         cp -a "$ROOT/plasma/look-and-feel/logout" "$ROOT/plasma/look-and-feel/splash" "$STAGING/look-and-feel/$lnf/contents/"
-        cp "$ROOT/image/sddm/orielos/AccountPicture.qml" "$STAGING/look-and-feel/$lnf/contents/splash/"
+        cp "$ROOT/plasma/shell/org.orielos.desktop/contents/lockscreen/AccountPicture.qml" "$STAGING/look-and-feel/$lnf/contents/splash/"
         for shell in org.orielos.desktop org.kde.plasma.desktop; do
             cp "$ROOT/plasma/shell/org.orielos.desktop/contents/layout.js" "$STAGING/look-and-feel/$lnf/contents/layouts/$shell-layout.js"
         done
@@ -275,13 +280,16 @@ main() {
         podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/plasma/applets" "$STAGING/plugins/plasma/applets"
         podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/org.kde.kdecoration3" "$STAGING/plugins/org.kde.kdecoration3"
         podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/plasma/containmentactions" "$STAGING/plugins/plasma/containmentactions"
+        mkdir -p "$STAGING/plugins/plasma/kcms"
+        podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/plasma/kcms/systemsettings" "$STAGING/plugins/plasma/kcms/systemsettings"
         podman cp "$CONTAINER:/out/usr/share/locale/en@orielos" "$STAGING/locale-en@orielos"
         mkdir -p "$STAGING/bin"
         podman cp "$CONTAINER:/out/usr/bin/orielos-display-mode" "$STAGING/bin/orielos-display-mode"
+        podman cp "$CONTAINER:/out/usr/bin/orielos-settings" "$STAGING/bin/orielos-settings"
         cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
         podman rm -f "$CONTAINER" >/dev/null
         CONTAINER=""
-        find "$STAGING/plugins" -type f ! -name 'org.orielos.*' -delete
+        find "$STAGING/plugins" -type f ! -name 'org.orielos.*' ! -name 'kcm_orielos_*' -delete
     fi
     step "Sideloading the shell from $(git -C "$ROOT" log -1 --format='%h %s' 2>/dev/null || echo "$ROOT") onto $HOST"
     tar -C "$STAGING" -c . | ssh "${SSH_OPTS[@]}" "$HOST" sudo bash -c "$(printf '%q' "$script")" sideload 0 "$(printf '%q' "$RESTART_USER")" "$((1 - APPS))"

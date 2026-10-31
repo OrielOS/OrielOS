@@ -57,6 +57,37 @@ Item {
                     quickSettings: panel.quickSettings
                 }
 
+                // The pages of tiles, as dots like Start's; a click turns to that page.
+                Row {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.bottomMargin: 4
+                    visible: tileGrid.pageCount > 1 && !panel.quickSettings.editing
+                    spacing: 6
+
+                    Repeater {
+                        model: tileGrid.pageCount
+
+                        delegate: MouseArea {
+                            required property int index
+
+                            width: 12
+                            height: 12
+                            Accessible.role: Accessible.PageTab
+                            Accessible.name: i18nc("@action:button %1 is a page number", "Page %1", index + 1)
+                            onClicked: tileGrid.page = index
+
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 6
+                                height: 6
+                                radius: 3
+                                color: Kirigami.Theme.textColor
+                                opacity: tileGrid.page === parent.index ? 0.9 : 0.3
+                            }
+                        }
+                    }
+                }
+
                 // Brightness of the first screen that has it, as Windows shows one slider.
                 Repeater {
                     model: panel.quickSettings.screenBrightness.isBrightnessAvailable ? panel.quickSettings.screenBrightness.displays : null

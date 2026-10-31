@@ -25,6 +25,17 @@ struct ShellState
     bool canAlign = false;
     bool centred = true;
     bool autoHide = false;
+    // The Search and Task View buttons, the task manager and the clock on the taskbar, and their
+    // settings; a button or widget that isn't there can't be changed.
+    bool hasSearch = false;
+    bool showSearch = true;
+    bool hasTaskView = false;
+    bool showTaskView = true;
+    bool hasTasks = false;
+    // Each app's windows on one button (Windows' "Always combine"), or each window on its own.
+    bool combineButtons = true;
+    bool hasClock = false;
+    bool showSeconds = false;
 
     // The state a script printed, or nothing if the output isn't that JSON.
     static std::optional<ShellState> fromJson(const QString &json);
@@ -44,6 +55,10 @@ public:
         ShowRecentFiles,
         Centred,
         AutoHide,
+        ShowSearch,
+        ShowTaskView,
+        CombineButtons,
+        ShowSeconds,
     };
     using Change = std::pair<Setting, bool>;
 
