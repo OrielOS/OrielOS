@@ -2,7 +2,7 @@
 
 OrielOS updates in the background. A new version is prepared while you keep working, and nothing changes until you restart. If the new version gives you trouble, you go back to the one you had before, and OrielOS doesn't offer that version to you again.
 
-New versions come from OrielOS's own downloads on GitHub (`ghcr.io/ncjsvr/orielos`), and your computer checks each one's signature before preparing it. Which versions it gets depends on its [update channel](#the-update-settings): stable, the default, or testing.
+New versions come from OrielOS's own downloads on GitHub (`ghcr.io/orielos/orielos`), and your computer checks each one's signature before preparing it. Which versions it gets depends on its [update channel](#the-update-settings): stable, the default, or testing.
 
 ## What stays and what changes
 

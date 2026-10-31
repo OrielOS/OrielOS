@@ -3,7 +3,7 @@
 
 name: Protected files
 
-# Closes pull requests from anyone but the repository owner and Dependabot
+# Closes pull requests from anyone but the maintainers and Dependabot
 # that change a protected file, and fails the protected-files check.
 # pull_request_target runs this file as it is on the base branch, so a pull
 # request can't change the check that judges it. It reads only the pull
@@ -30,10 +30,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           AUTHOR: ${{ github.event.pull_request.user.login }}
-          OWNER: ${{ github.repository_owner }}
+          # The accounts that may change protected files, separated by spaces.
+          MAINTAINERS: ncjsvr
           PR: ${{ github.event.pull_request.number }}
           CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
-          # Only the owner may change these. An entry ending in / covers
+          # Only the maintainers may change these. An entry ending in / covers
           # everything under it; any other entry is a single file.
           PROTECTED: |
             .github/
@@ -53,7 +54,7 @@ jobs:
           set -euo pipefail
 
           # Dependabot updates the workflows' actions, and Renovate the digests in image/pins.env.
-          if [ "${AUTHOR}" = "${OWNER}" ] || [ "${AUTHOR}" = "dependabot[bot]" ] || [ "${AUTHOR}" = "renovate[bot]" ]; then
+          if [[ " ${MAINTAINERS} " == *" ${AUTHOR} "* ]] || [ "${AUTHOR}" = "dependabot[bot]" ] || [ "${AUTHOR}" = "renovate[bot]" ]; then
               echo "${AUTHOR} may change protected files."
               exit 0
           fi
