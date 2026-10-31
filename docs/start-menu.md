@@ -6,7 +6,7 @@ Press the Windows key (Win), or click the Start button in the middle of the task
 
 ## Search
 
-Start typing as soon as Start opens. The results list apps, settings, files, apps in the Store, and quick calculations such as `12*7`, grouped by kind. Settings open in [Settings](settings.md), and know Windows' words for them, such as "wifi", "default apps" or "windows update". Typing never opens anything by itself: press Enter to open the highlighted result (the first one, unless you moved with the Up and Down arrow keys), or click a result.
+Start typing as soon as Start opens. The results list apps, settings, files, apps in the Store, and quick calculations such as `12*7`: the best match first, then the rest grouped by kind. The filters above the results (**All**, **Apps**, **Documents**, **Settings** and **Folders**) narrow them to one kind. On the right, the highlighted result shows larger with what you can do with it, such as Open, Pin to Start, Pin to taskbar or the app's own actions. Settings open in [Settings](settings.md), and know Windows' words for them, such as "wifi", "default apps" or "windows update". Typing never opens anything by itself: press Enter to open the highlighted result (the first one, unless you moved with the Up and Down arrow keys), or click a result.
 
 ## Pinned apps
 

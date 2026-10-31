@@ -26,6 +26,9 @@ QtObject {
 
     property string query: ""
     readonly property bool searching: query.length > 0
+    // The search filter's tab: all, apps, documents, settings or folders.
+    property string searchFilter: "all"
+    readonly property var allRunners: ["krunner_services", "krunner_orielos_settings", "baloosearch", "krunner_recentdocuments", "krunner_placesrunner", "krunner_appstream", "calculator", "unitconverter"]
     property bool showingAllApps: false
     // Recommended's More page.
     property bool showingMore: false
@@ -115,7 +118,19 @@ QtObject {
     readonly property Kicker.RunnerModel runnerModel: Kicker.RunnerModel {
         appletInterface: state.plasmoidItem
         mergeResults: true
-        runners: ["krunner_services", "krunner_orielos_settings", "baloosearch", "krunner_recentdocuments", "krunner_placesrunner", "krunner_appstream", "calculator", "unitconverter"]
+        runners: {
+            switch (state.searchFilter) {
+            case "apps":
+                return ["krunner_services", "krunner_appstream"];
+            case "documents":
+                return ["baloosearch", "krunner_recentdocuments"];
+            case "settings":
+                return ["krunner_orielos_settings"];
+            case "folders":
+                return ["krunner_placesrunner", "baloosearch"];
+            }
+            return state.allRunners;
+        }
         query: state.query
         onRequestUpdateQuery: newQuery => state.queryUpdateRequested(newQuery)
     }
@@ -335,6 +350,7 @@ QtObject {
     function close() {
         state.contextMenu.close();
         state.plasmoidItem.expanded = false;
+        state.searchFilter = "all";
     }
 
     function launchPinned(index: int) {
@@ -405,6 +421,12 @@ QtObject {
     // action runs, or -1 if it's gone. favoriteId may be empty; pinnedIndex is the tile's index
     // when the menu is for a pinned tile, otherwise -1.
     function openContextMenu(model, findRow, favoriteId: string, actionList, pinnedIndex: int, item: Item, x: real, y: real, fromKeyboard: bool) {
+        state.contextMenu.show(state.contextEntries(model, findRow, favoriteId, actionList, pinnedIndex), item, x, y, fromKeyboard);
+    }
+
+    // The entries of an entry's context menu, as openContextMenu shows them and the search's
+    // actions pane lists them: { text, icon, handler }, or { separator } or { title, text }.
+    function contextEntries(model, findRow, favoriteId: string, actionList, pinnedIndex: int): var {
         const entries = [];
         const appId = isAppId(favoriteId) ? normaliseId(favoriteId) : "";
         if (appId.length > 0) {
@@ -454,7 +476,7 @@ QtObject {
         if (entries.length > 0 && actions.length > 0) {
             entries.push({ separator: true });
         }
-        state.contextMenu.show(entries.concat(actions), item, x, y, fromKeyboard);
+        return entries.concat(actions);
     }
 
     function openPinnedMenu(index: int, item: Item, x: real, y: real, fromKeyboard: bool) {
@@ -508,9 +530,27 @@ QtObject {
     }
 
     function openResultMenu(row: int, item: Item, x: real, y: real, fromKeyboard: bool) {
+        const entries = state.resultEntries(row);
+        if (entries.length > 0) {
+            state.contextMenu.show(entries, item, x, y, fromKeyboard);
+        }
+    }
+
+    // A search result's kind, such as Applications or Settings.
+    function resultGroup(row: int): string {
         const model = state.resultsModel;
         if (!model || row < 0 || row >= model.count) {
-            return;
+            return "";
+        }
+        const roles = model.KItemModels.KRoleNames;
+        return String(model.data(model.index(row, 0), roles.role("group")) ?? "");
+    }
+
+    // A search result's actions, for its context menu and the actions pane.
+    function resultEntries(row: int): var {
+        const model = state.resultsModel;
+        if (!model || row < 0 || row >= model.count) {
+            return [];
         }
         const roles = model.KItemModels.KRoleNames;
         const roleData = roleName => model.data(model.index(row, 0), roles.role(roleName));
@@ -519,7 +559,7 @@ QtObject {
             display: String(roleData("display") ?? ""),
             url: String(roleData("url") ?? ""),
         };
-        state.openContextMenu(model, () => model === state.resultsModel ? state.resultRow(match) : -1, match.favoriteId, roleData("actionList"), -1, item, x, y, fromKeyboard);
+        return state.contextEntries(model, () => model === state.resultsModel ? state.resultRow(match) : -1, match.favoriteId, roleData("actionList"), -1);
     }
     //END
 

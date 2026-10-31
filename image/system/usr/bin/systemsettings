@@ -1,0 +1,28 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# OrielOS has one settings app. This takes the place of System Settings' and kcmshell6's commands
+# (installed as both /usr/bin/systemsettings and /usr/bin/kcmshell6): it opens OrielOS's Settings at
+# the settings module asked for, such as kcm_kscreen, so Plasma's "Configure…" actions and anything
+# else that asks for System Settings land in Settings. Settings shows a module it has no page of its
+# own for under More settings.
+set -Eeuo pipefail
+
+module=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        # Options that take a value, which isn't the module.
+        --args | --caption | --icon | --lang | --platform | --style | --qwindowtitle | --qwindowicon)
+            shift 2 || shift
+            ;;
+        -*)
+            shift
+            ;;
+        *)
+            module="$1"
+            break
+            ;;
+    esac
+done
+exec /usr/bin/orielos-settings ${module:+"$module"}
