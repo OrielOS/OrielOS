@@ -8,6 +8,8 @@
 #include <KLocalizedString>
 #include <KSharedConfig>
 
+#include <QDBusConnection>
+#include <QDBusMessage>
 #include <QStandardPaths>
 
 namespace OrielOSSettingsPages {
@@ -25,6 +27,11 @@ AccentColour::AccentColour(QObject *parent)
     : QObject(parent)
     , m_program(QStringLiteral("plasma-apply-colorscheme"))
     , m_watcher(KConfigWatcher::create(KSharedConfig::openConfig(QStringLiteral("kdeglobals"))))
+    , m_kwinConfig(QStringLiteral("kwinrc"))
+    , m_reconfigure([]() {
+        QDBusConnection::sessionBus().send(QDBusMessage::createMethodCall(
+            QStringLiteral("org.kde.KWin"), QStringLiteral("/KWin"), QStringLiteral("org.kde.KWin"), QStringLiteral("reconfigure")));
+    })
 {
     // The Themes page, or any other, may change the colours too.
     connect(m_watcher.data(), &KConfigWatcher::configChanged, this, [this](const KConfigGroup &group) {
@@ -79,7 +86,29 @@ void AccentColour::reload()
         const KConfig schemeFile(path, KConfig::SimpleConfig);
         m_themeColour = KConfigGroup(&schemeFile, QStringLiteral("Colors:Selection")).readEntry("BackgroundNormal", QColor());
     }
+    // OrielOS turns the blur on in /etc/xdg/kwinrc.
+    const KConfig kwin(m_kwinConfig);
+    m_transparency = KConfigGroup(&kwin, QStringLiteral("Plugins")).readEntry("blurEnabled", true);
     Q_EMIT changed();
+}
+
+void AccentColour::setTransparency(bool transparency)
+{
+    if (transparency == m_transparency) {
+        return;
+    }
+    KConfig kwin(m_kwinConfig);
+    KConfigGroup(&kwin, QStringLiteral("Plugins")).writeEntry("blurEnabled", transparency, KConfig::Notify);
+    kwin.sync();
+    m_reconfigure();
+    reload();
+}
+
+void AccentColour::setKWinForTesting(const QString &config, std::function<void()> reconfigure)
+{
+    m_kwinConfig = config;
+    m_reconfigure = std::move(reconfigure);
+    reload();
 }
 
 void AccentColour::choose(const QColor &colour)

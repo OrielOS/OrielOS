@@ -95,6 +95,23 @@ KCM.SimpleKCM {
             onClicked: root.accent.useThemeColour()
         }
 
+        QQC2.Switch {
+            text: root.l10n.i18nc("@option:check", "Transparency effects")
+            checked: root.accent.transparency
+            onToggled: {
+                root.accent.transparency = checked;
+                checked = Qt.binding(() => root.accent.transparency);
+            }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            font: Kirigami.Theme.smallFont
+            textFormat: Text.PlainText
+            text: root.l10n.i18nc("@info", "The taskbar, Start and other pop-ups show the blurred desktop through them. Off, they're solid.")
+        }
+
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             visible: root.accent.error.length > 0

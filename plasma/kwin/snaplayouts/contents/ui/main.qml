@@ -61,6 +61,8 @@ SceneEffect {
     property int current: 0
     // Whether the layouts show as the maximise button's menu rather than over the dimmed screen.
     property bool menu: false
+    // The layout picked by its number, whose areas then take the numbers, as in Windows; -1 before.
+    property int numberedLayout: -1
 
     // If the window closes while the layouts show, there's nothing left to snap. KWin keeps a closed
     // window's object for its closing animation, so its closed signal comes first.
@@ -87,6 +89,7 @@ SceneEffect {
         }
         effect.target = window;
         effect.current = 0;
+        effect.numberedLayout = -1;
         effect.menu = false;
         effect.visible = true;
     }

@@ -4,6 +4,8 @@
 #include "button.h"
 #include "decoration.h"
 
+#include <KConfig>
+#include <KConfigGroup>
 #include <KDecoration3/DecoratedWindow>
 
 #include <QDBusConnection>
@@ -54,6 +56,12 @@ void Button::showSnapLayouts() const
 {
     // OrielOS's snap layouts effect shows them for the window in use, so only that one's button asks.
     if (!decoration() || !decoration()->window()->isActive() || !isHovered()) {
+        return;
+    }
+    // Settings' Multitasking page can turn them off; Windows + Z still shows them. Read afresh each
+    // time, so a change applies without restarting KWin.
+    const KConfig kwinrc(QStringLiteral("kwinrc"));
+    if (!KConfigGroup(&kwinrc, QStringLiteral("org.kde.kdecoration2")).readEntry("SnapLayoutsOnHover", true)) {
         return;
     }
     auto message = QDBusMessage::createMethodCall(QStringLiteral("org.kde.kglobalaccel"), QStringLiteral("/component/kwin"),

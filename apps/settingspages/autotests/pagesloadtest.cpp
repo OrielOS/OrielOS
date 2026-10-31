@@ -57,6 +57,8 @@ private Q_SLOTS:
         QTest::newRow("security") << QStringLiteral("kcm_orielos_security") << QStringLiteral("Device Security") << QStringLiteral("security-privacy");
         QTest::newRow("power mode") << QStringLiteral("kcm_orielos_powermode") << QStringLiteral("Power Mode") << QStringLiteral("hardware");
         QTest::newRow("sign-in options") << QStringLiteral("kcm_orielos_signin") << QStringLiteral("Sign-in Options") << QStringLiteral("security-privacy");
+        QTest::newRow("multitasking") << QStringLiteral("kcm_orielos_multitasking") << QStringLiteral("Multitasking") << QStringLiteral("windowmanagement");
+        QTest::newRow("mouse pointer") << QStringLiteral("kcm_orielos_pointer") << QStringLiteral("Mouse Pointer") << QStringLiteral("accessibility");
     }
 
     void loadsThePage()

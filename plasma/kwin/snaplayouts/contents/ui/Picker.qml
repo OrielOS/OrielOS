@@ -5,7 +5,8 @@ pragma ComponentBehavior: Bound
 
 // One screen while the picker shows: its windows, dimmed, and on the active window's screen the
 // layouts. An arrow key moves to the nearest area that way, Tab and Shift+Tab step through the
-// areas in order, Enter or Space snaps, Escape or a click elsewhere closes. As the maximise
+// areas in order, Enter or Space snaps, Escape or a click elsewhere closes. A layout's number picks
+// it, and then an area's number snaps there, as in Windows. As the maximise
 // button's menu, the screen isn't dimmed, the layouts sit in two rows of three under the button,
 // and they close once the pointer leaves them and the button.
 
@@ -149,8 +150,27 @@ FocusScope {
         case Qt.Key_Space:
             picker.effect.snap(picker.areas[picker.effect.current]);
             break;
-        default:
-            return;
+        default: {
+            const number = event.key - Qt.Key_0;
+            if (picker.effect.menu || number < 1 || number > 9) {
+                return;
+            }
+            const layouts = picker.effect.layouts;
+            if (picker.effect.numberedLayout < 0) {
+                if (number > layouts.length) {
+                    return;
+                }
+                picker.effect.numberedLayout = number - 1;
+                picker.effect.current = picker.firstArea(number - 1);
+            } else {
+                const areas = layouts[picker.effect.numberedLayout];
+                if (number > areas.length) {
+                    return;
+                }
+                picker.effect.snap(areas[number - 1]);
+            }
+            break;
+        }
         }
         event.accepted = true;
     }
@@ -251,6 +271,10 @@ FocusScope {
                         areas: modelData
                         firstIndex: picker.firstArea(index)
                         current: picker.effect.current
+                        // Numbers for the keyboard, over the dimmed screen only: the layouts' until
+                        // one is picked, then that layout's areas'.
+                        number: !picker.effect.menu && picker.effect.numberedLayout < 0 ? index + 1 : 0
+                        numberedAreas: !picker.effect.menu && picker.effect.numberedLayout === index
                         onHighlighted: areaIndex => picker.effect.current = areaIndex
                         onChosen: area => picker.effect.snap(area)
                     }

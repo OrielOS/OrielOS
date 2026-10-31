@@ -163,6 +163,26 @@ private Q_SLOTS:
         QVERIFY(applied.wait());
         QCOMPARE(recordedAccent(), QColor(46, 157, 76));
     }
+
+    void switchesTransparency()
+    {
+        const QString kwinrc = m_dir.filePath(QStringLiteral("kwinrc"));
+        int reconfigures = 0;
+        AccentColour accent;
+        accent.setKWinForTesting(kwinrc, [&reconfigures]() { ++reconfigures; });
+        QVERIFY(accent.transparency());
+
+        accent.setTransparency(false);
+        QVERIFY(!accent.transparency());
+        QCOMPARE(KConfigGroup(KSharedConfig::openConfig(kwinrc), QStringLiteral("Plugins")).readEntry("blurEnabled", true), false);
+        QCOMPARE(reconfigures, 1);
+
+        accent.setTransparency(false);
+        QCOMPARE(reconfigures, 1);
+        accent.setTransparency(true);
+        QVERIFY(accent.transparency());
+        QCOMPARE(reconfigures, 2);
+    }
 };
 
 QTEST_GUILESS_MAIN(AccentColourTest)

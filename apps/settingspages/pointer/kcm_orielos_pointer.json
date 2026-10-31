@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "The mouse pointer's colour and size",
+        "Icon": "preferences-desktop-cursors",
+        "Name": "Mouse Pointer"
+    },
+    "X-KDE-Keywords": "mouse pointer,pointer,cursor,cursor size,pointer size,white,black,large pointer",
+    "X-KDE-System-Settings-Parent-Category": "accessibility",
+    "X-KDE-Weight": 40
+}

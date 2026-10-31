@@ -11,7 +11,7 @@ qt_add_qml_module(OrielOSAccent STATIC
 target_include_directories(OrielOSAccent PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(OrielOSAccent PRIVATE TRANSLATION_DOMAIN="orielos-settings-pages")
 # KConfigGui reads and writes colours.
-target_link_libraries(OrielOSAccent PUBLIC Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick KF6::I18n KF6::ConfigCore KF6::ConfigGui)
+target_link_libraries(OrielOSAccent PUBLIC Qt6::Core Qt6::DBus Qt6::Gui Qt6::Qml Qt6::Quick KF6::I18n KF6::ConfigCore KF6::ConfigGui)
 
 kcmutils_add_qml_kcm(kcm_orielos_accent SOURCES kcmaccent.cpp)
 target_link_libraries(kcm_orielos_accent PRIVATE
