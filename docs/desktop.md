@@ -48,7 +48,7 @@ A touchpad clicks when you tap it, and two fingers scroll the page the way Windo
 
 ## Files
 
-**Files** is where your documents, downloads, pictures and drives are. Open it from the taskbar or with Windows + E. Along the top are back, forward, up and refresh, then New, Cut, Copy, Paste, Rename, Delete, Sort, View and search, with the address bar beneath them. Folders open in the Details view, with each item's name, date modified, type and size; choose another view under **View**. Your folders (Documents, Downloads, Pictures, Music and Videos) are in the panel on the left, with USB sticks and other drives below them when they're plugged in.
+**Files** is where your documents, downloads, pictures and drives are. Open it from the taskbar or with Windows + E. Along the top are back, forward, up and refresh, then New, Cut, Copy, Paste, Rename, Delete, Sort, View and search, with the address bar beneath them. Folders open in the Details view, with each item's name, date modified, type and size; choose another view under **View**. Your folders (Documents, Downloads, Pictures, Music and Videos) are in the panel on the left, with USB sticks and other drives below them when they're plugged in. Right-click a file for **Send to** (a shortcut on the desktop, a copy in Documents, or a compressed folder); Ctrl + Shift + C copies its path, and Alt + P shows its preview and details at the right. Double-clicking a disc image (.iso) opens it as a drive; eject it from the drives in the panel.
 
 ## Taking a screenshot
 

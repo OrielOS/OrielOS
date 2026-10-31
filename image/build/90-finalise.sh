@@ -268,6 +268,19 @@ python3 -I -c 'import hashlib; hashlib.scrypt(b"0", salt=b"0", n=2, r=8, p=1)' |
     exit 1
 }
 
+# Double-clicking a disc image opens it as a drive, as in Windows (the Mount disc image app).
+mimeapps=/usr/share/applications/mimeapps.list
+for type in application/x-cd-image application/vnd.efi.iso; do
+    sed -i "/^${type//\//\\/}=/d" "$mimeapps"
+    sed -i "/^\[Default Applications\]$/a ${type}=org.orielos.MountDiscImage.desktop" "$mimeapps"
+done
+for f in /usr/libexec/orielos/mount-iso /usr/libexec/orielos/send-to; do
+    [[ -x "$f" ]] || {
+        printf 'error: %s is not executable\n' "$f" >&2
+        exit 1
+    }
+done
+
 # Windows' touchpad defaults (tap to click, the page following the fingers) for each new touchpad.
 systemctl --global enable orielos-touchpad-defaults.service
 if [[ "$(systemctl --global is-enabled orielos-touchpad-defaults.service 2>/dev/null)" != "enabled" ]]; then

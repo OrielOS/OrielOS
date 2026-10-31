@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Mount disc image
+Comment=Opens a disc image as a drive
+Icon=media-optical
+Exec=/usr/libexec/orielos/mount-iso %f
+MimeType=application/x-cd-image;application/vnd.efi.iso;
+NoDisplay=true

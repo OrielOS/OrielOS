@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Service
+MimeType=all/allfiles;inode/directory;
+Actions=desktop;documents;compressed;
+X-KDE-Submenu=Send to
+Icon=document-send
+
+[Desktop Action desktop]
+Name=Desktop (create shortcut)
+Icon=user-desktop
+Exec=/usr/libexec/orielos/send-to desktop %F
+
+[Desktop Action documents]
+Name=Documents
+Icon=folder-documents
+Exec=/usr/libexec/orielos/send-to documents %F
+
+[Desktop Action compressed]
+Name=Compressed (zipped) folder
+Icon=application-zip
+Exec=ark --batch --autofilename zip %F

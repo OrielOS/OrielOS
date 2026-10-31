@@ -1,0 +1,28 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Opens a disc image (.iso) as a drive, as Windows does on a double-click: sets it up as a read-only
+# loop device through udisks, mounts it and opens it in Files. It then shows among the drives in
+# Files, where Eject removes it. Run by the Mount disc image app and Files' Mount action.
+set -Eeuo pipefail
+
+[[ $# -eq 1 && -f "$1" ]] || {
+    printf 'usage: mount-iso FILE\n' >&2
+    exit 2
+}
+
+# "Mapped file /path/x.iso as /dev/loop0."
+mapped="$(udisksctl loop-setup --read-only --file "$1")"
+device="$(grep -o '/dev/loop[0-9]*' <<<"$mapped" | head -n 1)"
+[[ -n "$device" ]] || {
+    printf 'mount-iso: udisks did not set up %s: %s\n' "$1" "$mapped" >&2
+    exit 1
+}
+# The desktop may already have mounted it when the device appeared.
+mounted="$(udisksctl mount --block-device "$device" 2>/dev/null || true)"
+place="$(sed -n 's/^Mounted .* at \(.*\)$/\1/p' <<<"$mounted" | sed 's/\.$//')"
+if [[ -z "$place" ]]; then
+    place="$(findmnt --noheadings --output TARGET --source "$device" | head -n 1)"
+fi
+[[ -n "$place" ]] && exec xdg-open "$place"
