@@ -7,11 +7,11 @@
 
 #include <KCModule>
 #include <KCModuleLoader>
-#include <KIO/ApplicationLauncherJob>
-#include <KService>
 #include <KConfigGroup>
+#include <KIO/ApplicationLauncherJob>
 #include <KLocalizedString>
 #include <KMessageBox>
+#include <KService>
 #include <KSharedConfig>
 #include <KStandardGuiItem>
 #include <KUser>
@@ -39,8 +39,8 @@ const QString pageKind = QStringLiteral("page");
 // Home, which isn't a category of pages but comes first among them.
 const QString homeId = QStringLiteral("home");
 // The settings Home recommends, as Windows' Home does, when they're installed.
-const QStringList recommendedPages = { QStringLiteral("display"), QStringLiteral("sound"), QStringLiteral("network"),
-    QStringLiteral("bluetooth"), QStringLiteral("background"), QStringLiteral("update") };
+const QStringList recommendedPages = { QStringLiteral("display"), QStringLiteral("sound"), QStringLiteral("network"), QStringLiteral("bluetooth"),
+    QStringLiteral("background"), QStringLiteral("update") };
 constexpr int recentCount = 6;
 
 KConfigGroup homeConfig()
@@ -88,9 +88,7 @@ SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     account->setText((name.isEmpty() ? user.loginName() : name) + QLatin1Char('\n') + i18nc("@info:status", "Local account"));
     account->setStyleSheet(QStringLiteral("text-align: left; padding: 8px;"));
     account->setAccessibleName(i18nc("@action:button", "Your info"));
-    connect(account, &QPushButton::clicked, this, [this] {
-        open(QStringLiteral("your-info"));
-    });
+    connect(account, &QPushButton::clicked, this, [this] { open(QStringLiteral("your-info")); });
 
     m_categories = new QListWidget;
     m_categories->setFrameShape(QFrame::NoFrame);

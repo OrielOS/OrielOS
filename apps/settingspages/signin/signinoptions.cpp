@@ -40,7 +40,10 @@ QString dynamicLockPath()
 
 KConfigGroup lockScreenGreeter()
 {
-    return KSharedConfig::openConfig(QStringLiteral("kscreenlockerrc"))->group(QStringLiteral("Greeter")).group(QStringLiteral("LnF")).group(QStringLiteral("General"));
+    return KSharedConfig::openConfig(QStringLiteral("kscreenlockerrc"))
+        ->group(QStringLiteral("Greeter"))
+        .group(QStringLiteral("LnF"))
+        .group(QStringLiteral("General"));
 }
 
 KConfigGroup lockScreenDaemon()
@@ -51,7 +54,8 @@ KConfigGroup lockScreenDaemon()
 // The lock screen rereads its settings when told to.
 void tellLockScreen()
 {
-    QDBusConnection::sessionBus().send(QDBusMessage::createSignal(QStringLiteral("/ScreenSaver"), QStringLiteral("org.kde.screensaver"), QStringLiteral("configChanged")));
+    QDBusConnection::sessionBus().send(
+        QDBusMessage::createSignal(QStringLiteral("/ScreenSaver"), QStringLiteral("org.kde.screensaver"), QStringLiteral("configChanged")));
 }
 
 } // namespace
@@ -109,17 +113,13 @@ void SignInOptions::askPinService(const QJsonObject &request, std::function<void
         socket->deleteLater();
         done(answer);
     };
-    connect(timeout, &QTimer::timeout, socket, [finish]() {
-        finish({ });
-    });
+    connect(timeout, &QTimer::timeout, socket, [finish]() { finish({ }); });
     connect(socket, &QLocalSocket::errorOccurred, socket, [finish](QLocalSocket::LocalSocketError error) {
         if (error != QLocalSocket::PeerClosedError) {
             finish({ });
         }
     });
-    connect(socket, &QLocalSocket::connected, socket, [socket, request]() {
-        socket->write(QJsonDocument(request).toJson(QJsonDocument::Compact) + '\n');
-    });
+    connect(socket, &QLocalSocket::connected, socket, [socket, request]() { socket->write(QJsonDocument(request).toJson(QJsonDocument::Compact) + '\n'); });
     connect(socket, &QLocalSocket::readyRead, socket, [socket, finish]() {
         if (!socket->canReadLine()) {
             return;
@@ -168,7 +168,7 @@ void SignInOptions::removePin(const QString &credential)
 void SignInOptions::readFingerprintReaders()
 {
     const QDBusMessage message = QDBusMessage::createMethodCall(QStringLiteral("net.reactivated.Fprint"), QStringLiteral("/net/reactivated/Fprint/Manager"),
-                                                                QStringLiteral("net.reactivated.Fprint.Manager"), QStringLiteral("GetDevices"));
+        QStringLiteral("net.reactivated.Fprint.Manager"), QStringLiteral("GetDevices"));
     auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(message), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, watcher]() {
         watcher->deleteLater();
@@ -186,8 +186,8 @@ void SignInOptions::openFingerprintSetup()
 
 void SignInOptions::readPairedDevices()
 {
-    const QDBusMessage message =
-        QDBusMessage::createMethodCall(QStringLiteral("org.bluez"), QStringLiteral("/"), QStringLiteral("org.freedesktop.DBus.ObjectManager"), QStringLiteral("GetManagedObjects"));
+    const QDBusMessage message = QDBusMessage::createMethodCall(
+        QStringLiteral("org.bluez"), QStringLiteral("/"), QStringLiteral("org.freedesktop.DBus.ObjectManager"), QStringLiteral("GetManagedObjects"));
     auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(message), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, watcher]() {
         watcher->deleteLater();
@@ -234,7 +234,8 @@ void SignInOptions::setDynamicLock(bool enabled, const QString &address)
         m_dynamicLockDevice.clear();
     }
     // The service runs only while a phone is chosen.
-    QProcess::startDetached(QStringLiteral("systemctl"), { QStringLiteral("--user"), enabled ? QStringLiteral("restart") : QStringLiteral("stop"), dynamicLockUnit });
+    QProcess::startDetached(
+        QStringLiteral("systemctl"), { QStringLiteral("--user"), enabled ? QStringLiteral("restart") : QStringLiteral("stop"), dynamicLockUnit });
     Q_EMIT dynamicLockChanged();
 }
 

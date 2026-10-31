@@ -172,7 +172,8 @@ PageCatalogue PageCatalogue::standard()
             keywords(
                 i18nc("@info:keywords Search words for the Start page, separated by ;", "start;start menu;recommended;recent files;recently added;new apps")),
             QStringLiteral("kcm_orielos_start"), { } },
-        { QStringLiteral("taskbar"), personalisation, i18nc("@title Settings page", "Taskbar"), i18nc("@info", "Taskbar items, alignment, combining buttons and hiding the taskbar"),
+        { QStringLiteral("taskbar"), personalisation, i18nc("@title Settings page", "Taskbar"),
+            i18nc("@info", "Taskbar items, alignment, combining buttons and hiding the taskbar"),
             keywords(i18nc("@info:keywords Search words for the Taskbar page, separated by ;",
                 "taskbar;panel;taskbar alignment;centre;center;left;auto-hide;autohide;hide taskbar;combine;labels;task view;search button;seconds;clock")),
             QStringLiteral("kcm_orielos_taskbar"), { } },
