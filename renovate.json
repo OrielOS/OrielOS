@@ -1,11 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Daily refresh of the digests pinned in image/pins.env (Fedora's registry drops old digests within days), which is how Fedora's updates reach OrielOS builds. GitHub Actions and the Discord bot's packages are left to Dependabot.",
+  "description": "Weekly refresh of the digests pinned in image/pins.env, which is how Fedora's updates reach OrielOS builds. OrielOS keeps its own copy of every pinned digest (the Mirror workflow), so an older pin keeps building. GitHub Actions and the Discord bot's packages are left to Dependabot.",
   "extends": ["config:recommended"],
   "dependencyDashboard": false,
   "enabledManagers": ["custom.regex"],
   "timezone": "Europe/London",
-  "schedule": ["before 6am"],
+  "schedule": ["before 6am on monday"],
   "commitBody": "Signed-off-by: {{{gitAuthor}}}",
   "semanticCommits": "enabled",
   "customManagers": [
@@ -21,11 +21,14 @@
   ],
   "packageRules": [
     {
-      "description": "Refresh the digests together, in one pull request: the two akmods images must match the same kernel. A digest refresh keeps the same tags, so it merges by itself once every required check passes, as Universal Blue's do; anything else waits for review.",
+      "description": "Refresh the digests together, in one pull request: the two akmods images must match the same kernel. It waits for the maintainer, who builds and boot-tests it locally before merging. Merging it doesn't publish a build: the new digests go out with the next change to OrielOS itself, or a run of the Image workflow by hand.",
       "matchManagers": ["custom.regex"],
       "matchUpdateTypes": ["digest"],
       "groupName": "OS image inputs",
-      "automerge": true,
+      "automerge": false,
+      "prBodyNotes": [
+        "Build and boot-test this locally before merging: `tools/build-image.sh`, then the VM tests. Merging it doesn't publish a build by itself; the new digests go out with the next build."
+      ],
       "semanticCommitType": "build",
       "semanticCommitScope": null
     },
