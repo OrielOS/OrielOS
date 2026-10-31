@@ -24,10 +24,14 @@ PlasmoidItem {
     hideOnWindowDeactivate: true
     // The OrielOS shell opens the menu in the middle of the taskbar, like Sill's.
     readonly property bool centredPopup: true
+    // Set by Win+S and the taskbar's Search button until the menu shows its search home.
+    property bool openingForSearch: false
 
     fullRepresentation: StartMenu {
         plasmoidItem: root
         focus: true
+        openForSearch: root.openingForSearch
+        onSearchOpened: root.openingForSearch = false
     }
 
     compactRepresentation: MouseArea {
@@ -74,6 +78,17 @@ PlasmoidItem {
             source: Plasmoid.icon
             active: startButton.containsMouse || startButton.pressed || root.expanded
         }
+    }
+
+    // Win+S and the taskbar's Search button (through the applet class): Start on its search home,
+    // or closed again when that's already showing, as Win+S does in Windows.
+    function openForSearch() {
+        if (root.expanded && !root.openingForSearch) {
+            root.expanded = false;
+            return;
+        }
+        root.openingForSearch = true;
+        root.expanded = true;
     }
 
     // Win+X (through the applet class) and a right-click on the button open it.

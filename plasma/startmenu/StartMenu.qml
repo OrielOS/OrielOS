@@ -15,6 +15,11 @@ FocusScope {
     id: root
 
     required property PlasmoidItem plasmoidItem
+    // Start was opened to search (Win+S or the taskbar's Search button): it shows the search home.
+    property bool openForSearch: false
+
+    // The search home is showing for the request above.
+    signal searchOpened()
 
     // Sill's roomy inset around the search field and the pages, beyond the popup's own padding.
     readonly property int inset: 22
@@ -52,6 +57,7 @@ FocusScope {
         }
         onShowingAllAppsChanged: {
             if (root.menu.showingAllApps) {
+                allAppsPage.reset();
                 allAppsPage.view.currentIndex = 0;
                 allAppsPage.view.positionViewAtBeginning();
                 // The page shows once the stack has laid itself out again.
@@ -110,6 +116,22 @@ FocusScope {
         list.forceActiveFocus(Qt.TabFocusReason);
     }
 
+    function focusSearchHome() {
+        const recent = searchHomePage.recentView;
+        const topApps = searchHomePage.topAppsView;
+        if (recent.count > 0) {
+            if (recent.currentIndex < 0) {
+                recent.currentIndex = 0;
+            }
+            recent.forceActiveFocus(Qt.TabFocusReason);
+        } else if (searchHomePage.topAppsShown > 0) {
+            if (topApps.currentIndex < 0) {
+                topApps.currentIndex = 0;
+            }
+            topApps.forceActiveFocus(Qt.TabFocusReason);
+        }
+    }
+
     function focusMoreList() {
         const list = morePage.view;
         if (list.count === 0) {
@@ -145,7 +167,7 @@ FocusScope {
                 chain.push(searchPage.view);
             }
         } else if (root.menu.showingAllApps) {
-            chain.push(allAppsPage.backButton);
+            chain.push(allAppsPage.viewButton, allAppsPage.backButton);
             if (allAppsPage.view.count > 0) {
                 chain.push(allAppsPage.view);
             }
@@ -153,6 +175,13 @@ FocusScope {
             chain.push(morePage.backButton);
             if (morePage.view.count > 0) {
                 chain.push(morePage.view);
+            }
+        } else if (root.menu.searchHome) {
+            if (searchHomePage.recentView.count > 0) {
+                chain.push(searchHomePage.clearButton, searchHomePage.recentView);
+            }
+            if (searchHomePage.topAppsShown > 0) {
+                chain.push(searchHomePage.topAppsView);
             }
         } else {
             chain.push(homePage.allAppsButton);
@@ -193,16 +222,36 @@ FocusScope {
         if (!root.menu.populated) {
             root.menu.populated = true;
             root.menu.rootModel.refresh();
+            root.menu.categoriesRootModel.refresh();
         }
         searchField.clear();
-        root.menu.showingAllApps = false;
-        root.menu.showingMore = false;
+        root.menu.showHome();
         homePage.reset();
         homePage.pinnedView.currentIndex = 0;
         homePage.recommendedView.currentIndex = 0;
         root.menu.syncFavorites();
         root.menu.rebuildRecommended();
         searchField.forceActiveFocus(Qt.ActiveWindowFocusReason);
+        if (root.openForSearch) {
+            root.showSearchHome();
+        }
+    }
+
+    // The search home, with the search field ready for typing.
+    function showSearchHome() {
+        searchField.clear();
+        root.menu.showSearchHome();
+        searchHomePage.recentView.currentIndex = 0;
+        searchHomePage.topAppsView.currentIndex = 0;
+        searchField.forceActiveFocus(Qt.ShortcutFocusReason);
+        root.searchOpened();
+    }
+
+    // Asked to search while already open.
+    onOpenForSearchChanged: {
+        if (root.openForSearch && root.plasmoidItem.expanded) {
+            root.showSearchHome();
+        }
     }
 
     Connections {
@@ -228,11 +277,12 @@ FocusScope {
 
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Escape) {
-            // Step back one level at a time: the query, then the all apps page, then the menu.
+            // Step back one level at a time: the query, then the all apps, More or search home
+            // page, then the menu.
             if (root.menu.searching) {
                 searchField.clear();
                 searchField.forceActiveFocus(Qt.OtherFocusReason);
-            } else if (root.menu.showingAllApps || root.menu.showingMore) {
+            } else if (root.menu.showingAllApps || root.menu.showingMore || root.menu.searchHome) {
                 root.menu.showHome();
                 searchField.forceActiveFocus(Qt.OtherFocusReason);
             } else {
@@ -272,6 +322,12 @@ FocusScope {
             Accessible.name: KI18n.i18nc("@info:accessible", "Search")
 
             onTextChanged: searchPage.resetCurrent()
+            // Clicking in the empty field shows the search home, as Windows' Start does.
+            onPressed: {
+                if (!root.menu.searching && !root.menu.searchHome) {
+                    root.menu.showSearchHome();
+                }
+            }
 
             // The field takes Tab itself, so the root's handler never sees it.
             Keys.onTabPressed: root.moveFocus(true)
@@ -298,6 +354,8 @@ FocusScope {
                         root.focusAllAppsList();
                     } else if (root.menu.showingMore) {
                         root.focusMoreList();
+                    } else if (root.menu.searchHome) {
+                        root.focusSearchHome();
                     } else {
                         root.focusPinned();
                     }
@@ -319,7 +377,18 @@ FocusScope {
             Layout.fillHeight: true
             Layout.leftMargin: root.inset
             Layout.rightMargin: root.inset
-            currentIndex: root.menu.searching ? 2 : (root.menu.showingAllApps ? 1 : (root.menu.showingMore ? 3 : 0))
+            currentIndex: {
+                if (root.menu.searching) {
+                    return 2;
+                }
+                if (root.menu.showingAllApps) {
+                    return 1;
+                }
+                if (root.menu.showingMore) {
+                    return 3;
+                }
+                return root.menu.searchHome ? 4 : 0;
+            }
 
             HomePage {
                 id: homePage
@@ -338,6 +407,11 @@ FocusScope {
 
             MorePage {
                 id: morePage
+                menu: root.menu
+            }
+
+            SearchHome {
+                id: searchHomePage
                 menu: root.menu
             }
         }

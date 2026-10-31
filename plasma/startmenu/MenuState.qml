@@ -32,6 +32,11 @@ QtObject {
     property bool showingAllApps: false
     // Recommended's More page.
     property bool showingMore: false
+    // What search shows before anything is typed: recent searches and the most used apps.
+    property bool searchHome: false
+    // The last searches that ran a result, newest first. Only Start writes them.
+    readonly property var recentSearches: Array.from(Plasmoid.configuration.recentSearches ?? []).map(text => String(text)).filter(text => text.length > 0)
+    readonly property int recentSearchLimit: 5
 
     readonly property int pinnedColumns: 6
     // Rows on each page of pinned apps, from the layout chosen on Settings' Start page; Recommended
@@ -50,6 +55,9 @@ QtObject {
     }
     onShowRecentlyAddedChanged: state.rebuildRecommended()
     onShowRecentFilesChanged: state.rebuildRecommended()
+
+    // How All apps lists the apps: list (by letter), grid or category.
+    readonly property string allAppsView: ["grid", "category"].includes(String(Plasmoid.configuration.allAppsView)) ? String(Plasmoid.configuration.allAppsView) : "list"
 
     // The root model is filled the first time the menu opens, as Kickoff does.
     property bool populated: false
@@ -89,6 +97,27 @@ QtObject {
     // Every app, alphabetically. modelForRow() makes no binding, so it's looked up on refresh.
     property Kicker.AppsModel allAppsModel: null
 
+    // The apps by menu category, for All apps' Category view.
+    readonly property Kicker.RootModel categoriesRootModel: Kicker.RootModel {
+        appletInterface: state.plasmoidItem
+        autoPopulate: false
+        flat: false
+        sorted: true
+        showAllApps: false
+        showAllAppsCategorized: true
+        showTopLevelItems: false
+        showRecentApps: false
+        showRecentDocs: false
+        showRecentFolders: false
+        showPowerSession: false
+        showFavoritesPlaceholder: false
+        showSeparators: false
+
+        onRefreshed: state.findCategories()
+    }
+    // Each category with apps: { name, icon, model }, looked up on refresh like allAppsModel.
+    property var categories: []
+
     // The pinned apps. Plasmoid.configuration.favorites is the only record of them: the model
     // drops apps that aren't installed (yet) from its own list, so it is never written back.
     readonly property Kicker.SimpleFavoritesModel favoritesModel: Kicker.SimpleFavoritesModel {}
@@ -122,6 +151,12 @@ QtObject {
     // decoration, subtitle }, where id is an app's favoriteId, a file's URL or, for a suggestion,
     // its Flathub ID. Rows move as apps and files come and go, so they're looked up when needed.
     property var recommendedItems: []
+
+    // The most used apps, for the search home.
+    readonly property Kicker.RecentUsageModel topAppsModel: Kicker.RecentUsageModel {
+        shownItems: Kicker.RecentUsageModel.OnlyApps
+        ordering: Kicker.RecentUsageModel.Popular
+    }
 
     readonly property Kicker.RunnerModel runnerModel: Kicker.RunnerModel {
         appletInterface: state.plasmoidItem
@@ -209,6 +244,28 @@ QtObject {
         state.allAppsModel = found;
     }
 
+    function findCategories() {
+        const found = [];
+        const root = state.categoriesRootModel;
+        for (let i = 0; i < root.count; ++i) {
+            const model = root.modelForRow(i) as Kicker.AppsModel;
+            if (!model || model.count === 0 || model.description === "KICKER_ALL_MODEL") {
+                continue;
+            }
+            const index = root.index(i, 0);
+            found.push({
+                name: String(root.data(index, Qt.DisplayRole) ?? ""),
+                icon: root.data(index, Qt.DecorationRole) ?? "",
+                model: model,
+            });
+        }
+        state.categories = found;
+    }
+
+    function setAllAppsView(view: string) {
+        Plasmoid.configuration.allAppsView = view;
+    }
+
     // The row of the app with this ID in the all-apps model, or -1.
     function allAppsRow(id: string): int {
         const model = state.allAppsModel;
@@ -235,6 +292,11 @@ QtObject {
 
     function favoritesData(row: int, roleName: string): var {
         const model = state.favoritesModel;
+        return model.data(model.index(row, 0), model.KItemModels.KRoleNames.role(roleName));
+    }
+
+    function topAppsData(row: int, roleName: string): var {
+        const model = state.topAppsModel;
         return model.data(model.index(row, 0), model.KItemModels.KRoleNames.role(roleName));
     }
 
@@ -399,9 +461,41 @@ QtObject {
     // Only Enter, or a click or Enter on a result, runs a search result; typing never does.
     function launchResult(row: int) {
         const model = state.resultsModel;
+        const query = state.query.trim();
         if (model && row >= 0 && model.trigger(row, "", null)) {
+            state.rememberSearch(query);
             state.close();
         }
+    }
+
+    function launchTopApp(row: int) {
+        if (row >= 0 && state.topAppsModel.trigger(row, "", null)) {
+            state.close();
+        }
+    }
+    //END
+
+    //BEGIN Recent searches
+    // A search that ran a result goes first; the same words in other letter cases only once.
+    function rememberSearch(text: string) {
+        if (text.length === 0) {
+            return;
+        }
+        const others = state.recentSearches.filter(entry => entry.toLowerCase() !== text.toLowerCase());
+        Plasmoid.configuration.recentSearches = [text].concat(others).slice(0, state.recentSearchLimit);
+    }
+
+    function forgetSearch(text: string) {
+        Plasmoid.configuration.recentSearches = state.recentSearches.filter(entry => entry !== text);
+    }
+
+    function clearSearches() {
+        Plasmoid.configuration.recentSearches = [];
+    }
+
+    // Puts a recent search back in the search field, which shows its results.
+    function searchAgain(text: string) {
+        state.queryUpdateRequested(text);
     }
     //END
 
@@ -499,6 +593,29 @@ QtObject {
         }
     }
 
+    // The menu of an app listed by another model. The all-apps model's entry knows the applet, so
+    // its actions include pinning to the taskbar.
+    function openOtherAppMenu(model, row: int, item: Item, x: real, y: real, fromKeyboard: bool) {
+        const roles = model.KItemModels.KRoleNames;
+        const appId = String(model.data(model.index(row, 0), roles.role("favoriteId")) ?? "");
+        const appsRow = state.allAppsRow(appId);
+        if (appsRow >= 0) {
+            state.openAppMenu(appsRow, item, x, y, fromKeyboard);
+        } else {
+            state.openContextMenu(model, () => row, appId, model.data(model.index(row, 0), roles.role("actionList")), -1, item, x, y, fromKeyboard);
+        }
+    }
+
+    function openTopAppMenu(row: int, item: Item, x: real, y: real, fromKeyboard: bool) {
+        state.openOtherAppMenu(state.topAppsModel, row, item, x, y, fromKeyboard);
+    }
+
+    function launchFrom(model, row: int) {
+        if (model && row >= 0 && model.trigger(row, "", null)) {
+            state.close();
+        }
+    }
+
     function openAppMenu(row: int, item: Item, x: real, y: real, fromKeyboard: bool) {
         state.openContextMenu(state.allAppsModel, () => row, String(state.allAppsData(row, "favoriteId") ?? ""), state.allAppsData(row, "actionList"), -1, item, x, y, fromKeyboard);
     }
@@ -574,19 +691,28 @@ QtObject {
     //BEGIN Pages and focus
     function showAllApps() {
         state.showingMore = false;
+        state.searchHome = false;
         state.showingAllApps = true;
     }
 
     function showMore() {
         state.showingAllApps = false;
+        state.searchHome = false;
         state.showingMore = true;
         state.rebuildRecommended();
+    }
+
+    function showSearchHome() {
+        state.showingAllApps = false;
+        state.showingMore = false;
+        state.searchHome = true;
     }
 
     function showHome() {
         const wasMore = state.showingMore;
         state.showingAllApps = false;
         state.showingMore = false;
+        state.searchHome = false;
         if (wasMore) {
             state.rebuildRecommended();
         }

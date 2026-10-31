@@ -10,15 +10,18 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PC3
 import org.kde.plasma.extras as PlasmaExtras
 
-// Every app, alphabetically, under letter headings. Clicking a heading shows every letter, as
-// Windows does, to jump straight to that part of the list.
+// Every app, as a list under letter headings, a grid, or by category, as Windows' View menu
+// chooses. Clicking a letter heading shows every letter, as Windows does, to jump straight to that
+// part of the list.
 ColumnLayout {
     id: allApps
 
     required property MenuState menu
 
     readonly property Item backButton: backButton
-    readonly property ListView view: list
+    readonly property Item viewButton: viewButton
+    // The view the keyboard moves in, for the view chosen: a ListView or a GridView.
+    readonly property var view: allApps.menu.allAppsView === "grid" ? grid : (allApps.menu.allAppsView === "category" ? categories.keyboardView : list)
     readonly property bool mirrored: Application.layoutDirection === Qt.RightToLeft
     // Whether the letters to jump to show over the list.
     property bool choosingLetter: false
@@ -35,6 +38,29 @@ ColumnLayout {
         }
         allApps.firstRows = rows;
         allApps.choosingLetter = true;
+    }
+
+    // Back to the start of the view, as each time All apps opens.
+    function reset() {
+        allApps.choosingLetter = false;
+        categories.reset();
+    }
+
+    function chooseView() {
+        const current = allApps.menu.allAppsView;
+        const entry = (id, text) => ({
+            text: text,
+            icon: current === id ? "checkmark" : "",
+            handler: () => {
+                allApps.menu.setAllAppsView(id);
+                allApps.reset();
+            },
+        });
+        allApps.menu.contextMenu.show([
+            entry("category", KI18n.i18nc("@action:inmenu All apps grouped by category", "Category")),
+            entry("grid", KI18n.i18nc("@action:inmenu All apps as a grid of icons", "Grid")),
+            entry("list", KI18n.i18nc("@action:inmenu All apps as a list by letter", "List")),
+        ], viewButton, 0, viewButton.height, viewButton.activeFocus);
     }
 
     function jumpTo(letter: string) {
@@ -61,6 +87,25 @@ ColumnLayout {
         }
 
         PillButton {
+            id: viewButton
+
+            dropDown: true
+            text: {
+                switch (allApps.menu.allAppsView) {
+                case "category":
+                    return KI18n.i18nc("@action:button %1 is how All apps lists the apps", "View: %1", KI18n.i18nc("@action:inmenu All apps grouped by category", "Category"));
+                case "grid":
+                    return KI18n.i18nc("@action:button %1 is how All apps lists the apps", "View: %1", KI18n.i18nc("@action:inmenu All apps as a grid of icons", "Grid"));
+                }
+                return KI18n.i18nc("@action:button %1 is how All apps lists the apps", "View: %1", KI18n.i18nc("@action:inmenu All apps as a list by letter", "List"));
+            }
+
+            onClicked: allApps.chooseView()
+            Keys.onTabPressed: allApps.menu.cycleFocus(true)
+            Keys.onBacktabPressed: allApps.menu.cycleFocus(false)
+        }
+
+        PillButton {
             id: backButton
 
             back: true
@@ -75,7 +120,7 @@ ColumnLayout {
     PC3.ScrollView {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        visible: !allApps.choosingLetter
+        visible: allApps.menu.allAppsView === "list" && !allApps.choosingLetter
 
         PC3.ScrollBar.horizontal.policy: PC3.ScrollBar.AlwaysOff
 
@@ -195,6 +240,100 @@ ColumnLayout {
                 }
             }
         }
+    }
+
+    PC3.ScrollView {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        visible: allApps.menu.allAppsView === "grid"
+
+        PC3.ScrollBar.horizontal.policy: PC3.ScrollBar.AlwaysOff
+
+        GridView {
+            id: grid
+
+            readonly property int columns: allApps.menu.pinnedColumns
+
+            clip: true
+            model: allApps.menu.allAppsModel
+            // Pinned's tile: room for a 38 px icon and two lines of the app's name.
+            cellWidth: Math.floor(width / columns)
+            cellHeight: 84 + Kirigami.Units.smallSpacing
+            keyNavigationEnabled: false
+            currentIndex: 0
+
+            Accessible.name: KI18n.i18nc("@title Every app", "All apps")
+            Accessible.role: Accessible.List
+
+            delegate: AppTile {
+                id: tile
+
+                required property int index
+                required property var model
+
+                width: grid.cellWidth
+                height: grid.cellHeight
+                label: String(tile.model.display ?? "")
+                iconSource: tile.model.decoration ?? ""
+                current: GridView.isCurrentItem && grid.activeFocus
+
+                onClicked: allApps.menu.launchApp(tile.index)
+                onContextMenuRequested: (x, y) => allApps.menu.openAppMenu(tile.index, tile, x, y, false)
+            }
+
+            Keys.onTabPressed: allApps.menu.cycleFocus(true)
+            Keys.onBacktabPressed: allApps.menu.cycleFocus(false)
+            Keys.onPressed: event => {
+                const index = grid.currentIndex;
+                if (allApps.menu.isContextMenuKey(event)) {
+                    if (grid.currentItem) {
+                        allApps.menu.openAppMenu(index, grid.currentItem, grid.currentItem.width / 2, grid.currentItem.height / 2, true);
+                    }
+                    event.accepted = true;
+                    return;
+                }
+                const count = grid.count;
+                const mirrored = grid.effectiveLayoutDirection === Qt.RightToLeft;
+                switch (event.key) {
+                case Qt.Key_Left:
+                case Qt.Key_Right: {
+                    const step = (event.key === Qt.Key_Right) !== mirrored ? 1 : -1;
+                    grid.currentIndex = Math.max(0, Math.min(count - 1, index + step));
+                    event.accepted = true;
+                    break;
+                }
+                case Qt.Key_Up:
+                    if (index >= grid.columns) {
+                        grid.currentIndex = index - grid.columns;
+                    } else {
+                        allApps.menu.focusSearch();
+                    }
+                    event.accepted = true;
+                    break;
+                case Qt.Key_Down:
+                    grid.currentIndex = Math.min(count - 1, index + grid.columns);
+                    event.accepted = true;
+                    break;
+                case Qt.Key_Return:
+                case Qt.Key_Enter:
+                case Qt.Key_Space:
+                    if (index >= 0) {
+                        allApps.menu.launchApp(index);
+                    }
+                    event.accepted = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    CategoryView {
+        id: categories
+
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        visible: allApps.menu.allAppsView === "category"
+        menu: allApps.menu
     }
 
     // The letters, over the list: those with apps can be clicked.

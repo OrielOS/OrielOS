@@ -34,6 +34,14 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <label>The shortcuts next to the power button: settings, files, documents, downloads, music, pictures, videos, network and personal. Settings, Personalisation, Start, changes them.</label>
       <default>files,downloads,settings</default>
     </entry>
+    <entry name="allAppsView" type="String">
+      <label>How All apps lists the apps: list (by letter), grid or category.</label>
+      <default>list</default>
+    </entry>
+    <entry name="recentSearches" type="StringList">
+      <label>The last searches that opened something, newest first, shown before anything is typed.</label>
+      <default></default>
+    </entry>
     <entry name="getStartedHidden" type="Bool">
       <label>Whether the Get started suggestions under Recommended are hidden.</label>
       <default>false</default>

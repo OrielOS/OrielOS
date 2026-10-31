@@ -15,6 +15,8 @@ PC3.ToolButton {
 
     // Whether the chevron points back, before the label.
     property bool back: false
+    // Whether the chevron points down, for a button that opens a menu.
+    property bool dropDown: false
     readonly property bool rightToLeft: Application.layoutDirection === Qt.RightToLeft
 
     Accessible.name: text
@@ -46,7 +48,7 @@ PC3.ToolButton {
         Kirigami.Icon {
             Layout.preferredWidth: 12
             Layout.preferredHeight: 12
-            source: pill.back !== pill.rightToLeft ? "go-previous" : "go-next"
+            source: pill.dropDown ? "go-down" : (pill.back !== pill.rightToLeft ? "go-previous" : "go-next")
         }
     }
 

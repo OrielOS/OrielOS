@@ -45,7 +45,8 @@ void openSettings(const QString &page)
 /**
  * The Start button's applet. Besides the menu, which its QML draws, it gives Start Windows' power
  * user menu: Win+X, or a right-click on the Start button, opens PowerUserMenu.qml above the button,
- * with the system's tools and the shut down and sign out choices; this runs the one chosen.
+ * with the system's tools and the shut down and sign out choices; this runs the one chosen. Win+S
+ * opens the menu on its search home, as does the taskbar's Search button by invoking the shortcut.
  */
 class StartApplet : public Plasma::Applet
 {
@@ -60,20 +61,31 @@ public:
     void init() override
     {
         Plasma::Applet::init();
-        auto *shortcut = new QAction(i18nc("@action Global shortcut", "Show the power user menu"), this);
-        shortcut->setObjectName(QStringLiteral("power user menu"));
-        KGlobalAccel::self()->setDefaultShortcut(shortcut, { QKeySequence(Qt::META | Qt::Key_X) });
-        KGlobalAccel::self()->setShortcut(shortcut, { QKeySequence(Qt::META | Qt::Key_X) });
-        connect(shortcut, &QAction::triggered, this, &StartApplet::showPowerUserMenu);
+        addShortcut(QStringLiteral("power user menu"), i18nc("@action Global shortcut", "Show the power user menu"), Qt::META | Qt::Key_X, "openPowerUserMenu");
+        addShortcut(QStringLiteral("start search"), i18nc("@action Global shortcut", "Search"), Qt::META | Qt::Key_S, "openForSearch");
     }
 
-    // Opens the menu above the Start button, which the QML draws (PowerUserMenu.qml).
-    void showPowerUserMenu()
+private:
+    // A global shortcut that calls a function of the applet's QML (main.qml).
+    void addShortcut(const QString &name, const QString &text, QKeyCombination keys, const char *qmlFunction)
+    {
+        auto *shortcut = new QAction(text, this);
+        shortcut->setObjectName(name);
+        KGlobalAccel::self()->setDefaultShortcut(shortcut, { QKeySequence(keys) });
+        KGlobalAccel::self()->setShortcut(shortcut, { QKeySequence(keys) });
+        connect(shortcut, &QAction::triggered, this, [this, qmlFunction]() {
+            callQml(qmlFunction);
+        });
+    }
+
+    void callQml(const char *qmlFunction)
     {
         if (auto *item = PlasmaQuick::AppletQuickItem::itemForApplet(this)) {
-            QMetaObject::invokeMethod(item, "openPowerUserMenu");
+            QMetaObject::invokeMethod(item, qmlFunction);
         }
     }
+
+public:
 
     // Runs the menu's item with this id.
     Q_INVOKABLE void activatePowerUserItem(const QString &id)
@@ -108,8 +120,7 @@ public:
             auto *job = new KTerminalLauncherJob(QStringLiteral("run0"));
             job->start();
         } else if (id == QLatin1String("search")) {
-            callDBus(session, QStringLiteral("org.kde.plasmashell"), QStringLiteral("/PlasmaShell"), QStringLiteral("org.kde.PlasmaShell"),
-                QStringLiteral("activateLauncherMenu"));
+            callQml("openForSearch");
         } else if (id == QLatin1String("run")) {
             callDBus(session, QStringLiteral("org.kde.krunner"), QStringLiteral("/App"), QStringLiteral("org.kde.krunner.App"), QStringLiteral("display"));
         } else if (id == QLatin1String("sleep")) {

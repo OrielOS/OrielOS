@@ -17,9 +17,11 @@ plasma_add_applet(org.orielos.startmenu
         PinnedGrid.qml
         RecommendedList.qml
         AllApps.qml
+        CategoryView.qml
         MorePage.qml
         PillButton.qml
         SearchResults.qml
+        SearchHome.qml
         Footer.qml
         AppTile.qml
         ListRow.qml

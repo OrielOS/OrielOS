@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 OrielOS contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// The taskbar's Search button, next to Start: opens Start with the search box ready. Sill: a
+// The taskbar's Search button, next to Start: opens Start on its search home (recent searches and
+// top apps) by invoking Start's Win+S shortcut. Sill: a
 // 44 px button with a line magnifier and a rounded highlight when hovered or pressed. Keep this in
 // step with org.orielos.taskview, its twin.
 
@@ -14,7 +15,7 @@ import org.kde.plasma.plasma5support as P5Support
 PlasmoidItem {
     id: root
 
-    readonly property string command: "dbus-send --session --dest=org.kde.plasmashell --type=method_call /PlasmaShell org.kde.PlasmaShell.activateLauncherMenu"
+    readonly property string command: "dbus-send --session --dest=org.kde.kglobalaccel --type=method_call /component/plasmashell org.kde.kglobalaccel.Component.invokeShortcut 'string:start search'"
 
     preferredRepresentation: fullRepresentation
     toolTipMainText: Plasmoid.title
