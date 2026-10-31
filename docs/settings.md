@@ -2,26 +2,29 @@
 
 Settings is where you change how OrielOS works. Open it with Windows + I, or choose **Settings** in Start. If it's already open, Windows + I brings it to the front.
 
+Settings opens on **Home**: the settings you used most recently, then recommended ones such as Display, Sound, Network, Bluetooth, Background and Update. Your picture and name are at the top left; click them for Your info.
+
 ## Finding a setting
 
 ![Settings open on System, with the categories on the left and System's pages, such as Display, Sound and Power mode, on the right](images/settings.webp)
 
 The categories on the left come in the order you know from Windows:
 
-- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode and About.
+- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
 - **Personalisation**: Background, Themes (including dark mode), Accent colour, Lock screen, Start and Taskbar.
 - **Apps**: Default apps and Startup.
-- **Accounts**: Your info, with your password and other accounts.
+- **Accounts**: Your info, with your password and other accounts, and Sign-in options: a PIN, fingerprints, dynamic lock, and the sign-in screen's settings.
 - **Time & language**: Date & time, and Language & region.
 - **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys and the visual bell), Zoom and colour filters, and On-screen keyboard.
 - **Privacy & security**: Device security, Firewall, App permissions, Activity history, and Diagnostics & feedback.
 - **Update**: OrielOS updates (see [Updates](updates.md)).
+- **More settings**: everything else, such as Fonts, so every setting is in one place.
 
 Choose a category to see its pages, then a page to open it. To search instead, type in **Find a setting** at the top (or press Ctrl+F). Search knows the names of the pages and the words people use for them, including Windows' own, such as "wifi", "default apps", "resolution" or "windows update". Press Enter to open the best match.
 
-You can also search from Start: type what you're looking for, such as "wifi" or "dark mode", and the setting opens in Settings. Settings that Settings doesn't have a page for yet, such as Fonts, still show up in Start's results and open in System Settings.
+You can also search from Start: type what you're looking for, such as "wifi", "dark mode" or "nvidia", and the setting opens in Settings. Anything that asks for System Settings, such as a "Configure…" button, opens Settings instead.
 
 ## Applying changes
 

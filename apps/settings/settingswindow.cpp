@@ -7,9 +7,14 @@
 
 #include <KCModule>
 #include <KCModuleLoader>
+#include <KIO/ApplicationLauncherJob>
+#include <KService>
+#include <KConfigGroup>
 #include <KLocalizedString>
 #include <KMessageBox>
+#include <KSharedConfig>
 #include <KStandardGuiItem>
+#include <KUser>
 
 #include <QAction>
 #include <QCloseEvent>
@@ -31,6 +36,28 @@ namespace {
 constexpr int idRole = Qt::UserRole;
 constexpr int kindRole = Qt::UserRole + 1;
 const QString pageKind = QStringLiteral("page");
+// Home, which isn't a category of pages but comes first among them.
+const QString homeId = QStringLiteral("home");
+// The settings Home recommends, as Windows' Home does, when they're installed.
+const QStringList recommendedPages = { QStringLiteral("display"), QStringLiteral("sound"), QStringLiteral("network"),
+    QStringLiteral("bluetooth"), QStringLiteral("background"), QStringLiteral("update") };
+constexpr int recentCount = 6;
+
+KConfigGroup homeConfig()
+{
+    return KSharedConfig::openConfig(QStringLiteral("orielos-settingsrc"))->group(QStringLiteral("Home"));
+}
+
+// A heading among a list's pages.
+void addHeading(QListWidget *list, const QString &text)
+{
+    auto *item = new QListWidgetItem(text, list);
+    QFont font = item->font();
+    font.setBold(true);
+    item->setFont(font);
+    item->setFlags(Qt::NoItemFlags);
+    item->setSizeHint(QSize(0, 40));
+}
 
 } // namespace
 
@@ -50,10 +77,28 @@ SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     m_search->addAction(QIcon::fromTheme(QStringLiteral("search")), QLineEdit::LeadingPosition);
     m_search->setAccessibleName(i18nc("@label:textbox", "Find a setting"));
 
+    // The account at the top, as in Windows: its picture, name and kind; clicking it opens Your info.
+    const KUser user;
+    auto *account = new QPushButton;
+    account->setFlat(true);
+    account->setIconSize(QSize(48, 48));
+    const QString face = user.faceIconPath();
+    account->setIcon(face.isEmpty() ? QIcon::fromTheme(QStringLiteral("user-identity")) : QIcon(face));
+    const QString name = user.property(KUser::FullName).toString();
+    account->setText((name.isEmpty() ? user.loginName() : name) + QLatin1Char('\n') + i18nc("@info:status", "Local account"));
+    account->setStyleSheet(QStringLiteral("text-align: left; padding: 8px;"));
+    account->setAccessibleName(i18nc("@action:button", "Your info"));
+    connect(account, &QPushButton::clicked, this, [this] {
+        open(QStringLiteral("your-info"));
+    });
+
     m_categories = new QListWidget;
     m_categories->setFrameShape(QFrame::NoFrame);
     m_categories->setIconSize(QSize(22, 22));
     m_categories->setAccessibleName(i18nc("@label", "Categories"));
+    auto *home = new QListWidgetItem(QIcon::fromTheme(QStringLiteral("go-home")), i18nc("@title Settings' first page", "Home"), m_categories);
+    home->setData(idRole, homeId);
+    home->setSizeHint(QSize(0, 36));
     for (const Category &category : m_catalogue.categories()) {
         auto *item = new QListWidgetItem(QIcon::fromTheme(category.icon), category.title, m_categories);
         item->setData(idRole, category.id);
@@ -61,6 +106,7 @@ SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     }
 
     auto *sidebar = new QVBoxLayout;
+    sidebar->addWidget(account);
     sidebar->addWidget(m_search);
     sidebar->addWidget(m_categories, 1);
     auto *sidebarWidget = new QWidget;
@@ -120,7 +166,11 @@ SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     connect(m_list, &QListWidget::itemClicked, this, &SettingsWindow::openListItem);
     connect(m_search, &QLineEdit::textChanged, this, [this](const QString &text) {
         if (text.trimmed().isEmpty()) {
-            showCategory(m_currentCategory);
+            if (m_currentCategory == homeId) {
+                showHome();
+            } else {
+                showCategory(m_currentCategory);
+            }
         } else {
             showSearch(text);
         }
@@ -159,8 +209,21 @@ SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     m_buttonBar->hide();
 }
 
+QString SettingsWindow::moreCategoryId()
+{
+    return QStringLiteral("more");
+}
+
 bool SettingsWindow::open(const QString &target)
 {
+    if (target == homeId) {
+        if (!leaveCurrentPage()) {
+            return false;
+        }
+        m_search->clear();
+        showHome();
+        return true;
+    }
     if (const std::optional<Page> page = m_catalogue.page(target)) {
         if (!leaveCurrentPage()) {
             return false;
@@ -176,14 +239,64 @@ bool SettingsWindow::open(const QString &target)
         showCategory(target);
         return true;
     }
+    // A module that isn't in the sidebar, such as one hidden from System Settings' own list.
+    const KPluginMetaData metadata = findModule(target);
+    if (metadata.isValid() && m_catalogue.category(moreCategoryId())) {
+        if (!leaveCurrentPage()) {
+            return false;
+        }
+        m_search->clear();
+        showPage({ metadata.pluginId(), moreCategoryId(), metadata.name(), metadata.description(), { }, metadata.pluginId(), metadata.iconName() });
+        return true;
+    }
     return false;
 }
 
 void SettingsWindow::openFirst()
 {
-    if (!m_catalogue.categories().isEmpty()) {
-        open(m_catalogue.categories().first().id);
-    }
+    open(homeId);
+}
+
+void SettingsWindow::showHome()
+{
+    m_currentCategory = homeId;
+    m_currentPage.clear();
+    selectCategory(homeId);
+    m_heading->setText(i18nc("@title Settings' first page", "Home"));
+    m_list->clear();
+    const auto addPages = [this](const QString &heading, const QStringList &ids) {
+        QList<Page> pages;
+        for (const QString &id : ids) {
+            if (const std::optional<Page> page = m_catalogue.page(id)) {
+                pages.append(*page);
+            }
+        }
+        if (pages.isEmpty()) {
+            return;
+        }
+        addHeading(m_list, heading);
+        for (const Page &page : std::as_const(pages)) {
+            const KPluginMetaData metadata = findModule(page.module);
+            const QString icon = page.icon.isEmpty() ? metadata.iconName() : page.icon;
+            auto *item = new QListWidgetItem(QIcon::fromTheme(icon), page.title + QLatin1Char('\n') + page.description, m_list);
+            item->setData(idRole, page.id);
+            item->setData(kindRole, pageKind);
+        }
+    };
+    addPages(i18nc("@title On Settings' Home", "Recently used settings"), homeConfig().readEntry("RecentPages", QStringList()));
+    addPages(i18nc("@title On Settings' Home", "Recommended settings"), recommendedPages);
+    m_stack->setCurrentWidget(m_list);
+    updateButtons();
+}
+
+void SettingsWindow::rememberPage(const QString &pageId)
+{
+    KConfigGroup group = homeConfig();
+    QStringList recent = group.readEntry("RecentPages", QStringList());
+    recent.removeAll(pageId);
+    recent.prepend(pageId);
+    group.writeEntry("RecentPages", recent.mid(0, recentCount));
+    group.sync();
 }
 
 void SettingsWindow::closeEvent(QCloseEvent *event)
@@ -256,6 +369,13 @@ void SettingsWindow::openListItem(QListWidgetItem *item)
 
 void SettingsWindow::showPage(const Page &page)
 {
+    // Settings that live in an app of their own open the app; Settings stays where it is.
+    if (isAppModule(page.module)) {
+        if (const KService::Ptr service = KService::serviceByDesktopName(appDesktopName(page.module))) {
+            (new KIO::ApplicationLauncherJob(service))->start();
+        }
+        return;
+    }
     if (page.id == m_currentPage) {
         return;
     }
@@ -264,6 +384,7 @@ void SettingsWindow::showPage(const Page &page)
     }
     QWidget *widget = pageWidget(page);
     m_currentPage = page.id;
+    rememberPage(page.id);
     m_currentCategory = page.category;
     selectCategory(page.category);
     const std::optional<Category> category = m_catalogue.category(page.category);

@@ -21,4 +21,12 @@ KPluginMetaData findModule(const QString &id);
 // hidden.
 QList<KPluginMetaData> systemSettingsModules();
 
+// A page's module can also be an app, as "app:<desktop entry name>", for settings that live in an
+// app of their own, such as NVIDIA's; Settings opens the app instead of a page.
+bool isAppModule(const QString &module);
+QString appDesktopName(const QString &module);
+
+// Whether a page's module, or its app, is installed.
+bool isInstalled(const QString &module);
+
 } // namespace OrielOSSettings

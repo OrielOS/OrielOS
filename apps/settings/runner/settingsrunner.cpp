@@ -15,9 +15,9 @@ namespace {
 
 using namespace OrielOSSettings;
 
-// Finds settings for Start's search and KRunner: Settings' pages, opened in Settings, and the
-// other modules System Settings lists, opened there. It takes the place of System Settings' own
-// runner, which opens every module in System Settings.
+// Finds settings for Start's search and KRunner: Settings' pages and the other modules System
+// Settings lists, all opened in Settings. It takes the place of System Settings' own runner, which
+// opens every module in System Settings.
 class SettingsRunner : public KRunner::AbstractRunner
 {
     Q_OBJECT
@@ -49,8 +49,8 @@ public:
             match.setSubtext(result.subtext);
             match.setIconName(result.icon);
             match.setData(result.command);
-            // A page whose name matches beats an app found by its keywords; System Settings'
-            // modules come after Settings' pages.
+            // A page whose name matches beats an app found by its keywords; the modules under More
+            // settings come after Settings' own pages.
             using Relevance = KRunner::QueryMatch::CategoryRelevance;
             if (result.inSettings) {
                 match.setCategoryRelevance(result.rank <= 1 ? Relevance::High : Relevance::Moderate);
@@ -72,7 +72,7 @@ public:
         }
         auto *job = new KIO::CommandLauncherJob(command.first(), command.mid(1));
         // Names the app for the activation token, so its window comes to the front.
-        job->setDesktopName(command.first() == QLatin1String("orielos-settings") ? QStringLiteral("org.orielos.Settings") : QStringLiteral("systemsettings"));
+        job->setDesktopName(QStringLiteral("org.orielos.Settings"));
         // A program that can't start says so in a notification.
         job->setUiDelegate(new KNotificationJobUiDelegate(KJobUiDelegate::AutoErrorHandlingEnabled));
         job->start();

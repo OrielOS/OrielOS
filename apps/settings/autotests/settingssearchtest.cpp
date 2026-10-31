@@ -87,7 +87,7 @@ private Q_SLOTS:
         QVERIFY(display.inSettings);
     }
 
-    void opensOtherModulesInSystemSettings()
+    void opensOtherModulesInSettings()
     {
         const SettingsSearch search(
             settings(), SettingsSearch::otherModules(settings(), { module(QStringLiteral("kcm_fonts"), QStringLiteral("Fonts"), QStringLiteral("hinting")) }));
@@ -95,8 +95,8 @@ private Q_SLOTS:
         QCOMPARE(ids(results), QStringList { QStringLiteral("kcm_fonts") });
         const SettingsResult &fonts = results.first();
         QCOMPARE(fonts.title, QStringLiteral("Fonts"));
-        QCOMPARE(fonts.subtext, QStringLiteral("System Settings"));
-        QCOMPARE(fonts.command, (QStringList { QStringLiteral("systemsettings"), QStringLiteral("kcm_fonts") }));
+        QCOMPARE(fonts.subtext, QStringLiteral("Settings › More settings"));
+        QCOMPARE(fonts.command, (QStringList { QStringLiteral("orielos-settings"), QStringLiteral("kcm_fonts") }));
         // Found by a keyword.
         QCOMPARE(fonts.rank, 2);
         QVERIFY(!fonts.inSettings);

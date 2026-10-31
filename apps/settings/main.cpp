@@ -4,6 +4,7 @@
 #include "modules.h"
 #include "osrelease.h"
 #include "pagecatalogue.h"
+#include "settingssearch.h"
 #include "settingswindow.h"
 
 #include <KAboutData>
@@ -40,7 +41,23 @@ int main(int argc, char *argv[])
     // and opens the page asked for.
     KDBusService service(KDBusService::Unique);
 
-    SettingsWindow window(PageCatalogue::standard().available([](const QString &module) { return findModule(module).isValid(); }));
+    // Settings' own pages, then under More settings every other module System Settings lists, so
+    // nothing needs System Settings.
+    const PageCatalogue pages = PageCatalogue::standard().available(isInstalled);
+    QList<Category> categories = pages.categories();
+    QList<Page> all;
+    for (const Category &category : std::as_const(categories)) {
+        all.append(pages.pages(category.id));
+    }
+    QList<Page> others = SettingsSearch::otherModules(pages, systemSettingsModules());
+    if (!others.isEmpty()) {
+        categories.append({ SettingsWindow::moreCategoryId(), i18nc("@title Settings category", "More settings"), QStringLiteral("preferences-other") });
+        for (Page &page : others) {
+            page.category = SettingsWindow::moreCategoryId();
+            all.append(page);
+        }
+    }
+    SettingsWindow window(PageCatalogue(categories, all));
     const QString page = PageCatalogue::targetFromArgument(parser.positionalArguments().value(0));
     if (page.isEmpty() || !window.open(page)) {
         window.openFirst();

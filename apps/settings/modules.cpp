@@ -3,6 +3,8 @@
 
 #include "modules.h"
 
+#include <KService>
+
 #include <QSet>
 
 namespace OrielOSSettings {
@@ -43,6 +45,24 @@ QList<KPluginMetaData> systemSettingsModules()
         }
     }
     return out;
+}
+
+bool isAppModule(const QString &module)
+{
+    return module.startsWith(QLatin1String("app:"));
+}
+
+QString appDesktopName(const QString &module)
+{
+    return module.mid(4);
+}
+
+bool isInstalled(const QString &module)
+{
+    if (isAppModule(module)) {
+        return KService::serviceByDesktopName(appDesktopName(module)) != nullptr;
+    }
+    return findModule(module).isValid();
 }
 
 } // namespace OrielOSSettings

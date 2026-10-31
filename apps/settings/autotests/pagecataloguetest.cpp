@@ -51,7 +51,8 @@ private Q_SLOTS:
                 QVERIFY2(!modules.contains(page.module), qPrintable(page.module));
                 QVERIFY(!page.title.isEmpty());
                 QVERIFY(!page.description.isEmpty());
-                QVERIFY(page.module.startsWith(QLatin1String("kcm_")));
+                // A settings module, or an app with settings of its own (NVIDIA's).
+                QVERIFY2(page.module.startsWith(QLatin1String("kcm_")) || page.module.startsWith(QLatin1String("app:")), qPrintable(page.module));
                 pageIds.insert(page.id);
                 modules.insert(page.module);
             }
@@ -120,6 +121,8 @@ private Q_SLOTS:
         QTest::newRow("best performance") << QStringLiteral("best performance") << QStringLiteral("power-mode");
         QTest::newRow("battery saver") << QStringLiteral("battery saver") << QStringLiteral("power-mode");
         QTest::newRow("windows hello") << QStringLiteral("windows hello") << QStringLiteral("sign-in-options");
+        QTest::newRow("nvidia") << QStringLiteral("nvidia") << QStringLiteral("nvidia");
+        QTest::newRow("nvidia control panel") << QStringLiteral("nvidia control panel") << QStringLiteral("nvidia");
         QTest::newRow("pin") << QStringLiteral("pin") << QStringLiteral("sign-in-options");
     }
 

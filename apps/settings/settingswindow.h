@@ -21,8 +21,9 @@ class QStackedWidget;
 
 namespace OrielOSSettings {
 
-// The Settings window: search and the categories on the left; on the right, a category's pages,
-// the search results, or a page. Pages are Plasma settings modules, QML or Qt Widgets, loaded on
+// The Settings window: the account, search and the categories on the left, Home first; on the
+// right, Home (recommended and recently used settings), a category's pages, the search results, or
+// a page. Pages are Plasma settings modules, QML or Qt Widgets, loaded on
 // first use with KCModuleLoader into a stack; every QML module shares one engine. The window owns
 // the Apply, Reset and Defaults buttons, shows those each module asks for, and asks about unsaved
 // changes before leaving a page or closing.
@@ -33,17 +34,25 @@ class SettingsWindow : public QWidget
 public:
     explicit SettingsWindow(PageCatalogue catalogue, QWidget *parent = nullptr);
 
-    // Show a page, by its ID or its module's ID, or a category by its ID. Returns false if there's
-    // no such page or category, or if the user chose to stay on a page with unsaved changes.
+    // The category the modules Settings has no page of its own for go under.
+    static QString moreCategoryId();
+
+    // Show a page, by its ID or its module's ID, or a category by its ID; any other installed
+    // settings module, by its ID, shows under More settings, as systemsettings and kcmshell6 ask.
+    // Returns false if there's no such page, category or module, or if the user chose to stay on a
+    // page with unsaved changes.
     bool open(const QString &target);
-    // Show the first category.
+    // Show Home.
     void openFirst();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
+    void showHome();
     void showCategory(const QString &categoryId);
+    // Remembers a page for Home's recently used settings.
+    void rememberPage(const QString &pageId);
     void showPage(const Page &page);
     void showSearch(const QString &query);
     void openListItem(QListWidgetItem *item);

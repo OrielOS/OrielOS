@@ -133,6 +133,18 @@ done
 grep -qxF 'X-KDE-Shortcuts=Meta+P' /usr/share/kglobalaccel/org.orielos.DisplayMode.desktop 2>/dev/null || update_errors+=("Display mode doesn't have Win+P")
 grep -qxF 'X-KDE-Shortcuts=Display' /usr/share/kglobalaccel/org.kde.kscreen.desktop || update_errors+=("Plasma's screen picker still has Win+P")
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
+# One settings app: System Settings' and kcmshell6's commands open Settings, and NVIDIA's settings are
+# a page of Settings rather than a second settings app in Start.
+for f in /usr/bin/systemsettings /usr/bin/kcmshell6; do
+    grep -q 'exec /usr/bin/orielos-settings' "$f" 2>/dev/null || update_errors+=("$f doesn't open Settings")
+done
+nvidia_entry=/usr/share/applications/nvidia-settings.desktop
+if [[ -f "$nvidia_entry" ]]; then
+    grep -qxF 'NoDisplay=true' "$nvidia_entry" || sed -i '/^\[Desktop Entry\]$/a NoDisplay=true' "$nvidia_entry"
+    grep -qxF 'NoDisplay=true' "$nvidia_entry" || update_errors+=("NVIDIA's settings are still listed in Start")
+else
+    update_errors+=("$nvidia_entry is missing; Settings' NVIDIA page opens it")
+fi
 # Start's and KRunner's search open Settings' pages in Settings, through OrielOS's runner.
 [[ -r /usr/lib64/qt6/plugins/kf6/krunner/krunner_orielos_settings.so ]] || update_errors+=("the settings search runner, krunner_orielos_settings, is missing")
 if [[ "$(kreadconfig6 --file /etc/xdg/krunnerrc --group Plugins --key krunner_systemsettingsEnabled)" != "false" ]]; then

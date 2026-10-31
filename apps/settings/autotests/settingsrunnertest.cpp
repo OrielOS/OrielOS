@@ -43,16 +43,16 @@ private Q_SLOTS:
         QVERIFY(find(update, { QStringLiteral("orielos-settings"), QStringLiteral("update") }));
     }
 
-    void opensOtherModulesInSystemSettings()
+    void opensOtherModulesInSettings()
     {
         // Plasma's Fonts module, when the system has it; Settings has no page for it.
         if (!KPluginMetaData::findPluginById(QStringLiteral("plasma/kcms/systemsettings"), QStringLiteral("kcm_fonts")).isValid()) {
             QSKIP("Plasma's Fonts module isn't installed");
         }
         const QList<QueryMatch> matches = launchQuery(QStringLiteral("fonts"));
-        const QueryMatch *fonts = find(matches, { QStringLiteral("systemsettings"), QStringLiteral("kcm_fonts") });
+        const QueryMatch *fonts = find(matches, { QStringLiteral("orielos-settings"), QStringLiteral("kcm_fonts") });
         QVERIFY(fonts);
-        QCOMPARE(fonts->subtext(), QStringLiteral("System Settings"));
+        QCOMPARE(fonts->subtext(), QStringLiteral("Settings › More settings"));
         QVERIFY(fonts->categoryRelevance() < qreal(QueryMatch::CategoryRelevance::High));
     }
 
