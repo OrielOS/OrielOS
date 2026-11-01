@@ -41,17 +41,6 @@ Notifier::Notifier(const QString &statePath, const QString &bootIdPath, QObject 
     , m_statePath(statePath)
     , m_bootId(readBootId(bootIdPath))
 {
-    m_item = new KStatusNotifierItem(QStringLiteral("org.orielos.UpdateNotifier"), this);
-    m_item->setCategory(KStatusNotifierItem::SystemServices);
-    m_item->setTitle(i18nc("@title The tray icon's name", "OrielOS updates"));
-    m_item->setIconByName(QLatin1String(iconName));
-    m_item->setToolTipIconByName(QLatin1String(iconName));
-    m_item->setToolTipTitle(i18nc("@title The tray icon's name", "OrielOS updates"));
-    // Updates run as long as the computer does; there is nothing to quit.
-    m_item->setStandardActionsEnabled(false);
-    m_item->setContextMenu(buildMenu());
-    connect(m_item, &KStatusNotifierItem::activateRequested, this, &Notifier::openSettings);
-
     // orielos-update replaces the file in one step, which drops it from the watch list, so the
     // folder is watched too and the file is added back after every change. A slow periodic read
     // covers a folder that doesn't exist yet.
@@ -65,6 +54,29 @@ Notifier::Notifier(const QString &statePath, const QString &bootIdPath, QObject 
     m_periodicReload.start();
 
     reload();
+}
+
+void Notifier::createItem()
+{
+    m_item = new KStatusNotifierItem(QStringLiteral("org.orielos.UpdateNotifier"), this);
+    m_item->setCategory(KStatusNotifierItem::SystemServices);
+    m_item->setStatus(KStatusNotifierItem::Active);
+    m_item->setTitle(i18nc("@title The tray icon's name", "OrielOS updates"));
+    m_item->setIconByName(QLatin1String(iconName));
+    m_item->setToolTipIconByName(QLatin1String(iconName));
+    m_item->setToolTipTitle(i18nc("@title The tray icon's name", "OrielOS updates"));
+    // Updates run as long as the computer does; there is nothing to quit.
+    m_item->setStandardActionsEnabled(false);
+    // The item deletes its menu with itself.
+    m_item->setContextMenu(buildMenu());
+    connect(m_item, &KStatusNotifierItem::activateRequested, this, &Notifier::openSettings);
+}
+
+void Notifier::removeItem()
+{
+    delete m_item;
+    m_item = nullptr;
+    m_restartAction = nullptr;
 }
 
 void Notifier::watchStateFile()
@@ -100,7 +112,7 @@ QMenu *Notifier::buildMenu()
 
     m_restartAction = menu->addAction(QIcon::fromTheme(QStringLiteral("system-reboot")), i18nc("@action:inmenu", "Restart to update"));
     connect(m_restartAction, &QAction::triggered, this, &Notifier::restart);
-    m_restartSeparator = menu->addSeparator();
+    menu->addSeparator();
 
     QAction *settings = menu->addAction(QIcon::fromTheme(QLatin1String(iconName)), i18nc("@action:inmenu", "Open update settings"));
     connect(settings, &QAction::triggered, this, &Notifier::openSettings);
@@ -113,12 +125,16 @@ void Notifier::updateItem()
     const bool waiting = m_state.updateWaiting(m_bootId);
     const bool goingBack = m_state.goingBack(m_bootId);
 
-    // Passive keeps the icon in the tray's hidden area until there is something to do.
-    m_item->setStatus(waiting || goingBack ? KStatusNotifierItem::Active : KStatusNotifierItem::Passive);
+    // No icon until there's something to restart for, and none once it's done: the Update settings
+    // page has the rest.
+    if (!waiting && !goingBack) {
+        removeItem();
+        return;
+    }
+    if (!m_item) {
+        createItem();
+    }
     m_item->setToolTipSubTitle(OrielOSUpdates::statusText(m_state, m_bootId, QDateTime::currentDateTimeUtc()));
-
-    m_restartAction->setVisible(waiting || goingBack);
-    m_restartSeparator->setVisible(waiting || goingBack);
     m_restartAction->setText(goingBack ? i18nc("@action:inmenu", "Restart to go back") : i18nc("@action:inmenu", "Restart to update"));
 }
 
@@ -193,7 +209,7 @@ void Notifier::openSettings()
     QProcess process;
     process.setProgram(QStringLiteral("orielos-settings"));
     process.setArguments({ QLatin1String(settingsModule) });
-    const QString token = m_item->providedToken();
+    const QString token = m_item ? m_item->providedToken() : QString();
     if (!token.isEmpty()) {
         QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
         environment.insert(QStringLiteral("XDG_ACTIVATION_TOKEN"), token);

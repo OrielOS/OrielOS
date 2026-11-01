@@ -18,9 +18,10 @@ class QMenu;
 namespace UpdateNotifier {
 
 // The tray icon that tells the user about OrielOS updates. It follows the state file that
-// orielos-update writes, offers "Restart to update" when a build is staged or going back is queued,
-// and tells the user when an update that didn't start was undone. Everything else is on the Update
-// settings page, which clicking the icon opens.
+// orielos-update writes and shows only while a build is staged or going back is queued, offering
+// "Restart to update"; with nothing waiting for a restart there is no icon at all. It also tells
+// the user when an update that didn't start was undone. Everything else is on the Update settings
+// page, which clicking the icon opens.
 class Notifier : public QObject
 {
     Q_OBJECT
@@ -31,6 +32,9 @@ public:
 private:
     void reload();
     void updateItem();
+    // The icon, made when there's something to restart for and taken away when there isn't.
+    void createItem();
+    void removeItem();
     void showReadyNotification();
     void showGoBackNotification();
     void showUndoneNotification();
@@ -57,7 +61,6 @@ private:
     QPointer<KNotification> m_goBackNotification;
 
     QAction *m_restartAction = nullptr;
-    QAction *m_restartSeparator = nullptr;
 };
 
 } // namespace UpdateNotifier

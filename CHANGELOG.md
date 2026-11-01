@@ -4,6 +4,10 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+### Changed
+
+- The OrielOS updates icon only shows in the system tray while an update, or going back to the previous version, is waiting for a restart. With nothing to restart for it goes away, rather than waiting among the hidden icons; Settings → Update still shows when OrielOS last checked.
+
 ## [0.1.9] - 2026-11-01
 
 ### Added
