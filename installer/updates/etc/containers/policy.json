@@ -6,7 +6,7 @@
     ],
     "transports": {
         "docker": {
-            "ghcr.io/ncjsvr/orielos": [
+            "ghcr.io/orielos/orielos": [
                 {
                     "type": "sigstoreSigned",
                     "keyPath": "/etc/pki/containers/orielos.pub",
