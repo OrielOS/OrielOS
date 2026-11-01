@@ -15,22 +15,22 @@ notify="${XDG_CONFIG_HOME:-$HOME/.config}/plasmanotifyrc"
 now="$(date +%s)"
 while (($# > 0)); do
     case "$1" in
-    --config)
-        config="${2:?--config needs a file}"
-        shift
-        ;;
-    --now)
-        now="$(date -d "${2:?--now needs a date}" +%s)" || exit 2
-        shift
-        ;;
-    --notify-config)
-        notify="${2:?--notify-config needs a file}"
-        shift
-        ;;
-    *)
-        printf 'dnd-schedule: unknown argument %s\n' "$1" >&2
-        exit 2
-        ;;
+        --config)
+            config="${2:?--config needs a file}"
+            shift
+            ;;
+        --now)
+            now="$(date -d "${2:?--now needs a date}" +%s)" || exit 2
+            shift
+            ;;
+        --notify-config)
+            notify="${2:?--notify-config needs a file}"
+            shift
+            ;;
+        *)
+            printf 'dnd-schedule: unknown argument %s\n' "$1" >&2
+            exit 2
+            ;;
     esac
     shift
 done
@@ -50,9 +50,9 @@ counts() {
     local weekday
     weekday="$(date -d "$1" +%u)"
     case "$days" in
-    weekdays) ((weekday <= 5)) ;;
-    weekends) ((weekday >= 6)) ;;
-    *) true ;;
+        weekdays) ((weekday <= 5)) ;;
+        weekends) ((weekday >= 6)) ;;
+        *) true ;;
     esac
 }
 

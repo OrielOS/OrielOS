@@ -61,7 +61,8 @@ private Q_SLOTS:
         library.setForTesting(folder);
         QSignalSpy changed(&library, &FontLibrary::changed);
         const QString name = QFileInfo(font).fileName();
-        QVariantMap done = library.install({ QUrl::fromLocalFile(font), QUrl::fromLocalFile(broken), QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("notes.txt"))) });
+        QVariantMap done
+            = library.install({ QUrl::fromLocalFile(font), QUrl::fromLocalFile(broken), QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("notes.txt"))) });
         QCOMPARE(done.value(QStringLiteral("installed")).toStringList(), QStringList { name });
         QCOMPARE(done.value(QStringLiteral("unsupported")).toStringList(), (QStringList { QStringLiteral("broken.ttf"), QStringLiteral("notes.txt") }));
         QVERIFY(QFile::exists(folder + QLatin1Char('/') + name));

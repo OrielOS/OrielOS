@@ -25,31 +25,31 @@ read_setting() {
 }
 
 case "${1:-}" in
-contrast)
-    current="$(read_setting kdeglobals General ColorScheme OrielOSDark)"
-    if [[ "$current" == "$contrast_prefix"* ]]; then
-        kwriteconfig6 --file "$config" --group Contrast --key Theme "$current"
-        previous="$(read_setting "$config" Contrast Previous OrielOSDark)"
-        plasma-apply-colorscheme "$previous" >/dev/null
-        notify preferences-desktop-color "Contrast theme off"
-    else
-        theme="$(read_setting "$config" Contrast Theme "${contrast_prefix}Black")"
-        kwriteconfig6 --file "$config" --group Contrast --key Previous "$current"
-        plasma-apply-colorscheme "$theme" >/dev/null
-        notify preferences-desktop-color "Contrast theme on" "Press Left Alt+Left Shift+Print Screen again to turn it off."
-    fi
-    ;;
-mouse-keys)
-    if [[ "$(read_setting kaccessrc Mouse MouseKeys false)" == true ]]; then
-        kwriteconfig6 --file kaccessrc --group Mouse --key MouseKeys --notify false
-        notify input-mouse "Mouse Keys off"
-    else
-        kwriteconfig6 --file kaccessrc --group Mouse --key MouseKeys --notify true
-        notify input-mouse "Mouse Keys on" "Move the pointer with the number pad; 5 clicks."
-    fi
-    ;;
-*)
-    printf 'usage: accessibility-keys contrast|mouse-keys\n' >&2
-    exit 2
-    ;;
+    contrast)
+        current="$(read_setting kdeglobals General ColorScheme OrielOSDark)"
+        if [[ "$current" == "$contrast_prefix"* ]]; then
+            kwriteconfig6 --file "$config" --group Contrast --key Theme "$current"
+            previous="$(read_setting "$config" Contrast Previous OrielOSDark)"
+            plasma-apply-colorscheme "$previous" >/dev/null
+            notify preferences-desktop-color "Contrast theme off"
+        else
+            theme="$(read_setting "$config" Contrast Theme "${contrast_prefix}Black")"
+            kwriteconfig6 --file "$config" --group Contrast --key Previous "$current"
+            plasma-apply-colorscheme "$theme" >/dev/null
+            notify preferences-desktop-color "Contrast theme on" "Press Left Alt+Left Shift+Print Screen again to turn it off."
+        fi
+        ;;
+    mouse-keys)
+        if [[ "$(read_setting kaccessrc Mouse MouseKeys false)" == true ]]; then
+            kwriteconfig6 --file kaccessrc --group Mouse --key MouseKeys --notify false
+            notify input-mouse "Mouse Keys off"
+        else
+            kwriteconfig6 --file kaccessrc --group Mouse --key MouseKeys --notify true
+            notify input-mouse "Mouse Keys on" "Move the pointer with the number pad; 5 clicks."
+        fi
+        ;;
+    *)
+        printf 'usage: accessibility-keys contrast|mouse-keys\n' >&2
+        exit 2
+        ;;
 esac

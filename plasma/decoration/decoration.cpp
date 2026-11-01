@@ -5,10 +5,10 @@
 #include "button.h"
 #include "shadow.h"
 
+#include <KConfigGroup>
 #include <KDecoration3/DecoratedWindow>
 #include <KDecoration3/DecorationSettings>
 #include <KDecoration3/ScaleHelpers>
-#include <KConfigGroup>
 #include <KPluginFactory>
 #include <KSharedConfig>
 

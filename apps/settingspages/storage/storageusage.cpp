@@ -28,7 +28,8 @@ namespace {
 
 const QString senseGroup = QStringLiteral("StorageSense");
 
-struct Inode {
+struct Inode
+{
     dev_t device;
     ino_t inode;
     bool operator==(const Inode &other) const { return device == other.device && inode == other.inode; }
@@ -90,7 +91,8 @@ QHash<QString, qint64> measure(const QHash<QString, QStringList> &folders)
     return sizes;
 }
 
-struct Part {
+struct Part
+{
     QString id;
     QString name;
     QString icon;
@@ -205,9 +207,7 @@ QVariantList StorageUsage::categories() const
             counted += m_sizes.value(part.id);
         }
     }
-    std::stable_sort(measured.begin(), measured.end(), [](const auto &a, const auto &b) {
-        return a.second > b.second;
-    });
+    std::stable_sort(measured.begin(), measured.end(), [](const auto &a, const auto &b) { return a.second > b.second; });
     QVariantList list;
     for (const auto &[part, bytes] : measured) {
         list.append(QVariantMap { { QStringLiteral("id"), part.id }, { QStringLiteral("name"), part.name }, { QStringLiteral("icon"), part.icon },
@@ -215,15 +215,17 @@ QVariantList StorageUsage::categories() const
     }
     if (!m_sizes.isEmpty()) {
         // The system's own files, other people's folders and everything not listed above.
-        list.append(QVariantMap { { QStringLiteral("id"), QStringLiteral("other") }, { QStringLiteral("name"), i18nc("@item Storage used by", "System and other") },
-            { QStringLiteral("icon"), QStringLiteral("drive-harddisk") }, { QStringLiteral("bytes"), std::max<qint64>(0, m_used - counted) } });
+        list.append(
+            QVariantMap { { QStringLiteral("id"), QStringLiteral("other") }, { QStringLiteral("name"), i18nc("@item Storage used by", "System and other") },
+                { QStringLiteral("icon"), QStringLiteral("drive-harddisk") }, { QStringLiteral("bytes"), std::max<qint64>(0, m_used - counted) } });
     }
     return list;
 }
 
 bool StorageUsage::isSenseEnabled() const
 {
-    const KConfig config(m_config.isEmpty() ? QStringLiteral("orielos-storagesenserc") : m_config, m_config.isEmpty() ? KConfig::FullConfig : KConfig::SimpleConfig);
+    const KConfig config(
+        m_config.isEmpty() ? QStringLiteral("orielos-storagesenserc") : m_config, m_config.isEmpty() ? KConfig::FullConfig : KConfig::SimpleConfig);
     return config.group(senseGroup).readEntry("Enabled", false);
 }
 
@@ -240,7 +242,8 @@ void StorageUsage::setSenseEnabled(bool enabled)
 
 int StorageUsage::binDays() const
 {
-    const KConfig config(m_config.isEmpty() ? QStringLiteral("orielos-storagesenserc") : m_config, m_config.isEmpty() ? KConfig::FullConfig : KConfig::SimpleConfig);
+    const KConfig config(
+        m_config.isEmpty() ? QStringLiteral("orielos-storagesenserc") : m_config, m_config.isEmpty() ? KConfig::FullConfig : KConfig::SimpleConfig);
     return config.group(senseGroup).readEntry("BinDays", 30);
 }
 
@@ -262,7 +265,8 @@ QString StorageUsage::senseProgram() const
     }
     const QString installed = QStandardPaths::findExecutable(QStringLiteral("storage-sense"), { QStringLiteral("/usr/libexec/orielos") });
     // A sideloaded Settings finds its copy beside itself.
-    return installed.isEmpty() ? QStandardPaths::findExecutable(QStringLiteral("orielos-storage-sense"), { QCoreApplication::applicationDirPath() }) : installed;
+    return installed.isEmpty() ? QStandardPaths::findExecutable(QStringLiteral("orielos-storage-sense"), { QCoreApplication::applicationDirPath() })
+                               : installed;
 }
 
 void StorageUsage::cleanUp(bool everything)

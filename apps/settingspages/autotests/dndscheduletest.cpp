@@ -25,7 +25,8 @@ private:
 
     // Settings in a file of their own, and a stand-in for systemctl that appends its arguments to a
     // record, one call to a line.
-    struct Setup {
+    struct Setup
+    {
         QString config;
         QString dropIn;
         QString record;
@@ -34,7 +35,8 @@ private:
     Setup setUp(DndSchedule &schedule, const QByteArray &contents = { })
     {
         const QString name = QString::fromLatin1(QTest::currentTestFunction());
-        Setup setup { m_dir.filePath(name + QStringLiteral("-rc")), m_dir.filePath(name + QStringLiteral("-timer.d")), m_dir.filePath(name + QStringLiteral("-calls")) };
+        Setup setup { m_dir.filePath(name + QStringLiteral("-rc")), m_dir.filePath(name + QStringLiteral("-timer.d")),
+            m_dir.filePath(name + QStringLiteral("-calls")) };
         QFile file(setup.config);
         if (file.open(QIODevice::WriteOnly)) {
             file.write(contents);

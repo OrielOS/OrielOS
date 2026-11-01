@@ -265,7 +265,8 @@ QString changeScript(const ShellSettings::Change &change)
         return QStringLiteral("taskbarsEverywhere(%1);").arg(value);
     case ShellSettings::Setting::SmallButtons:
         // Every taskbar, the other displays' too: 40 px high with smaller buttons, or the usual 48.
-        return QStringLiteral("[panel].concat(panels().filter(isExtraTaskbar)).forEach(function (bar) {\n        bar.height = %1 ? 40 : 48;\n    });").arg(value);
+        return QStringLiteral("[panel].concat(panels().filter(isExtraTaskbar)).forEach(function (bar) {\n        bar.height = %1 ? 40 : 48;\n    });")
+            .arg(value);
     case ShellSettings::Setting::FolderSettings:
     case ShellSettings::Setting::FolderFiles:
     case ShellSettings::Setting::FolderDocuments:

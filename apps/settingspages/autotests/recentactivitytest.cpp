@@ -72,10 +72,11 @@ private Q_SLOTS:
     {
         QTemporaryDir dir;
         const QString state = dir.filePath(QStringLiteral("privacy-activity.json"));
-        writeState(state, QStringLiteral("{\"location\": {\"org.gnome.Maps\": %1, \"org.kde.marble\": %2, \"broken\": \"soon\"}}")
-                              .arg(ago(8 * 24 * 3600))
-                              .arg(ago(6 * 24 * 3600))
-                              .toUtf8());
+        writeState(state,
+            QStringLiteral("{\"location\": {\"org.gnome.Maps\": %1, \"org.kde.marble\": %2, \"broken\": \"soon\"}}")
+                .arg(ago(8 * 24 * 3600))
+                .arg(ago(6 * 24 * 3600))
+                .toUtf8());
         RecentActivity activity(state, [] { return Now; }, &fakeLookup);
         QCOMPARE(activity.location().size(), 1);
         QCOMPARE(activity.location().at(0).toMap().value(QStringLiteral("id")).toString(), QStringLiteral("org.kde.marble"));

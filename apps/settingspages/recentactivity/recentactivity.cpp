@@ -41,7 +41,8 @@ std::pair<QString, QString> installedApp(const QString &id)
 } // namespace
 
 RecentActivity::RecentActivity(QObject *parent)
-    : RecentActivity(QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + QStringLiteral("/orielos/privacy-activity.json"),
+    : RecentActivity(
+          QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + QStringLiteral("/orielos/privacy-activity.json"),
           [] { return QDateTime::currentDateTime(); }, &installedApp, parent)
 {
 }

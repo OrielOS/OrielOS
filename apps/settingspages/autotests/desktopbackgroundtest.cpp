@@ -77,7 +77,8 @@ private Q_SLOTS:
     {
         QJSEngine engine;
         QVERIFY(!run(engine, DesktopBackground::readScript()).isError());
-        QCOMPARE(engine.evaluate(QStringLiteral("printed")).toString(), QStringLiteral("{\"image\":\"file:///home/someone/Pictures/lake.jpg\",\"fillMode\":1}"));
+        QCOMPARE(
+            engine.evaluate(QStringLiteral("printed")).toString(), QStringLiteral("{\"image\":\"file:///home/someone/Pictures/lake.jpg\",\"fillMode\":1}"));
     }
 
     void setsThePictureOnEveryDesktop()

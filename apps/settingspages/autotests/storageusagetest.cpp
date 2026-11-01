@@ -38,9 +38,7 @@ private:
     // Waits for the background measuring to finish.
     static bool measured(StorageUsage &storage)
     {
-        return QTest::qWaitFor([&storage]() {
-            return !storage.isCalculating();
-        });
+        return QTest::qWaitFor([&storage]() { return !storage.isCalculating(); });
     }
 
 private Q_SLOTS:
@@ -125,7 +123,8 @@ private Q_SLOTS:
         QFETCH(int, exitCode);
         QFETCH(QString, arguments);
         const QString config = m_dir.filePath(QStringLiteral("sense-run"));
-        const QString record = m_dir.filePath(QStringLiteral("args-%1").arg(QString::fromLatin1(QTest::currentDataTag()).replace(QLatin1Char(' '), QLatin1Char('-'))));
+        const QString record
+            = m_dir.filePath(QStringLiteral("args-%1").arg(QString::fromLatin1(QTest::currentDataTag()).replace(QLatin1Char(' '), QLatin1Char('-'))));
         const QString program = m_dir.filePath(QStringLiteral("sense-%1.sh").arg(exitCode));
         QFile script(program);
         QVERIFY(script.open(QIODevice::WriteOnly));

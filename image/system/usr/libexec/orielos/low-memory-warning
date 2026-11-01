@@ -12,15 +12,15 @@ meminfo=/proc/meminfo
 dry_run=false
 while (($# > 0)); do
     case "$1" in
-    --meminfo)
-        meminfo="${2:?--meminfo needs a file}"
-        shift
-        ;;
-    --dry-run) dry_run=true ;;
-    *)
-        printf 'low-memory-warning: unknown argument %s\n' "$1" >&2
-        exit 2
-        ;;
+        --meminfo)
+            meminfo="${2:?--meminfo needs a file}"
+            shift
+            ;;
+        --dry-run) dry_run=true ;;
+        *)
+            printf 'low-memory-warning: unknown argument %s\n' "$1" >&2
+            exit 2
+            ;;
     esac
     shift
 done

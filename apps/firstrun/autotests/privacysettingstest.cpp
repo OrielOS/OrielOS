@@ -20,8 +20,8 @@ private:
     QString setUp(PrivacySettings &privacy, int exitCode = 0)
     {
         const QString record = m_dir.filePath(QStringLiteral("calls-%1").arg(QLatin1String(QTest::currentTestFunction())));
-        privacy.setCommandForTesting(QStringLiteral("sh"),
-            { QStringLiteral("-c"), QStringLiteral("echo \"$@\" >> %1; exit %2").arg(record).arg(exitCode), QStringLiteral("helper") });
+        privacy.setCommandForTesting(
+            QStringLiteral("sh"), { QStringLiteral("-c"), QStringLiteral("echo \"$@\" >> %1; exit %2").arg(record).arg(exitCode), QStringLiteral("helper") });
         return record;
     }
 

@@ -18,16 +18,16 @@ all=false
 config=orielos-storagesenserc
 while (($# > 0)); do
     case "$1" in
-    --now) now=true ;;
-    --all) all=true ;;
-    --config)
-        config="${2:?--config needs a file}"
-        shift
-        ;;
-    *)
-        printf 'storage-sense: unknown argument %s\n' "$1" >&2
-        exit 2
-        ;;
+        --now) now=true ;;
+        --all) all=true ;;
+        --config)
+            config="${2:?--config needs a file}"
+            shift
+            ;;
+        *)
+            printf 'storage-sense: unknown argument %s\n' "$1" >&2
+            exit 2
+            ;;
     esac
     shift
 done

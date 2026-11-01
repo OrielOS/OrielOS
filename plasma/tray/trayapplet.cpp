@@ -148,9 +148,7 @@ private:
         if (m_plasmaTray) {
             // Plasma's tray sets its own status when one of its widgets opens or closes; the panel
             // shows it again unless it goes straight back to hidden.
-            connect(m_plasmaTray, &Plasma::Applet::statusChanged, this, [this] {
-                QTimer::singleShot(0, this, &TrayApplet::keepPlasmaTrayHidden);
-            });
+            connect(m_plasmaTray, &Plasma::Applet::statusChanged, this, [this] { QTimer::singleShot(0, this, &TrayApplet::keepPlasmaTrayHidden); });
             keepPlasmaTrayHidden();
         }
     }

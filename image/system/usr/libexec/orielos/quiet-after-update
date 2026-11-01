@@ -13,6 +13,7 @@ state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/last-version"
 config="${XDG_CONFIG_HOME:-$HOME/.config}/plasmanotifyrc"
 mkdir -p -- "${state%/*}"
 
+# shellcheck source=/dev/null
 version="$(. /usr/lib/os-release && printf '%s' "${IMAGE_VERSION:-$VERSION_ID}")"
 [[ -n "$version" ]] || exit 0
 previous="$(cat -- "$state" 2>/dev/null || true)"

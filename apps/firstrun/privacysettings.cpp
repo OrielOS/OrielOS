@@ -40,9 +40,8 @@ void PrivacySettings::save()
     }
     m_running = m_location;
     m_process = new QProcess(this);
-    connect(m_process, &QProcess::finished, this, [this](int exitCode, QProcess::ExitStatus status) {
-        finish(status == QProcess::NormalExit && exitCode == 0);
-    });
+    connect(
+        m_process, &QProcess::finished, this, [this](int exitCode, QProcess::ExitStatus status) { finish(status == QProcess::NormalExit && exitCode == 0); });
     connect(m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart) {
             finish(false);

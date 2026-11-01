@@ -6,8 +6,7 @@
 #include <QObject>
 #include <QVariantList>
 
-namespace Solid
-{
+namespace Solid {
 class Device;
 }
 

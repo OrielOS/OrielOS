@@ -37,13 +37,12 @@ QString literal(const QString &text)
 // Every desktop's picture settings, set by body with "desktop" in scope.
 QString forEveryDesktop(const QString &body)
 {
-    return QStringLiteral(
-               "desktops().forEach(function (desktop) {\n"
-               "    desktop.wallpaperPlugin = \"org.kde.image\";\n"
-               "    desktop.currentConfigGroup = [\"Wallpaper\", \"org.kde.image\", \"General\"];\n"
-               "    %1\n"
-               "    desktop.reloadConfig();\n"
-               "});\n")
+    return QStringLiteral("desktops().forEach(function (desktop) {\n"
+                          "    desktop.wallpaperPlugin = \"org.kde.image\";\n"
+                          "    desktop.currentConfigGroup = [\"Wallpaper\", \"org.kde.image\", \"General\"];\n"
+                          "    %1\n"
+                          "    desktop.reloadConfig();\n"
+                          "});\n")
         .arg(body);
 }
 
@@ -52,8 +51,7 @@ QString forEveryDesktop(const QString &body)
 QString packageImage(const QString &folder, bool dark)
 {
     for (const QString &sub : dark ? QStringList { QStringLiteral("images_dark"), QStringLiteral("images") } : QStringList { QStringLiteral("images") }) {
-        const QFileInfoList images
-            = QDir(folder + QStringLiteral("/contents/") + sub).entryInfoList(QDir::Files | QDir::Readable, QDir::Size);
+        const QFileInfoList images = QDir(folder + QStringLiteral("/contents/") + sub).entryInfoList(QDir::Files | QDir::Readable, QDir::Size);
         if (!images.isEmpty()) {
             return images.first().filePath();
         }
@@ -77,8 +75,7 @@ DesktopBackground::DesktopBackground(QObject *parent)
                   done(!reply.isError(), reply.isError() ? reply.error().message() : reply.value());
               });
           },
-          QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + QStringLiteral("/orielos/recent-backgrounds"),
-          parent)
+          QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + QStringLiteral("/orielos/recent-backgrounds"), parent)
 {
 }
 
@@ -95,15 +92,14 @@ DesktopBackground::DesktopBackground(Runner runner, const QString &stateFile, QO
 
 QString DesktopBackground::readScript()
 {
-    return QStringLiteral(
-        "var found = desktops().filter(function (desktop) { return desktop.wallpaperPlugin === \"org.kde.image\"; })[0];\n"
-        "var answer = { image: \"\", fillMode: 2 };\n"
-        "if (found) {\n"
-        "    found.currentConfigGroup = [\"Wallpaper\", \"org.kde.image\", \"General\"];\n"
-        "    answer.image = String(found.readConfig(\"Image\", \"\"));\n"
-        "    answer.fillMode = Number(found.readConfig(\"FillMode\", 2));\n"
-        "}\n"
-        "print(JSON.stringify(answer));\n");
+    return QStringLiteral("var found = desktops().filter(function (desktop) { return desktop.wallpaperPlugin === \"org.kde.image\"; })[0];\n"
+                          "var answer = { image: \"\", fillMode: 2 };\n"
+                          "if (found) {\n"
+                          "    found.currentConfigGroup = [\"Wallpaper\", \"org.kde.image\", \"General\"];\n"
+                          "    answer.image = String(found.readConfig(\"Image\", \"\"));\n"
+                          "    answer.fillMode = Number(found.readConfig(\"FillMode\", 2));\n"
+                          "}\n"
+                          "print(JSON.stringify(answer));\n");
 }
 
 QString DesktopBackground::imageScript(const QString &path)

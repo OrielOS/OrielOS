@@ -19,8 +19,8 @@ private Q_SLOTS:
 
     void shownIconsKeepTheirOrder()
     {
-        const Tray::Split split = Tray::split({ QStringLiteral("steam"), QStringLiteral("discord"), QStringLiteral("obs") }, { },
-            { QStringLiteral("obs"), QStringLiteral("steam") });
+        const Tray::Split split = Tray::split(
+            { QStringLiteral("steam"), QStringLiteral("discord"), QStringLiteral("obs") }, { }, { QStringLiteral("obs"), QStringLiteral("steam") });
         QCOMPARE(split.taskbar, QStringList({ QStringLiteral("obs"), QStringLiteral("steam") }));
         QCOMPARE(split.pane, QStringList({ QStringLiteral("discord") }));
     }
@@ -34,8 +34,8 @@ private Q_SLOTS:
 
     void passiveIconsStayInThePane()
     {
-        const Tray::Split split = Tray::split({ QStringLiteral("updates"), QStringLiteral("steam") }, { QStringLiteral("updates") },
-            { QStringLiteral("updates"), QStringLiteral("steam") });
+        const Tray::Split split = Tray::split(
+            { QStringLiteral("updates"), QStringLiteral("steam") }, { QStringLiteral("updates") }, { QStringLiteral("updates"), QStringLiteral("steam") });
         QCOMPARE(split.taskbar, QStringList({ QStringLiteral("steam") }));
         QCOMPARE(split.pane, QStringList({ QStringLiteral("updates") }));
     }

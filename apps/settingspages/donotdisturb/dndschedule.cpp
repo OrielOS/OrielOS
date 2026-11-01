@@ -127,7 +127,8 @@ void DndSchedule::save()
     QDir().mkpath(folder);
     QFile dropIn(folder + QStringLiteral("/schedule.conf"));
     if (dropIn.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        dropIn.write(QStringLiteral("# Written by Settings › System › Do not disturb.\n[Timer]\nOnCalendar=\nOnCalendar=%1\n").arg(calendar(m_days, m_from)).toUtf8());
+        dropIn.write(
+            QStringLiteral("# Written by Settings › System › Do not disturb.\n[Timer]\nOnCalendar=\nOnCalendar=%1\n").arg(calendar(m_days, m_from)).toUtf8());
         dropIn.close();
     }
     systemctl({ QStringLiteral("daemon-reload") });

@@ -9,10 +9,10 @@
 // Which apps' icons the tray shows on the taskbar and which in the hidden icons pane. An icon
 // shows on the taskbar when the user put it there (its id is in `shown`, in that order) and its
 // app doesn't mark it passive; every other icon is in the pane, in the order the apps started.
-namespace Tray
-{
+namespace Tray {
 
-struct Split {
+struct Split
+{
     QStringList taskbar;
     QStringList pane;
 };

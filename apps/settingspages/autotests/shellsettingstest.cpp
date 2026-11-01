@@ -332,8 +332,8 @@ desktop.push(other, unrelated);
         QCOMPARE(small->evaluate(QStringLiteral("unrelated.height")).toInt(), 32);
         QVERIFY(printedState(*small).smallButtons);
 
-        const auto usual = runScript(extra + QStringLiteral("taskbar.height = 40;\nother.height = 40;\n"),
-            ShellSettings::Change { ShellSettings::Setting::SmallButtons, false });
+        const auto usual = runScript(
+            extra + QStringLiteral("taskbar.height = 40;\nother.height = 40;\n"), ShellSettings::Change { ShellSettings::Setting::SmallButtons, false });
         QVERIFY(usual);
         QCOMPARE(usual->evaluate(QStringLiteral("taskbar.height")).toInt(), 48);
         QCOMPARE(usual->evaluate(QStringLiteral("other.height")).toInt(), 48);
@@ -524,7 +524,8 @@ desktop.push(other, unrelated);
     void readsAndChangesTheTrayIcons()
     {
         const QString withTray = orielosTaskbar
-            + QStringLiteral("var tray = makeWidget(6, \"org.orielos.tray\", { shownItems: [\"steam\"] }); taskbar.list.push(tray); taskbar.widgetIds.push(6);");
+            + QStringLiteral(
+                "var tray = makeWidget(6, \"org.orielos.tray\", { shownItems: [\"steam\"] }); taskbar.list.push(tray); taskbar.widgetIds.push(6);");
         const auto engine = runScript(withTray);
         QVERIFY(engine);
         ShellState state = printedState(*engine);
@@ -557,8 +558,8 @@ desktop.push(other, unrelated);
     {
         const QString id = QStringLiteral("a\"); print(\"x\"); //");
         const QString script = ShellSettings::script(ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, id });
-        const auto engine = runScript(orielosTaskbar
-                + QStringLiteral("var tray = makeWidget(6, \"org.orielos.tray\", {}); taskbar.list.push(tray); taskbar.widgetIds.push(6);"),
+        const auto engine = runScript(
+            orielosTaskbar + QStringLiteral("var tray = makeWidget(6, \"org.orielos.tray\", {}); taskbar.list.push(tray); taskbar.widgetIds.push(6);"),
             ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, id });
         QVERIFY(engine);
         QCOMPARE(printedState(*engine).trayShown, QStringList { id });

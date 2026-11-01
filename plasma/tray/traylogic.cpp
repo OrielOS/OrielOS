@@ -5,8 +5,7 @@
 
 #include <algorithm>
 
-namespace Tray
-{
+namespace Tray {
 
 Split split(const QStringList &present, const QStringList &passive, const QStringList &shown)
 {

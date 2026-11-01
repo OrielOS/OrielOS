@@ -22,12 +22,12 @@ image="$(awk '
 
 # A file: URL as a path, its %-escapes decoded; a package's name as its folder.
 case "$image" in
-file://*)
-    path="${image#file://}"
-    printf -v path '%b' "${path//%/\\x}"
-    ;;
-/*) path="$image" ;;
-*) path="/usr/share/wallpapers/$image" ;;
+    file://*)
+        path="${image#file://}"
+        printf -v path '%b' "${path//%/\\x}"
+        ;;
+    /*) path="$image" ;;
+    *) path="/usr/share/wallpapers/$image" ;;
 esac
 path="${path%/}"
 [[ -e "$path" ]] || exit 0

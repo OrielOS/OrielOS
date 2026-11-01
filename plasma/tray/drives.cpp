@@ -53,8 +53,8 @@ void notify(const QString &summary, const QString &body)
 {
     QDBusMessage message = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("/org/freedesktop/Notifications"),
         QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("Notify"));
-    message.setArguments({ i18nc("@title The notification's app name", "Drives"), 0u, QStringLiteral("media-eject"), summary, body, QStringList(),
-        QVariantMap(), -1 });
+    message.setArguments(
+        { i18nc("@title The notification's app name", "Drives"), 0u, QStringLiteral("media-eject"), summary, body, QStringList(), QVariantMap(), -1 });
     QDBusConnection::sessionBus().send(message);
 }
 
@@ -128,8 +128,7 @@ void Drives::eject(const QString &udi)
 void Drives::finish(const QString &udi, const QString &name, bool inUse)
 {
     if (inUse) {
-        notify(i18nc("@title %1 is a drive's name", "%1 is in use", name),
-            i18nc("@info", "Close the files and apps that use it, then eject it again."));
+        notify(i18nc("@title %1 is a drive's name", "%1 is in use", name), i18nc("@info", "Close the files and apps that use it, then eject it again."));
         return;
     }
     Solid::Device drive(udi);
@@ -137,8 +136,8 @@ void Drives::finish(const QString &udi, const QString &name, bool inUse)
         optical->eject();
     } else if (udi.startsWith(udisksDrives)) {
         // Like unplugging it: the drive turns off and leaves the list.
-        QDBusMessage message = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.UDisks2"), udi,
-            QStringLiteral("org.freedesktop.UDisks2.Drive"), QStringLiteral("PowerOff"));
+        QDBusMessage message = QDBusMessage::createMethodCall(
+            QStringLiteral("org.freedesktop.UDisks2"), udi, QStringLiteral("org.freedesktop.UDisks2.Drive"), QStringLiteral("PowerOff"));
         message.setArguments({ QVariantMap() });
         QDBusConnection::systemBus().send(message);
     }

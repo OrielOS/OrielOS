@@ -23,7 +23,8 @@ const QString virtualKeyboardInterface = QStringLiteral("org.kde.kwin.VirtualKey
 const QString sink = QStringLiteral("@DEFAULT_AUDIO_SINK@");
 
 // KWin's keyboard layouts as D-Bus gives them: (short name, variant, long name) each.
-struct LayoutNames {
+struct LayoutNames
+{
     QString shortName;
     QString variant;
     QString longName;
@@ -59,8 +60,8 @@ SetupCorner::SetupCorner(QObject *parent)
 {
     QDBusConnection::sessionBus().connect(keyboardService, layoutsPath, layoutsInterface, QStringLiteral("layoutChanged"), this, SLOT(readLayout()));
     QDBusConnection::sessionBus().connect(keyboardService, layoutsPath, layoutsInterface, QStringLiteral("layoutListChanged"), this, SLOT(readLayout()));
-    QDBusConnection::sessionBus().connect(kwinService, virtualKeyboardPath, virtualKeyboardInterface, QStringLiteral("enabledChanged"), this,
-        SIGNAL(keyboardShownChanged()));
+    QDBusConnection::sessionBus().connect(
+        kwinService, virtualKeyboardPath, virtualKeyboardInterface, QStringLiteral("enabledChanged"), this, SIGNAL(keyboardShownChanged()));
     readLayout();
     readVolume();
 }
@@ -162,8 +163,8 @@ bool SetupCorner::isKeyboardShown() const
 
 void SetupCorner::toggleKeyboard()
 {
-    QDBusMessage message = QDBusMessage::createMethodCall(kwinService, virtualKeyboardPath, QStringLiteral("org.freedesktop.DBus.Properties"),
-        QStringLiteral("Set"));
+    QDBusMessage message
+        = QDBusMessage::createMethodCall(kwinService, virtualKeyboardPath, QStringLiteral("org.freedesktop.DBus.Properties"), QStringLiteral("Set"));
     message.setArguments({ virtualKeyboardInterface, QStringLiteral("enabled"), QVariant::fromValue(QDBusVariant(!isKeyboardShown())) });
     QDBusConnection::sessionBus().call(message);
     Q_EMIT keyboardShownChanged();

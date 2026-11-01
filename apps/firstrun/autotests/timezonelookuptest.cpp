@@ -18,8 +18,7 @@ private Q_SLOTS:
     void readsTheTimeZoneFromTheAnswer()
     {
         QCOMPARE(TimeZoneLookup::zoneFromReply(R"({"country_code": "GB", "time_zone": "Europe/London"})"), QStringLiteral("Europe/London"));
-        QCOMPARE(TimeZoneLookup::zoneFromReply(R"({"time_zone": "America/Argentina/Buenos_Aires"})"),
-            QStringLiteral("America/Argentina/Buenos_Aires"));
+        QCOMPARE(TimeZoneLookup::zoneFromReply(R"({"time_zone": "America/Argentina/Buenos_Aires"})"), QStringLiteral("America/Argentina/Buenos_Aires"));
     }
 
     void leavesOutAnythingElse()

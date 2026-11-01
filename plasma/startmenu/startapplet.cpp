@@ -77,9 +77,7 @@ private:
         shortcut->setObjectName(name);
         KGlobalAccel::self()->setDefaultShortcut(shortcut, { QKeySequence(keys) });
         KGlobalAccel::self()->setShortcut(shortcut, { QKeySequence(keys) });
-        connect(shortcut, &QAction::triggered, this, [this, qmlFunction]() {
-            callQml(qmlFunction);
-        });
+        connect(shortcut, &QAction::triggered, this, [this, qmlFunction]() { callQml(qmlFunction); });
     }
 
     void callQml(const char *qmlFunction)
@@ -90,10 +88,7 @@ private:
     }
 
 public:
-    QString storeSearchName() const
-    {
-        return KPluginMetaData::findPluginById(QStringLiteral("kf6/krunner"), QStringLiteral("krunner_appstream")).name();
-    }
+    QString storeSearchName() const { return KPluginMetaData::findPluginById(QStringLiteral("kf6/krunner"), QStringLiteral("krunner_appstream")).name(); }
 
     // Runs the menu's item with this id.
     Q_INVOKABLE void activatePowerUserItem(const QString &id)
