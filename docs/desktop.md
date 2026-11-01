@@ -2,7 +2,7 @@
 
 The OrielOS desktop works the way you expect if you're coming from Windows: a taskbar along the bottom, Start in the middle of it, and the system tray and clock on the right.
 
-![The OrielOS desktop: the Daybreak wallpaper, with the taskbar along the bottom holding Start, Files, Firefox and the Store in the middle, and the system tray and clock on the right](images/desktop.webp)
+![The OrielOS desktop: the Nightfall wallpaper, with the Bin at the top left and the taskbar along the bottom holding Start, Search, Task View, Files, Firefox and the Store in the middle, and the hidden icons, Quick Settings, the clock and notifications on the right](images/desktop.webp)
 
 ## The taskbar
 
