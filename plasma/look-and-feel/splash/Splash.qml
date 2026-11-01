@@ -7,7 +7,8 @@
 // The welcome screen between signing in and the desktop. It carries on from the sign-in screen
 // (image/sddm/orielos/Main.qml): the same blurred wallpaper, with the account picture and name in
 // the same place, and a spinner and "Welcome" where the password box was. Plasma's splash program
-// sets `stage` as the desktop starts and closes the window once it is ready.
+// sets `stage` as the desktop starts and closes the window once it is ready. The first sign-in's
+// screen (org.orielos.firstsignin) is this one with another message.
 
 import QtQuick
 import QtQuick.Layouts
@@ -21,6 +22,8 @@ Rectangle {
     id: root
 
     property int stage
+    // What it says beside the spinner.
+    property string message: i18ndc("plasma_lookandfeel_org.kde.lookandfeel", "@info:status shown while the desktop starts after signing in", "Welcome")
 
     color: "#0C1530"
 
@@ -105,7 +108,7 @@ Rectangle {
                 running: root.stage < 6
             }
             PlasmaComponents3.Label {
-                text: i18ndc("plasma_lookandfeel_org.kde.lookandfeel", "@info:status shown while the desktop starts after signing in", "Welcome")
+                text: root.message
                 textFormat: Text.PlainText
                 color: "#FFFFFF"
                 font.pixelSize: 20

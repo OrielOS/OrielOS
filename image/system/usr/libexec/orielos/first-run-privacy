@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Turns location services off for the whole computer, or back on, as chosen on the first-run
+# setup's privacy page: off, a GeoClue drop-in turns every location source off, so no app can find
+# out where the computer is; on, the drop-in goes and GeoClue's own settings apply.
+#
+# Usage: first-run-privacy location on|off
+# Runs as root, through pkexec from the setup's plasma-setup user, and only until the setup has
+# finished (/etc/plasma-setup-done). Tests set ORIELOS_FIRST_RUN_ROOT to use another root folder.
+set -Eeuo pipefail
+
+ROOT_DIR="${ORIELOS_FIRST_RUN_ROOT:-}"
+DROP_IN="$ROOT_DIR/etc/geoclue/conf.d/90-orielos-location.conf"
+SETUP_DONE="$ROOT_DIR/etc/plasma-setup-done"
+# Every location source GeoClue 2.8 has.
+SOURCES=(ip wifi 3g cdma modem-gps network-nmea compass static-source)
+
+die() {
+    printf 'first-run-privacy: %s\n' "$1" >&2
+    exit 2
+}
+
+main() {
+    [[ $# -eq 2 && "$1" == location && "$2" =~ ^(on|off)$ ]] || die "usage: first-run-privacy location on|off"
+    [[ ! -e "$SETUP_DONE" ]] || die "the first-run setup has finished"
+
+    if [[ "$2" == on ]]; then
+        rm -f -- "$DROP_IN"
+        printf 'first-run-privacy: location services are on\n'
+        return
+    fi
+    mkdir -p "$(dirname "$DROP_IN")"
+    {
+        printf '# Location services off, chosen on the first-run setup'"'"'s privacy page.\n'
+        for source in "${SOURCES[@]}"; do
+            printf '[%s]\nenable=false\n' "$source"
+        done
+    } >"$DROP_IN.new"
+    chmod 0644 "$DROP_IN.new"
+    mv -f -- "$DROP_IN.new" "$DROP_IN"
+    printf 'first-run-privacy: location services are off\n'
+}
+
+main "$@"

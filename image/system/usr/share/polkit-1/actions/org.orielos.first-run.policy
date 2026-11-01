@@ -6,10 +6,11 @@
 SPDX-FileCopyrightText: 2026 OrielOS contributors
 SPDX-License-Identifier: GPL-3.0-or-later
 
-What the first-run setup may do through pkexec: set the power settings new users start with.
+What the first-run setup may do through pkexec: set the power settings new users start with, and
+turn location services off or on.
 It runs as the plasma-setup user, which has no password, so 49-orielos-first-run.rules allows that
-user; anyone else needs an administrator. first-run-power itself refuses once the setup has
-finished.
+user; anyone else needs an administrator. first-run-power and first-run-privacy refuse once the
+setup has finished.
 -->
 <policyconfig>
   <vendor>OrielOS</vendor>
@@ -25,5 +26,16 @@ finished.
       <allow_active>auth_admin</allow_active>
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/orielos/first-run-power</annotate>
+  </action>
+
+  <action id="org.orielos.first-run.privacy">
+    <description>Turn location services off or on</description>
+    <message>Authentication is needed to turn location services off or on</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/orielos/first-run-privacy</annotate>
   </action>
 </policyconfig>

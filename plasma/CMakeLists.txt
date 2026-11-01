@@ -28,13 +28,13 @@ install(DIRECTORY kwin/windowkeys/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/scrip
 # Alt+Tab's window switcher, which /etc/xdg/kwinrc chooses.
 install(DIRECTORY kwin/switcher/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/tabbox/org.orielos.switcher)
 
-# The first-run setup's network page, for computers without Wi-Fi, and its power page, as Plasma
-# Setup packages. image/build/41-first-run.sh puts every page in order and shows this logo on the
-# last one.
-install(DIRECTORY firstrun/network/
-    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.network)
-install(DIRECTORY firstrun/power/
-    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.power)
+# The first-run setup's own pages, as Plasma Setup packages: network, for computers without Wi-Fi
+# (weight 11), updates (12), power (18) and privacy (21, after the account).
+# image/build/41-first-run.sh puts Plasma Setup's pages around them and shows this logo on the last.
+foreach(page network updates power privacy)
+    install(DIRECTORY firstrun/${page}/
+        DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.${page})
+endforeach()
 install(FILES ${PROJECT_SOURCE_DIR}/artwork/splash/orielos-splash.png
     DESTINATION ${KDE_INSTALL_DATADIR}/orielos/first-run RENAME finished-logo.png)
 
@@ -58,6 +58,13 @@ install(DIRECTORY plasmoids/org.orielos.search plasmoids/org.orielos.taskview pl
 # looks it up for the OrielOS shell or for its own desktop shell.
 install(DIRECTORY look-and-feel/org.orielos.desktop look-and-feel/org.orielos.desktop.dark
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
+# The welcome screen at a new account's first sign-in, a look-and-feel package of its own that only
+# ksplashrc chooses: the usual welcome screen with another message.
+install(DIRECTORY look-and-feel/org.orielos.firstsignin DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
+install(FILES look-and-feel/splash/Splash.qml
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/org.orielos.firstsignin/contents/splash RENAME WelcomeSplash.qml)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/shell/org.orielos.desktop/contents/lockscreen/AccountPicture.qml
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/org.orielos.firstsignin/contents/splash)
 foreach(lnf org.orielos.desktop org.orielos.desktop.dark)
     # The Ctrl+Alt+Del screen, Plasma's log-out screen in Windows' layout.
     install(DIRECTORY look-and-feel/logout DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents)

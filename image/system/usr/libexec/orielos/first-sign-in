@@ -1,0 +1,43 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Once an account's first sign-in has shown "Setting up your desktop" on the welcome screen, later
+# sign-ins get the usual one: the account's ksplashrc, from /etc/skel, is removed if it still chooses the first one.
+# The first time, it also suggests a PIN, as Windows' setup asks for one, unless the account
+# already has one. Run at each sign-in by orielos-first-sign-in.service; it does nothing once done.
+#   first-sign-in [--dry-run]   (prints what it would do, for the tests)
+set -Euo pipefail
+
+dry_run=false
+[[ "${1:-}" == --dry-run ]] && dry_run=true
+
+config="${XDG_CONFIG_HOME:-$HOME/.config}"
+state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/first-sign-in-done"
+[[ -e "$state" ]] && exit 0
+
+splash="$config/ksplashrc"
+if [[ -f "$splash" ]] && grep -qxF 'Theme=org.orielos.firstsignin' "$splash"; then
+    if [[ "$dry_run" == true ]]; then echo "remove $splash"; else rm -f -- "$splash"; fi
+fi
+
+if [[ ! -e "/var/lib/orielos/pin-info/$(id -un).qml" ]]; then
+    if [[ "$dry_run" == true ]]; then
+        echo "suggest a PIN"
+    else
+        # Wait for the notification service, which starts with the desktop.
+        sleep 10
+        choice="$(notify-send --app-name=OrielOS --icon=preferences-desktop-user-password \
+            --action=pin="Set up a PIN" \
+            "Sign in faster with a PIN" \
+            "A PIN is quicker to type than your password and works only on this computer." 2>/dev/null || true)"
+        if [[ "$choice" == pin ]]; then
+            orielos-settings sign-in-options >/dev/null 2>&1 &
+        fi
+    fi
+fi
+
+if [[ "$dry_run" != true ]]; then
+    mkdir -p -- "${state%/*}"
+    touch -- "$state"
+fi

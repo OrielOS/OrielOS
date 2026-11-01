@@ -34,17 +34,23 @@ if [[ "${#first_boot_errors[@]}" -gt 0 ]]; then
     exit 1
 fi
 
-# Plasma Setup's pages come in OrielOS's order (build/41-first-run.sh and plasma/firstrun), and the
-# power page has what it needs to save its choices.
+# Plasma Setup's pages come in OrielOS's order (build/41-first-run.sh and plasma/firstrun), the
+# power and privacy pages have what they need to save their choices, and the setup's session has
+# OrielOS's corner (accessibility, volume, keyboard) and Shift+F10 terminal.
 first_run_errors=()
 first_run_order="$(for f in /usr/share/plasma/packages/*/metadata.json; do
     jq -r 'select(.KPackageStructure == "KDE/PlasmaSetup") | "\(."X-KDE-Weight") \(.KPlugin.Id)"' "$f"
 done | sort -n | cut -d' ' -f2 | paste -sd ' ' -)"
-first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.kde.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.hostname org.kde.plasmasetup.account org.kde.plasmasetup.finished"
+first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.orielos.plasmasetup.updates org.kde.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.hostname org.kde.plasmasetup.account org.orielos.plasmasetup.privacy org.kde.plasmasetup.finished"
 if [[ "$first_run_order" != "$first_run_expected" ]]; then
     first_run_errors+=("Plasma Setup's pages are in the wrong order: $first_run_order")
 fi
-[[ -x /usr/libexec/orielos/first-run-power ]] || first_run_errors+=("/usr/libexec/orielos/first-run-power is not executable")
+for f in /usr/libexec/orielos/first-run-power /usr/libexec/orielos/first-run-privacy /usr/libexec/orielos-setup-corner; do
+    [[ -x "$f" ]] || first_run_errors+=("$f is not executable")
+done
+for f in org.orielos.SetupCorner.desktop org.orielos.SetupTerminal.desktop kglobalaccelrc; do
+    [[ -r "/usr/share/orielos/setup/$f" ]] || first_run_errors+=("/usr/share/orielos/setup/$f is missing")
+done
 for f in /usr/share/polkit-1/actions/org.orielos.first-run.policy /usr/share/polkit-1/rules.d/49-orielos-first-run.rules \
     /usr/lib/tmpfiles.d/orielos-first-run.conf /usr/lib64/qt6/qml/org/orielos/firstrun/qmldir \
     /usr/share/plasma/packages/org.kde.plasmasetup.finished/contents/ui/konqi-calling.png; do
@@ -346,6 +352,25 @@ if [[ "$(systemctl --global is-enabled orielos-dnd-schedule.service 2>/dev/null)
 fi
 [[ -x /usr/libexec/orielos/dnd-schedule ]] || {
     printf 'error: /usr/libexec/orielos/dnd-schedule is not executable
+' >&2
+    exit 1
+}
+
+# A new account's first sign-in: "Setting up your desktop" on the welcome screen once, then the usual
+# one, and a PIN suggestion.
+systemctl --global enable orielos-first-sign-in.service
+if [[ "$(systemctl --global is-enabled orielos-first-sign-in.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-first-sign-in.service is not enabled for users
+' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/first-sign-in ]] || {
+    printf 'error: /usr/libexec/orielos/first-sign-in is not executable
+' >&2
+    exit 1
+}
+grep -qxF 'Theme=org.orielos.firstsignin' /etc/skel/.config/ksplashrc || {
+    printf 'error: new accounts do not start with the first sign-in welcome screen
 ' >&2
     exit 1
 }
