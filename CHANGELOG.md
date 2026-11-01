@@ -76,6 +76,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Settings → System → Do not disturb turns Do not disturb on by itself at the hours you choose, every day, on weekdays or at weekends. Hours that start in the evening end the next morning.
 - Dragging a window to the top of the screen drops down the snap layouts as a bar: let go over one of their areas to snap the window there. Letting go at the very top edge still maximises it.
 - Pinned apps in Start can be dragged to a new place, and dropping one on another makes a folder of them. A folder opens in place over the pinned apps; click its name to rename it, and right-click an app in it for **Move out of folder**. A folder left with one app turns back into that app.
+- The first-run setup checks for a newer OrielOS once it's connected, asks whether apps may use your location, and has Accessibility (screen reader, magnifier, on-screen keyboard, high contrast), the volume and the keyboard layout at the bottom left of every page. Windows + Ctrl + Enter starts the screen reader during setup, and Shift + F10 opens a terminal.
+- A new account's first sign-in says "Setting up your desktop" on the welcome screen, then suggests setting up a PIN.
 - Ctrl + Alt + Tab shows the window switcher and keeps it open after you let go, until you choose a window with the arrow keys and Enter, or click it.
 - Four high-contrast colour schemes: OrielOS High Contrast Black, Ocean, Evening and Paper. Left Alt + Left Shift + Print Screen turns one on, or back off.
 - Left Alt + Left Shift + Num Lock turns Mouse Keys on or off, so the number pad moves the pointer.
