@@ -8,7 +8,7 @@
 // The sign-in part of OrielOS's lock screen, in Sill's style: the account picture, the name and a
 // pill-shaped password box with its reveal and submit buttons, centred on the blurred wallpaper.
 // It keeps the interface of Plasma's MainBlock.qml (mainPasswordBox, showPassword, passwordResult,
-// visibleBoundary), which LockScreenUi.qml and Breeze's virtual keyboard loader use.
+// passwordInputVisible, visibleBoundary), which LockScreenUi.qml uses.
 
 import QtQuick
 import QtQuick.Layouts
@@ -25,6 +25,9 @@ FocusScope {
     id: block
 
     readonly property alias mainPasswordBox: passwordBox
+    // Whether the password box shows: not while a way in without one, such as the fingerprint
+    // reader, is chosen.
+    property alias passwordInputVisible: field.visible
     property alias showPassword: passwordBox.showPassword
     property bool lockScreenUiVisible: false
     property ListModel userListModel
@@ -143,7 +146,7 @@ FocusScope {
                     validator: block.pinMode ? digitsOnly : null
                     inputMethodHints: block.pinMode ? Qt.ImhDigitsOnly : Qt.ImhNone
                     focus: true
-                    enabled: !authenticator.graceLocked && block.waitSeconds === 0
+                    enabled: block.waitSeconds === 0
                     // The field stays focused while hidden, to wake the screen on a key press;
                     // a blinking cursor there would keep redrawing it.
                     cursorVisible: visible
