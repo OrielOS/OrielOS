@@ -9,6 +9,7 @@
 #include <KCModuleLoader>
 #include <KConfigGroup>
 #include <KIO/ApplicationLauncherJob>
+#include <KLocalizedQmlContext>
 #include <KLocalizedString>
 #include <KMessageBox>
 #include <KService>
@@ -68,6 +69,9 @@ SettingsWindow::SettingsWindow(PageCatalogue catalogue, QWidget *parent)
     , m_catalogue(std::move(catalogue))
     , m_engine(std::make_shared<QQmlEngine>())
 {
+    // Pages that use KI18n in QML, such as Info Center's, need it set up on the engine they share,
+    // as System Settings and Info Center do.
+    KLocalization::setupLocalizedContext(m_engine.get());
     setWindowTitle(i18nc("@title:window", "Settings"));
     setWindowIcon(QIcon::fromTheme(QStringLiteral("preferences-system")));
     resize(1100, 720);

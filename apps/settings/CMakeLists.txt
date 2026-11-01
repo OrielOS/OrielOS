@@ -30,6 +30,7 @@ target_link_libraries(orielos-settings PRIVATE
     Qt6::Widgets
     Qt6::Qml
     KF6::I18n
+    KF6::I18nQml
     KF6::CoreAddons
     KF6::ConfigCore
     KF6::KIOGui
