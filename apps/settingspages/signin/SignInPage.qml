@@ -46,6 +46,26 @@ KCM.SimpleKCM {
         opacity: 0.8
     }
 
+    // A note for a setting that asks for an administrator, with the administrator mark KDE's
+    // settings put on such controls (KAuth's), as Windows puts its shield.
+    component AdminNote: RowLayout {
+        property alias text: adminText.text
+
+        Layout.fillWidth: true
+        spacing: Kirigami.Units.smallSpacing
+
+        Kirigami.Icon {
+            Layout.alignment: Qt.AlignTop
+            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+            Layout.preferredHeight: Kirigami.Units.iconSizes.small
+            source: "dialog-password"
+        }
+
+        Note {
+            id: adminText
+        }
+    }
+
     ColumnLayout {
         spacing: Kirigami.Units.largeSpacing
 
@@ -171,7 +191,7 @@ KCM.SimpleKCM {
                 checked = Qt.binding(() => root.options.requireCtrlAltDel);
             }
         }
-        Note {
+        AdminNote {
             Layout.leftMargin: Kirigami.Units.gridUnit * 2
             text: root.l10n.i18nc("@info", "Needs an administrator. No app can fake these keys, so you know you're typing into the real sign-in screen.")
         }
@@ -184,7 +204,7 @@ KCM.SimpleKCM {
                 checked = Qt.binding(() => root.options.startupSound);
             }
         }
-        Note {
+        AdminNote {
             Layout.leftMargin: Kirigami.Units.gridUnit * 2
             text: root.l10n.i18nc("@info", "Needs an administrator.")
         }
