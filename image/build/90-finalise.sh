@@ -441,12 +441,6 @@ fi
     exit 1
 }
 
-# The location icon in the system tray, shown while an app uses the computer's location.
-[[ -f /usr/share/plasma/plasmoids/org.orielos.location/metadata.json ]] || {
-    printf 'error: the location icon, org.orielos.location, is not installed\n' >&2
-    exit 1
-}
-
 # Stop screen: the kernel's QR code panic screen, then a restart after 10 seconds.
 grep -qF 'panic=10' /usr/lib/bootc/kargs.d/30-orielos-stop-screen.toml || {
     printf 'error: the stop screen restart argument is missing\n' >&2
@@ -566,6 +560,14 @@ fi
 # The layout script puts OrielOS's Start menu on the taskbar; Plasma would leave a gap without it.
 if [[ ! -f /usr/lib64/qt6/plugins/plasma/applets/org.orielos.startmenu.so ]]; then
     taskbar_errors+=("the Start menu widget, org.orielos.startmenu.so, is not installed")
+fi
+# OrielOS's tray (the hidden icons, the apps' icons, the location icon and the eject menu) takes
+# its apps' icons from plasma-workspace's private systemtray QML module.
+if [[ ! -f /usr/lib64/qt6/plugins/plasma/applets/org.orielos.tray.so ]]; then
+    taskbar_errors+=("OrielOS's tray widget, org.orielos.tray.so, is not installed")
+fi
+if [[ ! -f /usr/lib64/qt6/qml/org/kde/plasma/private/systemtray/qmldir ]]; then
+    taskbar_errors+=("plasma-workspace's org.kde.plasma.private.systemtray QML module, which OrielOS's tray needs, is missing")
 fi
 # The layout script's other widgets on the taskbar, and the window frames /etc/xdg/kwinrc chooses.
 for widget in org.orielos.search org.orielos.taskview org.orielos.quicksettings org.orielos.clock org.orielos.showdesktop; do

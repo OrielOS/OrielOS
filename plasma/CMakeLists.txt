@@ -11,6 +11,7 @@ add_subdirectory(startmenu)
 add_subdirectory(decoration)
 add_subdirectory(desktopmenu)
 add_subdirectory(panelmenu)
+add_subdirectory(tray)
 
 # OrielOS's wording for some of Plasma's own text, such as "Pin to taskbar" in the taskbar's menu,
 # as catalogues for the language en@orielos, which
@@ -52,7 +53,7 @@ install(DIRECTORY desktoptheme/orielos desktoptheme/orielos-accent DESTINATION $
 # OrielOS's taskbar widgets, QML-only Plasma widgets: Search, Task View, the show desktop sliver,
 # Quick Settings, and the clock with the notification centre.
 install(DIRECTORY plasmoids/org.orielos.search plasmoids/org.orielos.taskview plasmoids/org.orielos.showdesktop
-    plasmoids/org.orielos.quicksettings plasmoids/org.orielos.clock plasmoids/org.orielos.location
+    plasmoids/org.orielos.quicksettings plasmoids/org.orielos.clock
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/plasmoids)
 
 # OrielOS's look-and-feel packages: OrielOS, in light colours, and OrielOS Dark. Their layout is the

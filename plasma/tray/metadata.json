@@ -1,0 +1,18 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "The apps' icons, the hidden icons and the eject menu for USB drives",
+        "EnabledByDefault": true,
+        "Icon": "preferences-desktop-notification",
+        "Id": "org.orielos.tray",
+        "License": "GPL-3.0-or-later",
+        "Name": "System tray",
+        "Website": "https://github.com/OrielOS/OrielOS"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

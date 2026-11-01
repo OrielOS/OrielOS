@@ -86,7 +86,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Settings → Personalisation → Taskbar has **Use small taskbar buttons**, for a lower taskbar with smaller icons.
 - When a monitor is disconnected, its windows are minimised instead of piling onto the other screen; Settings → System → Multitasking can turn this off.
 - Windows snapped to halves or quarters from snap layouts share their edges, so dragging the border between two resizes both.
-- An icon in the system tray shows while an app uses the computer's location.
+- An icon next to the hidden icons' arrow shows while an app uses the computer's location.
+- The eject icon among the hidden icons ejects a USB drive: choose the drive, and a notification says when it can be unplugged, or that it's still in use.
 - When removing an app resets a default, such as the app that opens PDF files, a notification says which app opens them now, or offers Default apps when none does.
 - After a serious system error the screen shows the error as a QR code, and the computer restarts by itself after 10 seconds.
 - Windows + B always opens the hidden icons: switching the power profile, which also had it, keeps the Battery key. Accounts made before get this at their next sign-in, unless they changed the shortcut.
@@ -106,6 +107,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - The installer and its start menu name the OrielOS version that was current when the ISO was made, such as "OrielOS v0.0.7", instead of "OrielOS 44", the Fedora release it's built from. When a drive is encrypted with BitLocker, the installer warns that Windows may ask for its recovery key afterwards.
 - Right-clicking an app on the taskbar offers **Pin to taskbar** and **Unpin from taskbar**, the same words as Start, instead of "Pin to Task Manager", and **Configure Taskbar…**; the taskbar's widget is called Taskbar. This applies when the desktop's language is English; a list of languages chosen in Settings → Region & Language brings back Plasma's wording.
 - System Monitor keeps its own name in Start, the quick links menu, the taskbar's menu and the Ctrl + Alt + Del screen, so it matches the app's own window; it was called Process Manager. Ctrl + Shift + Esc still opens it, and Start search still finds it by words such as "processes" and "end task".
+- The hidden icons open in a small pane above the arrow, in the same glass as Start and Quick Settings, with only the apps' icons, five a row; network, sound, battery and notifications stay in Quick Settings and the clock. Click an icon to open its app, right-click it for the app's menu, and drag it to the taskbar to keep it there, or back onto the arrow to hide it. Windows + B opens the pane and the arrow keys move between the icons. The arrow only shows when something is hidden. Taskbars made before get the new tray at the next sign-in.
 
 ### Fixed
 

@@ -58,10 +58,13 @@ tasks.writeConfig("highlightWindows", true);
 
 panel.addWidget("org.kde.plasma.panelspacer");
 
-// The system tray holds the apps' status icons. Network, sound, Bluetooth, battery, brightness and
-// media move into Quick Settings, next to the tray, and notifications into the clock's bell.
-// Plasma's own widgets for them stay loaded, among the hidden icons, because the volume and media
-// keys belong to them and Plasma's notifications widget shows the pop-ups.
+// OrielOS's tray: the hidden icons button and its pane, the apps' icons put on the taskbar, and
+// the location icon; Win+B opens the hidden icons. Network, sound, Bluetooth, battery, brightness
+// and media are in Quick Settings, next to it, and notifications in the clock's bell.
+var orielosTray = panel.addWidget("org.orielos.tray");
+orielosTray.globalShortcut = "Meta+B";
+// Plasma's tray stays on the taskbar, hidden by OrielOS's: its widgets for sound, media, the
+// clipboard and the notification pop-ups keep running in it, and it opens the apps' menus.
 var tray = panel.addWidget("org.kde.plasma.systemtray");
 tray.currentConfigGroup = ["General"];
 tray.writeConfig("hiddenItems", [
@@ -73,8 +76,7 @@ tray.writeConfig("hiddenItems", [
     "org.kde.plasma.mediacontroller",
     "org.kde.plasma.notifications",
 ]);
-// Win+B opens the hidden icons, and Win+A Quick Settings.
-tray.globalShortcut = "Meta+B";
+// Win+A opens Quick Settings.
 var quickSettings = panel.addWidget("org.orielos.quicksettings");
 quickSettings.globalShortcut = "Meta+A";
 

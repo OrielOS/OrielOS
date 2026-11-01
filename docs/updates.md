@@ -21,7 +21,7 @@ When a new version is ready, a notification says **Restart to update**:
 - **Restart to update** signs you out and restarts the computer into the new version. Save your work first.
 - **Later** closes the notification. The new version still starts the next time you restart, whenever that is.
 
-The **OrielOS updates** icon in the system tray, at the right of the taskbar, shows the same. It's in the tray's hidden icons (the arrow) until an update is ready; hover over it to see what the last check found. Click it to open the update settings. Right-clicking it offers **Restart to update** while a new version is ready, and **Open update settings**.
+The **OrielOS updates** icon in the system tray, at the right of the taskbar, shows the same. It's among the hidden icons (the arrow) until an update is ready; hover over it to see what the last check found. Click it to open the update settings. Right-clicking it offers **Restart to update** while a new version is ready, and **Open update settings**.
 
 OrielOS doesn't download updates over a metered connection, such as a phone hotspot that NetworkManager knows is metered.
 

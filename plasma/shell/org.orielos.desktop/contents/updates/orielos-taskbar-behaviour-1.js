@@ -32,7 +32,9 @@ panels().forEach(function (panel) {
             log("gave Quick Settings Win+A");
         }
     });
-    panel.widgets("org.kde.plasma.systemtray").forEach(function (tray) {
+    // OrielOS's tray has Win+B where there is one; otherwise Plasma's.
+    var orielosTrays = panel.widgets("org.orielos.tray");
+    (orielosTrays.length > 0 ? orielosTrays : panel.widgets("org.kde.plasma.systemtray")).forEach(function (tray) {
         if (!tray.globalShortcut) {
             tray.globalShortcut = "Meta+B";
             log("gave the hidden icons Win+B");

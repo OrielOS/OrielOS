@@ -19,7 +19,7 @@ deps() {
         libplasma-devel kf6-kconfig-devel \
         kf6-kstatusnotifieritem-devel kf6-knotifications-devel kf6-kdbusaddons-devel \
         kf6-kcmutils-devel kf6-kwidgetsaddons-devel kf6-kwindowsystem-devel \
-        kf6-kio-devel kf6-kjobwidgets-devel kf6-kservice-devel kf6-krunner-devel \
+        kf6-kio-devel kf6-kjobwidgets-devel kf6-kservice-devel kf6-krunner-devel kf6-solid-devel \
         kdecoration-devel kf6-kglobalaccel-devel libkscreen-devel layer-shell-qt-devel \
         polkit-qt6-1-devel
     # The QML modules the Start menu imports, so qmllint can check it: Plasma's private menu

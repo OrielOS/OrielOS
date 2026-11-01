@@ -38,7 +38,7 @@ Some changes, such as the date and time, ask for an administrator's password. Th
 
 ## Power mode
 
-**System > Power mode** chooses between **Performance**, **Balanced** and **Power saver**, the same choice as in the battery and power icon in the system tray. OrielOS starts in Performance, on mains power and on battery; whichever mode you choose is kept, also after restarts and updates. If the computer holds Performance back, for example because it's too hot, the page says so.
+**System > Power mode** chooses between **Performance**, **Balanced** and **Power saver**. OrielOS starts in Performance, on mains power and on battery; whichever mode you choose is kept, also after restarts and updates. If the computer holds Performance back, for example because it's too hot, the page says so.
 
 ## Start and the taskbar
 

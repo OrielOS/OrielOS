@@ -48,7 +48,7 @@ Controllers work in Steam and in other games without extra drivers.
 
 To pair a controller over Bluetooth:
 
-1. Open the Bluetooth settings: click the Bluetooth icon in the system tray, then **Configure**.
+1. Open **Settings > Bluetooth & devices**.
 2. Put the controller in pairing mode:
    - **DualSense or DualSense Edge:** hold the **Create** button and the **PS** button until the light around the touchpad flashes quickly.
    - **DualShock 4:** hold **Share** and **PS** until the light bar flashes.
@@ -57,7 +57,7 @@ To pair a controller over Bluetooth:
 
 The touchpad on PlayStation controllers doesn't move the mouse pointer on the desktop, so resting a thumb on it changes nothing outside the game. Games still read it, and Steam can turn it into a mouse in its controller settings.
 
-The controller's battery level shows in the battery widget in the system tray.
+The controller's battery level shows in Quick Settings, on the Bluetooth tile's list of devices.
 
 ## Mice, keyboards and lighting
 

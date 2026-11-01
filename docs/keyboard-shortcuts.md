@@ -48,7 +48,7 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + Plus or Minus | Zooms the screen in or out (Windows + 0 goes back) |
 | Shift five times | Asks whether to turn on Sticky Keys; holding Shift for eight seconds asks about slow keys |
 | Windows + A | Opens Quick Settings |
-| Windows + B | Opens the hidden icons in the system tray |
+| Windows + B | Opens the hidden icons, beside Quick Settings |
 | Windows + 1 to 9 | Opens, or switches to, the app in that place on the taskbar |
 | Windows + PrtSc | Saves a screenshot of the whole screen to Pictures/Screenshots |
 | Alt + PrtSc | Captures the active window |
