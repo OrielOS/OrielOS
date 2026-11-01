@@ -1,0 +1,55 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Windows' accessibility shortcuts:
+#   accessibility-keys contrast     Left Alt+Left Shift+Print Screen: turns the chosen high-contrast
+#                                   colour scheme on, or goes back to the scheme used before it
+#   accessibility-keys mouse-keys   Left Alt+Left Shift+Num Lock: turns Mouse Keys (KWin's, in
+#                                   kaccessrc) on or off
+# Each says what it did in a notification. The contrast theme to use is [Contrast] Theme in
+# orielos-accessibilityrc: OrielOS High Contrast Black at first, then whichever high-contrast scheme
+# was in use when it was last turned off, so one chosen in Settings sticks. The scheme to go back to
+# is remembered there too.
+set -Euo pipefail
+
+config=orielos-accessibilityrc
+contrast_prefix=OrielOSHighContrast
+
+notify() {
+    notify-send --app-name=OrielOS --icon="$1" --expire-time=4000 "$2" "${3:-}" >/dev/null 2>&1 || true
+}
+
+read_setting() {
+    kreadconfig6 --file "$1" --group "$2" --key "$3" --default "$4" 2>/dev/null || printf '%s\n' "$4"
+}
+
+case "${1:-}" in
+contrast)
+    current="$(read_setting kdeglobals General ColorScheme OrielOSDark)"
+    if [[ "$current" == "$contrast_prefix"* ]]; then
+        kwriteconfig6 --file "$config" --group Contrast --key Theme "$current"
+        previous="$(read_setting "$config" Contrast Previous OrielOSDark)"
+        plasma-apply-colorscheme "$previous" >/dev/null
+        notify preferences-desktop-color "Contrast theme off"
+    else
+        theme="$(read_setting "$config" Contrast Theme "${contrast_prefix}Black")"
+        kwriteconfig6 --file "$config" --group Contrast --key Previous "$current"
+        plasma-apply-colorscheme "$theme" >/dev/null
+        notify preferences-desktop-color "Contrast theme on" "Press Left Alt+Left Shift+Print Screen again to turn it off."
+    fi
+    ;;
+mouse-keys)
+    if [[ "$(read_setting kaccessrc Mouse MouseKeys false)" == true ]]; then
+        kwriteconfig6 --file kaccessrc --group Mouse --key MouseKeys --notify false
+        notify input-mouse "Mouse Keys off"
+    else
+        kwriteconfig6 --file kaccessrc --group Mouse --key MouseKeys --notify true
+        notify input-mouse "Mouse Keys on" "Move the pointer with the number pad; 5 clicks."
+    fi
+    ;;
+*)
+    printf 'usage: accessibility-keys contrast|mouse-keys\n' >&2
+    exit 2
+    ;;
+esac

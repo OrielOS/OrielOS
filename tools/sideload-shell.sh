@@ -142,6 +142,7 @@ else
     done
     place "$staging/kwin/snaplayouts" "$data/kwin/effects/orielos-snaplayouts"
     place "$staging/kwin/snapassist" "$data/kwin/effects/orielos-snapassist"
+    place "$staging/kwin/switcheropen" "$data/kwin/effects/orielos-switcheropen"
     for lnf in "$staging"/look-and-feel/*; do
         place "$lnf" "$data/plasma/look-and-feel/${lnf##*/}"
     done
@@ -172,6 +173,17 @@ else
         sed '0,/^X-KDE-Shortcuts=/s/^X-KDE-Shortcuts=.*/X-KDE-Shortcuts=Alt+F2,Search/' /usr/share/kglobalaccel/org.kde.krunner.desktop |
             write "$data/kglobalaccel/org.kde.krunner.desktop"
     fi
+    # The contrast theme and Mouse Keys shortcuts, run from the sideload, and the contrast themes.
+    if [[ -f "$staging/bin/orielos-accessibility-keys" ]]; then
+        for entry in "$staging"/accessibility/*.desktop; do
+            sed "s|^Exec=/usr/libexec/orielos/accessibility-keys|Exec=$state/bin/orielos-accessibility-keys|" "$entry" |
+                write "$data/applications/${entry##*/}"
+            cp -- "$data/applications/${entry##*/}" "$data/kglobalaccel/${entry##*/}"
+            printf '%s
+' "$data/kglobalaccel/${entry##*/}" >>"$manifest"
+        done
+    fi
+    place "$staging/color-schemes" "$data/color-schemes"
     # Settings itself, run from the sideload, so pages added since the image show.
     if [[ -f "$staging/bin/orielos-settings" ]]; then
         sed "s|^Exec=orielos-settings|Exec=$state/bin/orielos-settings|" "$staging/settings.desktop" |
@@ -263,6 +275,7 @@ main() {
     cp -a "$ROOT/plasma/plasmoids" "$STAGING/plasmoids"
     mkdir -p "$STAGING/icons" "$STAGING/look-and-feel"
     cp -a "$ROOT/plasma/kwin" "$STAGING/kwin"
+    cp -a "$ROOT/plasma/color-schemes" "$STAGING/color-schemes"
     cp "$ROOT"/artwork/icons/*-symbolic.svg "$STAGING/icons/"
     cp "$ROOT/image/system/etc/xdg/plasmarc" "$STAGING/etc/plasmarc"
     cp "$ROOT/image/system/etc/xdg/kwinrc" "$STAGING/etc/kwinrc"
@@ -304,6 +317,9 @@ main() {
         podman cp "$CONTAINER:/out/usr/libexec/orielos-polkit-agent" "$STAGING/bin/orielos-polkit-agent"
         cp "$ROOT/apps/runbox/org.orielos.Run.desktop" "$STAGING/run.desktop"
         # Storage Sense, for Settings' clean-up buttons (its daily timer comes with an image).
+        install -m 0755 "$ROOT/image/system/usr/libexec/orielos/accessibility-keys" "$STAGING/bin/orielos-accessibility-keys"
+        mkdir -p "$STAGING/accessibility"
+        cp "$ROOT/image/system/usr/share/applications/org.orielos.ContrastTheme.desktop" "$ROOT/image/system/usr/share/applications/org.orielos.MouseKeys.desktop" "$STAGING/accessibility/"
         install -m 0755 "$ROOT/image/system/usr/libexec/orielos/storage-sense" "$STAGING/bin/orielos-storage-sense"
         cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
         podman rm -f "$CONTAINER" >/dev/null

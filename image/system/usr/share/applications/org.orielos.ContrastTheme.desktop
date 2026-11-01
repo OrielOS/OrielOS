@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Turn a contrast theme on or off
+Comment=Switches between the chosen high-contrast colour scheme and the one used before
+Exec=/usr/libexec/orielos/accessibility-keys contrast
+Icon=preferences-desktop-color
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Alt+Shift+Print

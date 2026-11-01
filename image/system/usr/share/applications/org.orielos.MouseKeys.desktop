@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Turn Mouse Keys on or off
+Comment=Moves the pointer with the number pad, or stops doing so
+Exec=/usr/libexec/orielos/accessibility-keys mouse-keys
+Icon=input-mouse
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Alt+Shift+NumLock

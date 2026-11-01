@@ -118,7 +118,7 @@ done
 [[ -x /usr/bin/orielos-settings ]] || update_errors+=("Settings, /usr/bin/orielos-settings, is missing")
 # OrielOS's own Settings pages besides Update.
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
-    kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer; do
+    kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage     kcm_orielos_fonts kcm_orielos_donotdisturb; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -140,6 +140,15 @@ grep -qxF 'ExecStart=/usr/libexec/orielos-polkit-agent' /usr/lib/systemd/user/pl
 [[ -x /usr/bin/orielos-run ]] || update_errors+=("/usr/bin/orielos-run is missing")
 grep -qxF 'X-KDE-Shortcuts=Meta+R' /usr/share/kglobalaccel/org.orielos.Run.desktop 2>/dev/null || update_errors+=("the Run box doesn't have Win+R")
 grep -qxF 'X-KDE-Shortcuts=Alt+F2,Search' /usr/share/kglobalaccel/org.kde.krunner.desktop || update_errors+=("KRunner still has Win+R")
+# OrielOS's own shortcuts that run a script: HDR on Win+Alt+B, the contrast theme on Left Alt+Left
+# Shift+Print Screen and Mouse Keys on Left Alt+Left Shift+Num Lock. Their hidden entries are with
+# the apps, where kglobalaccel finds a new one, and in kglobalaccel's own folder, as the Run box's.
+for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
+    name="${entry%%:*}.desktop"
+    ln -sf "../applications/$name" "/usr/share/kglobalaccel/$name"
+    grep -qxF "X-KDE-Shortcuts=${entry#*:}" "/usr/share/kglobalaccel/$name" 2>/dev/null || update_errors+=("$name doesn't have ${entry#*:}")
+done
+[[ -x /usr/libexec/orielos/accessibility-keys ]] || update_errors+=("/usr/libexec/orielos/accessibility-keys is not executable")
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
 # One settings app: System Settings' and kcmshell6's commands open Settings, and NVIDIA's settings are
 # a page of Settings rather than a second settings app in Start.
@@ -241,6 +250,10 @@ fi
 }
 [[ -f /usr/share/kwin/effects/orielos-snapassist/metadata.json ]] || {
     printf 'error: the Snap Assist KWin effect is not installed\n' >&2
+    exit 1
+}
+[[ -f /usr/share/kwin/effects/orielos-switcheropen/metadata.json ]] || {
+    printf 'error: the stay-open window switcher KWin effect is not installed\n' >&2
     exit 1
 }
 [[ -f /usr/share/kwin/scripts/orielos-windowkeys/metadata.json ]] || {

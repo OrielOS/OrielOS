@@ -5,4 +5,5 @@ Comment=Turns HDR on for every screen that can show it, or off again
 Exec=/usr/libexec/orielos/hdr-toggle
 Icon=video-display
 NoDisplay=true
+StartupNotify=false
 X-KDE-Shortcuts=Meta+Alt+B
