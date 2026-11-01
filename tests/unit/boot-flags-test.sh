@@ -128,6 +128,11 @@ check "kept records that the previous build was kept" is "orielos_boot_ok=0 orie
 
 setup
 flags orielos_boot_ok=1 orielos_trial=0 orielos_fails=0
+run menu
+check "menu shows the boot menu at the next start and keeps the other flags" is "orielos_boot_ok=1 orielos_fails=0 orielos_menu=1 orielos_trial=0"
+
+setup
+flags orielos_boot_ok=1 orielos_trial=0 orielos_fails=0
 run status
 check "status prints the three flags" \
     test "$OUT" == "$(printf 'orielos_boot_ok=1\norielos_trial=0\norielos_fails=0')"

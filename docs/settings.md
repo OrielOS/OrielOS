@@ -11,12 +11,10 @@ Settings opens on **Home**: the settings you used most recently, then recommende
 The categories on the left come in the order you know from Windows (in a narrow window they hide behind the menu button beside the page's title):
 
 - **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Battery usage, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
-- **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
-- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Camera, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
 - **Personalisation**: Background, Themes (including dark mode), Accent colour (with Show accent colour on Start and taskbar, and Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.
-- **Apps**: Default apps and Startup.
+- **Apps**: Default apps, Installed apps, Startup, and Restart apps after signing in.
 - **Accounts**: Your info, with your password and other accounts, and Sign-in options: a PIN, fingerprints, dynamic lock, and the sign-in screen's settings.
 - **Time & language**: Date & time, and Language & region.
 - **Gaming**: FPS overlay (see [Games and controllers](games-and-controllers.md#the-fps-overlay)).
@@ -95,10 +93,20 @@ Plugging in headphones, a headset, or a USB or Bluetooth speaker switches the so
 
 Gaming mice, keyboards and RGB lighting are set up with apps from the Store: Solaar for Logitech mice, keyboards and their receivers, Piper for gaming mice, and OpenRGB for lighting. **Bluetooth & devices > Accessory apps** lists them. If one is installed, **Open** starts it; if not, **Get it from the Store** opens its page in the Store, where you choose whether to install it. OrielOS already has the system parts these apps need to reach your devices.
 
+## Installed apps
+
+**Apps > Installed apps** lists the apps from the Store, with each one's version, size and the date it was installed. Search them, or sort them by name or install date. The **…** button beside an app offers **Modify**, which opens its page in the Store, and **Uninstall**, which asks first; an app's settings and files in your home folder stay, in case you install it again.
+
+**Where apps can come from**, at the bottom of the page, is **Anywhere** (the default), **Anywhere, with the Store suggested first**, or **The Store only**. With the Store only, Windows programs you download no longer run: Run this app says so and points here.
+
+**Apps > Restart apps after signing in** chooses whether the apps you had open come back when you sign in again, as after a restart.
+
 ## Device security
 
 **Privacy & security > Device security** checks that this PC meets what games with anti-cheat require: Secure Boot, a TPM 2.0 that recorded the start-up, a locked-down kernel, the kernel's BPF security module, no switching to another kernel while running, the IOMMU, and drivers signed only by Fedora or Universal Blue. Each one shows as met or not met, and anything not met says what to change, usually in the PC's firmware settings. **Check again** runs the checks once more. See [Games with anti-cheat](anti-cheat.md) for what each one means.
 
+
+At the top, **Protection** shows whether the firewall is on and whether OrielOS has been able to check for updates in the last week, with what to do if not.
 ## From the update icon
 
 Clicking the **OrielOS updates** icon in the system tray opens Settings on the Update page.

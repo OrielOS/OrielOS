@@ -34,10 +34,12 @@ DeviceSecurity::~DeviceSecurity()
     m_watcher.waitForFinished();
 }
 
-QVariantList DeviceSecurity::checks() const
+namespace {
+
+QVariantList toVariant(const QList<SecurityCheck> &checks)
 {
     QVariantList out;
-    for (const SecurityCheck &check : m_checks) {
+    for (const SecurityCheck &check : checks) {
         QString result;
         switch (check.result) {
         case SecurityCheck::Result::Met:
@@ -60,6 +62,18 @@ QVariantList DeviceSecurity::checks() const
     return out;
 }
 
+} // namespace
+
+QVariantList DeviceSecurity::checks() const
+{
+    return toVariant(m_checks);
+}
+
+QVariantList DeviceSecurity::protection() const
+{
+    return toVariant(m_protection);
+}
+
 bool DeviceSecurity::allMet() const
 {
     return !m_checks.isEmpty()
@@ -71,6 +85,7 @@ void DeviceSecurity::run()
     if (m_watcher.isRunning()) {
         return;
     }
+    m_protection = runProtectionChecks(m_sources);
     m_watcher.setFuture(QtConcurrent::run(runSecurityChecks, m_sources));
     Q_EMIT changed();
 }

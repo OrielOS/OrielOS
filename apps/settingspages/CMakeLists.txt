@@ -7,10 +7,9 @@
 # mode (kcm_orielos_powermode), Sign-in options (kcm_orielos_signin), Multitasking
 # (kcm_orielos_multitasking), Mouse pointer (kcm_orielos_pointer), Storage (kcm_orielos_storage),
 # Fonts (kcm_orielos_fonts), Do not disturb (kcm_orielos_donotdisturb), Background
-# (kcm_orielos_background), Recent activity (kcm_orielos_recentactivity) and Camera
-# (kcm_orielos_camera).
-# (kcm_orielos_background), Recent activity (kcm_orielos_recentactivity) and FPS overlay
-# (kcm_orielos_fpsoverlay).
+# (kcm_orielos_background), Recent activity (kcm_orielos_recentactivity), Camera
+# (kcm_orielos_camera), FPS overlay (kcm_orielos_fpsoverlay) and Installed apps
+# (kcm_orielos_installedapps).
 # Each page and its model are a static QML module of their own, so qmllint checks the page and the
 # unit tests can use the model; each settings module links its own. Two settings modules can't
 # share one: Settings loads them all into one process, where a QML module can be registered only
@@ -40,6 +39,7 @@ add_subdirectory(background)
 add_subdirectory(recentactivity)
 add_subdirectory(camera)
 add_subdirectory(fpsoverlay)
+add_subdirectory(installedapps)
 
 if(BUILD_TESTING)
     add_subdirectory(autotests)

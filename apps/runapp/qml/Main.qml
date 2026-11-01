@@ -125,9 +125,33 @@ Kirigami.ApplicationWindow {
 
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
-                visible: root.confirming
+                visible: root.confirming && root.runner.appSource !== "store"
                 type: Kirigami.MessageType.Warning
                 text: KI18n.i18nc("@info", "Only run programs from people you trust. Windows programs can see your files.")
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: root.confirming && root.runner.appSource === "suggest"
+                type: Kirigami.MessageType.Information
+                text: KI18n.i18nc("@info", "Look for this app in the Store first: apps from the Store are checked and update by themselves.")
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: root.confirming && root.runner.appSource === "store"
+                type: Kirigami.MessageType.Error
+                text: KI18n.i18nc("@info", "This computer gets apps from the Store only. To run this program, change where apps can come from in Settings › Apps › Installed apps.")
+                actions: [
+                    Kirigami.Action {
+                        text: KI18n.i18nc("@action:button", "Open Settings")
+                        icon.name: "configure"
+                        onTriggered: {
+                            Qt.openUrlExternally("orielos-settings:installed-apps");
+                            root.close();
+                        }
+                    }
+                ]
             }
 
             RowLayout {
@@ -226,7 +250,7 @@ Kirigami.ApplicationWindow {
                 }
 
                 QQC2.Button {
-                    visible: root.confirming
+                    visible: root.confirming && root.runner.appSource !== "store"
                     text: root.runner.msi ? KI18n.i18nc("@action:button", "Install") : KI18n.i18nc("@action:button", "Run")
                     icon.name: "system-run"
                     onClicked: root.runner.run()

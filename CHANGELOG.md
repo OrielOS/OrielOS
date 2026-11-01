@@ -22,6 +22,10 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Settings → Bluetooth & devices → Camera shows each camera with a live picture and its brightness.
 - Plugging in headphones, a headset, or a USB or Bluetooth speaker switches the sound to it straight away.
 - An FPS overlay, OrielOS's Game Bar: turn it on in Settings → Gaming → FPS overlay, then press Windows + G in a game to show or hide the frame rate, with frame time and processor and graphics card use if you want them. Steam from the Store gets the add-on it needs from the same page.
+- Settings → Apps → Installed apps lists the apps from the Store with their version, size and install date, and uninstalls them, asking first. The same page chooses where apps can come from: anywhere, anywhere with the Store suggested first, or the Store only, which stops downloaded Windows programs from running. Windows + X's Installed apps opens it.
+- Settings → Apps → Restart apps after signing in chooses whether your open apps come back when you sign in again.
+- Settings → Privacy & security → Device security shows the computer's protection at the top: whether the firewall is on and whether updates are working.
+- Holding Shift while choosing Restart in Start shows the boot menu, with its recovery options, at the next start.
 
 ### Changed
 

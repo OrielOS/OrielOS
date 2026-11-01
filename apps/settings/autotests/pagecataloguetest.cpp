@@ -125,6 +125,8 @@ private Q_SLOTS:
         QTest::newRow("camera") << QStringLiteral("camera") << QStringLiteral("camera");
         QTest::newRow("volume mixer") << QStringLiteral("volume mixer") << QStringLiteral("sound");
         QTest::newRow("game bar") << QStringLiteral("game bar") << QStringLiteral("fps-overlay");
+        QTest::newRow("uninstall") << QStringLiteral("uninstall") << QStringLiteral("installed-apps");
+        QTest::newRow("restore session") << QStringLiteral("restore session") << QStringLiteral("restart-apps");
         QTest::newRow("windows hello") << QStringLiteral("windows hello") << QStringLiteral("sign-in-options");
         QTest::newRow("nvidia") << QStringLiteral("nvidia") << QStringLiteral("nvidia");
         QTest::newRow("nvidia control panel") << QStringLiteral("nvidia control panel") << QStringLiteral("nvidia");

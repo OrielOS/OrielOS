@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Lets the person at the computer start orielos-boot-success.service, which marks the boot as
-// good once their desktop is up so the boot menu stays hidden at the next boot. It allows that one
-// unit and the start verb only.
+// good once their desktop is up so the boot menu stays hidden at the next boot, and
+// orielos-boot-menu.service, which shows the boot menu at the next start (Shift + Restart). It
+// allows those two units and the start verb only.
 polkit.addRule(function (action, subject) {
     if (action.id === "org.freedesktop.systemd1.manage-units" &&
-        action.lookup("unit") === "orielos-boot-success.service" &&
+        (action.lookup("unit") === "orielos-boot-success.service" || action.lookup("unit") === "orielos-boot-menu.service") &&
         action.lookup("verb") === "start" &&
         subject.local && subject.active) {
         return polkit.Result.YES;

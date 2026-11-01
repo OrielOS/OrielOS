@@ -12,6 +12,8 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcessEnvironment>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QUrl>
 
 #include <chrono>
@@ -110,9 +112,17 @@ bool Runner::canAddItself() const
     return m_stage == Finished && !m_failed && m_added.isEmpty() && !looksLikeInstaller(m_filePath);
 }
 
+QString Runner::appSource() const
+{
+    // Settings' Installed apps page keeps the choice in orielos-appsrc, [General] source=.
+    const QSettings settings(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/orielos-appsrc"), QSettings::IniFormat);
+    const QString source = settings.value(QStringLiteral("source")).toString();
+    return source == QLatin1String("suggest") || source == QLatin1String("store") ? source : QStringLiteral("anywhere");
+}
+
 void Runner::run()
 {
-    if (m_stage != Confirm) {
+    if (m_stage != Confirm || appSource() == QLatin1String("store")) {
         return;
     }
     const QString prefix = prefixDir(m_dataHome, m_name);

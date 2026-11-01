@@ -132,8 +132,7 @@ done
 # OrielOS's own Settings pages besides Update.
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
     kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb \
-    kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_camera; do
-    kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_fpsoverlay; do
+    kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -245,7 +244,7 @@ done
 if [[ "$(systemctl --global is-enabled orielos-mark-boot-success.service 2>/dev/null)" != "enabled" ]]; then
     boot_menu_errors+=("orielos-mark-boot-success.service is not enabled for users")
 fi
-for f in /usr/lib/systemd/system/orielos-boot-success.service /usr/share/polkit-1/rules.d/50-orielos-boot-success.rules; do
+for f in /usr/lib/systemd/system/orielos-boot-success.service /usr/lib/systemd/system/orielos-boot-menu.service /usr/share/polkit-1/rules.d/50-orielos-boot-success.rules; do
     [[ -r "$f" ]] || boot_menu_errors+=("$f is missing")
 done
 [[ -x /usr/libexec/orielos/boot-flags ]] || boot_menu_errors+=("/usr/libexec/orielos/boot-flags is not executable")

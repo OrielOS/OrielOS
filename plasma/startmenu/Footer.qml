@@ -13,6 +13,7 @@ import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.components as PC3
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.plasma.plasmoid
 
 // The bar along the bottom: the account button on the left, the power button on the right.
 PlasmaExtras.PlasmoidHeading {
@@ -44,6 +45,10 @@ PlasmaExtras.PlasmoidHeading {
                         icon: String(model.data(index, Qt.DecorationRole) ?? ""),
                         handler: () => {
                             footer.menu.close();
+                            // Shift + Restart opens the boot menu, with its recovery options, next.
+                            if (action.id === "reboot" && Plasmoid.shiftHeld()) {
+                                Plasmoid.showBootMenuNextStart();
+                            }
                             model.trigger(row, "", null);
                         },
                     });

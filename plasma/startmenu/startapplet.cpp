@@ -15,6 +15,7 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDesktopServices>
+#include <QGuiApplication>
 #include <QHash>
 #include <QUrl>
 
@@ -100,11 +101,27 @@ public:
     }
 
     // Runs the menu's item with this id.
+    // Shift is held, as when Shift + Restart asks for the recovery menu.
+    Q_INVOKABLE bool shiftHeld() const
+    {
+        return QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier);
+    }
+
+    // Shows the boot menu, with its recovery options, at the next start only: polkit lets the
+    // person at the computer start orielos-boot-menu.service, which sets the boot menu's flag.
+    Q_INVOKABLE void showBootMenuNextStart()
+    {
+        QDBusMessage message = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.systemd1"), QStringLiteral("/org/freedesktop/systemd1"),
+            QStringLiteral("org.freedesktop.systemd1.Manager"), QStringLiteral("StartUnit"));
+        message << QStringLiteral("orielos-boot-menu.service") << QStringLiteral("replace");
+        QDBusConnection::systemBus().call(message, QDBus::Block, 5000);
+    }
+
     Q_INVOKABLE void activatePowerUserItem(const QString &id)
     {
         const QDBusConnection session = QDBusConnection::sessionBus();
         static const QHash<QString, QString> settingsPages = {
-            { QStringLiteral("apps"), QStringLiteral("apps") },
+            { QStringLiteral("apps"), QStringLiteral("installed-apps") },
             { QStringLiteral("power"), QStringLiteral("power") },
             { QStringLiteral("system"), QStringLiteral("about") },
             { QStringLiteral("devices"), QStringLiteral("devices") },

@@ -317,7 +317,7 @@ void StorageUsage::cleanUp(bool everything)
 void StorageUsage::open(const QString &id)
 {
     if (id == QLatin1String("apps")) {
-        QDesktopServices::openUrl(QUrl(QStringLiteral("orielos-settings:apps")));
+        QDesktopServices::openUrl(QUrl(QStringLiteral("orielos-settings:installed-apps")));
         return;
     }
     if (id == QLatin1String("bin")) {
