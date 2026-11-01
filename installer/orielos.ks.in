@@ -3,7 +3,7 @@
 # keyboard, network, disk) is asked interactively; Plasma Setup creates the account on first boot,
 # so the installer creates none. The installer's container policy requires OrielOS's cosign
 # signature for this image (updates/etc/containers/policy.json).
-ostreecontainer --url=ghcr.io/ncjsvr/orielos:@CHANNEL@ --transport=registry
+ostreecontainer --url=ghcr.io/orielos/orielos:@CHANNEL@ --transport=registry
 rootpw --lock
 
 # Reinstalling over an earlier OrielOS next to Windows leaves its boot files, EFI/fedora, on the

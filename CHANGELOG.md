@@ -139,7 +139,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
   - Each change that affects the system is built on GitHub, started in a VM to check it reaches the sign-in screen in the mode anti-cheat needs with only signed drivers, signed, and published to ghcr.io as the new testing build.
   - A build is published only if Flathub has the NVIDIA driver extension that Store apps need for it.
   - Stable moves to a tested build by hand, without rebuilding it, with a release on GitHub.
-  - Once OrielOS's signing key is in place, computers check the signature of every update before preparing it.
+  - Computers check the signature of every update before preparing it.
   - The pinned Fedora and driver images are refreshed every week, which is how Fedora's updates reach OrielOS.
 - Apps from the Store update by themselves, in the background, a few minutes after start-up and about every six hours, at low priority so they don't slow down a game.
   - After an OrielOS update with a new NVIDIA driver, the matching graphics driver for Store apps arrives the same way, without opening the Store.

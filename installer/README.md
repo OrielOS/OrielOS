@@ -1,6 +1,6 @@
 # installer
 
-OrielOS's network installer, `OrielOS.iso` (about 1.2 GB). It's Fedora's installer, Anaconda, built with lorax under the OrielOS name with generic logos. It boots with Secure Boot through Fedora's signed shim, asks for language, keyboard, time zone, network and disk, then downloads the current OrielOS build of a channel (`stable` by default) from `ghcr.io/ncjsvr/orielos` and installs it with Anaconda's `ostreecontainer`, after checking its cosign signature. Plasma Setup creates the account on first boot, so the installer creates none. The user guide is [docs/install.md](../docs/install.md).
+OrielOS's network installer, `OrielOS.iso` (about 1.2 GB). It's Fedora's installer, Anaconda, built with lorax under the OrielOS name with generic logos. It boots with Secure Boot through Fedora's signed shim, asks for language, keyboard, time zone, network and disk, then downloads the current OrielOS build of a channel (`stable` by default) from `ghcr.io/orielos/orielos` and installs it with Anaconda's `ostreecontainer`, after checking its cosign signature. Plasma Setup creates the account on first boot, so the installer creates none. The user guide is [docs/install.md](../docs/install.md).
 
 Because it downloads OrielOS while it installs, the ISO is rebuilt only when the installer changes: a fix here, a new Fedora release, newer hardware support in the installer environment, or new Secure Boot boot files.
 
