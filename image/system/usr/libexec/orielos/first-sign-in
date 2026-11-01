@@ -17,7 +17,8 @@ state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/first-sign-in-done"
 [[ -e "$state" ]] && exit 0
 
 splash="$config/ksplashrc"
-if [[ -f "$splash" ]] && grep -qxF 'Theme=org.orielos.firstsignin' "$splash"; then
+# Accounts made before the welcome screen moved out of the look-and-feel themes name it by its ID.
+if [[ -f "$splash" ]] && grep -qxE 'Theme=(/usr/share/orielos/first-sign-in/)?org\.orielos\.firstsignin' "$splash"; then
     if [[ "$dry_run" == true ]]; then echo "remove $splash"; else rm -f -- "$splash"; fi
 fi
 

@@ -376,10 +376,16 @@ fi
     printf 'error: /usr/libexec/orielos/first-sign-in is not executable\n' >&2
     exit 1
 }
-grep -qxF 'Theme=org.orielos.firstsignin' /etc/skel/.config/ksplashrc || {
+first_sign_in=/usr/share/orielos/first-sign-in/org.orielos.firstsignin
+if ! grep -qxF "Theme=$first_sign_in" /etc/skel/.config/ksplashrc || [[ ! -r "$first_sign_in/contents/splash/Splash.qml" ]]; then
     printf 'error: new accounts do not start with the first sign-in welcome screen\n' >&2
     exit 1
-}
+fi
+# Kept out of the look-and-feel themes, where Settings' Themes page would list it.
+if [[ -e /usr/share/plasma/look-and-feel/org.orielos.firstsignin ]]; then
+    printf 'error: the first sign-in welcome screen is among the look-and-feel themes\n' >&2
+    exit 1
+fi
 
 # Low memory warning: checks the free memory each minute in a desktop session.
 systemctl --global enable orielos-low-memory-warning.timer
