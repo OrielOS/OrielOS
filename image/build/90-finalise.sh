@@ -402,6 +402,18 @@ fi
     exit 1
 }
 
+# The firewall's question: asks before letting other computers connect to an app that listens on
+# a blocked port, in each desktop session.
+systemctl --global enable orielos-firewall-watch.service
+if [[ "$(systemctl --global is-enabled orielos-firewall-watch.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-firewall-watch.service is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/firewall-watch ]] || {
+    printf 'error: /usr/libexec/orielos/firewall-watch is not executable\n' >&2
+    exit 1
+}
+
 # Storage Sense: frees space once a day for users who turned it on in Settings › System › Storage.
 systemctl --global enable orielos-storage-sense.timer
 if [[ "$(systemctl --global is-enabled orielos-storage-sense.timer 2>/dev/null)" != "enabled" ]]; then

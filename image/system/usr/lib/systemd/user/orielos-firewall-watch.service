@@ -1,0 +1,13 @@
+[Unit]
+Description=Ask before letting other computers connect to an app
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/settings.md
+ConditionPathExists=/usr/bin/firewall-cmd
+After=plasma-workspace.target
+
+[Service]
+ExecStart=/usr/libexec/orielos/firewall-watch
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=plasma-workspace.target
