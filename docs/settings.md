@@ -17,7 +17,7 @@ The categories on the left come in the order you know from Windows (in a narrow 
 - **Apps**: Default apps and Startup.
 - **Accounts**: Your info, with your password and other accounts, and Sign-in options: a PIN, fingerprints, dynamic lock, and the sign-in screen's settings.
 - **Time & language**: Date & time, and Language & region.
-- **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys and the visual bell), Zoom and colour filters, Mouse pointer (a white or black pointer, from 24 to 96 pixels) and On-screen keyboard.
+- **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys, a tone for Caps Lock and Num Lock under Modifier keys, and the visual bell), Zoom and colour filters, Mouse pointer (a white or black pointer, from 24 to 96 pixels) and On-screen keyboard.
 - **Privacy & security**: Device security, Firewall, App permissions, Activity history, and Diagnostics & feedback.
 - **Update**: OrielOS updates (see [Updates](updates.md)).
 - **More settings**: everything else, such as Fonts, so every setting is in one place.
@@ -27,6 +27,8 @@ Choose a category to see its pages, then a page to open it. To search instead, t
 You can also search from Start: type what you're looking for, such as "wifi", "dark mode" or "nvidia", and the setting opens in Settings. Anything that asks for System Settings, such as a "Configure…" button, opens Settings instead.
 
 Buttons and switches that ask for an administrator's password are marked with a key icon.
+
+OrielOS has four high-contrast colour schemes for when text needs to stand out as much as possible: **OrielOS High Contrast Black**, **Ocean**, **Evening** and **Paper**. Left Alt + Left Shift + Print Screen turns Black on, or goes back to the scheme you had; choose another under **More settings > Colours**, and the shortcut then turns that one on and off instead.
 
 ## Applying changes
 

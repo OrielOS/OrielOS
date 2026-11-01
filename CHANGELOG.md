@@ -76,6 +76,9 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Settings → System → Do not disturb turns Do not disturb on by itself at the hours you choose, every day, on weekdays or at weekends. Hours that start in the evening end the next morning.
 - Dragging a window to the top of the screen drops down the snap layouts as a bar: let go over one of their areas to snap the window there. Letting go at the very top edge still maximises it.
 - Pinned apps in Start can be dragged to a new place, and dropping one on another makes a folder of them. A folder opens in place over the pinned apps; click its name to rename it, and right-click an app in it for **Move out of folder**. A folder left with one app turns back into that app.
+- Ctrl + Alt + Tab shows the window switcher and keeps it open after you let go, until you choose a window with the arrow keys and Enter, or click it.
+- Four high-contrast colour schemes: OrielOS High Contrast Black, Ocean, Evening and Paper. Left Alt + Left Shift + Print Screen turns one on, or back off.
+- Left Alt + Left Shift + Num Lock turns Mouse Keys on or off, so the number pad moves the pointer.
 - When the computer is nearly out of memory, a notification says so and offers to open Process Manager, at most once every ten minutes.
 - Settings marks the buttons and switches that ask for an administrator's password with a key icon: Go back to the previous version and Remove the previous version on the Update page, and the sign-in screen's Ctrl + Alt + Delete and startup sound switches.
 - Settings → System → Multitasking turns snapping windows by dragging on or off, and the snap layouts on the maximise button and the suggestions after a snap each on their own, and chooses whether Alt + Tab shows the windows of every desktop.

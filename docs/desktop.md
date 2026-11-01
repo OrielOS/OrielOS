@@ -41,7 +41,7 @@ A touchpad clicks when you tap it, and two fingers scroll the page the way Windo
 
   ![Snap layouts open over Files, showing layouts of halves, thirds and quarters to choose from](images/snap-layouts.webp)
 
-- **See every window** with Windows + Tab, and switch between them with Alt + Tab: hold Alt and press Tab to move along the windows, and let go to switch. While it shows, Delete closes the selected window.
+- **See every window** with Windows + Tab, and switch between them with Alt + Tab: hold Alt and press Tab to move along the windows, and let go to switch. While it shows, Delete closes the selected window. Ctrl + Alt + Tab shows the same windows and keeps them on screen after you let go, until you choose one with the arrow keys and Enter, or click it; Escape closes it.
 - **Window buttons:** minimise, maximise and close are at the top right of every window. Close turns red when you point at it.
 - **A second screen or projector:** press Windows + P to choose **PC screen only**, **Duplicate** (the same picture on both), **Extend** (one desktop across both) or **Second screen only**. **Display settings** at the bottom arranges the screens in more detail.
 
