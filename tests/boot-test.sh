@@ -115,7 +115,7 @@ SHORTCUT_TABLE=(
     "Meta+P|0x10000050|org.orielos.DisplayMode.desktop|_launch"
     "Meta+Shift+S|0x12000053|org.kde.spectacle.desktop|_launch"
     "Meta+V|0x10000056||show-on-mouse-pos"
-    "Meta+.|0x1000002e|org.kde.plasma.emojier.desktop|_launch"
+    "Meta+.|0x1000002e|org.orielos.EmojiPanel.desktop|_launch"
     "Ctrl+Shift+Esc|0x07000000|org.kde.plasma-systemmonitor.desktop|_launch"
     "Meta+Left|0x11000012|kwin|Window Quick Tile Left"
     "Meta+Right|0x11000014|kwin|Window Quick Tile Right"
@@ -246,6 +246,8 @@ first_boot() {
     if [[ "$status" == "running" && -r "$WORK/first-boot.ppm" ]]; then
         SETUP_COLOURS="$(count_colours "$WORK/first-boot.ppm")" || true
     fi
+    # The setup sets the time zone from the network when it can; offline it stays as installed.
+    info "First boot: the time zone during setup is $(vm_ssh timedatectl show -p Timezone --value 2>/dev/null || echo unknown)"
 }
 
 # Restart the VM from inside, and move the start of the current boot's log to the new kernel's

@@ -89,6 +89,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - An icon in the system tray shows while an app uses the computer's location.
 - When removing an app resets a default, such as the app that opens PDF files, a notification says which app opens them now, or offers Default apps when none does.
 - After a serious system error the screen shows the error as a QR code, and the computer restarts by itself after 10 seconds.
+- Windows + B always opens the hidden icons: switching the power profile, which also had it, keeps the Battery key. Accounts made before get this at their next sign-in, unless they changed the shortcut.
 - Ctrl + Alt + Tab shows the window switcher and keeps it open after you let go, until you choose a window with the arrow keys and Enter, or click it.
 - Four high-contrast colour schemes: OrielOS High Contrast Black, Ocean, Evening and Paper. Left Alt + Left Shift + Print Screen turns one on, or back off.
 - Left Alt + Left Shift + Num Lock turns Mouse Keys on or off, so the number pad moves the pointer.

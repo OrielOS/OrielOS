@@ -33,3 +33,7 @@ Switch to Next Keyboard Layout=Meta+Space\tMeta+Alt+K,Meta+Alt+K,Switch to Next 
 activate application launcher=Meta\tAlt+F1\tCtrl+Esc,Meta\tAlt+F1,Activate Application Launcher
 next activity=none,none,Walk through activities
 previous activity=none,none,Walk through activities (Reverse)
+
+# Win+B opens the hidden icons, as in Windows; switching the power profile keeps the Battery key.
+[org_kde_powerdevil]
+powerProfile=Battery,Battery\tMeta+B,Switch Power Profile

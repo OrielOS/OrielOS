@@ -11,7 +11,9 @@
 #     stretching a window to the full height; Win+Space for the next keyboard layout; Win+Ctrl+Enter
 #     for the screen reader;
 #   - (third round) Win+A for Quick Settings, which Plasma's Walk through activities and its
-#     reverse give up (they took Win+A and Win+Shift+A, so the key never reached Quick Settings).
+#     reverse give up (they took Win+A and Win+Shift+A, so the key never reached Quick Settings);
+#   - (fourth round) Win+B for the hidden icons, which switching the power profile gives up (it
+#     keeps the Battery key).
 # A shortcut the user changed is left as it is. Each round runs once per user, before Plasma's
 # shortcut service starts, by orielos-user-shortcuts.service.
 set -Eeuo pipefail
@@ -61,6 +63,11 @@ if [[ ! -e "$states/user-shortcuts-3" ]]; then
     set_shortcut plasmashell "next activity" "none,none,Walk through activities" "Meta+A"
     set_shortcut plasmashell "previous activity" "none,none,Walk through activities (Reverse)" "Meta+Shift+A"
     touch -- "$states/user-shortcuts-3"
+fi
+
+if [[ ! -e "$states/user-shortcuts-4" ]]; then
+    set_shortcut org_kde_powerdevil powerProfile "Battery,Battery${tab}Meta+B,Switch Power Profile" "Battery${tab}Meta+B"
+    touch -- "$states/user-shortcuts-4"
 fi
 
 state="$states/user-shortcuts-1"
