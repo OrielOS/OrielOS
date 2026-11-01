@@ -113,7 +113,7 @@ cd /work
 # The installer shows the version of OrielOS the channel has now, which is what it installs
 # until a newer one arrives. A channel with no build yet is named instead.
 if [[ -z "$VERSION" ]]; then
-    VERSION="$(skopeo inspect --no-tags "docker://ghcr.io/ncjsvr/orielos:$CHANNEL" 2>/dev/null |
+    VERSION="$(skopeo inspect --no-tags "docker://ghcr.io/orielos/orielos:$CHANNEL" 2>/dev/null |
         python3 -c "import json, sys; print(json.load(sys.stdin)[\"Labels\"].get(\"org.opencontainers.image.version\", \"\"))" ||
         true)"
 fi
@@ -174,7 +174,7 @@ mkksiso --ks orielos.ks -u updates.img -c "inst.profile=orielos" \
     size="$(stat -c %s "$OUTPUT/OrielOS.iso")"
     # GitHub Releases take files under 2 GiB.
     [[ "$size" -lt 2147483648 ]] || die "OrielOS.iso is $size bytes, over GitHub's 2 GiB limit"
-    printf '==> Done: %s (%s MB), installs ghcr.io/ncjsvr/orielos:%s\n' "$OUTPUT/OrielOS.iso" "$((size / 1000000))" "$CHANNEL"
+    printf '==> Done: %s (%s MB), installs ghcr.io/orielos/orielos:%s\n' "$OUTPUT/OrielOS.iso" "$((size / 1000000))" "$CHANNEL"
     cat "$OUTPUT/SHA256SUMS"
 }
 
