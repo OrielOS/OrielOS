@@ -67,6 +67,8 @@ When an app stops responding, press Ctrl + Shift + Esc to open **Process Manager
 
 ![Process Manager, with graphs of processor, memory, disk and network use above a list of running applications](images/process-manager.webp)
 
+When the computer is nearly out of memory, a notification says **Your computer is low on memory** and offers **Open Process Manager**, so you can see which apps use the most and close some.
+
 ## Light and dark
 
 OrielOS has a light and a dark look. Switch between them in **Settings > Personalisation > Themes**, and choose the colour of highlights in **Accent colour** on the same page's list. Each look has its own wallpaper: Daybreak for light and Nightfall for dark.

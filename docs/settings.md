@@ -26,6 +26,8 @@ Choose a category to see its pages, then a page to open it. To search instead, t
 
 You can also search from Start: type what you're looking for, such as "wifi", "dark mode" or "nvidia", and the setting opens in Settings. Anything that asks for System Settings, such as a "Configure…" button, opens Settings instead.
 
+Buttons and switches that ask for an administrator's password are marked with a key icon.
+
 ## Applying changes
 
 Some pages change things as soon as you choose them. Others show **Apply** and **Reset** at the bottom: Apply keeps your changes, and Reset puts back the settings you had. **Defaults** puts back OrielOS's own settings. If you leave a page, or close Settings, with changes you haven't applied, Settings asks whether to apply or discard them.
