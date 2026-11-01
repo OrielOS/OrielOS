@@ -14,7 +14,7 @@ import org.kde.kirigami as Kirigami
 KCM.SimpleKCM {
     id: root
 
-    readonly property FpsOverlay overlay: FpsOverlay {}
+    readonly property FpsOverlay fps: FpsOverlay {}
     // Settings' engine doesn't set up the KI18n singleton, and the page's strings are in its own
     // translation domain.
     readonly property KI18nContext l10n: KI18nContext {
@@ -26,9 +26,9 @@ KCM.SimpleKCM {
 
         Kirigami.InlineMessage {
             Layout.fillWidth: true
-            visible: root.overlay.error.length > 0
+            visible: root.fps.error.length > 0
             type: Kirigami.MessageType.Error
-            text: root.overlay.error
+            text: root.fps.error
         }
 
         Kirigami.FormLayout {
@@ -36,12 +36,12 @@ KCM.SimpleKCM {
 
             QQC2.Switch {
                 Kirigami.FormData.label: root.l10n.i18nc("@label:checkbox", "FPS overlay:")
-                text: root.overlay.enabled ? root.l10n.i18nc("@option:check", "On") : root.l10n.i18nc("@option:check", "Off")
-                checked: root.overlay.enabled
-                enabled: !root.overlay.busy
+                text: root.fps.enabled ? root.l10n.i18nc("@option:check", "On") : root.l10n.i18nc("@option:check", "Off")
+                checked: root.fps.enabled
+                enabled: !root.fps.busy
                 onToggled: {
-                    root.overlay.setEnabled(checked);
-                    checked = Qt.binding(() => root.overlay.enabled);
+                    root.fps.setEnabled(checked);
+                    checked = Qt.binding(() => root.fps.enabled);
                 }
             }
 
@@ -56,36 +56,36 @@ KCM.SimpleKCM {
             QQC2.CheckBox {
                 Kirigami.FormData.label: root.l10n.i18nc("@label", "Also show:")
                 text: root.l10n.i18nc("@option:check", "Frame time")
-                checked: root.overlay.frameTime
-                enabled: root.overlay.enabled && !root.overlay.busy
+                checked: root.fps.frameTime
+                enabled: root.fps.enabled && !root.fps.busy
                 onToggled: {
-                    root.overlay.setFrameTime(checked);
-                    checked = Qt.binding(() => root.overlay.frameTime);
+                    root.fps.setFrameTime(checked);
+                    checked = Qt.binding(() => root.fps.frameTime);
                 }
             }
 
             QQC2.CheckBox {
                 text: root.l10n.i18nc("@option:check", "Processor and graphics card use")
-                checked: root.overlay.stats
-                enabled: root.overlay.enabled && !root.overlay.busy
+                checked: root.fps.stats
+                enabled: root.fps.enabled && !root.fps.busy
                 onToggled: {
-                    root.overlay.setStats(checked);
-                    checked = Qt.binding(() => root.overlay.stats);
+                    root.fps.setStats(checked);
+                    checked = Qt.binding(() => root.fps.stats);
                 }
             }
         }
 
         Kirigami.InlineMessage {
             Layout.fillWidth: true
-            visible: root.overlay.enabled && root.overlay.steamNeedsAddon
+            visible: root.fps.enabled && root.fps.steamNeedsAddon
             type: Kirigami.MessageType.Information
             text: root.l10n.i18nc("@info", "Steam from the Store needs the overlay's add-on, from the Store, to show it in its games.")
             actions: [
                 Kirigami.Action {
                     text: root.l10n.i18nc("@action:button", "Install the add-on")
                     icon.name: "download"
-                    enabled: !root.overlay.busy
-                    onTriggered: root.overlay.installSteamAddon()
+                    enabled: !root.fps.busy
+                    onTriggered: root.fps.installSteamAddon()
                 }
             ]
         }

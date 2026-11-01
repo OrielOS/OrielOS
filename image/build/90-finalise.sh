@@ -173,9 +173,9 @@ done
 grep -qxF 'BatteryLowLevel=20' /usr/share/kde-settings/kde-profile/default/xdg/powerdevilrc 2>/dev/null || update_errors+=("OrielOS's power defaults are missing")
 grep -q '/usr/share/kde-settings/kde-profile/default/xdg' /etc/xdg/plasma-workspace/env/env.sh 2>/dev/null || update_errors+=("Fedora's kde-settings profile is no longer on XDG_CONFIG_DIRS, so OrielOS's power defaults don't apply")
 grep -qxF 'Title=Shutting down' /usr/share/plymouth/themes/orielos/orielos.plymouth || update_errors+=("The splash doesn't say Shutting down")
-for f in rotation-lock reset-displays restart-desktop fps-overlay; do
 # The FPS overlay, OrielOS's Game Bar: MangoHud, and Windows + G showing or hiding it.
 [[ -x /usr/bin/mangohud ]] || update_errors+=("MangoHud, for the FPS overlay, is missing")
+for f in rotation-lock reset-displays restart-desktop fps-overlay; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done
 # System Monitor opens on OrielOS's Processes page, with Performance and Details, and its jump list
