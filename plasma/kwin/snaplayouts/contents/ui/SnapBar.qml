@@ -10,11 +10,13 @@ pragma ComponentBehavior: Bound
 // edge, above the bar, still maximises the window, as KWin does.
 
 import QtQuick
-import QtQuick.Window
+// Named: since KWin 6.8, org.kde.kwin has a Window type of its own (KWin's windows, which QML
+// can't create), which would hide Qt's.
+import QtQuick.Window as QtWindow
 import org.kde.kirigami as Kirigami
 import org.kde.kwin
 
-Window {
+QtWindow.Window {
     id: bar
 
     // The scene effect in main.qml, for the layouts and snapping.
