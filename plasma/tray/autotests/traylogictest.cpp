@@ -88,7 +88,8 @@ private Q_SLOTS:
                 QVERIFY(QFile::link(files.at(i), base + QStringLiteral("/fd/") + QString::number(i)));
             }
         };
-        process(QStringLiteral("100"), QStringLiteral("discord"), QStringLiteral("/home/nathan"), { QStringLiteral("/dev/null"), drive + QStringLiteral("/photo.jpg") });
+        process(QStringLiteral("100"), QStringLiteral("discord"), QStringLiteral("/home/nathan"),
+            { QStringLiteral("/dev/null"), drive + QStringLiteral("/photo.jpg") });
         process(QStringLiteral("200"), QStringLiteral("bash"), drive + QStringLiteral("/Trips"), { });
         process(QStringLiteral("300"), QStringLiteral("firefox"), QStringLiteral("/home/nathan"), { QStringLiteral("/run/media/nathan/HOLIDAY2/x") });
         process(QStringLiteral("400"), QStringLiteral("discord"), drive, { });

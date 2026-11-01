@@ -160,7 +160,7 @@ grep -qxF 'X-KDE-Shortcuts=Meta+Ctrl+Alt+Shift+Space' /usr/share/kglobalaccel/or
 # the screens on Win+Ctrl+Shift+B, the contrast theme on Left Alt+Left Shift+Print Screen and Mouse
 # Keys on Left Alt+Left Shift+Num Lock. Their hidden entries are with the apps, where kglobalaccel
 # finds a new one, and in kglobalaccel's own folder, as the Run box's.
-for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.RotationLock:Meta+O org.orielos.ResetDisplays:Meta+Ctrl+Shift+B     org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
+for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.RotationLock:Meta+O org.orielos.ResetDisplays:Meta+Ctrl+Shift+B org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
     name="${entry%%:*}.desktop"
     ln -sf "../applications/$name" "/usr/share/kglobalaccel/$name"
     grep -qxF "X-KDE-Shortcuts=${entry#*:}" "/usr/share/kglobalaccel/$name" 2>/dev/null || update_errors+=("$name doesn't have ${entry#*:}")

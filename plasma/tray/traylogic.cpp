@@ -54,9 +54,8 @@ namespace {
 
 bool inside(const QString &path, const QStringList &folders)
 {
-    return std::any_of(folders.cbegin(), folders.cend(), [&path](const QString &folder) {
-        return !folder.isEmpty() && (path == folder || path.startsWith(folder + QLatin1Char('/')));
-    });
+    return std::any_of(folders.cbegin(), folders.cend(),
+        [&path](const QString &folder) { return !folder.isEmpty() && (path == folder || path.startsWith(folder + QLatin1Char('/'))); });
 }
 
 } // namespace

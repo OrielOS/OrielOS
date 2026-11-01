@@ -152,10 +152,9 @@ void Drives::finish(const QString &udi, const QString &name, const QStringList &
                 apps.append(app);
             }
         }
-        const QString body = apps.isEmpty()
-            ? i18nc("@info", "Close the files and apps that use it, then eject it again.")
-            : i18ncp("@info %2 is a list of apps", "%2 is using it. Close it, then eject it again.", "%2 are using it. Close them, then eject it again.",
-                  apps.size(), QLocale().createSeparatedList(apps));
+        const QString body = apps.isEmpty() ? i18nc("@info", "Close the files and apps that use it, then eject it again.")
+                                            : i18ncp("@info %2 is a list of apps", "%2 is using it. Close it, then eject it again.",
+                                                  "%2 are using it. Close them, then eject it again.", apps.size(), QLocale().createSeparatedList(apps));
         notify(i18nc("@title %1 is a drive's name", "%1 is in use", name), body);
         return;
     }
