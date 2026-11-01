@@ -20,6 +20,8 @@ ki18n_install(translations)
 # Snap layouts: a KWin effect that Win+Z opens, to snap the active window into a layout.
 install(DIRECTORY kwin/snaplayouts/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snaplayouts)
 install(DIRECTORY kwin/snapassist/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-snapassist)
+# Ctrl+Alt+Tab's window switcher, which stays open.
+install(DIRECTORY kwin/switcheropen/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/effects/orielos-switcheropen)
 # Alt+F4: closes the window in use, or on the desktop offers to shut down. On by default.
 install(DIRECTORY kwin/closeorshutdown/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/scripts/orielos-closeorshutdown)
 install(DIRECTORY kwin/windowkeys/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/scripts/orielos-windowkeys)
@@ -70,8 +72,11 @@ foreach(lnf org.orielos.desktop org.orielos.desktop.dark)
     endforeach()
 endforeach()
 
-# OrielOS's colour schemes, which the look-and-feel packages choose.
+# OrielOS's colour schemes, which the look-and-feel packages choose, and the four high-contrast
+# ones that Left Alt+Left Shift+Print Screen turns on.
 install(FILES color-schemes/OrielOSLight.colors color-schemes/OrielOSDark.colors
+    color-schemes/OrielOSHighContrastBlack.colors color-schemes/OrielOSHighContrastOcean.colors
+    color-schemes/OrielOSHighContrastEvening.colors color-schemes/OrielOSHighContrastPaper.colors
     DESTINATION ${KDE_INSTALL_DATADIR}/color-schemes)
 
 # Update scripts move existing users' desktops to the current layout. Plasma runs each one once

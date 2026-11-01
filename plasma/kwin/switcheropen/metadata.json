@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "KWin/Effect",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Window Management",
+        "Description": "Ctrl+Alt+Tab shows the window switcher and keeps it open after the keys are let go, until a window is chosen",
+        "EnabledByDefault": true,
+        "Id": "orielos-switcheropen",
+        "License": "GPL-3.0-or-later",
+        "Name": "Window Switcher That Stays Open"
+    },
+    "X-KDE-Ordering": 60,
+    "X-Plasma-API": "declarativescript"
+}
