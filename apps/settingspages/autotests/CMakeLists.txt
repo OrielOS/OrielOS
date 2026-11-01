@@ -52,6 +52,8 @@ ecm_add_test(dndscheduletest.cpp
 ecm_add_test(fpsoverlaytest.cpp
     TEST_NAME fpsoverlaytest
     LINK_LIBRARIES OrielOSFpsOverlay Qt6::Test
+)
+
 ecm_add_test(installedappstest.cpp
     TEST_NAME installedappstest
     LINK_LIBRARIES OrielOSInstalledApps Qt6::Test

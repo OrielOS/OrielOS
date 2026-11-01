@@ -102,10 +102,7 @@ public:
 
     // Runs the menu's item with this id.
     // Shift is held, as when Shift + Restart asks for the recovery menu.
-    Q_INVOKABLE bool shiftHeld() const
-    {
-        return QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier);
-    }
+    Q_INVOKABLE bool shiftHeld() const { return QGuiApplication::queryKeyboardModifiers().testFlag(Qt::ShiftModifier); }
 
     // Shows the boot menu, with its recovery options, at the next start only: polkit lets the
     // person at the computer start orielos-boot-menu.service, which sets the boot menu's flag.
