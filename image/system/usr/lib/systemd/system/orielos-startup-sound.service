@@ -7,11 +7,13 @@ After=display-manager.service
 ConditionPathExists=!/etc/orielos/startup-sound-off
 
 [Service]
-Type=oneshot
+# Started, not waited for: the boot (graphical.target) never waits on the sound, which could hang
+# where there is no sound card. It is stopped after a minute whatever happens.
+Type=exec
 # The sign-in screen runs as sddm, with its own sound server; play through that.
 User=sddm
 ExecStart=/usr/libexec/orielos/startup-sound
-TimeoutStartSec=60
+RuntimeMaxSec=60
 
 [Install]
 WantedBy=graphical.target
