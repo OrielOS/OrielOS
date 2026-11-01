@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# System Monitor's Details page: every process with its ID, status, user and priority, as a tree
+# when switched to one (which End process tree acts on).
+
+[Face-1][Appearance]
+chartFace=org.kde.ksysguard.processtable
+showTitle=false
+
+[Face-1][org.kde.ksysguard.processtable][General]
+showToolBar=false
+sortedColumns=name,pid,status,username,usage,memory,niceLevel,command
+columnWidths=0.18,0.07,0.08,0.10,0.08,0.10,0.08,0.31
+columnDisplay={"name":"text","pid":"text","status":"text","username":"text","usage":"text","memory":"text","niceLevel":"text","command":"text"}
+sortColumn=name
+sortDirection=0
+
+[page]
+icon=view-list-details
+margin=0
+version=1
+Title=Details
+actionsFace=Face-1
+
+[page][row-0]
+isTitle=false
+name=row-0
+Title=
+heightMode=balanced
+
+[page][row-0][column-0]
+name=column-0
+showBackground=false
+noMargins=true
+
+[page][row-0][column-0][section-0]
+face=Face-1
+isSeparator=false
+name=section-0

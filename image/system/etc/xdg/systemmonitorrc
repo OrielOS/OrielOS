@@ -1,0 +1,4 @@
+[General]
+pageOrder=orielos-processes.page,orielos-performance.page,history.page,orielos-details.page
+hiddenPages=overview.page,applications.page,processes.page,old-history.page,old-overview.page
+startPage=orielos-processes.page

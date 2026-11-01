@@ -12,6 +12,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Files can act as administrator, for folders only an administrator can open or change, from its menu or the bar it shows in such a folder.
 - When a USB drive can't be ejected, the notification names the apps still using it.
 - Screenshot's Extract Text copies the text in a screenshot.
+- System Monitor opens on a Processes page with your apps above every other process, and has Performance and Details pages, with graphics card use alongside processor, memory, disk and network. Its jump list in Start and on the taskbar offers Run new task, Startup apps and Restart the taskbar and desktop.
 
 ### Changed
 
