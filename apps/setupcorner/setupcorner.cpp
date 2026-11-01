@@ -77,8 +77,10 @@ void SetupCorner::readLayout()
     m_layoutCount = int(list.size());
     const int index = current.isValid() ? int(current.value()) : -1;
     if (index >= 0 && index < list.size()) {
-        m_layout = list.at(index).shortName;
         m_layoutName = list.at(index).longName;
+        // Before a layout has been chosen, KWin's default has no short name: use the first letters
+        // of its name, such as ENG for English (US).
+        m_layout = list.at(index).shortName.isEmpty() ? m_layoutName.left(3) : list.at(index).shortName;
     } else {
         m_layout.clear();
         m_layoutName.clear();

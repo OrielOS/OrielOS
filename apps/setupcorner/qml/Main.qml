@@ -131,7 +131,6 @@ Window {
             visible: window.corner.layout.length > 0
             text: window.corner.layout.toUpperCase()
             font.weight: Font.DemiBold
-            enabled: window.corner.layoutCount > 1
             QQC2.ToolTip.text: window.corner.layoutCount > 1
                 ? KI18n.i18nc("@info:tooltip %1 is a keyboard layout's name", "Keyboard: %1. Click to switch layouts.", window.corner.layoutName)
                 : KI18n.i18nc("@info:tooltip %1 is a keyboard layout's name", "Keyboard: %1", window.corner.layoutName)
