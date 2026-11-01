@@ -46,8 +46,8 @@ PlasmaExtras.PlasmoidHeading {
                         handler: () => {
                             footer.menu.close();
                             // Shift + Restart opens the boot menu, with its recovery options, next.
-                            if (action.id === "reboot" && Plasmoid.shiftHeld()) {
-                                Plasmoid.showBootMenuNextStart();
+                            if (action.id === "reboot" && Plasmoid.shiftHeld()) { // qmllint disable missing-property
+                                Plasmoid.showBootMenuNextStart(); // qmllint disable missing-property
                             }
                             model.trigger(row, "", null);
                         },
