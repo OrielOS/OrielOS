@@ -5,8 +5,10 @@
 # KWin script, which closes the window in use or, on the desktop, offers to shut down; Maximise and
 # Minimise give Win+Up and Win+Down to OrielOS's Window shortcuts script, which maximises, restores,
 # minimises and snaps to quarters as Windows does. Alt+Space opens the window menu, and Win+Shift+Up
-# stretches a window to the screen's full height.
+# stretches a window to the screen's full height. Win+T moves the keyboard focus to the taskbar
+# (below), so the tiles editor gives it up.
 [kwin]
+Edit Tiles=none,Meta+T,Toggle Tiles Editor
 Window Close=none,Alt+F4,Close Window
 Overview=Meta+Tab\tMeta+W,Meta+W,Toggle Overview
 Walk Through Windows=Alt+Tab,Alt+Tab\tMeta+Tab,Walk Through Windows
@@ -28,11 +30,13 @@ Toggle Screen Reader On and Off=Meta+Ctrl+Return\tMeta+Alt+S,Meta+Alt+S,Toggle S
 Switch to Next Keyboard Layout=Meta+Space\tMeta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Layout
 
 # Ctrl+Esc opens Start, as in Windows, next to the Windows key and Plasma's Alt+F1. Walking through
-# activities has no shortcut, so Win+A reaches Quick Settings.
+# activities has no shortcut, so Win+A reaches Quick Settings. Win+T moves the keyboard focus to
+# the taskbar, on Start, from where the arrow keys walk along it to the apps, besides Plasma's Win+Alt+P.
 [plasmashell]
 activate application launcher=Meta\tAlt+F1\tCtrl+Esc,Meta\tAlt+F1,Activate Application Launcher
 next activity=none,none,Walk through activities
 previous activity=none,none,Walk through activities (Reverse)
+cycle-panels=Meta+T\tMeta+Alt+P,Meta+Alt+P,Move keyboard focus between panels
 
 # Win+B opens the hidden icons, as in Windows; switching the power profile keeps the Battery key.
 [org_kde_powerdevil]

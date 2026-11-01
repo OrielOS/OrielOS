@@ -4,9 +4,23 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+### Added
+
+- Windows + T moves the keyboard focus to the taskbar; the arrow keys then walk along it to your apps. Windows + O locks a tablet's screen rotation, and Windows + Ctrl + Shift + B resets the screens when the picture is stuck or garbled, with a short sound, leaving your apps open.
+- Files can be pinned to an app's jump list in Start: right-click the app, then use the pin button next to a recent file. Pinned files stay at the top of the list and open in that app.
+- The first time an app starts accepting connections from other computers on a port the firewall blocks, a notification asks whether to allow it, and remembers your answer. Settings → Privacy & security → Firewall shows what you allowed.
+- Files can act as administrator, for folders only an administrator can open or change, from its menu or the bar it shows in such a folder.
+- When a USB drive can't be ejected, the notification names the apps still using it.
+- Screenshot's Extract Text copies the text in a screenshot.
+
 ### Changed
 
 - The OrielOS updates icon only shows in the system tray while an update, or going back to the previous version, is waiting for a restart. With nothing to restart for it goes away, rather than waiting among the hidden icons; Settings → Update still shows when OrielOS last checked.
+
+### Fixed
+
+- Settings → Themes no longer lists the first sign-in's welcome screen as a theme called "OrielOS first sign-in".
+- Pages from Info Center in Settings show all their labels.
 
 ## [0.1.9] - 2026-11-01
 

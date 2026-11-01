@@ -28,6 +28,8 @@ You can also search from Start: type what you're looking for, such as "wifi", "d
 
 Buttons and switches that ask for an administrator's password are marked with a key icon.
 
+The firewall stops other computers connecting to your apps. The first time an app wants to accept connections from them, such as a game hosting a match or an app sharing files, a notification asks whether to allow it: **Allow** opens its port, after your password, and **Keep blocking** leaves it closed. Your answer is kept, so it asks once; **Privacy & security > Firewall** lists the ports you allowed, and removing one there closes it again.
+
 OrielOS has four high-contrast colour schemes for when text needs to stand out as much as possible: **OrielOS High Contrast Black**, **Ocean**, **Evening** and **Paper**. Left Alt + Left Shift + Print Screen turns Black on, or goes back to the scheme you had; choose another under **More settings > Colours**, and the shortcut then turns that one on and off instead.
 
 ## Applying changes

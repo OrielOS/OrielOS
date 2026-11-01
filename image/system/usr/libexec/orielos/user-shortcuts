@@ -13,7 +13,9 @@
 #   - (third round) Win+A for Quick Settings, which Plasma's Walk through activities and its
 #     reverse give up (they took Win+A and Win+Shift+A, so the key never reached Quick Settings);
 #   - (fourth round) Win+B for the hidden icons, which switching the power profile gives up (it
-#     keeps the Battery key).
+#     keeps the Battery key);
+#   - (fifth round) Win+T for moving the keyboard focus to the taskbar, which KWin's tiles editor
+#     gives up.
 # A shortcut the user changed is left as it is. Each round runs once per user, before Plasma's
 # shortcut service starts, by orielos-user-shortcuts.service.
 set -Eeuo pipefail
@@ -68,6 +70,12 @@ fi
 if [[ ! -e "$states/user-shortcuts-4" ]]; then
     set_shortcut org_kde_powerdevil powerProfile "Battery,Battery${tab}Meta+B,Switch Power Profile" "Battery${tab}Meta+B"
     touch -- "$states/user-shortcuts-4"
+fi
+
+if [[ ! -e "$states/user-shortcuts-5" ]]; then
+    kwin_shortcut "Edit Tiles" "none,Meta+T,Toggle Tiles Editor" "Meta+T"
+    set_shortcut plasmashell cycle-panels "Meta+T${tab}Meta+Alt+P,Meta+Alt+P,Move keyboard focus between panels" "Meta+Alt+P"
+    touch -- "$states/user-shortcuts-5"
 fi
 
 state="$states/user-shortcuts-1"

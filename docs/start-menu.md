@@ -21,7 +21,7 @@ Your pinned apps fill the top of Start, two rows at a time. **Settings > Persona
 
 **Drag** a pinned app to move it to another place. Drop it on another pinned app to make a **folder** of the two, or on a folder to add it there. Click a folder to open it over your pinned apps: click its name to rename it, click an app to open it, or right-click an app and choose **Move out of folder**. Escape or a click beside the folder closes it, and a folder left with one app turns back into that app.
 
-Right-clicking an app also lists the files you opened with it recently, under **Recent Files**, with **Forget Recent Files** to clear them.
+Right-clicking an app also lists the files you opened with it recently, under **Recent Files**, with **Forget Recent Files** to clear them. Point at a recent file and click its pin to keep it at the top of the list, under **Pinned**; pinned files open in that app, and their pin unpins them.
 
 Your pinned apps are saved with your account, so they stay the same after a restart or an update. An app you pinned that isn't installed yet appears as soon as it is.
 
