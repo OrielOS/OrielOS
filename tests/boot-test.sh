@@ -105,7 +105,7 @@ WALLPAPER_FILE=""
 # empty when only the action name is fixed. Keep in step with docs/keyboard-shortcuts.md.
 SHORTCUT_TABLE=(
     "Meta+E|0x10000045|org.kde.dolphin.desktop|_launch"
-    "Meta+R|0x10000052|org.kde.krunner.desktop|_launch"
+    "Meta+R|0x10000052|org.orielos.Run.desktop|_launch"
     "Meta+L|0x1000004c|ksmserver|Lock Session"
     "Meta+D|0x10000044|kwin|Show Desktop"
     "Meta+Tab|0x11000001|kwin|Overview"
@@ -120,8 +120,8 @@ SHORTCUT_TABLE=(
     "Meta+Left|0x11000012|kwin|Window Quick Tile Left"
     "Meta+Right|0x11000014|kwin|Window Quick Tile Right"
     "Meta+Z|0x1000005a|kwin|Snap Layouts"
-    "Meta+Up|0x11000013|kwin|Window Maximize"
-    "Meta+Down|0x11000015|kwin|Window Minimize"
+    "Meta+Up|0x11000013|kwin|OrielOS Maximise"
+    "Meta+Down|0x11000015|kwin|OrielOS Restore or Minimise"
     "Meta+Print|0x11000009|org.kde.spectacle.desktop|FullScreenToFile"
 )
 SHORTCUTS_OUT=""
