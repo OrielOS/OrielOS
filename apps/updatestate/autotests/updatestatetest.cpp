@@ -121,8 +121,8 @@ private Q_SLOTS:
 
     void findsWhatsNew()
     {
-        const QString changelog = QStringLiteral(
-            "# Changelog\n\nIntro.\n\n## [Unreleased]\n\n### Added\n\n- New thing.\n\n## [0.1.9] - 2026-11-01\n\n### Added\n\n- The shell.\n\n## [0.1.8] - 2026-10-31\n\n- Older.\n");
+        const QString changelog = QStringLiteral("# Changelog\n\nIntro.\n\n## [Unreleased]\n\n### Added\n\n- New thing.\n\n## [0.1.9] - 2026-11-01\n\n### "
+                                                 "Added\n\n- The shell.\n\n## [0.1.8] - 2026-10-31\n\n- Older.\n");
         QCOMPARE(changelogSection(changelog, QStringLiteral("v0.1.9")), QStringLiteral("### Added\n\n- The shell."));
         QCOMPARE(changelogSection(changelog, QStringLiteral("v0.1.10")), QStringLiteral("### Added\n\n- New thing."));
         QCOMPARE(changelogSection(changelog, QString()), QStringLiteral("### Added\n\n- New thing."));

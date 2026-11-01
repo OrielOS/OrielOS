@@ -444,7 +444,8 @@ private Q_SLOTS:
         state.insert(QStringLiteral("activeHours"), QJsonObject { { QStringLiteral("start"), 9 }, { QStringLiteral("end"), 18 } });
         state.insert(QStringLiteral("autoRestart"), true);
         state.insert(QStringLiteral("history"),
-            QJsonArray { QJsonObject { { QStringLiteral("version"), QStringLiteral("44.1") }, { QStringLiteral("startedAt"), QStringLiteral("2026-10-24T08:00:00Z") } } });
+            QJsonArray { QJsonObject {
+                { QStringLiteral("version"), QStringLiteral("44.1") }, { QStringLiteral("startedAt"), QStringLiteral("2026-10-24T08:00:00Z") } } });
         Page page(state);
         QVERIFY(page.settings->restartScheduled());
         QVERIFY(!page.settings->restartAt().isEmpty());

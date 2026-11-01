@@ -8,10 +8,10 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QProcess>
-#include <QRegularExpression>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QProcess>
+#include <QRegularExpression>
 #include <QStandardPaths>
 
 #include <optional>
@@ -256,9 +256,8 @@ QList<SecurityCheck> runProtectionChecks(const SecuritySources &sources)
         active = process.waitForFinished(3000) && process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
     }
     firewall.result = active ? SecurityCheck::Result::Met : SecurityCheck::Result::NotMet;
-    firewall.explanation = active
-        ? i18nc("@info", "The firewall is on: other computers can only connect to apps you allowed.")
-        : i18nc("@info", "The firewall is off. Turn it on under Privacy & security › Firewall.");
+    firewall.explanation = active ? i18nc("@info", "The firewall is on: other computers can only connect to apps you allowed.")
+                                  : i18nc("@info", "The firewall is off. Turn it on under Privacy & security › Firewall.");
     checks.append(firewall);
 
     SecurityCheck updates { QStringLiteral("updates"), i18nc("@title Part of the computer's protection", "Updates") };

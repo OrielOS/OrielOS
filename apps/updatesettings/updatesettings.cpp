@@ -413,8 +413,7 @@ void UpdateSettings::cancelRestart()
 
 void UpdateSettings::setActiveHours(int start, int end)
 {
-    if (m_busy || start < 0 || start > 23 || end < 0 || end > 23 || start == end
-        || (start == m_state.activeHoursStart() && end == m_state.activeHoursEnd())) {
+    if (m_busy || start < 0 || start > 23 || end < 0 || end > 23 || start == end || (start == m_state.activeHoursStart() && end == m_state.activeHoursEnd())) {
         return;
     }
     run({ QStringLiteral("active-hours"), QString::number(start), QString::number(end) });

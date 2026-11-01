@@ -3,8 +3,8 @@
 
 #include "updatenotifier.h"
 
-#include <KLocalizedString>
 #include <KConfigGroup>
+#include <KLocalizedString>
 #include <KNotification>
 #include <KSharedConfig>
 #include <KStatusNotifierItem>

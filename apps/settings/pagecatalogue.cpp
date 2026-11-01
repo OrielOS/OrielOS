@@ -96,7 +96,8 @@ PageCatalogue PageCatalogue::standard()
     QList<Page> pages {
         { QStringLiteral("display"), system, i18nc("@title Settings page", "Display"), i18nc("@info", "Resolution, scale, refresh rate, HDR and arrangement"),
             keywords(i18nc("@info:keywords Search words for the Display page, separated by ;",
-                "display;screen;monitor;resolution;scale;scaling;size;refresh rate;hz;hdr;orientation;rotation;multiple displays;identify;main display;arrange;variable refresh rate;adaptive sync;freesync;g-sync;rotation lock")),
+                "display;screen;monitor;resolution;scale;scaling;size;refresh rate;hz;hdr;orientation;rotation;multiple displays;identify;main "
+                "display;arrange;variable refresh rate;adaptive sync;freesync;g-sync;rotation lock")),
             QStringLiteral("kcm_kscreen"), { } },
         { QStringLiteral("night-light"), system, i18nc("@title Settings page", "Night light"), i18nc("@info", "Warmer colours in the evening"),
             keywords(i18nc("@info:keywords Search words for the Night light page, separated by ;", "night light;blue light;warm;colour temperature")),
@@ -214,7 +215,8 @@ PageCatalogue PageCatalogue::standard()
             i18nc("@info", "Which app opens web pages, email, music and more"),
             keywords(i18nc("@info:keywords Search words for the Default apps page, separated by ;", "default apps;default browser;open with;file types")),
             QStringLiteral("kcm_componentchooser"), { } },
-        { QStringLiteral("installed-apps"), apps, i18nc("@title Settings page", "Installed apps"), i18nc("@info", "Uninstall apps, and choose where apps can come from"),
+        { QStringLiteral("installed-apps"), apps, i18nc("@title Settings page", "Installed apps"),
+            i18nc("@info", "Uninstall apps, and choose where apps can come from"),
             keywords(i18nc("@info:keywords Search words for the Installed apps page, separated by ;",
                 "installed apps;uninstall;remove app;apps and features;programs;add or remove programs;app size;where to get apps")),
             QStringLiteral("kcm_orielos_installedapps"), { } },
@@ -223,8 +225,8 @@ PageCatalogue PageCatalogue::standard()
             QStringLiteral("kcm_autostart"), { } },
         { QStringLiteral("restart-apps"), apps, i18nc("@title Settings page", "Restart apps after signing in"),
             i18nc("@info", "Open the apps you had open, after a restart"),
-            keywords(i18nc("@info:keywords Search words for the Restart apps page, separated by ;",
-                "restart apps;restore session;reopen apps;session;restartable apps")),
+            keywords(i18nc(
+                "@info:keywords Search words for the Restart apps page, separated by ;", "restart apps;restore session;reopen apps;session;restartable apps")),
             QStringLiteral("kcm_smserver"), { } },
         { QStringLiteral("your-info"), accounts, i18nc("@title Settings page", "Your info"),
             i18nc("@info", "Your name, picture and password, and other accounts"),

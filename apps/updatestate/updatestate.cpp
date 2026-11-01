@@ -6,8 +6,8 @@
 #include <KLocalizedString>
 
 #include <QFile>
-#include <QJsonDocument>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
 #include <QStringList>

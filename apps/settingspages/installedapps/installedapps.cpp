@@ -64,9 +64,9 @@ QList<InstalledApp> InstalledApp::parseList(const QString &list)
 }
 
 InstalledApps::InstalledApps(QObject *parent)
-    : InstalledApps(Environment { runFlatpak, deployedOn,
-                        QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/orielos-appsrc"),
-                        QStringLiteral("flatpak") },
+    : InstalledApps(
+          Environment { runFlatpak, deployedOn, QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/orielos-appsrc"),
+              QStringLiteral("flatpak") },
           parent)
 {
 }
@@ -85,9 +85,7 @@ void InstalledApps::reload()
     for (InstalledApp &app : m_apps) {
         app.installedOn = m_environment.installedOn(app.id, app.installation);
     }
-    std::sort(m_apps.begin(), m_apps.end(), [](const InstalledApp &a, const InstalledApp &b) {
-        return QString::localeAwareCompare(a.name, b.name) < 0;
-    });
+    std::sort(m_apps.begin(), m_apps.end(), [](const InstalledApp &a, const InstalledApp &b) { return a.name.compare(b.name, Qt::CaseInsensitive) < 0; });
     Q_EMIT changed();
 }
 

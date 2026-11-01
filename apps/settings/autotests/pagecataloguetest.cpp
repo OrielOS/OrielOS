@@ -35,8 +35,7 @@ private Q_SLOTS:
         QCOMPARE(categories,
             (QStringList { QStringLiteral("system"), QStringLiteral("devices"), QStringLiteral("network"), QStringLiteral("personalisation"),
                 QStringLiteral("apps"), QStringLiteral("accounts"), QStringLiteral("time"), QStringLiteral("gaming"), QStringLiteral("accessibility"),
-                QStringLiteral("privacy"),
-                QStringLiteral("update") }));
+                QStringLiteral("privacy"), QStringLiteral("update") }));
     }
 
     void everyPageIsUniqueAndInACategory()
