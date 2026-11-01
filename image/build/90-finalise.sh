@@ -166,6 +166,11 @@ for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.RotationLock:Meta+O or
     grep -qxF "X-KDE-Shortcuts=${entry#*:}" "/usr/share/kglobalaccel/$name" 2>/dev/null || update_errors+=("$name doesn't have ${entry#*:}")
 done
 [[ -x /usr/libexec/orielos/accessibility-keys ]] || update_errors+=("/usr/libexec/orielos/accessibility-keys is not executable")
+# Power: energy saver at 20 % and shutting down at 5 % come from PowerDevil's defaults in Fedora's
+# kde-settings profile, which must still be on XDG_CONFIG_DIRS; Plymouth names a shut down and a restart.
+grep -qxF 'BatteryLowLevel=20' /usr/share/kde-settings/kde-profile/default/xdg/powerdevilrc 2>/dev/null || update_errors+=("OrielOS's power defaults are missing")
+grep -q '/usr/share/kde-settings/kde-profile/default/xdg' /etc/xdg/plasma-workspace/env/env.sh 2>/dev/null || update_errors+=("Fedora's kde-settings profile is no longer on XDG_CONFIG_DIRS, so OrielOS's power defaults don't apply")
+grep -qxF 'Title=Shutting down' /usr/share/plymouth/themes/orielos/orielos.plymouth || update_errors+=("The splash doesn't say Shutting down")
 for f in rotation-lock reset-displays restart-desktop; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done

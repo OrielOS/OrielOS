@@ -223,9 +223,21 @@ PlasmaExtras.PlasmoidHeading {
             Accessible.name: text
             Accessible.role: Accessible.ButtonMenu
 
-            PC3.ToolTip.text: text
+            PC3.ToolTip.text: footer.updateWaiting ? KI18n.i18nc("@info:tooltip", "Power (an update is waiting)") : text
             PC3.ToolTip.delay: Kirigami.Units.toolTipDelay
             PC3.ToolTip.visible: hovered && !powerMenu.opened
+
+            // The orange dot that says an update waits for the next restart or shut down.
+            Rectangle {
+                visible: footer.updateWaiting
+                width: Kirigami.Units.smallSpacing * 2
+                height: width
+                radius: width / 2
+                color: "#f7a440"
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: Kirigami.Units.smallSpacing
+            }
 
             onPressed: powerButton.menuWasOpen = powerMenu.visible || powerMenu.justClosed
             onClicked: {

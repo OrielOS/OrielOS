@@ -13,6 +13,9 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - When a USB drive can't be ejected, the notification names the apps still using it.
 - Screenshot's Extract Text copies the text in a screenshot.
 - System Monitor opens on a Processes page with your apps above every other process, and has Performance and Details pages, with graphics card use alongside processor, memory, disk and network. Its jump list in Start and on the taskbar offers Run new task, Startup apps and Restart the taskbar and desktop.
+- Energy saver turns on by itself when a laptop's battery reaches 20 %, dimming the screen, and the battery icon shows a leaf whenever energy saver is on. At 5 % the computer shuts down instead of running flat.
+- Settings → System → Battery usage shows the battery's charge and power use over time, and its health.
+- The sign-in screen's power menu says Update and restart and Update and shut down while an update waits, and the power buttons there and in Start show an orange dot. The screen says Shutting down or Restarting while the computer turns off.
 
 ### Changed
 

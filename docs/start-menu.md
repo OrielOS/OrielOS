@@ -39,7 +39,7 @@ At the bottom of Start:
 
 - **Your name** opens Account settings, and lets you Lock the screen, Switch user or Sign out.
 - **Downloads**, **Files** and **Settings** open your Downloads folder, your home folder and Settings. **Settings > Personalisation > Start** chooses which of these show next to the power button, and adds Documents, Music, Pictures, Videos, Network or your personal folder.
-- **The power button** offers Sleep, Restart and Shut down. When an update is waiting, Restart and Shut down say **Update and restart** and **Update and shut down**: either one starts the new version next time. There is no Hibernate: see [Games with anti-cheat](anti-cheat.md) for why.
+- **The power button** offers Sleep, Restart and Shut down. When an update is waiting, the button shows an orange dot, and Restart and Shut down say **Update and restart** and **Update and shut down**: either one starts the new version next time. The sign-in screen's power button does the same. While the computer turns off, the screen says **Shutting down** or **Restarting**. There is no Hibernate: see [Games with anti-cheat](anti-cheat.md) for why.
 
 ## Using the keyboard
 

@@ -54,7 +54,9 @@ PlasmoidItem {
     readonly property string batteryIcon: {
         const level = Math.min(100, Math.round(battery.percent / 10) * 10);
         const charging = battery.pluggedIn && battery.state === Battery.BatteryControlModel.Charging;
-        return "battery-" + String(level).padStart(3, "0") + (charging ? "-charging" : "");
+        // Energy saver shows as a leaf on the battery, as Breeze draws it for the power-saver profile.
+        const saver = powerProfiles.activeProfile === "power-saver";
+        return "battery-" + String(level).padStart(3, "0") + (charging ? "-charging" : "") + (saver ? "-profile-powersave" : "");
     }
 
     readonly property string networkIcon: connectionIcon.connectionIcon + "-symbolic"

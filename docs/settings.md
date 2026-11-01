@@ -10,7 +10,7 @@ Settings opens on **Home**: the settings you used most recently, then recommende
 
 The categories on the left come in the order you know from Windows (in a narrow window they hide behind the menu button beside the page's title):
 
-- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
+- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Battery usage, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
 - **Personalisation**: Background, Themes (including dark mode), Accent colour (with Show accent colour on Start and taskbar, and Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.
@@ -41,6 +41,12 @@ Some changes, such as the date and time, ask for an administrator's password. Th
 ## Power mode
 
 **System > Power mode** chooses between **Performance**, **Balanced** and **Power saver**. OrielOS starts in Performance, on mains power and on battery; whichever mode you choose is kept, also after restarts and updates. If the computer holds Performance back, for example because it's too hot, the page says so.
+
+## Battery
+
+On a laptop, **energy saver** turns on by itself when the battery reaches 20 %: it switches to the Power saver mode and dims the screen, and the battery icon on the taskbar shows a leaf, as it does whenever energy saver is on. At 5 % the computer warns you and then shuts down, so nothing is lost when the battery runs out. **System > Power & sleep** chooses what closing the lid and pressing the power button do, separately on battery and plugged in, and when the screen turns off and the computer sleeps.
+
+**System > Battery usage** shows the battery's charge and the power it used over the last hours, and its health.
 
 ## Start and the taskbar
 
