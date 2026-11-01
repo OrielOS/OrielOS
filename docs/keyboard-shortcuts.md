@@ -26,7 +26,7 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + X | Opens the quick links menu above Start: Installed apps, Power options, System, Device Manager, Network connections, Terminal, Process Manager, Settings, Files, Search, Run, Shut down or sign out, and Desktop. Press the underlined letter to choose one; right-clicking Start opens it too |
 | Windows + Shift + S | Screenshot: drag to choose part of the screen to capture |
 | Windows + V | Clipboard history: everything you copied recently |
-| Windows + . | Emoji picker |
+| Windows + . or Windows + ; | Opens the emoji panel: emoji (type to search them), kaomoji, symbols and your clipboard history. Pick one to copy it, then paste it with Ctrl + V |
 | Ctrl + Shift + Esc | Opens Process Manager, to see what's running and end a program that has stopped responding |
 | Windows + Left or Right arrow | Snaps the window to the left or right half of the screen |
 | Windows + Z | Snap layouts: choose where the window goes, such as a half, a third or a quarter of the screen |

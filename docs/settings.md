@@ -44,7 +44,15 @@ Some changes, such as the date and time, ask for an administrator's password. Th
 
 **Personalisation > Start** chooses what Start shows under Recommended: turn off **Show recently added apps** or **Show recently opened files** and Start stops listing them straight away.
 
-**Personalisation > Taskbar** sets **Taskbar alignment**, Centre or Left, and **Automatically hide the taskbar**, which hides it until you move the pointer to the bottom of the screen. Changes apply at once. If you've rearranged the taskbar's widgets yourself, alignment can't be set here any more; the page says so.
+**Personalisation > Taskbar** sets **Taskbar alignment**, Centre or Left, **Automatically hide the taskbar**, which hides it until you move the pointer to the bottom of the screen, and **Use small taskbar buttons**, for a lower taskbar with smaller icons. Changes apply at once. If you've rearranged the taskbar's widgets yourself, alignment can't be set here any more; the page says so.
+
+## Background
+
+**Personalisation > Background** shows your desktop picture as it fits the screen. Under **Recent images** are the last five pictures you used, whether you chose them here or from the desktop's own menu; click one to use it again. **Browse photos** chooses a picture of your own, and **Choose a fit** sets how it fills the screen: Fill, Fit, Stretch, Tile or Centre. The picture changes on every screen at once. Slideshows, plain colours and pictures from the internet are under **More backgrounds**.
+
+## Recent activity
+
+**Privacy & security > Recent activity** lists the apps that used the camera, the microphone or this computer's location in the last seven days, newest first, with when each one last did; an app that's using one now says **Using it now**. OrielOS keeps this list on the computer and never sends it anywhere. Apps that reach the camera through the camera portal, as some apps from the Store do, aren't listed yet.
 
 ## Storage
 

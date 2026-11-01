@@ -22,6 +22,8 @@ The app appears in Start when it is installed. Apps are installed for everyone w
 
 Open the Store, choose **Installed**, find the app and choose **Remove**.
 
+If the app you removed was the one that opened a kind of file or link, such as web links or PDF files, a notification says which app opens them now, or offers **Default apps** in Settings when no app does.
+
 ## Updating apps
 
 The Store shows app updates under **Updates** and offers to install them. Updating apps doesn't need a restart.

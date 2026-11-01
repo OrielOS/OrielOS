@@ -78,6 +78,17 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Pinned apps in Start can be dragged to a new place, and dropping one on another makes a folder of them. A folder opens in place over the pinned apps; click its name to rename it, and right-click an app in it for **Move out of folder**. A folder left with one app turns back into that app.
 - The first-run setup checks for a newer OrielOS once it's connected, asks whether apps may use your location, and has Accessibility (screen reader, magnifier, on-screen keyboard, high contrast), the volume and the keyboard layout at the bottom left of every page. Windows + Ctrl + Enter starts the screen reader during setup, and Shift + F10 opens a terminal.
 - A new account's first sign-in says "Setting up your desktop" on the welcome screen, then suggests setting up a PIN.
+- The first-run setup sets the time zone from your network and asks for it only when it can't tell, for example without a connection.
+- Windows + . (or Windows + ;) opens the emoji panel: emoji with a search and their categories, kaomoji, symbols and your clipboard history. Picking one copies it, ready to paste with Ctrl + V.
+- Settings → Personalisation → Background is OrielOS's own page: a preview, the last five pictures you used to pick again, **Browse photos** and how the picture fits the screen. Slideshows and plain colours are under **More backgrounds**.
+- Settings → Privacy & security → Recent activity lists the apps that used the camera, the microphone or the computer's location in the last seven days. The list stays on the computer.
+- The title bar of the window you're using is slightly see-through, so the wallpaper faintly tints it; other windows' title bars are solid. Transparency effects off in Settings turns it off.
+- Settings → Personalisation → Taskbar has **Use small taskbar buttons**, for a lower taskbar with smaller icons.
+- When a monitor is disconnected, its windows are minimised instead of piling onto the other screen; Settings → System → Multitasking can turn this off.
+- Windows snapped to halves or quarters from snap layouts share their edges, so dragging the border between two resizes both.
+- An icon in the system tray shows while an app uses the computer's location.
+- When removing an app resets a default, such as the app that opens PDF files, a notification says which app opens them now, or offers Default apps when none does.
+- After a serious system error the screen shows the error as a QR code, and the computer restarts by itself after 10 seconds.
 - Ctrl + Alt + Tab shows the window switcher and keeps it open after you let go, until you choose a window with the arrow keys and Enter, or click it.
 - Four high-contrast colour schemes: OrielOS High Contrast Black, Ocean, Evening and Paper. Left Alt + Left Shift + Print Screen turns one on, or back off.
 - Left Alt + Left Shift + Num Lock turns Mouse Keys on or off, so the number pad moves the pointer.
