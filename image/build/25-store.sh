@@ -21,9 +21,10 @@ for file in "${entries[@]}"; do
     rename_entry "$file" Discover Store "App store" image/build/25-store.sh
 done
 
-# Discover's backends are plugins. Flatpak is the Store's only source: the firmware backend is
-# in plasma-discover-libs, so it is deleted here, and no other backend may be left.
-rm -f /usr/lib64/qt6/plugins/discover/fwupd-backend.so
+# Discover's backends are plugins. Flatpak is the Store's only source: the firmware backend and
+# the AppStream preview backend (for opening a single app's metadata file, new in Plasma 6.8) are in
+# plasma-discover-libs, so they are deleted here, and no other backend may be left.
+rm -f /usr/lib64/qt6/plugins/discover/fwupd-backend.so /usr/lib64/qt6/plugins/discover/appstream-preview-backend.so
 mapfile -t backends < <(find /usr/lib64/qt6/plugins/discover /usr/lib64/qt6/plugins/discover-notifier \
     -maxdepth 1 -name '*.so' -printf '%f\n' | sort)
 [[ "${backends[*]}" == "FlatpakNotifier.so flatpak-backend.so" ]] ||
