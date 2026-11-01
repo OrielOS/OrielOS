@@ -5,7 +5,7 @@
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
-// OrielOS's sign-in screen, in Sill's style, built on Breeze's (sddm-breeze 6.7.5, Main.qml). The
+// OrielOS's sign-in screen, in Sill's style, built on Breeze's (sddm-breeze 6.8.2, Main.qml). The
 // sign-in shows from the moment the screen appears, over the blurred wallpaper: the chosen
 // account's picture and name and a rounded password box. Every account is listed at the bottom
 // left, with Other user for typing a name; the keyboard layout, the on-screen keyboard, a power
@@ -21,6 +21,7 @@ import QtQuick.Controls as QQC2
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.plasma.private.keyboardindicator as KeyboardIndicator
+import org.kde.plasma.workspace.keyboardlayout as Keyboards
 import org.kde.kirigami as Kirigami
 
 import org.kde.breeze.components
@@ -351,15 +352,6 @@ Item {
         }
     }
 
-    VirtualKeyboardLoader {
-        id: inputPanel
-        z: 1
-        screenRoot: root
-        mainStack: signIn
-        mainBlock: signInPage
-        passwordField: passwordBox
-    }
-
     // The accounts at the bottom left; the keyboard layout, the on-screen keyboard, power and the
     // battery at the bottom right. Keep this in step with the lock screen's footer.
     RowLayout {
@@ -417,11 +409,16 @@ Item {
             text: i18ndc("plasma-desktop-sddm-theme", "Button to show/hide virtual keyboard", "Virtual Keyboard")
             icon.name: "preferences-desktop-accessibility"
             checkable: true
-            checked: inputPanel.keyboardActive
-            visible: inputPanel.status === Loader.Ready
+            // KWin's on-screen keyboard, as in Plasma 6.8's sign-in screen.
+            checked: Keyboards.KWinVirtualKeyboard.visible
             onClicked: {
-                passwordBox.forceActiveFocus();
-                inputPanel.showHide();
+                if (Keyboards.KWinVirtualKeyboard.visible) {
+                    Keyboards.KWinVirtualKeyboard.active = false;
+                } else {
+                    // Keep the password box focused, or the keyboard's keystrokes are lost.
+                    passwordBox.forceActiveFocus();
+                    Keyboards.KWinVirtualKeyboard.forceActivate();
+                }
             }
             PlasmaComponents3.ToolTip.text: text
             PlasmaComponents3.ToolTip.visible: hovered

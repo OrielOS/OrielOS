@@ -107,18 +107,23 @@ jq '.KPlugin.Name = "Taskbar" | if .KPlugin["Name[en_GB]"] then .KPlugin["Name[e
 install -m 0644 "$tmp" "$icontasks"
 rm -f "$tmp"
 
+# Keeps a menu entry out of Start: NoDisplay under its [Desktop Entry] header, which a comment may
+# come before (Plasma 6.8's System Settings has one).
+hide_entry() {
+    grep -qxF '[Desktop Entry]' "$1" || die "$1 has no [Desktop Entry] group; update $script"
+    sed -i '/^\[Desktop Entry\]$/a NoDisplay=true' "$1"
+}
+
 # Settings: OrielOS's own app (apps/settings) has Win+I and is Settings in Start, so System
 # Settings gives up both. It stays installed, because parts of Plasma open their pages in it.
 # kglobalaccel's entry for it is a link to the menu entry, so one change covers both.
 settings=$apps/systemsettings.desktop
 set_shortcuts "$settings" "Desktop Entry" "Tools,Meta+I" "Tools"
-[[ "$(head -n1 "$settings")" == "[Desktop Entry]" ]] || die "$settings doesn't start with [Desktop Entry]; update $script"
-sed -i '1a NoDisplay=true' "$settings"
+hide_entry "$settings"
 # Info Center's pages are under Settings' More settings, and its command opens Settings, so it isn't
 # a second settings app in Start.
 infocenter=$apps/org.kde.kinfocenter.desktop
-[[ "$(head -n1 "$infocenter")" == "[Desktop Entry]" ]] || die "$infocenter doesn't start with [Desktop Entry]; update $script"
-sed -i '1a NoDisplay=true' "$infocenter"
+hide_entry "$infocenter"
 
 # Display mode: OrielOS's own panel (apps/displaymode) has Win+P, so Plasma's screen picker
 # keeps only the Display key. Its entry exists only in kglobalaccel's folder.
