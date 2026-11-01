@@ -166,9 +166,16 @@ for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.RotationLock:Meta+O or
     grep -qxF "X-KDE-Shortcuts=${entry#*:}" "/usr/share/kglobalaccel/$name" 2>/dev/null || update_errors+=("$name doesn't have ${entry#*:}")
 done
 [[ -x /usr/libexec/orielos/accessibility-keys ]] || update_errors+=("/usr/libexec/orielos/accessibility-keys is not executable")
-for f in rotation-lock reset-displays; do
+for f in rotation-lock reset-displays restart-desktop; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done
+# System Monitor opens on OrielOS's Processes page, with Performance and Details, and its jump list
+# can restart the taskbar and desktop.
+for f in orielos-processes orielos-performance orielos-details; do
+    [[ -f "/usr/share/plasma-systemmonitor/$f.page" ]] || update_errors+=("System Monitor's $f page is missing")
+done
+grep -qx 'startPage=orielos-processes.page' /etc/xdg/systemmonitorrc 2>/dev/null || update_errors+=("System Monitor doesn't start on the Processes page")
+grep -qx 'Exec=/usr/libexec/orielos/restart-desktop' /usr/share/applications/org.kde.plasma-systemmonitor.desktop || update_errors+=("System Monitor's jump list can't restart the desktop")
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
 grep -qxF 'NoDisplay=true' /usr/share/applications/org.kde.kinfocenter.desktop || update_errors+=("Info Center is still listed in Start")
 # One settings app: System Settings', kcmshell6's and Info Center's commands open Settings, and

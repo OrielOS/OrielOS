@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Restarts the taskbar and desktop (plasmashell) without signing out, as Task Manager's Restart
+# does for Windows Explorer. Open windows stay open. From System Monitor's jump list.
+set -Eeuo pipefail
+
+if ! systemctl --user restart plasma-plasmashell.service; then
+    # A session started without systemd's user units runs plasmashell on its own.
+    kquitapp6 plasmashell || true
+    setsid -f plasmashell >/dev/null 2>&1
+fi

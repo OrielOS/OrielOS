@@ -71,9 +71,13 @@ Screenshot is also in Start, under that name.
 
 ## System Monitor
 
-When an app stops responding, press Ctrl + Shift + Esc to open **System Monitor**. It shows what's running and how much of the processor, memory, disk and network each app uses. Select the app and choose **End process** to close it.
+When an app stops responding, press Ctrl + Shift + Esc to open **System Monitor**. It opens on **Processes**: your apps at the top, then every process running, with how much of the processor, memory, disk, network and graphics card each uses. Select one and choose **End process** to close it, or right-click it for more, including **Set priority** to give it less of the processor. Type in the search box to find a process by name.
 
-![System Monitor, with graphs of processor, memory, disk and network use above a list of running applications](images/system-monitor.webp)
+The other pages are **Performance**, with graphs of the processor, memory, graphics card, disks and network; **History**; and **Details**, every process with its ID, status, user and priority. The view buttons next to **End process** show processes as a tree, so ending one ends what it started.
+
+Right-click System Monitor in Start or on the taskbar for **Run new task**, **Startup apps** (the apps that start when you sign in, in Settings) and **Restart the taskbar and desktop**, which restarts them without signing out if they stop working; your open windows stay open. To keep System Monitor above other windows, press Alt + Space and choose **Keep above others**.
+
+![System Monitor's Processes page: apps at the top, then every process, with processor, memory, disk, network and graphics card use](images/system-monitor.webp)
 
 When the computer is nearly out of memory, a notification says **Your computer is low on memory** and offers **Open System Monitor**, so you can see which apps use the most and close some.
 
