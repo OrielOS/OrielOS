@@ -1,0 +1,3 @@
+# After a system crash, the kernel's panic screen (Fedora's, with a QR code to report it) shows for
+# ten seconds and the computer restarts by itself, rather than waiting until it's switched off.
+kargs = ["panic=10"]

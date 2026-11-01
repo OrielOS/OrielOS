@@ -1,0 +1,12 @@
+[Unit]
+Description=Check the app defaults when apps are installed or removed
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/apps.md
+
+[Path]
+PathChanged=/var/lib/flatpak/exports/share/applications
+PathChanged=%h/.local/share/flatpak/exports/share/applications
+PathChanged=%h/.local/share/applications
+Unit=orielos-app-defaults.service
+
+[Install]
+WantedBy=plasma-workspace.target

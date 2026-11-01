@@ -15,3 +15,9 @@ ecm_add_test(privacysettingstest.cpp ../privacysettings.cpp
 )
 target_include_directories(privacysettingstest PRIVATE ..)
 target_compile_definitions(privacysettingstest PRIVATE TRANSLATION_DOMAIN="orielos-first-run")
+
+ecm_add_test(timezonelookuptest.cpp ../timezonelookup.cpp
+    TEST_NAME timezonelookuptest
+    LINK_LIBRARIES Qt6::Network Qt6::Qml Qt6::Test
+)
+target_include_directories(timezonelookuptest PRIVATE ..)

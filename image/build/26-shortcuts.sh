@@ -2,7 +2,8 @@
 # Windows keyboard shortcuts and plain names for the system tools. Gives System Monitor
 # Ctrl+Shift+Esc, KRunner Win+R and Spectacle a Win+PrtSc action that saves a full screenshot
 # without a dialog, moves the Spectacle shortcuts those keys clash with, and renames System
-# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files, and the taskbar widget
+# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files, gives Win+. to OrielOS's
+# emoji panel instead of Plasma's emoji selector, and renames the taskbar widget
 # to Taskbar. System Settings gives Win+I and its place in Start to OrielOS's Settings app, and
 # Plasma's screen picker gives Win+P to OrielOS's Display mode panel. The
 # KWin shortcuts (Win+Tab and Win+Up/Down) are in system/etc/skel/.config/kglobalshortcutsrc.
@@ -69,6 +70,10 @@ link_accel org.kde.plasma-systemmonitor.desktop
 # and the Search key, and Alt+Space goes to the window menu, as in Windows. Spectacle's region
 # recording had Win+R as its second shortcut; it keeps Win+Shift+R.
 set_shortcuts "$accel/org.kde.krunner.desktop" "Desktop Entry" "Alt+Space,Alt+F2,Search" "Alt+F2,Search"
+
+# Emoji: Win+. and Win+; open OrielOS's emoji panel (its own desktop entry gives it the keys), with
+# kaomoji, symbols and the clipboard as well; Plasma's emoji selector keeps its other shortcut.
+set_shortcuts "$accel/org.kde.plasma.emojier.desktop" "Desktop Entry" "Meta+.,Meta+Ctrl+Alt+Shift+Space" "Meta+Ctrl+Alt+Shift+Space"
 
 # Screenshot: Spectacle. Win+Shift+S (a rectangular region) is Plasma's default. Win+PrtSc
 # saves the whole desktop to Pictures/Screenshots without opening Spectacle's window, as on

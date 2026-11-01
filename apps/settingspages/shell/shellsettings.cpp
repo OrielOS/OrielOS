@@ -209,6 +209,7 @@ if (start) {
     state.hasSliver = sliver !== null;
     state.peek = sliver !== null && flag(sliver.readConfig("peek", false));
     state.allDisplays = panels().some(isExtraTaskbar);
+    state.smallButtons = panel.height < 48;
     state.startFolders = startFolders();
     state.startLayout = String(start.readConfig("layout", "default"));
 }
@@ -240,6 +241,9 @@ QString changeScript(const ShellSettings::Change &change)
         return QStringLiteral("if (sliver) {\n        sliver.writeConfig(\"peek\", %1);\n        sliver.reloadConfig();\n    }").arg(value);
     case ShellSettings::Setting::AllDisplays:
         return QStringLiteral("taskbarsEverywhere(%1);").arg(value);
+    case ShellSettings::Setting::SmallButtons:
+        // Every taskbar, the other displays' too: 40 px high with smaller buttons, or the usual 48.
+        return QStringLiteral("[panel].concat(panels().filter(isExtraTaskbar)).forEach(function (bar) {\n        bar.height = %1 ? 40 : 48;\n    });").arg(value);
     case ShellSettings::Setting::FolderSettings:
     case ShellSettings::Setting::FolderFiles:
     case ShellSettings::Setting::FolderDocuments:
@@ -289,6 +293,7 @@ std::optional<ShellState> ShellState::fromJson(const QString &json)
     state.allDisplays = object.value(QStringLiteral("allDisplays")).toBool(false);
     state.hasSliver = object.value(QStringLiteral("hasSliver")).toBool(false);
     state.peek = object.value(QStringLiteral("peek")).toBool(false);
+    state.smallButtons = object.value(QStringLiteral("smallButtons")).toBool(false);
     if (object.value(QStringLiteral("startLayout")).isString()) {
         state.startLayout = object.value(QStringLiteral("startLayout")).toString();
     }
@@ -417,6 +422,9 @@ void ShellSettings::apply(ShellState &state, const Change &change)
         break;
     case Setting::AllDisplays:
         state.allDisplays = change.second;
+        break;
+    case Setting::SmallButtons:
+        state.smallButtons = change.second;
         break;
     case Setting::LayoutMorePins:
     case Setting::LayoutDefault:

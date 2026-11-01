@@ -71,6 +71,20 @@ KCM.SimpleKCM {
             Kirigami.FormData.isSection: true
         }
 
+        QQC2.Switch {
+            Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Screens:")
+            text: root.l10n.i18nc("@option:check", "Minimise windows when a monitor is disconnected")
+            checked: root.options.minimiseOnDisconnect
+            onToggled: {
+                root.options.minimiseOnDisconnect = checked;
+                checked = Qt.binding(() => root.options.minimiseOnDisconnect);
+            }
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+        }
+
         QQC2.ComboBox {
             Kirigami.FormData.label: root.l10n.i18nc("@label:listbox", "Alt + Tab shows the windows:")
             model: [

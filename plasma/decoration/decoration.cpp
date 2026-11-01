@@ -8,10 +8,12 @@
 #include <KDecoration3/DecoratedWindow>
 #include <KDecoration3/DecorationSettings>
 #include <KDecoration3/ScaleHelpers>
+#include <KConfigGroup>
 #include <KPluginFactory>
+#include <KSharedConfig>
 
 #include <QPainter>
-#include <QPainterPath>
+#include <QRegion>
 
 K_PLUGIN_FACTORY_WITH_JSON(OrielOSDecorationFactory, "orielos.json", registerPlugin<OrielOSDecoration::Decoration>();
     registerPlugin<OrielOSDecoration::Button>();)
@@ -25,6 +27,8 @@ constexpr qreal IconSize = 16;
 constexpr qreal IconSpacing = 8;
 // How far outside the window the pointer can still grab an edge to resize it.
 constexpr qreal ResizeMargin = 8;
+// How much of the window's colour a Mica title bar keeps over the blurred wallpaper.
+constexpr qreal MicaOpacity = 0.8;
 } // namespace
 
 Decoration::Decoration(QObject *parent, const QVariantList &args)
@@ -40,6 +44,7 @@ bool Decoration::init()
     connect(w, &KDecoration3::DecoratedWindow::activeChanged, this, [this]() {
         updateBorders();
         updateShadow();
+        updateBlur();
         update();
     });
     connect(w, &KDecoration3::DecoratedWindow::captionChanged, this, [this]() { update(titleBar()); });
@@ -52,20 +57,30 @@ bool Decoration::init()
         updateBorders();
         updateTitleBar();
         updateButtons();
+        updateBlur();
     };
     connect(w, &KDecoration3::DecoratedWindow::maximizedChanged, this, relayout);
     connect(w, &KDecoration3::DecoratedWindow::adjacentScreenEdgesChanged, this, relayout);
     connect(w, &KDecoration3::DecoratedWindow::widthChanged, this, [this]() {
         updateTitleBar();
         updateButtons();
+        updateBlur();
     });
     connect(w, &KDecoration3::DecoratedWindow::nextScaleChanged, this, [this]() {
         updateBorders();
         updateShadow();
     });
     connect(s.get(), &KDecoration3::DecorationSettings::reconfigured, this, [this]() {
+        readTransparency();
         updateBorders();
         updateButtons();
+        updateBlur();
+        update();
+    });
+    connect(s.get(), &KDecoration3::DecorationSettings::alphaChannelSupportedChanged, this, [this]() {
+        updateBorders();
+        updateBlur();
+        update();
     });
     connect(s.get(), &KDecoration3::DecorationSettings::decorationButtonsLeftChanged, this, &Decoration::updateButtons);
     connect(s.get(), &KDecoration3::DecorationSettings::decorationButtonsRightChanged, this, &Decoration::updateButtons);
@@ -73,10 +88,12 @@ bool Decoration::init()
     m_leftButtons = new KDecoration3::DecorationButtonGroup(KDecoration3::DecorationButtonGroup::Position::Left, this, &Button::create);
     m_rightButtons = new KDecoration3::DecorationButtonGroup(KDecoration3::DecorationButtonGroup::Position::Right, this, &Button::create);
 
+    readTransparency();
     updateBorders();
     updateTitleBar();
     updateButtons();
     updateShadow();
+    updateBlur();
     return true;
 }
 
@@ -85,9 +102,51 @@ bool Decoration::isMaximized() const
     return window()->isMaximized();
 }
 
+bool Decoration::isMica() const
+{
+    return m_transparency && window()->isActive() && settings()->isAlphaChannelSupported();
+}
+
+void Decoration::readTransparency()
+{
+    // OrielOS turns the blur on in /etc/xdg/kwinrc; Settings writes the user's choice over it.
+    const KSharedConfigPtr kwin = KSharedConfig::openConfig(QStringLiteral("kwinrc"), KConfig::NoGlobals);
+    kwin->reparseConfiguration();
+    m_transparency = KConfigGroup(kwin, QStringLiteral("Plugins")).readEntry("blurEnabled", true);
+}
+
 QColor Decoration::titleBarColor() const
 {
-    return window()->palette().color(window()->isActive() ? QPalette::Active : QPalette::Inactive, QPalette::Window);
+    QColor color = window()->palette().color(window()->isActive() ? QPalette::Active : QPalette::Inactive, QPalette::Window);
+    if (isMica()) {
+        color.setAlphaF(MicaOpacity);
+    }
+    return color;
+}
+
+QPainterPath Decoration::titleBarShape() const
+{
+    const QRectF bar(0, 0, size().width(), borderTop());
+    QPainterPath shape;
+    if (isMaximized() || !settings()->isAlphaChannelSupported()) {
+        shape.addRect(bar);
+        return shape;
+    }
+    const qreal r = CornerRadius;
+    shape.moveTo(bar.left(), bar.bottom());
+    shape.lineTo(bar.left(), bar.top() + r);
+    shape.arcTo(QRectF(bar.left(), bar.top(), 2 * r, 2 * r), 180, -90);
+    shape.lineTo(bar.right() - r, bar.top());
+    shape.arcTo(QRectF(bar.right() - 2 * r, bar.top(), 2 * r, 2 * r), 90, -90);
+    shape.lineTo(bar.right(), bar.bottom());
+    shape.closeSubpath();
+    return shape;
+}
+
+void Decoration::updateBlur()
+{
+    // KWin blurs what's behind the title bar, inside its rounded corners, only while it's Mica.
+    setBlurRegion(isMica() ? QRegion(titleBarShape().toFillPolygon().toPolygon()) : QRegion());
 }
 
 QColor Decoration::foregroundColor() const
@@ -105,7 +164,7 @@ void Decoration::updateBorders()
     const bool maximized = isMaximized();
     setBorders(QMarginsF(0, KDecoration3::snapToPixelGrid(TitleBarHeight, scale), 0, 0));
     setResizeOnlyBorders(maximized ? QMarginsF() : QMarginsF(ResizeMargin, 0, ResizeMargin, ResizeMargin));
-    setOpaque(maximized);
+    setOpaque(maximized && !isMica());
 
     if (maximized) {
         setBorderRadius(KDecoration3::BorderRadius());
@@ -161,19 +220,7 @@ void Decoration::paint(QPainter *painter, const QRectF &repaintRegion)
 
     // The bar, with rounded top corners unless the window fills the screen. Everything after it,
     // including Close's red, stays inside the same shape.
-    QPainterPath shape;
-    if (isMaximized() || !settings()->isAlphaChannelSupported()) {
-        shape.addRect(bar);
-    } else {
-        const qreal r = CornerRadius;
-        shape.moveTo(bar.left(), bar.bottom());
-        shape.lineTo(bar.left(), bar.top() + r);
-        shape.arcTo(QRectF(bar.left(), bar.top(), 2 * r, 2 * r), 180, -90);
-        shape.lineTo(bar.right() - r, bar.top());
-        shape.arcTo(QRectF(bar.right() - 2 * r, bar.top(), 2 * r, 2 * r), 90, -90);
-        shape.lineTo(bar.right(), bar.bottom());
-        shape.closeSubpath();
-    }
+    const QPainterPath shape = titleBarShape();
     painter->setPen(Qt::NoPen);
     painter->setBrush(titleBarColor());
     painter->drawPath(shape);

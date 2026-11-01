@@ -314,6 +314,32 @@ made = [];
         QVERIFY(!printedState(*off).allDisplays);
     }
 
+    void makesTheTaskbarButtonsSmaller()
+    {
+        const QString extra = orielosTaskbar + QStringLiteral(R"JS(
+taskbar.height = 48;
+var other = makePanel([makeWidget(20, "org.kde.plasma.icontasks", {})], "20");
+other.config.orielosExtraTaskbar = true;
+other.height = 48;
+var unrelated = makePanel([makeWidget(30, "org.kde.plasma.kickoff", {})], "30");
+unrelated.height = 32;
+desktop.push(other, unrelated);
+)JS");
+        const auto small = runScript(extra, ShellSettings::Change { ShellSettings::Setting::SmallButtons, true });
+        QVERIFY(small);
+        QCOMPARE(small->evaluate(QStringLiteral("taskbar.height")).toInt(), 40);
+        QCOMPARE(small->evaluate(QStringLiteral("other.height")).toInt(), 40);
+        QCOMPARE(small->evaluate(QStringLiteral("unrelated.height")).toInt(), 32);
+        QVERIFY(printedState(*small).smallButtons);
+
+        const auto usual = runScript(extra + QStringLiteral("taskbar.height = 40;\nother.height = 40;\n"),
+            ShellSettings::Change { ShellSettings::Setting::SmallButtons, false });
+        QVERIFY(usual);
+        QCOMPARE(usual->evaluate(QStringLiteral("taskbar.height")).toInt(), 48);
+        QCOMPARE(usual->evaluate(QStringLiteral("other.height")).toInt(), 48);
+        QVERIFY(!printedState(*usual).smallButtons);
+    }
+
     void changesStartsFolders()
     {
         const auto engine = runScript(orielosTaskbar + QStringLiteral("start.config.folders = \"files,downloads,settings\";"),

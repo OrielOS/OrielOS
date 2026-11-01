@@ -29,6 +29,8 @@ class MultitaskingOptions : public QObject
     Q_PROPERTY(bool suggestNextSnap READ suggestNextSnap WRITE setSuggestNextSnap NOTIFY changed FINAL)
     // Alt+Tab shows the windows of every desktop, not only of the one in use.
     Q_PROPERTY(bool altTabAllDesktops READ altTabAllDesktops WRITE setAltTabAllDesktops NOTIFY changed FINAL)
+    // Minimise the windows of a screen that is disconnected (OrielOS's Window shortcuts script).
+    Q_PROPERTY(bool minimiseOnDisconnect READ minimiseOnDisconnect WRITE setMinimiseOnDisconnect NOTIFY changed FINAL)
 
 public:
     explicit MultitaskingOptions(QObject *parent = nullptr);
@@ -41,6 +43,8 @@ public:
     void setSuggestNextSnap(bool suggest);
     bool altTabAllDesktops() const;
     void setAltTabAllDesktops(bool all);
+    bool minimiseOnDisconnect() const;
+    void setMinimiseOnDisconnect(bool minimise);
 
     // Use this configuration and call this instead of asking KWin to reconfigure. For the unit
     // tests.

@@ -39,6 +39,8 @@ settingspages/       OrielOS's own Settings pages, each a Plasma settings module
   taskbar/            kcm_orielos_taskbar, Taskbar: TaskbarOptions (QML module org.orielos.taskbar) and its page
   security/           kcm_orielos_security, Device security: the anti-cheat self-test (QML module org.orielos.security) and its page
   power/              kcm_orielos_powermode, Power mode: PowerMode (QML module org.orielos.powermode) and its page
+  background/         kcm_orielos_background, Background: DesktopBackground (QML module org.orielos.background) and its page
+  recentactivity/     kcm_orielos_recentactivity, Recent activity: RecentActivity (QML module org.orielos.recentactivity) and its page
   autotests/          Qt Test unit tests for both models, and a test that loads both modules
 updatenotifier/       orielos-update-notifier, the update tray icon
   main.cpp            start-up, translations, --state and --boot-id-file
@@ -58,6 +60,13 @@ displaymode/          orielos-display-mode, Display mode on Windows + P: how the
   qml/Main.qml        the panel: four choices in Sill's card, the one in use marked
   org.orielos.DisplayMode.desktop  Windows + P, hidden from Start
   autotests/          Qt Test unit tests for the layouts
+emojipanel/           orielos-emoji, the emoji panel on Windows + .: emoji, kaomoji, symbols and the clipboard
+  clipboardhistory.h/.cpp  ClipboardHistory, the clipboard tab's model: the desktop's history and copying
+  main.cpp            start-up and one instance (Windows + . again brings it forward)
+  qml/Main.qml        the panel and its tabs; emoji from Plasma's emoji selector (org.kde.plasma.emoji)
+  qml/CharacterGrid.qml  a grid of characters to pick from
+  qml/characters.js   the kaomoji and symbols, in groups
+  org.orielos.EmojiPanel.desktop  Windows + . and Windows + ;, hidden from Start
 updatesettings/       kcm_orielos_update, the Update settings page (a Plasma settings module)
   updatesettings.h/.cpp  UpdateSettings, the page's model (QML module org.orielos.updatesettings)
   updatecommands.h/.cpp  running orielos-update through pkexec, and following the check unit

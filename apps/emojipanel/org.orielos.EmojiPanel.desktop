@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Emoji Panel
+Comment=Copy emoji, kaomoji, symbols and recent clipboard items
+Keywords=emoji;kaomoji;symbols;special characters;clipboard;emoticons;
+Exec=orielos-emoji
+Icon=preferences-desktop-emoticons
+Terminal=false
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Meta+.,Meta+;

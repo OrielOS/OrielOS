@@ -1,0 +1,12 @@
+[Unit]
+Description=Say so when an app default was reset because its app was removed
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/apps.md
+After=plasma-plasmashell.service
+
+[Service]
+# Waits for an answer when it has something to say, so it runs in the background of the session.
+Type=simple
+ExecStart=/usr/libexec/orielos/app-defaults-watch
+
+[Install]
+WantedBy=plasma-workspace.target

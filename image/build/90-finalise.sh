@@ -41,7 +41,7 @@ first_run_errors=()
 first_run_order="$(for f in /usr/share/plasma/packages/*/metadata.json; do
     jq -r 'select(.KPackageStructure == "KDE/PlasmaSetup") | "\(."X-KDE-Weight") \(.KPlugin.Id)"' "$f"
 done | sort -n | cut -d' ' -f2 | paste -sd ' ' -)"
-first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.orielos.plasmasetup.updates org.kde.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.hostname org.kde.plasmasetup.account org.orielos.plasmasetup.privacy org.kde.plasmasetup.finished"
+first_run_expected="org.kde.plasmasetup.language org.kde.plasmasetup.keyboard org.kde.plasmasetup.wifi org.orielos.plasmasetup.network org.orielos.plasmasetup.updates org.orielos.plasmasetup.time org.orielos.plasmasetup.power org.kde.plasmasetup.hostname org.kde.plasmasetup.account org.orielos.plasmasetup.privacy org.kde.plasmasetup.finished"
 if [[ "$first_run_order" != "$first_run_expected" ]]; then
     first_run_errors+=("Plasma Setup's pages are in the wrong order: $first_run_order")
 fi
@@ -124,7 +124,8 @@ done
 [[ -x /usr/bin/orielos-settings ]] || update_errors+=("Settings, /usr/bin/orielos-settings, is missing")
 # OrielOS's own Settings pages besides Update.
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
-    kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage     kcm_orielos_fonts kcm_orielos_donotdisturb; do
+    kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb \
+    kcm_orielos_background kcm_orielos_recentactivity; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -146,6 +147,10 @@ grep -qxF 'ExecStart=/usr/libexec/orielos-polkit-agent' /usr/lib/systemd/user/pl
 [[ -x /usr/bin/orielos-run ]] || update_errors+=("/usr/bin/orielos-run is missing")
 grep -qxF 'X-KDE-Shortcuts=Meta+R' /usr/share/kglobalaccel/org.orielos.Run.desktop 2>/dev/null || update_errors+=("the Run box doesn't have Win+R")
 grep -qxF 'X-KDE-Shortcuts=Alt+F2,Search' /usr/share/kglobalaccel/org.kde.krunner.desktop || update_errors+=("KRunner still has Win+R")
+# The emoji panel, on Win+., which Plasma's emoji selector gives up.
+[[ -x /usr/bin/orielos-emoji ]] || update_errors+=("/usr/bin/orielos-emoji is missing")
+grep -qxF 'X-KDE-Shortcuts=Meta+.,Meta+;' /usr/share/kglobalaccel/org.orielos.EmojiPanel.desktop 2>/dev/null || update_errors+=("the emoji panel doesn't have Win+.")
+grep -qxF 'X-KDE-Shortcuts=Meta+Ctrl+Alt+Shift+Space' /usr/share/kglobalaccel/org.kde.plasma.emojier.desktop || update_errors+=("Plasma's emoji selector still has Win+.")
 # OrielOS's own shortcuts that run a script: HDR on Win+Alt+B, the contrast theme on Left Alt+Left
 # Shift+Print Screen and Mouse Keys on Left Alt+Left Shift+Num Lock. Their hidden entries are with
 # the apps, where kglobalaccel finds a new one, and in kglobalaccel's own folder, as the Run box's.
@@ -346,13 +351,11 @@ fi
 # timer that starts them.
 systemctl --global enable orielos-dnd-schedule.service
 if [[ "$(systemctl --global is-enabled orielos-dnd-schedule.service 2>/dev/null)" != "enabled" ]]; then
-    printf 'error: orielos-dnd-schedule.service is not enabled for users
-' >&2
+    printf 'error: orielos-dnd-schedule.service is not enabled for users\n' >&2
     exit 1
 fi
 [[ -x /usr/libexec/orielos/dnd-schedule ]] || {
-    printf 'error: /usr/libexec/orielos/dnd-schedule is not executable
-' >&2
+    printf 'error: /usr/libexec/orielos/dnd-schedule is not executable\n' >&2
     exit 1
 }
 
@@ -360,31 +363,26 @@ fi
 # one, and a PIN suggestion.
 systemctl --global enable orielos-first-sign-in.service
 if [[ "$(systemctl --global is-enabled orielos-first-sign-in.service 2>/dev/null)" != "enabled" ]]; then
-    printf 'error: orielos-first-sign-in.service is not enabled for users
-' >&2
+    printf 'error: orielos-first-sign-in.service is not enabled for users\n' >&2
     exit 1
 fi
 [[ -x /usr/libexec/orielos/first-sign-in ]] || {
-    printf 'error: /usr/libexec/orielos/first-sign-in is not executable
-' >&2
+    printf 'error: /usr/libexec/orielos/first-sign-in is not executable\n' >&2
     exit 1
 }
 grep -qxF 'Theme=org.orielos.firstsignin' /etc/skel/.config/ksplashrc || {
-    printf 'error: new accounts do not start with the first sign-in welcome screen
-' >&2
+    printf 'error: new accounts do not start with the first sign-in welcome screen\n' >&2
     exit 1
 }
 
 # Low memory warning: checks the free memory each minute in a desktop session.
 systemctl --global enable orielos-low-memory-warning.timer
 if [[ "$(systemctl --global is-enabled orielos-low-memory-warning.timer 2>/dev/null)" != "enabled" ]]; then
-    printf 'error: orielos-low-memory-warning.timer is not enabled for users
-' >&2
+    printf 'error: orielos-low-memory-warning.timer is not enabled for users\n' >&2
     exit 1
 fi
 [[ -x /usr/libexec/orielos/low-memory-warning ]] || {
-    printf 'error: /usr/libexec/orielos/low-memory-warning is not executable
-' >&2
+    printf 'error: /usr/libexec/orielos/low-memory-warning is not executable\n' >&2
     exit 1
 }
 
@@ -396,6 +394,57 @@ if [[ "$(systemctl --global is-enabled orielos-storage-sense.timer 2>/dev/null)"
 fi
 [[ -x /usr/libexec/orielos/storage-sense ]] || {
     printf 'error: /usr/libexec/orielos/storage-sense is not executable\n' >&2
+    exit 1
+}
+
+# App defaults: says so when removing an app reset a default, each time apps are installed or
+# removed and at sign-in.
+systemctl --global enable orielos-app-defaults.service orielos-app-defaults.path
+for unit in orielos-app-defaults.service orielos-app-defaults.path; do
+    if [[ "$(systemctl --global is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
+        printf 'error: %s is not enabled for users\n' "$unit" >&2
+        exit 1
+    fi
+done
+[[ -x /usr/libexec/orielos/app-defaults-watch ]] || {
+    printf 'error: /usr/libexec/orielos/app-defaults-watch is not executable\n' >&2
+    exit 1
+}
+
+# Recent pictures for Settings' Background page: notes each new desktop picture, from the page or
+# the desktop's own menu.
+systemctl --global enable orielos-recent-backgrounds.service orielos-recent-backgrounds.path
+for unit in orielos-recent-backgrounds.service orielos-recent-backgrounds.path; do
+    if [[ "$(systemctl --global is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
+        printf 'error: %s is not enabled for users\n' "$unit" >&2
+        exit 1
+    fi
+done
+[[ -x /usr/libexec/orielos/recent-backgrounds ]] || {
+    printf 'error: /usr/libexec/orielos/recent-backgrounds is not executable\n' >&2
+    exit 1
+}
+
+# Recent activity in Settings: notes which apps use the camera, the microphone and the location.
+systemctl --global enable orielos-privacy-activity.service
+if [[ "$(systemctl --global is-enabled orielos-privacy-activity.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-privacy-activity.service is not enabled for users\n' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/privacy-activity ]] || {
+    printf 'error: /usr/libexec/orielos/privacy-activity is not executable\n' >&2
+    exit 1
+}
+
+# The location icon in the system tray, shown while an app uses the computer's location.
+[[ -f /usr/share/plasma/plasmoids/org.orielos.location/metadata.json ]] || {
+    printf 'error: the location icon, org.orielos.location, is not installed\n' >&2
+    exit 1
+}
+
+# Stop screen: the kernel's QR code panic screen, then a restart after 10 seconds.
+grep -qF 'panic=10' /usr/lib/bootc/kargs.d/30-orielos-stop-screen.toml || {
+    printf 'error: the stop screen restart argument is missing\n' >&2
     exit 1
 }
 

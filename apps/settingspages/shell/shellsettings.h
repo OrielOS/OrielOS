@@ -42,6 +42,8 @@ struct ShellState
     bool peek = false;
     // A taskbar on every display, each listing that display's windows.
     bool allDisplays = false;
+    // Smaller taskbar buttons: the taskbars 40 px high rather than 48.
+    bool smallButtons = false;
     // The shortcuts next to Start's power button, by ID (settings, files, documents, downloads,
     // music, pictures, videos, network, personal), in Windows' order.
     QStringList startFolders = { QStringLiteral("files"), QStringLiteral("downloads"), QStringLiteral("settings") };
@@ -72,6 +74,7 @@ public:
         ShowSeconds,
         Peek,
         AllDisplays,
+        SmallButtons,
         // One shortcut next to Start's power button each.
         FolderSettings,
         FolderFiles,

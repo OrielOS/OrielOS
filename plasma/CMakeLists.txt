@@ -29,9 +29,10 @@ install(DIRECTORY kwin/windowkeys/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/scrip
 install(DIRECTORY kwin/switcher/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/tabbox/org.orielos.switcher)
 
 # The first-run setup's own pages, as Plasma Setup packages: network, for computers without Wi-Fi
-# (weight 11), updates (12), power (18) and privacy (21, after the account).
+# (weight 11), updates (12), the time zone, asked only when the network can't tell (15, in place of
+# Plasma Setup's own), power (18) and privacy (21, after the account).
 # image/build/41-first-run.sh puts Plasma Setup's pages around them and shows this logo on the last.
-foreach(page network updates power privacy)
+foreach(page network updates time power privacy)
     install(DIRECTORY firstrun/${page}/
         DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.${page})
 endforeach()
@@ -51,7 +52,8 @@ install(DIRECTORY desktoptheme/orielos desktoptheme/orielos-accent DESTINATION $
 # OrielOS's taskbar widgets, QML-only Plasma widgets: Search, Task View, the show desktop sliver,
 # Quick Settings, and the clock with the notification centre.
 install(DIRECTORY plasmoids/org.orielos.search plasmoids/org.orielos.taskview plasmoids/org.orielos.showdesktop
-    plasmoids/org.orielos.quicksettings plasmoids/org.orielos.clock DESTINATION ${KDE_INSTALL_DATADIR}/plasma/plasmoids)
+    plasmoids/org.orielos.quicksettings plasmoids/org.orielos.clock plasmoids/org.orielos.location
+    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/plasmoids)
 
 # OrielOS's look-and-feel packages: OrielOS, in light colours, and OrielOS Dark. Their layout is the
 # shell's own, so applying either with its desktop layout gives the OrielOS taskbar, whether Plasma

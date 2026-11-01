@@ -93,6 +93,15 @@ KCM.SimpleKCM {
             }
 
             QQC2.Switch {
+                text: root.l10n.i18nc("@option:check", "Use small taskbar buttons")
+                checked: root.options.smallButtons
+                onToggled: {
+                    root.options.smallButtons = checked;
+                    checked = Qt.binding(() => root.options.smallButtons);
+                }
+            }
+
+            QQC2.Switch {
                 text: root.l10n.i18nc("@option:check", "Show the taskbar on all displays")
                 checked: root.options.allDisplays
                 onToggled: {

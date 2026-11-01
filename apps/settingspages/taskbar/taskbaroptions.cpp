@@ -67,6 +67,13 @@ void TaskbarOptions::setPeek(bool peek)
     }
 }
 
+void TaskbarOptions::setSmallButtons(bool small)
+{
+    if (isAvailable() && small != smallButtons()) {
+        m_settings->change(ShellSettings::Setting::SmallButtons, small);
+    }
+}
+
 void TaskbarOptions::setAllDisplays(bool all)
 {
     if (isAvailable() && all != allDisplays()) {

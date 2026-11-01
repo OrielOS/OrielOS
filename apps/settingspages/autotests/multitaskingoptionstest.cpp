@@ -47,6 +47,7 @@ private Q_SLOTS:
         QVERIFY(options.snapLayoutsOnMaximise());
         QVERIFY(options.suggestNextSnap());
         QVERIFY(!options.altTabAllDesktops());
+        QVERIFY(options.minimiseOnDisconnect());
     }
 
     void writesEachSwitch()
@@ -70,8 +71,12 @@ private Q_SLOTS:
         QCOMPARE(entry(QStringLiteral("TabBox"), QStringLiteral("DesktopMode")), QStringLiteral("0"));
         QVERIFY(options.altTabAllDesktops());
 
-        QCOMPARE(m_reconfigures, 4);
-        QVERIFY(changed.count() >= 4);
+        options.setMinimiseOnDisconnect(false);
+        QCOMPARE(entry(QStringLiteral("Script-orielos-windowkeys"), QStringLiteral("MinimiseOnDisconnect")), QStringLiteral("false"));
+        QVERIFY(!options.minimiseOnDisconnect());
+
+        QCOMPARE(m_reconfigures, 5);
+        QVERIFY(changed.count() >= 5);
     }
 
     void unchangedWritesNothing()

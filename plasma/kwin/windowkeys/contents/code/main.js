@@ -10,7 +10,8 @@
 //   Alt+Esc     sends the window in use to the back and switches to the next, with no switcher
 //   Win+Ctrl+D  adds a desktop and switches to it; Win+Ctrl+F4 closes the one in use
 //   Win+Alt+D   opens the clock's calendar, as Win+N does (a taskbar widget has only one shortcut)
-// and, switching desktops, shows the desktop's name in the middle of the screen for a moment.
+// and, switching desktops, shows the desktop's name in the middle of the screen for a moment, and
+// minimises the windows of a screen that is disconnected.
 // KWin's own Maximise and Minimise give Win+Up and Win+Down up for this (the user's
 // kglobalshortcutsrc, from /etc/skel or the orielos-user-shortcuts user unit).
 
@@ -183,4 +184,39 @@ registerShortcut("OrielOS Peek Start", "Show the desktop while the pointer rests
 });
 registerShortcut("OrielOS Peek End", "Bring the windows back when the pointer leaves the show desktop strip", "", function () {
     workspace.showingDesktop = false;
+});
+
+// When a screen is disconnected, the windows that were on it are minimised rather than moved to
+// another screen, as Windows offers (on unless Settings › System › Multitasking turns it off:
+// [Script-orielos-windowkeys] MinimiseOnDisconnect in kwinrc). KWin moves the windows of a screen
+// it removes, so a window whose last screen is no longer there was moved for that reason.
+var lastScreen = {};
+
+function rememberScreen(window) {
+    if (usable(window) && window.output) {
+        lastScreen[window.internalId] = window.output.name;
+    }
+}
+
+function screenGone(name) {
+    return !workspace.screens.some(function (screen) {
+        return screen.name === name;
+    });
+}
+
+function watchScreen(window) {
+    rememberScreen(window);
+    window.outputChanged.connect(function () {
+        var before = lastScreen[window.internalId];
+        if (before && screenGone(before) && usable(window) && window.minimizable && readConfig("MinimiseOnDisconnect", true)) {
+            window.minimized = true;
+        }
+        rememberScreen(window);
+    });
+}
+
+workspace.windowList().forEach(watchScreen);
+workspace.windowAdded.connect(watchScreen);
+workspace.windowRemoved.connect(function (window) {
+    delete lastScreen[window.internalId];
 });

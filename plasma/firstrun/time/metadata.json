@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "KDE/PlasmaSetup",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Description": "Set the time zone from the network, or choose it when the network can't tell.",
+        "Id": "org.orielos.plasmasetup.time",
+        "License": "GPL-3.0-or-later",
+        "Name": "Time Zone"
+    },
+    "NoDisplay": true,
+    "X-KDE-ParentApp": "org.kde.plasmasetup",
+    "X-KDE-Weight": 15
+}

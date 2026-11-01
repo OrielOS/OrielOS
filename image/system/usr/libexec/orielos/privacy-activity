@@ -1,0 +1,203 @@
+#!/usr/bin/python3 -I
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Keeps a week of which apps used the camera, the microphone and the location.
+
+Settings' Recent activity page shows it. Every 15 seconds this looks at:
+
+- the camera: the user's processes with a /dev/video device open (apps that reach the camera
+  through PipeWire's camera portal show as PipeWire, which is left out, so they aren't listed);
+- the microphone: the sound server's recording streams (pactl), leaving out the desktop's own
+  level meters and recordings of what's playing;
+- the location: GeoClue's clients that are active, when GeoClue is running (it isn't started here).
+
+Each app is named by its desktop entry's ID where it can be told (from the process's systemd
+scope, as Plasma and Flatpak start apps, or from the stream's portal app ID), otherwise by its
+program's name. The list, with when each app last used each, is kept in
+~/.local/state/orielos/privacy-activity.json and on this computer only; anything older than seven
+days is dropped. Started by orielos-privacy-activity.service in a desktop session.
+  privacy-activity [--once]   (one look, for the tests)
+"""
+
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+INTERVAL = 15
+KEEP = 7 * 24 * 3600
+STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "orielos/privacy-activity.json"
+KINDS = ("camera", "microphone", "location")
+# Desktop programs that capture audio only to show its level.
+LEVEL_METERS = {"plasmashell", "kded6", "pavucontrol", "pwvucontrol", "kwin_wayland"}
+# The sound and video servers, which open every camera to list it.
+MEDIA_SERVERS = {"pipewire", "wireplumber"}
+DATA_DIRS = [Path(d) for d in (os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local/share")).split(":")] + [
+    Path(d) for d in (os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share").split(":")
+] + [Path("/var/lib/flatpak/exports/share"), Path.home() / ".local/share/flatpak/exports/share"]
+
+
+def has_desktop_entry(app_id):
+    return any((d / "applications" / f"{app_id}.desktop").is_file() for d in DATA_DIRS)
+
+
+def app_from_unit(unit):
+    """The desktop entry ID in a systemd unit name, as app[-launcher]-ID[@random].service or
+    app[-launcher]-ID-random.scope, if one is installed."""
+    match = re.fullmatch(r"app-(.+?)(?:@[^.]*)?\.(?:service|scope)", unit)
+    if not match:
+        return None
+    name = match.group(1)
+    if unit.endswith(".scope"):
+        name = re.sub(r"-[0-9a-f]+$", "", name)
+    candidates = [name]
+    if "-" in name:
+        candidates.append(name.split("-", 1)[1])
+    for candidate in candidates:
+        if has_desktop_entry(candidate):
+            return candidate
+    return None
+
+
+def app_of_pid(pid):
+    """The desktop entry ID of a process, or its program's name."""
+    try:
+        cgroup = Path(f"/proc/{pid}/cgroup").read_text()
+        for unit in reversed(cgroup.strip().split("/")):
+            found = app_from_unit(unit)
+            if found:
+                return found
+    except OSError:
+        pass
+    try:
+        return "exe:" + Path(f"/proc/{pid}/comm").read_text().strip()
+    except OSError:
+        return None
+
+
+def camera_pids():
+    if not any(Path("/dev").glob("video*")):
+        return set()
+    pids = set()
+    uid = os.getuid()
+    for entry in os.scandir("/proc"):
+        if not entry.name.isdigit():
+            continue
+        try:
+            if entry.stat().st_uid != uid:
+                continue
+            if Path(f"/proc/{entry.name}/comm").read_text().strip() in MEDIA_SERVERS:
+                continue
+            for fd in os.scandir(f"/proc/{entry.name}/fd"):
+                if os.readlink(fd.path).startswith("/dev/video"):
+                    pids.add(int(entry.name))
+                    break
+        except OSError:
+            continue
+    return pids
+
+
+def recording_apps():
+    """The apps with a recording stream running, from the sound server's source outputs."""
+    try:
+        result = subprocess.run(["pactl", "-f", "json", "list", "source-outputs"], capture_output=True, text=True, timeout=10)
+        outputs = json.loads(result.stdout or "[]")
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+        return set()
+    apps = set()
+    for output in outputs:
+        props = output.get("properties") or {}
+        if output.get("corked") or props.get("stream.capture.sink") in (True, "true") or str(output.get("source", "")).endswith(".monitor"):
+            continue
+        if props.get("application.process.binary") in LEVEL_METERS:
+            continue
+        app = props.get("pipewire.access.portal.app_id")
+        if not app and props.get("application.process.id"):
+            app = app_of_pid(props["application.process.id"])
+        if not app:
+            app = "exe:" + str(props.get("application.process.binary") or props.get("application.name") or "")
+        if app and app != "exe:":
+            apps.add(app)
+    return apps
+
+
+def busctl(*args):
+    result = subprocess.run(["busctl", "--system", *args], capture_output=True, text=True, timeout=10)
+    return result.stdout if result.returncode == 0 else ""
+
+
+def location_apps():
+    # Only while GeoClue runs: asking it anything would start it.
+    if "org.freedesktop.GeoClue2" not in busctl("list", "--no-legend", "--acquired").split():
+        return set()
+    apps = set()
+    for path in busctl("tree", "--list", "org.freedesktop.GeoClue2").split():
+        if not path.startswith("/org/freedesktop/GeoClue2/Client/"):
+            continue
+        active = busctl("get-property", "org.freedesktop.GeoClue2", path, "org.freedesktop.GeoClue2.Client", "Active").strip()
+        if active != "b true":
+            continue
+        desktop_id = busctl("get-property", "org.freedesktop.GeoClue2", path, "org.freedesktop.GeoClue2.Client", "DesktopId").strip()
+        match = re.fullmatch(r's "(.*)"', desktop_id)
+        if match and match.group(1):
+            apps.add(match.group(1))
+    return apps
+
+
+def in_use():
+    used = {kind: set() for kind in KINDS}
+    for pid in camera_pids():
+        app = app_of_pid(pid)
+        if app:
+            used["camera"].add(app)
+    used["microphone"] |= recording_apps()
+    used["location"] |= location_apps()
+    return used
+
+
+def load():
+    try:
+        data = json.loads(STATE.read_text())
+    except (OSError, json.JSONDecodeError):
+        data = {}
+    return {kind: dict(data.get(kind) or {}) for kind in KINDS}
+
+
+def save(data):
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    temporary = STATE.with_suffix(".new")
+    temporary.write_text(json.dumps(data, indent=1, sort_keys=True) + "\n")
+    temporary.replace(STATE)
+
+
+def look(data, now):
+    """Notes what's in use now and drops what's older than a week; True if anything changed."""
+    changed = False
+    for kind, apps in in_use().items():
+        for app in apps:
+            data[kind][app] = now
+            changed = True
+    for kind in KINDS:
+        for app, last in list(data[kind].items()):
+            if not isinstance(last, (int, float)) or last < now - KEEP:
+                del data[kind][app]
+                changed = True
+    return changed
+
+
+def main():
+    data = load()
+    while True:
+        now = int(time.time())
+        if look(data, now):
+            save(data)
+        if "--once" in sys.argv[1:]:
+            return 0
+        time.sleep(INTERVAL)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -113,8 +113,30 @@ SceneEffect {
         effect.snapWindow(window, area);
     }
 
+    // KWin's own quick tile for an area that is a half or a quarter, or "": windows in KWin's tiles
+    // share their edge, so resizing one resizes its neighbour, as Windows' snapped windows do.
+    function quickTile(area): string {
+        const is = (a, b) => Math.abs(a - b) < 0.001;
+        if (is(area.width, 1 / 2) && is(area.height, 1)) {
+            return is(area.x, 0) ? "slotWindowQuickTileLeft" : "slotWindowQuickTileRight";
+        }
+        if (is(area.width, 1 / 2) && is(area.height, 1 / 2)) {
+            const left = is(area.x, 0);
+            return is(area.y, 0) ? (left ? "slotWindowQuickTileTopLeft" : "slotWindowQuickTileTopRight")
+                : (left ? "slotWindowQuickTileBottomLeft" : "slotWindowQuickTileBottomRight");
+        }
+        return "";
+    }
+
     function snapWindow(window: QtObject, area) {
         if (!window) {
+            return;
+        }
+        const tile = effect.quickTile(area);
+        if (tile.length > 0) {
+            window.setMaximize(false, false);
+            Workspace.activeWindow = window;
+            Workspace[tile]();
             return;
         }
         const usable = Workspace.clientArea(Workspace.MaximizeArea, window);

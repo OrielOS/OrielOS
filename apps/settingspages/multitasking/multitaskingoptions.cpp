@@ -79,6 +79,18 @@ void MultitaskingOptions::setSuggestNextSnap(bool suggest)
     }
 }
 
+bool MultitaskingOptions::minimiseOnDisconnect() const
+{
+    return KConfigGroup(m_config, QStringLiteral("Script-orielos-windowkeys")).readEntry("MinimiseOnDisconnect", true);
+}
+
+void MultitaskingOptions::setMinimiseOnDisconnect(bool minimise)
+{
+    if (minimise != minimiseOnDisconnect()) {
+        write(QStringLiteral("Script-orielos-windowkeys"), QStringLiteral("MinimiseOnDisconnect"), minimise);
+    }
+}
+
 bool MultitaskingOptions::altTabAllDesktops() const
 {
     // 1 shows only the desktop in use, 0 every desktop; OrielOS's default is 1.

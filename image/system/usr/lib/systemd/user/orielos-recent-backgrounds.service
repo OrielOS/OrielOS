@@ -1,0 +1,10 @@
+[Unit]
+Description=Remember the desktop pictures used most recently
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/settings.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/orielos/recent-backgrounds
+
+[Install]
+WantedBy=plasma-workspace.target

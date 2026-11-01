@@ -168,10 +168,18 @@ else
         sed "s|^Exec=orielos-run\$|Exec=$state/bin/orielos-run|" "$staging/run.desktop" |
             write "$data/applications/org.orielos.Run.desktop"
         cp -- "$data/applications/org.orielos.Run.desktop" "$data/kglobalaccel/org.orielos.Run.desktop"
-        printf '%s
-' "$data/kglobalaccel/org.orielos.Run.desktop" >>"$manifest"
+        printf '%s\n' "$data/kglobalaccel/org.orielos.Run.desktop" >>"$manifest"
         sed '0,/^X-KDE-Shortcuts=/s/^X-KDE-Shortcuts=.*/X-KDE-Shortcuts=Alt+F2,Search/' /usr/share/kglobalaccel/org.kde.krunner.desktop |
             write "$data/kglobalaccel/org.kde.krunner.desktop"
+    fi
+    # The emoji panel on Win+., and Plasma's emoji selector without it, as the image build makes them.
+    if [[ -f "$staging/bin/orielos-emoji" ]]; then
+        sed "s|^Exec=orielos-emoji\$|Exec=$state/bin/orielos-emoji|" "$staging/emojipanel.desktop" |
+            write "$data/applications/org.orielos.EmojiPanel.desktop"
+        cp -- "$data/applications/org.orielos.EmojiPanel.desktop" "$data/kglobalaccel/org.orielos.EmojiPanel.desktop"
+        printf '%s\n' "$data/kglobalaccel/org.orielos.EmojiPanel.desktop" >>"$manifest"
+        sed '0,/^X-KDE-Shortcuts=/s/^X-KDE-Shortcuts=.*/X-KDE-Shortcuts=Meta+Ctrl+Alt+Shift+Space/' /usr/share/kglobalaccel/org.kde.plasma.emojier.desktop |
+            write "$data/kglobalaccel/org.kde.plasma.emojier.desktop"
     fi
     # The contrast theme and Mouse Keys shortcuts, run from the sideload, and the contrast themes.
     if [[ -f "$staging/bin/orielos-accessibility-keys" ]]; then
@@ -179,8 +187,7 @@ else
             sed "s|^Exec=/usr/libexec/orielos/accessibility-keys|Exec=$state/bin/orielos-accessibility-keys|" "$entry" |
                 write "$data/applications/${entry##*/}"
             cp -- "$data/applications/${entry##*/}" "$data/kglobalaccel/${entry##*/}"
-            printf '%s
-' "$data/kglobalaccel/${entry##*/}" >>"$manifest"
+            printf '%s\n' "$data/kglobalaccel/${entry##*/}" >>"$manifest"
         done
     fi
     place "$staging/color-schemes" "$data/color-schemes"
@@ -313,13 +320,16 @@ main() {
         podman cp "$CONTAINER:/out/usr/bin/orielos-display-mode" "$STAGING/bin/orielos-display-mode"
         podman cp "$CONTAINER:/out/usr/bin/orielos-settings" "$STAGING/bin/orielos-settings"
         podman cp "$CONTAINER:/out/usr/bin/orielos-run" "$STAGING/bin/orielos-run"
+        podman cp "$CONTAINER:/out/usr/bin/orielos-emoji" "$STAGING/bin/orielos-emoji"
+        cp "$ROOT/apps/emojipanel/org.orielos.EmojiPanel.desktop" "$STAGING/emojipanel.desktop"
         # The administrator prompt's program only, for trying it by hand: the session keeps its agent.
         podman cp "$CONTAINER:/out/usr/libexec/orielos-polkit-agent" "$STAGING/bin/orielos-polkit-agent"
         cp "$ROOT/apps/runbox/org.orielos.Run.desktop" "$STAGING/run.desktop"
-        # Storage Sense, for Settings' clean-up buttons (its daily timer comes with an image).
+        # The contrast theme and Mouse Keys shortcuts.
         install -m 0755 "$ROOT/image/system/usr/libexec/orielos/accessibility-keys" "$STAGING/bin/orielos-accessibility-keys"
         mkdir -p "$STAGING/accessibility"
         cp "$ROOT/image/system/usr/share/applications/org.orielos.ContrastTheme.desktop" "$ROOT/image/system/usr/share/applications/org.orielos.MouseKeys.desktop" "$STAGING/accessibility/"
+        # Storage Sense, for Settings' clean-up buttons (its daily timer comes with an image).
         install -m 0755 "$ROOT/image/system/usr/libexec/orielos/storage-sense" "$STAGING/bin/orielos-storage-sense"
         cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
         podman rm -f "$CONTAINER" >/dev/null
