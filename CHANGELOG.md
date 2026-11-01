@@ -19,6 +19,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Choose when the computer restarts to finish an update: Pick a time in the update notification or in Settings → Update schedules the restart for any time in the next week. Settings → Update also sets your active hours, and can restart the computer by itself outside them once an update is ready (off unless you turn it on).
 - Settings → Update lists the update history, every version the computer has run with the date it was installed, and shows what's new in the version you're running. After an update, a notification says which version is running, with See what's new.
 - While the computer restarts into a new version, the screen says Installing updates… as it finishes.
+- Settings → Bluetooth & devices → Camera shows each camera with a live picture and its brightness.
+- Plugging in headphones, a headset, or a USB or Bluetooth speaker switches the sound to it straight away.
 
 ### Changed
 

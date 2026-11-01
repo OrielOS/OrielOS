@@ -12,6 +12,8 @@ The categories on the left come in the order you know from Windows (in a narrow 
 
 - **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Battery usage, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
+- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
+- **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Camera, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
 - **Personalisation**: Background, Themes (including dark mode), Accent colour (with Show accent colour on Start and taskbar, and Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.
 - **Apps**: Default apps and Startup.
@@ -79,6 +81,14 @@ On a laptop, **energy saver** turns on by itself when the battery reaches 20 %: 
 ## Accent colour
 
 **Personalisation > Accent colour** sets the colour of highlights, selected items and focus rings. Choose one of the colours and it applies straight away; **Use the theme's colour** goes back to the colour your theme came with. Light and dark mode are on the Themes page, and your accent stays when you switch between them.
+
+## Camera
+
+**Bluetooth & devices > Camera** lists the cameras connected to the computer and shows a live picture from the one you choose, with a brightness slider when the camera allows it. The camera is only in use while the page is open. Which apps may use it is under **Privacy & security > App permissions**.
+
+## Sound
+
+Plugging in headphones, a headset, or a USB or Bluetooth speaker switches the sound to it straight away, and a headset's microphone becomes the input. **System > Sound** chooses the output and input yourself, shows the microphone's level and, under the apps playing sound, each one's volume and output.
 
 ## Accessory apps
 

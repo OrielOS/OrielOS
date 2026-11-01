@@ -121,6 +121,8 @@ private Q_SLOTS:
         QTest::newRow("best performance") << QStringLiteral("best performance") << QStringLiteral("power-mode");
         QTest::newRow("battery saver") << QStringLiteral("battery saver") << QStringLiteral("power-mode");
         QTest::newRow("battery life") << QStringLiteral("battery life") << QStringLiteral("battery-usage");
+        QTest::newRow("camera") << QStringLiteral("camera") << QStringLiteral("camera");
+        QTest::newRow("volume mixer") << QStringLiteral("volume mixer") << QStringLiteral("sound");
         QTest::newRow("windows hello") << QStringLiteral("windows hello") << QStringLiteral("sign-in-options");
         QTest::newRow("nvidia") << QStringLiteral("nvidia") << QStringLiteral("nvidia");
         QTest::newRow("nvidia control panel") << QStringLiteral("nvidia control panel") << QStringLiteral("nvidia");

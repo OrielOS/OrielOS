@@ -23,9 +23,9 @@ deps() {
         kdecoration-devel kf6-kglobalaccel-devel libkscreen-devel layer-shell-qt-devel \
         polkit-qt6-1-devel
     # The QML modules the Start menu imports, so qmllint can check it: Plasma's private menu
-    # models come with plasma-workspace.
+    # models come with plasma-workspace. Settings' Camera page imports Qt Multimedia.
     dnf -y install --setopt=install_weak_deps=False \
-        plasma-workspace kf6-kitemmodels kf6-kcmutils
+        plasma-workspace kf6-kitemmodels kf6-kcmutils qt6-qtmultimedia
     dnf clean all
 }
 
