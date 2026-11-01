@@ -10,7 +10,6 @@
 
 #include <functional>
 #include <optional>
-#include <utility>
 
 namespace OrielOSSettingsPages {
 
@@ -49,6 +48,10 @@ struct ShellState
     QStringList startFolders = { QStringLiteral("files"), QStringLiteral("downloads"), QStringLiteral("settings") };
     // Start's layout: morePins, default or moreRecommendations.
     QString startLayout = QStringLiteral("default");
+    // OrielOS's tray on the taskbar, and the apps whose icons it shows on the taskbar rather than
+    // under its arrow, by the icons' ids.
+    bool hasTray = false;
+    QStringList trayShown;
 
     // The state a script printed, or nothing if the output isn't that JSON.
     static std::optional<ShellState> fromJson(const QString &json);
@@ -89,6 +92,8 @@ public:
         LayoutMorePins,
         LayoutDefault,
         LayoutMoreRecommendations,
+        // An app's icon on the taskbar, or under the tray's arrow; the change names the app.
+        TrayIcon,
     };
 
     // A layout setting's name in Start's settings, or empty for any other setting.
@@ -98,7 +103,13 @@ public:
     static QString folderId(Setting setting);
     // The folder setting for an ID, if there is one.
     static std::optional<Setting> folderSetting(const QString &id);
-    using Change = std::pair<Setting, bool>;
+    // A setting and its new value; a TrayIcon change also has the icon's id.
+    struct Change
+    {
+        Setting setting;
+        bool value;
+        QString item = { };
+    };
 
     // Runs a script in the desktop, then calls done with whether it ran, and what it printed or
     // why it failed.
@@ -118,6 +129,8 @@ public:
 
     void reload();
     void change(Setting setting, bool value);
+    // Puts an app's icon on the taskbar, or under the tray's arrow.
+    void changeTrayIcon(const QString &item, bool shown);
 
     // The script that makes the change, if any, then prints the settings as JSON.
     static QString script(std::optional<Change> change = std::nullopt);

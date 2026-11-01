@@ -81,4 +81,11 @@ void TaskbarOptions::setAllDisplays(bool all)
     }
 }
 
+void TaskbarOptions::setTrayIconShown(const QString &id, bool shown)
+{
+    if (hasTray() && !id.isEmpty() && shown != trayShown().contains(id)) {
+        m_settings->changeTrayIcon(id, shown);
+    }
+}
+
 } // namespace OrielOSSettingsPages

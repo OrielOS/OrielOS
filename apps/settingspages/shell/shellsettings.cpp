@@ -70,6 +70,25 @@ function setStartFolder(id, shown) {
     start.reloadConfig();
 }
 
+// The apps whose icons the tray shows on the taskbar, by id, in their order there.
+function trayShown() {
+    var shown = tray.readConfig("shownItems", []);
+    // Read back from the file before the widget has it, the list is text.
+    if (typeof shown === "string") {
+        shown = shown.split(",");
+    }
+    return Array.prototype.slice.call(shown).map(String).filter(function (id) { return id !== ""; });
+}
+// A newly shown icon goes at the end, beside the clock.
+function setTrayShown(id, shown) {
+    var ids = trayShown().filter(function (other) { return other !== id; });
+    if (shown) {
+        ids.push(id);
+    }
+    tray.writeConfig("shownItems", ids);
+    tray.reloadConfig();
+}
+
 // Whether a panel is one of the taskbars added for the other displays.
 function isExtraTaskbar(other) {
     other.currentConfigGroup = ["General"];
@@ -188,6 +207,7 @@ if (start) {
     var tasks = first("org.kde.plasma.icontasks") || first("org.kde.plasma.taskmanager");
     var clock = first("org.orielos.clock");
     var sliver = first("org.orielos.showdesktop");
+    var tray = first("org.orielos.tray");
     /*CHANGE*/
     state.hasStart = true;
     state.showRecentlyAdded = flag(start.readConfig("showRecentlyAdded", true));
@@ -212,14 +232,16 @@ if (start) {
     state.smallButtons = panel.height < 48;
     state.startFolders = startFolders();
     state.startLayout = String(start.readConfig("layout", "default"));
+    state.hasTray = tray !== null;
+    state.trayShown = tray ? trayShown() : [];
 }
 print(JSON.stringify(state));
 )JS";
 
 QString changeScript(const ShellSettings::Change &change)
 {
-    const QString value = change.second ? QStringLiteral("true") : QStringLiteral("false");
-    switch (change.first) {
+    const QString value = change.value ? QStringLiteral("true") : QStringLiteral("false");
+    switch (change.setting) {
     case ShellSettings::Setting::ShowRecentlyAdded:
         return QStringLiteral("start.writeConfig(\"showRecentlyAdded\", %1);\n    start.reloadConfig();").arg(value);
     case ShellSettings::Setting::ShowRecentFiles:
@@ -253,14 +275,19 @@ QString changeScript(const ShellSettings::Change &change)
     case ShellSettings::Setting::FolderVideos:
     case ShellSettings::Setting::FolderNetwork:
     case ShellSettings::Setting::FolderPersonal:
-        return QStringLiteral("setStartFolder(\"%1\", %2);").arg(ShellSettings::folderId(change.first), value);
+        return QStringLiteral("setStartFolder(\"%1\", %2);").arg(ShellSettings::folderId(change.setting), value);
     case ShellSettings::Setting::LayoutMorePins:
     case ShellSettings::Setting::LayoutDefault:
     case ShellSettings::Setting::LayoutMoreRecommendations:
-        if (!change.second) {
+        if (!change.value) {
             return { };
         }
-        return QStringLiteral("start.writeConfig(\"layout\", \"%1\");\n    start.reloadConfig();").arg(ShellSettings::layoutId(change.first));
+        return QStringLiteral("start.writeConfig(\"layout\", \"%1\");\n    start.reloadConfig();").arg(ShellSettings::layoutId(change.setting));
+    case ShellSettings::Setting::TrayIcon: {
+        // The id goes in as JSON, so no app's id can break out of its string.
+        const QString id = QString::fromUtf8(QJsonDocument(QJsonArray { change.item }).toJson(QJsonDocument::Compact));
+        return QStringLiteral("if (tray) {\n        setTrayShown(%1[0], %2);\n    }").arg(id, value);
+    }
     }
     return { };
 }
@@ -296,6 +323,10 @@ std::optional<ShellState> ShellState::fromJson(const QString &json)
     state.smallButtons = object.value(QStringLiteral("smallButtons")).toBool(false);
     if (object.value(QStringLiteral("startLayout")).isString()) {
         state.startLayout = object.value(QStringLiteral("startLayout")).toString();
+    }
+    state.hasTray = object.value(QStringLiteral("hasTray")).toBool(false);
+    for (const QJsonValue &id : object.value(QStringLiteral("trayShown")).toArray()) {
+        state.trayShown.append(id.toString());
     }
     if (object.value(QStringLiteral("startFolders")).isArray()) {
         state.startFolders.clear();
@@ -354,8 +385,18 @@ void ShellSettings::reload()
 
 void ShellSettings::change(Setting setting, bool value)
 {
+    if (setting == Setting::TrayIcon) {
+        return;
+    }
     m_queue.append(Change { setting, value });
     // The script starts first, so anything that reacts to changed() by changing more only queues.
+    runNext();
+    Q_EMIT changed();
+}
+
+void ShellSettings::changeTrayIcon(const QString &item, bool shown)
+{
+    m_queue.append(Change { Setting::TrayIcon, shown, item });
     runNext();
     Q_EMIT changed();
 }
@@ -392,52 +433,58 @@ void ShellSettings::finish(bool ok, const QString &output)
 
 void ShellSettings::apply(ShellState &state, const Change &change)
 {
-    switch (change.first) {
+    switch (change.setting) {
     case Setting::ShowRecentlyAdded:
-        state.showRecentlyAdded = change.second;
+        state.showRecentlyAdded = change.value;
         break;
     case Setting::ShowRecentFiles:
-        state.showRecentFiles = change.second;
+        state.showRecentFiles = change.value;
         break;
     case Setting::Centred:
-        state.centred = change.second;
+        state.centred = change.value;
         break;
     case Setting::AutoHide:
-        state.autoHide = change.second;
+        state.autoHide = change.value;
         break;
     case Setting::ShowSearch:
-        state.showSearch = change.second;
+        state.showSearch = change.value;
         break;
     case Setting::ShowTaskView:
-        state.showTaskView = change.second;
+        state.showTaskView = change.value;
         break;
     case Setting::CombineButtons:
-        state.combineButtons = change.second;
+        state.combineButtons = change.value;
         break;
     case Setting::ShowSeconds:
-        state.showSeconds = change.second;
+        state.showSeconds = change.value;
         break;
     case Setting::Peek:
-        state.peek = change.second;
+        state.peek = change.value;
         break;
     case Setting::AllDisplays:
-        state.allDisplays = change.second;
+        state.allDisplays = change.value;
         break;
     case Setting::SmallButtons:
-        state.smallButtons = change.second;
+        state.smallButtons = change.value;
         break;
     case Setting::LayoutMorePins:
     case Setting::LayoutDefault:
     case Setting::LayoutMoreRecommendations:
-        if (change.second) {
-            state.startLayout = layoutId(change.first);
+        if (change.value) {
+            state.startLayout = layoutId(change.setting);
+        }
+        break;
+    case Setting::TrayIcon:
+        state.trayShown.removeAll(change.item);
+        if (change.value) {
+            state.trayShown.append(change.item);
         }
         break;
     default: {
-        const QString id = folderId(change.first);
+        const QString id = folderId(change.setting);
         if (!id.isEmpty()) {
             state.startFolders.removeAll(id);
-            if (change.second) {
+            if (change.value) {
                 state.startFolders.append(id);
             }
         }

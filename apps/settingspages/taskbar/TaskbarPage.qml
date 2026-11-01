@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // The taskbar's items (Search and Task View), its alignment, whether it hides itself, whether each
-// app's windows share one button, and seconds in the clock. Each change applies to the taskbar at
-// once.
+// app's windows share one button, seconds in the clock, and which apps' tray icons show on the
+// taskbar rather than under its arrow. Each change applies to the taskbar at once.
+
+pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -11,6 +13,8 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.ki18n
 import org.kde.kirigami as Kirigami
+import org.kde.kitemmodels as KItemModels
+import org.kde.plasma.private.systemtray as SystemTray
 
 KCM.SimpleKCM {
     id: root
@@ -20,6 +24,20 @@ KCM.SimpleKCM {
     // translation domain.
     readonly property KI18nContext l10n: KI18nContext {
         translationDomain: "orielos-settings-pages"
+    }
+
+    // The apps with tray icons now, by name, as the taskbar's tray sees them.
+    readonly property KItemModels.KSortFilterProxyModel trayApps: KItemModels.KSortFilterProxyModel {
+        sourceModel: SystemTray.StatusNotifierModel {}
+        sortRoleName: "Title"
+        sortCaseSensitivity: Qt.CaseInsensitive
+        // Only icons the tray can tell apart, as it lists them.
+        filterRoleName: "itemId"
+        filterRowCallback: (row, parent) => {
+            const source = root.trayApps.sourceModel;
+            const index = source.index(row, 0, parent);
+            return String(source.data(index, source.KItemModels.KRoleNames.role("itemId")) ?? "") !== "";
+        }
     }
 
     // Settings names the page above it, so the page's own title bar would only repeat the name.
@@ -150,6 +168,57 @@ KCM.SimpleKCM {
                 onToggled: {
                     root.options.showSeconds = checked;
                     checked = Qt.binding(() => root.options.showSeconds);
+                }
+            }
+
+            // One switch per app with a tray icon; switched off, its icon waits under the arrow. The
+            // switches share one item, which keeps them in order under the label.
+            ColumnLayout {
+                Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Apps' icons on the taskbar:")
+                Kirigami.FormData.labelAlignment: Qt.AlignTop
+                visible: root.options.hasTray
+                spacing: Kirigami.Units.smallSpacing
+
+                Repeater {
+                    model: root.trayApps
+
+                    delegate: RowLayout {
+                        id: app
+
+                        required property var model
+                        readonly property string itemId: String(app.model.itemId)
+
+                        spacing: Kirigami.Units.smallSpacing
+
+                        Kirigami.Icon {
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                            source: app.model.Icon || app.model.IconName || "application-x-executable"
+                            Accessible.ignored: true
+                        }
+
+                        QQC2.Switch {
+                            text: String(app.model.Title || app.itemId)
+                            checked: root.options.trayShown.indexOf(app.itemId) >= 0
+                            onToggled: {
+                                root.options.setTrayIconShown(app.itemId, checked);
+                                checked = Qt.binding(() => root.options.trayShown.indexOf(app.itemId) >= 0);
+                            }
+                        }
+                    }
+                }
+
+                QQC2.Label {
+                    visible: root.trayApps.count === 0
+                    text: root.l10n.i18nc("@info", "No apps have a tray icon right now.")
+                }
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+                    wrapMode: Text.Wrap
+                    font: Kirigami.Theme.smallFont
+                    text: root.l10n.i18nc("@info", "Apps switched off keep their icons under the arrow beside the clock. Win+B opens them.")
                 }
             }
         }

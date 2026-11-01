@@ -521,6 +521,50 @@ desktop.push(other, unrelated);
         QCOMPARE(settings.error(), QStringLiteral("The taskbar's settings couldn't be read."));
     }
 
+    void readsAndChangesTheTrayIcons()
+    {
+        const QString withTray = orielosTaskbar
+            + QStringLiteral("var tray = makeWidget(6, \"org.orielos.tray\", { shownItems: [\"steam\"] }); taskbar.list.push(tray); taskbar.widgetIds.push(6);");
+        const auto engine = runScript(withTray);
+        QVERIFY(engine);
+        ShellState state = printedState(*engine);
+        QVERIFY(state.hasTray);
+        QCOMPARE(state.trayShown, QStringList { QStringLiteral("steam") });
+
+        const auto shown = runScript(withTray, ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, QStringLiteral("discord") });
+        QVERIFY(shown);
+        state = printedState(*shown);
+        QCOMPARE(state.trayShown, (QStringList { QStringLiteral("steam"), QStringLiteral("discord") }));
+        QCOMPARE(shown->evaluate(QStringLiteral("tray.reloads")).toInt(), 1);
+
+        const auto hidden = runScript(withTray, ShellSettings::Change { ShellSettings::Setting::TrayIcon, false, QStringLiteral("steam") });
+        QVERIFY(hidden);
+        QVERIFY(printedState(*hidden).trayShown.isEmpty());
+
+        // Read back from the file, the list is text.
+        const auto text = runScript(orielosTaskbar
+            + QStringLiteral("taskbar.list.push(makeWidget(6, \"org.orielos.tray\", { shownItems: \"steam,obs\" })); taskbar.widgetIds.push(6);"));
+        QVERIFY(text);
+        QCOMPARE(printedState(*text).trayShown, (QStringList { QStringLiteral("steam"), QStringLiteral("obs") }));
+
+        // Without OrielOS's tray there's nothing to change.
+        const auto none = runScript(orielosTaskbar, ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, QStringLiteral("steam") });
+        QVERIFY(none);
+        QVERIFY(!printedState(*none).hasTray);
+    }
+
+    void trayIconIdsCantBreakTheScript()
+    {
+        const QString id = QStringLiteral("a\"); print(\"x\"); //");
+        const QString script = ShellSettings::script(ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, id });
+        const auto engine = runScript(orielosTaskbar
+                + QStringLiteral("var tray = makeWidget(6, \"org.orielos.tray\", {}); taskbar.list.push(tray); taskbar.widgetIds.push(6);"),
+            ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, id });
+        QVERIFY(engine);
+        QCOMPARE(printedState(*engine).trayShown, QStringList { id });
+        QVERIFY(!script.contains(QLatin1String("print(\"x\")")));
+    }
+
     // The pages' models.
 
     void startOptionsChangeOnlyWhatsThere()
@@ -563,6 +607,26 @@ desktop.push(other, unrelated);
         desktop.answer(true, QStringLiteral(R"({"hasStart":true,"canAlign":false,"centred":true,"autoHide":true})"));
         QVERIFY(options.autoHide());
         QVERIFY(options.error().isEmpty());
+    }
+
+    void taskbarOptionsMoveTrayIcons()
+    {
+        FakeDesktop desktop;
+        TaskbarOptions options(new ShellSettings(desktop.runner()));
+        desktop.answer(true, QStringLiteral(R"({"hasStart":true,"hasTray":true,"trayShown":["steam"]})"));
+        QVERIFY(options.hasTray());
+        QCOMPARE(options.trayShown(), QStringList { QStringLiteral("steam") });
+        // Already on the taskbar: nothing to run.
+        options.setTrayIconShown(QStringLiteral("steam"), true);
+        QVERIFY(desktop.calls.isEmpty());
+
+        options.setTrayIconShown(QStringLiteral("discord"), true);
+        QCOMPARE(desktop.calls.size(), 1);
+        QCOMPARE(options.trayShown(), (QStringList { QStringLiteral("steam"), QStringLiteral("discord") }));
+        QVERIFY(desktop.calls.first().script.contains(QLatin1String(R"(setTrayShown(["discord"][0], true))")));
+        // A failed change goes back.
+        desktop.answer(false, QStringLiteral("plasmashell went away"));
+        QCOMPARE(options.trayShown(), QStringList { QStringLiteral("steam") });
     }
 };
 

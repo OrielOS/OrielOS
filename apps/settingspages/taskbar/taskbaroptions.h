@@ -11,8 +11,8 @@
 namespace OrielOSSettingsPages {
 
 // The taskbar's alignment, centred or on the left, whether it hides itself, its Search and Task View
-// buttons, whether each app's windows share a button, and seconds in the clock. Changes go to the
-// taskbar straight away.
+// buttons, whether each app's windows share a button, seconds in the clock, and which apps' icons
+// show on the taskbar rather than under the tray's arrow. Changes go to the taskbar straight away.
 class TaskbarOptions : public QObject
 {
     Q_OBJECT
@@ -37,6 +37,9 @@ class TaskbarOptions : public QObject
     Q_PROPERTY(bool smallButtons READ smallButtons WRITE setSmallButtons NOTIFY changed)
     Q_PROPERTY(bool hasSliver READ hasSliver NOTIFY changed)
     Q_PROPERTY(bool peek READ peek WRITE setPeek NOTIFY changed)
+    Q_PROPERTY(bool hasTray READ hasTray NOTIFY changed)
+    // The apps whose icons show on the taskbar, by their icons' ids.
+    Q_PROPERTY(QStringList trayShown READ trayShown NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
 
 public:
@@ -70,6 +73,10 @@ public:
     bool hasSliver() const { return m_settings->state().hasSliver; }
     bool peek() const { return m_settings->state().peek; }
     void setPeek(bool peek);
+    bool hasTray() const { return m_settings->state().hasTray; }
+    QStringList trayShown() const { return m_settings->state().trayShown; }
+    // Puts an app's icon on the taskbar, or under the tray's arrow.
+    Q_INVOKABLE void setTrayIconShown(const QString &id, bool shown);
     QString error() const { return m_settings->error(); }
 
 Q_SIGNALS:

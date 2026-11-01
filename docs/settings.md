@@ -44,7 +44,7 @@ Some changes, such as the date and time, ask for an administrator's password. Th
 
 **Personalisation > Start** chooses what Start shows under Recommended: turn off **Show recently added apps** or **Show recently opened files** and Start stops listing them straight away.
 
-**Personalisation > Taskbar** sets **Taskbar alignment**, Centre or Left, **Automatically hide the taskbar**, which hides it until you move the pointer to the bottom of the screen, and **Use small taskbar buttons**, for a lower taskbar with smaller icons. Changes apply at once. If you've rearranged the taskbar's widgets yourself, alignment can't be set here any more; the page says so.
+**Personalisation > Taskbar** sets **Taskbar alignment**, Centre or Left, **Automatically hide the taskbar**, which hides it until you move the pointer to the bottom of the screen, and **Use small taskbar buttons**, for a lower taskbar with smaller icons. Changes apply at once. If you've rearranged the taskbar's widgets yourself, alignment can't be set here any more; the page says so. **Apps' icons on the taskbar** lists the apps with tray icons running now, each with a switch: switched on, the app's icon stays on the taskbar beside the arrow; switched off, it waits among the hidden icons.
 
 ## Background
 
