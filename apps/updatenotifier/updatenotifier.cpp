@@ -4,7 +4,9 @@
 #include "updatenotifier.h"
 
 #include <KLocalizedString>
+#include <KConfigGroup>
 #include <KNotification>
+#include <KSharedConfig>
 #include <KStatusNotifierItem>
 
 #include <QAction>
@@ -104,6 +106,35 @@ void Notifier::reload()
     } else if (m_state.updateUndone(m_bootId) && !m_announcedUndone) {
         showUndoneNotification();
     }
+    // An undone update means the version running is the old one, with nothing new to show.
+    if (m_state.isForThisBoot(m_bootId) && !m_state.updateUndone(m_bootId)) {
+        showInstalledNotification();
+    }
+}
+
+void Notifier::showInstalledNotification()
+{
+    // Once per version and person: the version last seen is kept in their own settings. A new
+    // account, which saw none, starts from the version it first sees, with nothing to announce.
+    const QString version = m_state.running().version;
+    KConfigGroup seen(KSharedConfig::openConfig(QStringLiteral("orielos-update-notifierrc")), QStringLiteral("General"));
+    const QString last = seen.readEntry("lastVersion", QString());
+    if (version.isEmpty() || version == QLatin1String("unknown") || version == last) {
+        return;
+    }
+    seen.writeEntry("lastVersion", version);
+    seen.sync();
+    if (last.isEmpty()) {
+        return;
+    }
+    auto *notification = new KNotification(QStringLiteral("updateInstalled"));
+    notification->setComponentName(QStringLiteral("orielos-update-notifier"));
+    notification->setIconName(QLatin1String(iconName));
+    notification->setTitle(i18nc("@title", "OrielOS was updated"));
+    notification->setText(i18nc("@info %1 is a version such as v0.2.0", "OrielOS %1 is running now.", version));
+    KNotificationAction *whatsNew = notification->addAction(i18nc("@action:button", "See what's new"));
+    connect(whatsNew, &KNotificationAction::activated, this, &Notifier::openSettings);
+    notification->sendEvent();
 }
 
 QMenu *Notifier::buildMenu()
@@ -153,6 +184,9 @@ void Notifier::showReadyNotification()
     notification->setText(i18nc("@info", "OrielOS %1 is ready. Restart to finish updating. Your files and apps stay as they are.", staged.version));
     KNotificationAction *restart = notification->addAction(i18nc("@action:button", "Restart to update"));
     connect(restart, &KNotificationAction::activated, this, &Notifier::restart);
+    // Settings' Update page schedules the restart.
+    KNotificationAction *pick = notification->addAction(i18nc("@action:button", "Pick a time"));
+    connect(pick, &KNotificationAction::activated, this, &Notifier::openSettings);
     KNotificationAction *later = notification->addAction(i18nc("@action:button", "Later"));
     connect(later, &KNotificationAction::activated, notification, &KNotification::close);
     m_readyNotification = notification;

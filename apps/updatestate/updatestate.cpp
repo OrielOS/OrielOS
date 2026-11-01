@@ -7,8 +7,10 @@
 
 #include <QFile>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QLocale>
+#include <QStringList>
 
 namespace OrielOSUpdates {
 
@@ -72,6 +74,23 @@ UpdateState UpdateState::fromJson(const QByteArray &json)
     state.m_rollbackQueued = object.value(QLatin1String("rollbackQueued")).toBool();
     state.m_appUpdates = object.value(QLatin1String("appUpdates")).toBool(true);
     state.m_appsUpdatedAt = parseTime(object.value(QLatin1String("appsUpdatedAt")));
+    const QJsonArray history = object.value(QLatin1String("history")).toArray();
+    for (const QJsonValue &entry : history) {
+        const QString version = entry.toObject().value(QLatin1String("version")).toString();
+        const QDateTime startedAt = parseTime(entry.toObject().value(QLatin1String("startedAt")));
+        if (!version.isEmpty() && startedAt.isValid()) {
+            state.m_history.append({ version, startedAt });
+        }
+    }
+    state.m_restartAt = parseTime(object.value(QLatin1String("restartAt")));
+    const QJsonObject activeHours = object.value(QLatin1String("activeHours")).toObject();
+    const int start = activeHours.value(QLatin1String("start")).toInt(-1);
+    const int end = activeHours.value(QLatin1String("end")).toInt(-1);
+    if (start >= 0 && start <= 23 && end >= 0 && end <= 23 && start != end) {
+        state.m_activeHoursStart = start;
+        state.m_activeHoursEnd = end;
+    }
+    state.m_autoRestart = object.value(QLatin1String("autoRestart")).toBool(false);
     return state;
 }
 
@@ -186,6 +205,34 @@ QString statusText(const UpdateState &state, const QString &currentBootId, const
         return i18nc("@info:tooltip", "Couldn't check for updates");
     }
     return i18nc("@info:tooltip", "Not checked for updates yet");
+}
+
+QString changelogSection(const QString &changelog, const QString &version)
+{
+    const QStringList lines = changelog.split(QLatin1Char('\n'));
+    const auto section = [&lines](const QString &name) {
+        QStringList body;
+        bool inside = false;
+        for (const QString &line : lines) {
+            if (line.startsWith(QLatin1String("## "))) {
+                if (inside) {
+                    break;
+                }
+                inside = line.startsWith(QLatin1String("## [") + name + QLatin1Char(']'));
+                continue;
+            }
+            if (inside) {
+                body.append(line);
+            }
+        }
+        return body.join(QLatin1Char('\n')).trimmed();
+    };
+    QString number = version;
+    if (number.startsWith(QLatin1Char('v'))) {
+        number.remove(0, 1);
+    }
+    const QString own = number.isEmpty() ? QString() : section(number);
+    return own.isEmpty() ? section(QStringLiteral("Unreleased")) : own;
 }
 
 } // namespace OrielOSUpdates

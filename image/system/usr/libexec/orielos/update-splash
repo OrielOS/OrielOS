@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Switches the boot splash to its update screen ("Installing updates…", over the spinner) during a
+# shut down or restart that finishes a staged OrielOS update, which bootc then applies. From
+# orielos-update-splash.service. It never stops or delays the shut down for long: when Plymouth
+# isn't showing, or anything fails, it does nothing.
+set -uo pipefail
+
+[[ -e /run/ostree/staged-deployment ]] || exit 0
+command -v plymouth >/dev/null 2>&1 || exit 0
+# Plymouth starts its shut down screen as the shut down begins, perhaps just after this.
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+    plymouth --ping 2>/dev/null && break
+    sleep 0.25
+done
+plymouth --ping 2>/dev/null || exit 0
+plymouth change-mode --updates 2>/dev/null || true
+exit 0

@@ -11,6 +11,7 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QTimer>
+#include <QVariantList>
 
 #include <chrono>
 #include <functional>
@@ -59,6 +60,20 @@ class UpdateSettings : public QObject
     // The pause lengths offered, from minPauseWeeks up.
     Q_PROPERTY(QStringList pauseChoices READ pauseChoices CONSTANT)
     Q_PROPERTY(int minPauseWeeks READ minPauseWeeks CONSTANT)
+    // The restart that finishes the update or goes back is scheduled, and when, ready to show.
+    Q_PROPERTY(bool restartScheduled READ restartScheduled NOTIFY changed)
+    Q_PROPERTY(QString restartAt READ restartAt NOTIFY changed)
+    // The days a restart can be scheduled for: today and the six after it.
+    Q_PROPERTY(QStringList restartDays READ restartDays NOTIFY changed)
+    // Every hour of the day, as the locale shows times, for the active hours and the restart.
+    Q_PROPERTY(QStringList hourChoices READ hourChoices CONSTANT)
+    Q_PROPERTY(int activeHoursStart READ activeHoursStart NOTIFY changed)
+    Q_PROPERTY(int activeHoursEnd READ activeHoursEnd NOTIFY changed)
+    Q_PROPERTY(bool autoRestart READ autoRestart NOTIFY changed)
+    // The versions this computer ran, newest first: each a map with version and date.
+    Q_PROPERTY(QVariantList history READ history NOTIFY changed)
+    // What's new in the running version, as Markdown from OrielOS's changelog, or empty.
+    Q_PROPERTY(QString whatsNew READ whatsNew NOTIFY changed)
 
 public:
     // Where the page reads from and what it runs. The tests pass their own; the page doesn't own
@@ -71,6 +86,8 @@ public:
         CheckMonitor *monitor = nullptr;
         std::function<QDateTime()> now;
         std::function<void()> restart;
+        // OrielOS's changelog, which the image carries.
+        QString changelogPath;
         // How long a requested check may take to start before the page stops waiting for it.
         std::chrono::milliseconds checkStartTimeout = std::chrono::seconds(30);
     };
@@ -102,6 +119,15 @@ public:
     QString error() const { return m_error; }
     QStringList pauseChoices() const;
     int minPauseWeeks() const { return OrielOSUpdates::minPauseWeeks; }
+    bool restartScheduled() const;
+    QString restartAt() const;
+    QStringList restartDays() const;
+    QStringList hourChoices() const;
+    int activeHoursStart() const { return m_state.activeHoursStart(); }
+    int activeHoursEnd() const { return m_state.activeHoursEnd(); }
+    bool autoRestart() const { return m_state.autoRestart(); }
+    QVariantList history() const;
+    QString whatsNew() const;
 
     Q_INVOKABLE void checkForUpdates();
     Q_INVOKABLE void pause(int weeks);
@@ -112,6 +138,11 @@ public:
     Q_INVOKABLE void setAppUpdates(bool on);
     Q_INVOKABLE void restart();
     Q_INVOKABLE void clearError();
+    // Schedule the restart for <day> days from today (0 to 6) at <hour>:<minute> local time.
+    Q_INVOKABLE void scheduleRestart(int day, int hour, int minute);
+    Q_INVOKABLE void cancelRestart();
+    Q_INVOKABLE void setActiveHours(int start, int end);
+    Q_INVOKABLE void setAutoRestart(bool on);
 
 Q_SIGNALS:
     void changed();

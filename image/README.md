@@ -261,6 +261,10 @@ Updates are whole images from one source, set by `source=` in `system/usr/lib/or
 - `orielos-update pause WEEKS` (1 to 5), `orielos-update resume` and `orielos-update channel stable|testing`: the machine's settings, kept in `/var/lib/orielos/update/settings`. A pause runs from now, and a pause that has ended is cleared at the next check; a channel change takes effect at the next check.
 - `orielos-update refresh`: rewrites this boot's state without checking. `orielos-update-state.service` runs it at every boot, before the login screen.
 - `orielos-update app-updates on|off` and `orielos-update apps`: automatic updates of apps from the Store (see [The Store](#the-store)).
+- `orielos-update restart-at TIME|cancel`: schedules the restart that finishes an update or goes back, within a week, as a transient systemd timer (`orielos-scheduled-restart.timer`, for this boot only) that runs `orielos-update restart-if-waiting`, which restarts only if something still waits. `active-hours START END` sets the active hours (8 to 17 until set) and `auto-restart on|off` whether a newly staged build schedules its own restart, at 03:00 local time or, when that is within the active hours, as they end. These are kept in `/var/lib/orielos/update/restart`.
+- Each build the computer runs is added to `/var/lib/orielos/update/history` (when it first started, its version and digest; the last 50) the first time `refresh` sees it.
+- `usr/lib/systemd/system/orielos-update-splash.service` starts with the unit that finishes a staged update at shut down (`ostree-finalize-staged.service`, or `bootc-finalize-staged.service`) and, as it stops just before that unit works, `usr/libexec/orielos/update-splash` switches Plymouth to its update screen, "Installing updates…" over the spinner. It gives up quietly when Plymouth isn't showing.
+- The image carries `CHANGELOG.md` at `/usr/share/doc/orielos/CHANGELOG.md`, from which Settings' Update page shows what's new in the running version: its own section, or the Unreleased section, which a build carries until its version is added.
 
 The rejected builds are kept in `/var/lib/orielos/update/rejected-digests`, one digest per line followed by a comment with the time it was rejected and its version. Exit status 1 means an error and 2 wrong usage.
 
@@ -271,7 +275,9 @@ The rejected builds are kept in `/var/lib/orielos/update/rejected-digests`, one 
 - the running and staged builds;
 - the previous build, the one going back would start, with `rejected` true when it was rolled back before, and `removedAfter`, when it's removed;
 - `rollbackQueued`, true while going back waits for a restart;
-- `appUpdates`, false once automatic app updates are turned off, and `appsUpdatedAt`, when the apps were last brought up to date, or null.
+- `appUpdates`, false once automatic app updates are turned off, and `appsUpdatedAt`, when the apps were last brought up to date, or null;
+- `history`, the last 20 builds the computer ran, newest first, each with `startedAt`, `version` and `digest`;
+- `restartAt`, when the scheduled restart is, or null; `activeHours`, `{start, end}` in local hours; and `autoRestart`.
 
 The update notifier in `apps/updatenotifier/` and the Update settings page in `apps/updatesettings/` follow it. The page changes the settings, goes back and removes the previous build by running `pkexec /usr/bin/orielos-update check-now|pause|resume|channel|app-updates|rollback|remove-previous`, and `system/usr/share/polkit-1/actions/org.orielos.update.policy` decides who may: the person at the computer may pause, resume and check without a password, and changing the channel, going back and removing the previous build need an administrator. The notifier only tells the user and opens the page. `build/90-finalise.sh` fails the build if the page's settings module or its desktop entry is missing.
 

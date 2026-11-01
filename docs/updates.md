@@ -19,7 +19,10 @@ A while after you start the computer, and then about every six hours, OrielOS ch
 When a new version is ready, a notification says **Restart to update**:
 
 - **Restart to update** signs you out and restarts the computer into the new version. Save your work first.
+- **Pick a time** opens the update settings, where you choose when the computer restarts (see [Choosing when to restart](#choosing-when-to-restart)).
 - **Later** closes the notification. The new version still starts the next time you restart, whenever that is.
+
+While the computer restarts into the new version, the screen says **Installing updates…** for a moment as it finishes. Don't turn it off then. After the restart, a notification says which version is running, with **See what's new**.
 
 While a new version is ready, an **OrielOS updates** icon also shows in the system tray, at the right of the taskbar; hover over it to see what's waiting. Click it to open the update settings. Right-clicking it offers **Restart to update** and **Open update settings**. Once you've restarted, or when there's nothing to restart for, the icon goes away; the update settings in Settings show when OrielOS last checked.
 
@@ -30,16 +33,28 @@ OrielOS doesn't download updates over a metered connection, such as a phone hots
 **Update** in Settings holds everything about updates. Open it by clicking the **OrielOS updates** tray icon, or press Windows + I and choose **Update**. It shows the version you are running and when OrielOS last checked for updates, and offers:
 
 - **Check for updates**, to check straight away. The page says what the check found when it's done.
-- **Restart now**, while a new version is ready, or while going back is waiting for a restart.
+- **Restart now**, while a new version is ready, or while going back is waiting for a restart, and **Pick a time** to schedule that restart instead.
 - **Pause updates**, for 1 to 5 weeks. While updates are paused, OrielOS doesn't check for or download new versions, and the page shows the date they resume. **Resume updates** ends the pause early.
 - **Update channel**:
   - **Stable**, the default, gets versions that people have already used on the testing channel and that have passed checks on real hardware.
   - **Testing** gets new versions sooner, as soon as they pass OrielOS's automatic tests. Something may break now and then; you can always go back. If a testing version turns out to be bad, OrielOS takes it back, and computers on testing return to the earlier version at their next update check.
 
   Changing the channel asks for an administrator's password, and takes effect at the next check. To see what each version brings, see [What's in each version](#whats-in-each-version).
+- **Active hours** and **Restart automatically outside active hours** (see [Choosing when to restart](#choosing-when-to-restart)).
+- **Update history**: each version this computer has run, with the date it was installed, and **What's new in this version**, the changes the version you're running brought.
 - **Previous version**, while the computer keeps one: the date it's kept until, **Go back to the previous version…** (see [Going back yourself](#going-back-yourself)) and **Remove the previous version…** (see [How long the previous version is kept](#how-long-the-previous-version-is-kept)). Both ask for an administrator's password.
 
 Every option can be used from the keyboard: hold Alt to see each one's underlined letter.
+
+## Choosing when to restart
+
+OrielOS never restarts by itself unless you ask it to:
+
+- **Pick a time**, in the update settings or the notification, chooses a day in the next week and a time. The computer restarts then to finish the update, and the update settings say when, with **Don't restart then** to cancel it. Leave your work saved before then.
+- **Active hours** are the hours you usually use the computer, 8:00 to 17:00 until you change them.
+- **Restart automatically outside active hours**, off unless you turn it on, makes OrielOS schedule the restart itself once an update is ready: at 3:00 at night, or as your active hours end if 3:00 is within them. It never restarts the computer during your active hours.
+
+Restarting yourself before the scheduled time finishes the update as well, and the scheduled restart no longer happens.
 
 ## What's in each version
 
@@ -115,6 +130,10 @@ sudo orielos-update channel testing # or stable
 sudo orielos-update rollback        # go back to the previous version at the next restart
 sudo orielos-update remove-previous # remove the previous version now
 sudo orielos-update app-updates off # stop apps from the Store updating by themselves (or on)
+sudo orielos-update restart-at 2026-11-02T03:00:00Z  # restart then (UTC) to finish the update
+sudo orielos-update restart-at cancel                # drop the scheduled restart
+sudo orielos-update active-hours 9 18                # active hours from 9:00 to 18:00
+sudo orielos-update auto-restart on                  # restart by itself outside active hours (or off)
 ```
 
 ## Preparing a version yourself

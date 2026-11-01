@@ -109,8 +109,10 @@ fi
 # tray icon and the Update settings page; both units are enabled here for the same reason as above. No update state may be in
 # the image: it belongs to each computer.
 systemctl enable orielos-update-check.timer orielos-update-state.service orielos-app-update.timer
+# The update screen at shut down starts with whichever unit finishes a staged update.
+systemctl enable orielos-update-splash.service
 update_errors=()
-for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer; do
+for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer orielos-update-splash.service; do
     if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
         update_errors+=("$unit is not enabled")
     fi

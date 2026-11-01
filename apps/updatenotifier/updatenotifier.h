@@ -38,6 +38,8 @@ private:
     void showReadyNotification();
     void showGoBackNotification();
     void showUndoneNotification();
+    // After an update, once: which version is running now, with a way to see what's new.
+    void showInstalledNotification();
     void restart();
     void openSettings();
     void watchStateFile();

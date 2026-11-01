@@ -46,8 +46,9 @@ Title=Restarting
 
 [updates]
 SuppressMessages=true
-ProgressBarShowPercentComplete=true
-UseProgressBar=true
+# bootc reports no progress as it finishes an update, so the spinner shows instead of a bar.
+ProgressBarShowPercentComplete=false
+UseProgressBar=false
 Title=Installing updates…
 SubTitle=Don't turn off your computer
 

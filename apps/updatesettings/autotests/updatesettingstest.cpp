@@ -4,6 +4,7 @@
 #include "updatesettings.h"
 
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
@@ -305,6 +306,16 @@ private Q_SLOTS:
         QJsonObject appsOff = upToDate();
         appsOff.insert(QStringLiteral("appUpdates"), false);
         QTest::newRow("app updates on") << appsOff << QStringLiteral("apps on") << QStringList { QStringLiteral("app-updates"), QStringLiteral("on") };
+        QTest::newRow("active hours") << upToDate() << QStringLiteral("hours 9 18")
+                                      << QStringList { QStringLiteral("active-hours"), QStringLiteral("9"), QStringLiteral("18") };
+        QTest::newRow("auto restart") << upToDate() << QStringLiteral("auto on") << QStringList { QStringLiteral("auto-restart"), QStringLiteral("on") };
+        QJsonObject staged = upToDate();
+        staged.insert(QStringLiteral("staged"), build(QStringLiteral("44.2"), newer));
+        const QString tomorrowAtThree = QDateTime(now.toLocalTime().date().addDays(1), QTime(3, 0)).toUTC().toString(Qt::ISODate);
+        QTest::newRow("schedule") << staged << QStringLiteral("schedule") << QStringList { QStringLiteral("restart-at"), tomorrowAtThree };
+        QJsonObject scheduled = staged;
+        scheduled.insert(QStringLiteral("restartAt"), QStringLiteral("2026-10-26T03:00:00Z"));
+        QTest::newRow("cancel") << scheduled << QStringLiteral("cancel") << QStringList { QStringLiteral("restart-at"), QStringLiteral("cancel") };
     }
 
     void runsOrielosUpdate()
@@ -335,6 +346,14 @@ private Q_SLOTS:
         settings.removePrevious();
         // App updates are on already.
         settings.setAppUpdates(true);
+        // Nothing waits for a restart, the hours are already 8 to 17 or can't be, and automatic
+        // restarts are already off.
+        settings.scheduleRestart(1, 3, 0);
+        settings.cancelRestart();
+        settings.setActiveHours(8, 17);
+        settings.setActiveHours(5, 5);
+        settings.setActiveHours(0, 24);
+        settings.setAutoRestart(false);
         QVERIFY(page.runner.calls.isEmpty());
 
         QJsonObject staged = withPrevious(upToDate());
@@ -415,6 +434,32 @@ private Q_SLOTS:
         page.write(testing);
         page.runner.finish(CommandRunner::Outcome::Succeeded);
         QCOMPARE(settings.channel(), 1);
+    }
+
+    void readsRestartsAndHistory()
+    {
+        QJsonObject state = upToDate();
+        state.insert(QStringLiteral("staged"), build(QStringLiteral("44.2"), newer));
+        state.insert(QStringLiteral("restartAt"), QStringLiteral("2026-10-26T03:00:00Z"));
+        state.insert(QStringLiteral("activeHours"), QJsonObject { { QStringLiteral("start"), 9 }, { QStringLiteral("end"), 18 } });
+        state.insert(QStringLiteral("autoRestart"), true);
+        state.insert(QStringLiteral("history"),
+            QJsonArray { QJsonObject { { QStringLiteral("version"), QStringLiteral("44.1") }, { QStringLiteral("startedAt"), QStringLiteral("2026-10-24T08:00:00Z") } } });
+        Page page(state);
+        QVERIFY(page.settings->restartScheduled());
+        QVERIFY(!page.settings->restartAt().isEmpty());
+        QCOMPARE(page.settings->activeHoursStart(), 9);
+        QCOMPARE(page.settings->activeHoursEnd(), 18);
+        QVERIFY(page.settings->autoRestart());
+        QCOMPARE(page.settings->history().size(), 1);
+        QCOMPARE(page.settings->history().first().toMap().value(QStringLiteral("version")).toString(), QStringLiteral("44.1"));
+        QCOMPARE(page.settings->restartDays().size(), 7);
+        QCOMPARE(page.settings->hourChoices().size(), 24);
+
+        // Once nothing waits for it, a scheduled restart isn't shown.
+        state.insert(QStringLiteral("staged"), QJsonValue::Null);
+        Page done(state);
+        QVERIFY(!done.settings->restartScheduled());
     }
 
     void readsAppUpdates()
@@ -538,6 +583,14 @@ private:
             settings.setAppUpdates(false);
         } else if (invocation == QLatin1String("apps on")) {
             settings.setAppUpdates(true);
+        } else if (invocation == QLatin1String("hours 9 18")) {
+            settings.setActiveHours(9, 18);
+        } else if (invocation == QLatin1String("auto on")) {
+            settings.setAutoRestart(true);
+        } else if (invocation == QLatin1String("schedule")) {
+            settings.scheduleRestart(1, 3, 0);
+        } else if (invocation == QLatin1String("cancel")) {
+            settings.cancelRestart();
         }
     }
 };

@@ -90,6 +90,8 @@ COPY image/system/etc/ /etc/
 COPY --from=app-builder /out/usr/ /usr/
 # Apps install their XDG autostart entries to /etc/xdg/autostart, which Plasma reads at login.
 COPY --from=app-builder /out/etc/ /etc/
+# Settings' Update page shows what's new in the running version from OrielOS's changelog.
+COPY CHANGELOG.md /usr/share/doc/orielos/CHANGELOG.md
 
 # The module and driver check runs once every package is installed. It is its own layer, so a
 # failure names the step, and it has image/ mounted to read the allowed signers.
