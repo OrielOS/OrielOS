@@ -6,9 +6,9 @@
 
 // The welcome screen between signing in and the desktop. It carries on from the sign-in screen
 // (image/sddm/orielos/Main.qml): the same blurred wallpaper, with the account picture and name in
-// the same place, and a spinner and "Welcome" where the password box was. Plasma's splash program
-// sets `stage` as the desktop starts and closes the window once it is ready. The first sign-in's
-// screen (org.orielos.firstsignin) is this one with another message.
+// the same place, and a thin line where the password box was that fills as Plasma's splash program
+// raises `stage`; the program closes the window once the desktop is ready. Everyday sign-ins show
+// no words. The first sign-in's screen (org.orielos.firstsignin) is this one with a message.
 
 import QtQuick
 import QtQuick.Layouts
@@ -22,8 +22,8 @@ Rectangle {
     id: root
 
     property int stage
-    // What it says beside the spinner.
-    property string message: i18ndc("plasma_lookandfeel_org.kde.lookandfeel", "@info:status shown while the desktop starts after signing in", "Welcome")
+    // What it says under the line, if anything.
+    property string message
 
     color: "#0C1530"
 
@@ -96,22 +96,46 @@ Rectangle {
         }
 
         // Where the password box was: the same height, so nothing moves.
-        RowLayout {
+        Item {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: Kirigami.Units.gridUnit * 1.5
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 16
             Layout.preferredHeight: Kirigami.Units.gridUnit * 3
-            spacing: Kirigami.Units.largeSpacing
 
-            PlasmaComponents3.BusyIndicator {
-                Layout.preferredWidth: Kirigami.Units.gridUnit * 2
-                Layout.preferredHeight: Kirigami.Units.gridUnit * 2
-                running: root.stage < 6
+            // The line: the account picture's ring colour over a faint track, filling as the
+            // desktop starts. Plasma raises `stage` to 6 when it is ready.
+            Rectangle {
+                id: track
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: Math.round(parent.height / 2) - (root.message ? Kirigami.Units.gridUnit : 0)
+                width: 120
+                height: 3
+                radius: height / 2
+                color: Qt.rgba(1, 1, 1, 0.18)
+
+                Rectangle {
+                    height: parent.height
+                    radius: parent.radius
+                    color: "#9CC2FF"
+                    width: parent.width * Math.max(0.08, Math.min(root.stage, 6) / 6)
+
+                    Behavior on width {
+                        NumberAnimation {
+                            duration: Kirigami.Units.veryLongDuration
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
             }
             PlasmaComponents3.Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: track.bottom
+                anchors.topMargin: Kirigami.Units.gridUnit
+                visible: text.length > 0
                 text: root.message
                 textFormat: Text.PlainText
-                color: "#FFFFFF"
-                font.pixelSize: 20
+                color: Qt.rgba(1, 1, 1, 0.85)
+                font.pixelSize: 16
             }
         }
     }

@@ -10,7 +10,7 @@ The OrielOS desktop works the way you expect if you're coming from Windows: a ta
 - **Search** and **Task View** come next. Search opens Start ready to type; Task View shows all your windows and desktops, as Windows + Tab does. Resting the pointer on Task View shows your desktops, to click one or **New desktop**.
 - **Your pinned apps** sit beside it: Files, Firefox and the Store to begin with. Click one to open it, or to switch to it if it's already open. Apps you open that aren't pinned appear next to them while they run. Point at a running app to see its windows; click an app with several windows to choose one from their thumbnails, and rest on a thumbnail to see just that window. Windows + 1 to 9 opens or switches to the app in that place.
 - **To pin or unpin an app**, right-click it on the taskbar and choose **Pin to taskbar** or **Unpin from taskbar**. You can also pin apps from Start.
-- **Right-click an empty part of the taskbar** for **Process Manager** and **Taskbar settings**.
+- **Right-click an empty part of the taskbar** for **System Monitor** and **Taskbar settings**.
 - **Settings > Personalisation > Taskbar** moves the taskbar's apps to the left, hides the taskbar until you point at the bottom of the screen, shows each window as its own button with its title (**Combine taskbar buttons: Never**), shows the taskbar on every display, each with that display's windows, peeks at the desktop while you point at the far corner, turns the Search and Task View buttons off and shows seconds in the clock.
 
 ## The right of the taskbar
@@ -64,13 +64,13 @@ A touchpad clicks when you tap it, and two fingers scroll the page the way Windo
 
 Screenshot is also in Start, under that name.
 
-## Process Manager
+## System Monitor
 
-When an app stops responding, press Ctrl + Shift + Esc to open **Process Manager**. It shows what's running and how much of the processor, memory, disk and network each app uses. Select the app and choose **End process** to close it.
+When an app stops responding, press Ctrl + Shift + Esc to open **System Monitor**. It shows what's running and how much of the processor, memory, disk and network each app uses. Select the app and choose **End process** to close it.
 
-![Process Manager, with graphs of processor, memory, disk and network use above a list of running applications](images/process-manager.webp)
+![System Monitor, with graphs of processor, memory, disk and network use above a list of running applications](images/system-monitor.webp)
 
-When the computer is nearly out of memory, a notification says **Your computer is low on memory** and offers **Open Process Manager**, so you can see which apps use the most and close some.
+When the computer is nearly out of memory, a notification says **Your computer is low on memory** and offers **Open System Monitor**, so you can see which apps use the most and close some.
 
 ## Light and dark
 
@@ -80,7 +80,7 @@ OrielOS has a light and a dark look. Switch between them in **Settings > Persona
 
 ## Locking and signing out
 
-Press Windows + L to lock the screen. While it is locked, the bottom right of the screen shows the apps that sent you notifications since you locked it, with how many from each, and the network and battery; above the bottom, the next item in your calendar within the week. The screen turns off after a minute without input. After you sign in, a Welcome screen shows your picture and name until the desktop is ready. Your account and the power button at the bottom of Start sign you out, lock, put the PC to sleep, restart it or shut it down.
+Press Windows + L to lock the screen. While it is locked, the bottom right of the screen shows the apps that sent you notifications since you locked it, with how many from each, and the network and battery; above the bottom, the next item in your calendar within the week. The screen turns off after a minute without input. After you sign in, your picture and name stay on screen, with a thin line that fills until the desktop is ready. Your account and the power button at the bottom of Start sign you out, lock, put the PC to sleep, restart it or shut it down.
 
 After five wrong passwords in a row, the lock screen and the sign-in screen ask you to type the characters they show, such as A1B2C3, and then wait 30 seconds before taking a password again; each time after that, the wait doubles, up to 15 minutes.
 

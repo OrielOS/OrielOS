@@ -101,7 +101,7 @@ public:
         };
         static const QHash<QString, QString> apps = {
             { QStringLiteral("terminal"), QStringLiteral("org.kde.konsole") },
-            { QStringLiteral("process-manager"), QStringLiteral("org.kde.plasma-systemmonitor") },
+            { QStringLiteral("system-monitor"), QStringLiteral("org.kde.plasma-systemmonitor") },
             { QStringLiteral("files"), QStringLiteral("org.kde.dolphin") },
         };
         static const QHash<QString, QString> sessionMethods = {

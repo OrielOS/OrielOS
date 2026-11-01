@@ -161,7 +161,7 @@ flatpak-kcm
 fedora-flathub-remote
 
 # The everyday system tools: Files, Terminal, Screenshot and archive support in Files.
-# Process Manager (plasma-systemmonitor), System Settings, the system information page
+# System Monitor (plasma-systemmonitor), System Settings, the system information page
 # (kinfocenter) and Discover are listed above.
 dolphin
 kio-extras

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Windows keyboard shortcuts and plain names for the system tools. Gives System Monitor
 # Ctrl+Shift+Esc, KRunner Win+R and Spectacle a Win+PrtSc action that saves a full screenshot
-# without a dialog, moves the Spectacle shortcuts those keys clash with, and renames System
-# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files, gives Win+. to OrielOS's
+# without a dialog, moves the Spectacle shortcuts those keys clash with, and renames
+# Spectacle and Dolphin to Screenshot and Files (System Monitor keeps its name), gives Win+. to OrielOS's
 # emoji panel instead of Plasma's emoji selector, and renames the taskbar widget
 # to Taskbar. System Settings gives Win+I and its place in Start to OrielOS's Settings app, and
 # Plasma's screen picker gives Win+P to OrielOS's Display mode panel. The
@@ -59,10 +59,9 @@ link_accel() {
     ln -sf "$apps/$name" "$accel/$name"
 }
 
-# Process Manager: System Monitor, on Ctrl+Shift+Esc as well as Plasma's Win+Esc.
+# System Monitor, under its own name, on Ctrl+Shift+Esc as well as Plasma's Win+Esc.
 monitor=$apps/org.kde.plasma-systemmonitor.desktop
-rename_entry "$monitor" "System Monitor" "Process Manager" "System monitor" "$script"
-add_keywords "$monitor" "System monitor" "processes;tasks;end task;not responding;performance;cpu;memory;"
+add_keywords "$monitor" "System Monitor" "processes;tasks;end task;not responding;performance;cpu;memory;"
 set_shortcuts "$monitor" "Desktop Entry" "Meta+Esc" "Ctrl+Shift+Esc,Meta+Esc"
 link_accel org.kde.plasma-systemmonitor.desktop
 

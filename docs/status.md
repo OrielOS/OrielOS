@@ -27,7 +27,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 - **The taskbar** with Start and your pinned apps in the middle, and the system tray, clock and show-desktop corner on the right. Checked on the laptop, and in virtual machines.
 - **Start**: search for apps, settings and files, pinned apps, All apps, recommendations, and the account and power buttons. See [Using Start](start-menu.md).
-- **Windows keyboard shortcuts** for Start, Files, Run, Process Manager, Screenshot, the clipboard history, the overview and snapping windows. See [Keyboard shortcuts](keyboard-shortcuts.md).
+- **Windows keyboard shortcuts** for Start, Files, Run, System Monitor, Screenshot, the clipboard history, the overview and snapping windows. See [Keyboard shortcuts](keyboard-shortcuts.md).
 - **Snap layouts** (Windows + Z), **light and dark themes**, OrielOS's wallpapers, sounds, boot splash, sign-in and lock screens. Checked in virtual machines.
 - **Wi-Fi, Bluetooth, sound, the display's resolution and refresh rate, keyboard and touchpad.** Checked on the laptop.
 
@@ -59,7 +59,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 - **Run this app is new:** Windows programs run with a double-click, but it has been tried with only a few programs (see [Windows programs](windows-programs.md)). **(testing; not yet in stable v0.0.7)**
 - **No game has been played on OrielOS yet** in its tests: Steam and the graphics driver work, but playing games is the next step.
 - **Sleep and wake** haven't been checked on a real PC yet.
-- **The first start's welcome page** still says "Welcome to Plasma Desktop", over Plasma's own picture.
+- **The first start's welcome page** still says "Welcome to Plasma Desktop", the name of the desktop OrielOS is built on.
 - **OrielOS's own parts are in English only.**
 
 [Known limitations](known-limitations.md) lists these and more, including what OrielOS won't do by design, such as Hibernate.

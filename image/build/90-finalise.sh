@@ -56,6 +56,11 @@ for f in /usr/share/polkit-1/actions/org.orielos.first-run.policy /usr/share/pol
     /usr/share/plasma/packages/org.kde.plasmasetup.finished/contents/ui/konqi-calling.png; do
     [[ -r "$f" ]] || first_run_errors+=("$f is missing")
 done
+# The welcome screen's picture: orielos-first-run.conf links the OrielOS wallpaper over the name
+# Fedora's Plasma Setup reads, which is Fedora's own Default wallpaper.
+if [[ ! -e /usr/share/wallpapers/Default/contents/images/5120x2880.jxl ]]; then
+    first_run_errors+=("Fedora's wallpaper is no longer Default/contents/images/5120x2880.jxl, so Plasma Setup may read another name; update orielos-first-run.conf")
+fi
 if [[ "${#first_run_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${first_run_errors[@]}" >&2
     exit 1

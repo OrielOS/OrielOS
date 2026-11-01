@@ -5,7 +5,7 @@
 // clicking an app with several windows shows their thumbnails, resting on a thumbnail shows only
 // that window (peek), Win+A opens Quick Settings, Win+B the hidden tray icons, and right-clicking
 // empty taskbar space
-// offers Process Manager and Taskbar settings (org.orielos.panelmenu). Settings the user changed
+// offers System Monitor and Taskbar settings (org.orielos.panelmenu). Settings the user changed
 // from Plasma's defaults, a shortcut they gave the tray, and another right-click menu they chose are
 // kept. Plasma runs this once per user; the right-click menu shows from the next sign-in.
 

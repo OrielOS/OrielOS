@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Windows' "Your computer is low on memory": when less than 5 % of the memory is free and the swap
-# is nearly full too, a notification asks to close apps, with a button that opens Process Manager.
+# is nearly full too, a notification asks to close apps, with a button that opens System Monitor.
 # It warns at most once every ten minutes. orielos-low-memory-warning.timer runs it each minute.
 #   low-memory-warning [--meminfo FILE] [--dry-run]   (for the tests)
 set -Euo pipefail
@@ -51,9 +51,9 @@ fi
 touch -- "$state"
 
 choice="$(notify-send --app-name=OrielOS --icon=dialog-warning --urgency=critical \
-    --action=open="Open Process Manager" \
+    --action=open="Open System Monitor" \
     "Your computer is low on memory" \
-    "Close some apps to free up memory. Process Manager shows which apps use the most." 2>/dev/null || true)"
+    "Close some apps to free up memory. System Monitor shows which apps use the most." 2>/dev/null || true)"
 if [[ "$choice" == open ]]; then
     kioclient exec /usr/share/applications/org.kde.plasma-systemmonitor.desktop >/dev/null 2>&1 &
 fi

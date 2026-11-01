@@ -91,7 +91,7 @@ To check that Secure Boot is on, open the virtual machine's **Settings > Options
 
 ## What happens on first boot
 
-The first start takes under a minute. Then the setup opens with a "Welcome to Plasma Desktop" page, over Plasma's own picture. Click **Begin Setup**, and it asks, one page at a time, for:
+The first start takes under a minute. Then the setup opens with a "Welcome to Plasma Desktop" page over the OrielOS wallpaper. Click **Begin Setup**, and it asks, one page at a time, for:
 
 1. your language;
 2. your keyboard layout;
