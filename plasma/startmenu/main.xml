@@ -34,6 +34,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <label>The shortcuts next to the power button: settings, files, documents, downloads, music, pictures, videos, network and personal. Settings, Personalisation, Start, changes them.</label>
       <default>files,downloads,settings</default>
     </entry>
+    <entry name="pinFolders" type="String">
+      <label>The folders of pinned apps, as JSON: each folder's key with its name and its apps' desktop entry IDs. A folder's place among the pinned apps is a folder:key entry in favorites.</label>
+      <default>{}</default>
+    </entry>
     <entry name="allAppsView" type="String">
       <label>How All apps lists the apps: list (by letter), grid or category.</label>
       <default>list</default>

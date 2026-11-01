@@ -119,10 +119,34 @@ QtObject {
     property var categories: []
 
     // The pinned apps. Plasmoid.configuration.favorites is the only record of them: the model
-    // drops apps that aren't installed (yet) from its own list, so it is never written back.
-    readonly property Kicker.SimpleFavoritesModel favoritesModel: Kicker.SimpleFavoritesModel {}
+    // drops apps that aren't installed (yet) from its own list, so it is never written back. A
+    // folder of pins takes its place in the list as "folder:<key>".
+    readonly property Kicker.SimpleFavoritesModel favoritesModel: Kicker.SimpleFavoritesModel {
+        onCountChanged: state.rebuildPinned()
+    }
     readonly property var pinnedIds: Array.from(Plasmoid.configuration.favorites ?? []).map(id => state.normaliseId(String(id)))
     onPinnedIdsChanged: state.syncFavorites()
+    // The folders of pins, by key: { name, apps }, where apps are desktop entry IDs in order.
+    readonly property var pinFolders: {
+        try {
+            const folders = JSON.parse(String(Plasmoid.configuration.pinFolders || "{}"));
+            return folders && typeof folders === "object" ? folders : {};
+        } catch (error) {
+            return {};
+        }
+    }
+    onPinFoldersChanged: state.syncFavorites()
+    // Every app in a folder, for looking up their names, icons and actions.
+    readonly property var folderAppIds: Object.values(state.pinFolders).reduce((all, folder) => all.concat(Array.from(folder.apps ?? []).map(id => String(id))), [])
+    readonly property Kicker.SimpleFavoritesModel folderAppsModel: Kicker.SimpleFavoritesModel {
+        onCountChanged: state.rebuildPinned()
+    }
+    // What the pinned grid shows, in order: { folder: false, id, row } for an app, row being its
+    // row in favoritesModel, or { folder: true, key, name, apps: [{ id, row }] } for a folder, rows
+    // in folderAppsModel. Apps that aren't installed are left out, as the model leaves them out.
+    property var pinnedEntries: []
+    // The folder open over the pinned apps, by key, or "" when none is.
+    property string openFolder: ""
 
     // Apps installed in the last few days, as RootModel records them.
     readonly property int newlyInstalledRole: allAppsModel ? allAppsModel.KItemModels.KRoleNames.role("isNewlyInstalled") : -1
@@ -197,11 +221,167 @@ QtObject {
     }
 
     function isPinned(id: string): bool {
-        return state.pinnedIds.includes(normaliseId(id));
+        const appId = normaliseId(id);
+        return state.pinnedIds.includes(appId) || state.folderAppIds.includes(appId);
     }
 
     function syncFavorites() {
-        state.favoritesModel.favorites = state.pinnedIds;
+        state.favoritesModel.favorites = state.pinnedIds.filter(id => state.isAppId(id));
+        // Bindings may not have been worked out yet while the configuration first loads.
+        state.folderAppsModel.favorites = state.folderAppIds ?? [];
+        state.rebuildPinned();
+    }
+
+    // The row of the app with this ID in a favourites model, or -1.
+    function favoriteRow(model, id: string): int {
+        const role = model.KItemModels.KRoleNames.role("favoriteId");
+        for (let row = 0; row < model.count; ++row) {
+            if (normaliseId(String(model.data(model.index(row, 0), role) ?? "")) === id) {
+                return row;
+            }
+        }
+        return -1;
+    }
+
+    function rebuildPinned() {
+        const entries = [];
+        for (const id of state.pinnedIds) {
+            if (id.startsWith("folder:")) {
+                const key = id.slice("folder:".length);
+                const folder = state.pinFolders[key];
+                if (!folder) {
+                    continue;
+                }
+                const apps = Array.from(folder.apps ?? []).map(app => ({ id: String(app), row: state.favoriteRow(state.folderAppsModel, String(app)) }))
+                    .filter(app => app.row >= 0);
+                if (apps.length > 0) {
+                    entries.push({ folder: true, key: key, name: String(folder.name ?? ""), apps: apps });
+                }
+                continue;
+            }
+            const row = state.favoriteRow(state.favoritesModel, id);
+            if (row >= 0) {
+                entries.push({ folder: false, id: id, row: row });
+            }
+        }
+        state.pinnedEntries = entries;
+    }
+
+    // An entry's place in favorites: an app's ID or "folder:<key>".
+    function entryKey(entry): string {
+        return entry.folder ? "folder:" + entry.key : entry.id;
+    }
+
+    function writeFolders(folders) {
+        Plasmoid.configuration.pinFolders = JSON.stringify(folders);
+    }
+
+    // A copy of the folders that can be changed and written back.
+    function copyFolders(): var {
+        return JSON.parse(JSON.stringify(state.pinFolders));
+    }
+
+    // Dropping one pinned app on another makes a folder of the two, as in Windows; dropping it on
+    // a folder adds it there. Folders don't go into folders: dropping one moves it instead.
+    function combinePinned(fromIndex: int, toIndex: int) {
+        const from = state.pinnedEntries[fromIndex];
+        const to = state.pinnedEntries[toIndex];
+        if (!from || !to || fromIndex === toIndex) {
+            return;
+        }
+        if (from.folder) {
+            state.movePinned(fromIndex, toIndex);
+            return;
+        }
+        const folders = state.copyFolders();
+        let favorites = state.storedFavorites().filter(entry => normaliseId(entry) !== from.id);
+        if (to.folder) {
+            folders[to.key].apps = Array.from(folders[to.key].apps ?? []).concat([from.id]);
+        } else {
+            const key = Date.now().toString(36);
+            folders[key] = { name: KI18n.i18nc("@title The name a new folder of pinned apps starts with", "Folder"), apps: [to.id, from.id] };
+            favorites = favorites.map(entry => normaliseId(entry) === to.id ? "folder:" + key : entry);
+        }
+        state.writeFolders(folders);
+        Plasmoid.configuration.favorites = favorites;
+    }
+
+    // Moves a pinned app or folder to just before the entry at beforeIndex, or to the end.
+    function movePinned(fromIndex: int, beforeIndex: int) {
+        const entries = state.pinnedEntries;
+        if (fromIndex < 0 || fromIndex >= entries.length) {
+            return;
+        }
+        const moving = state.entryKey(entries[fromIndex]);
+        const before = beforeIndex >= 0 && beforeIndex < entries.length ? state.entryKey(entries[beforeIndex]) : "";
+        const favorites = state.storedFavorites().filter(entry => normaliseId(entry) !== moving);
+        const at = before.length > 0 ? favorites.findIndex(entry => normaliseId(entry) === before) : -1;
+        favorites.splice(at < 0 ? favorites.length : at, 0, moving);
+        Plasmoid.configuration.favorites = favorites;
+    }
+
+    function renameFolder(key: string, name: string) {
+        const folders = state.copyFolders();
+        if (!folders[key]) {
+            return;
+        }
+        const trimmed = name.trim();
+        folders[key].name = trimmed.length > 0 ? trimmed : KI18n.i18nc("@title The name a new folder of pinned apps starts with", "Folder");
+        state.writeFolders(folders);
+    }
+
+    // Takes an app out of a folder, to just after the folder. A folder left with one app turns
+    // back into that app, as in Windows.
+    function moveOutOfFolder(key: string, id: string) {
+        const folders = state.copyFolders();
+        const folder = folders[key];
+        if (!folder) {
+            return;
+        }
+        const appId = normaliseId(id);
+        folder.apps = Array.from(folder.apps ?? []).filter(app => app !== appId);
+        let favorites = state.storedFavorites();
+        const at = favorites.indexOf("folder:" + key);
+        favorites.splice(at < 0 ? favorites.length : at + 1, 0, appId);
+        favorites = state.dissolveSmallFolder(folders, key, favorites);
+        state.writeFolders(folders);
+        Plasmoid.configuration.favorites = favorites;
+        if (!folders[key]) {
+            state.openFolder = "";
+        }
+    }
+
+    // A folder with one app left becomes that app, and an empty one goes. Returns favorites with
+    // the folder's place changed, and removes it from folders.
+    function dissolveSmallFolder(folders, key: string, favorites): var {
+        const apps = Array.from(folders[key]?.apps ?? []);
+        if (apps.length > 1) {
+            return favorites;
+        }
+        delete folders[key];
+        return apps.length === 1 ? favorites.map(entry => entry === "folder:" + key ? apps[0] : entry) : favorites.filter(entry => entry !== "folder:" + key);
+    }
+
+    function launchFolderApp(row: int) {
+        if (state.folderAppsModel.trigger(row, "", null)) {
+            state.close();
+        }
+    }
+
+    function openFolderAppMenu(key: string, app, item: Item, x: real, y: real, fromKeyboard: bool) {
+        const entries = [
+            {
+                text: KI18n.i18nc("@action:inmenu Take a pinned app out of its folder", "Move out of folder"),
+                icon: "folder-open",
+                handler: () => state.moveOutOfFolder(key, app.id),
+            },
+            { separator: true },
+        ];
+        const row = state.allAppsRow(app.id);
+        const others = row >= 0
+            ? state.contextEntries(state.allAppsModel, () => row, app.id, state.allAppsData(row, "actionList"), -1)
+            : state.contextEntries(state.folderAppsModel, () => app.row, app.id, state.folderAppsModel.data(state.folderAppsModel.index(app.row, 0), state.folderAppsModel.KItemModels.KRoleNames.role("actionList")), -1);
+        state.contextMenu.show(entries.concat(others), item, x, y, fromKeyboard);
     }
 
     function storedFavorites(): var {
@@ -220,7 +400,25 @@ QtObject {
 
     function unpin(id: string) {
         const appId = normaliseId(id);
-        Plasmoid.configuration.favorites = storedFavorites().filter(entry => normaliseId(entry) !== appId);
+        let favorites = storedFavorites().filter(entry => normaliseId(entry) !== appId);
+        // An app in a folder leaves the folder.
+        const folders = state.copyFolders();
+        let changed = false;
+        for (const key of Object.keys(folders)) {
+            const apps = Array.from(folders[key].apps ?? []);
+            if (apps.includes(appId)) {
+                folders[key].apps = apps.filter(app => app !== appId);
+                favorites = state.dissolveSmallFolder(folders, key, favorites);
+                changed = true;
+            }
+        }
+        if (changed) {
+            state.writeFolders(folders);
+            if (!folders[state.openFolder]) {
+                state.openFolder = "";
+            }
+        }
+        Plasmoid.configuration.favorites = favorites;
     }
 
     function moveToFront(id: string) {
@@ -421,10 +619,20 @@ QtObject {
         state.contextMenu.close();
         state.plasmoidItem.expanded = false;
         state.searchFilter = "all";
+        state.openFolder = "";
     }
 
+    // Opens a pinned app, or opens a folder in place over the pinned apps.
     function launchPinned(index: int) {
-        if (state.favoritesModel.trigger(index, "", null)) {
+        const entry = state.pinnedEntries[index];
+        if (!entry) {
+            return;
+        }
+        if (entry.folder) {
+            state.openFolder = entry.key;
+            return;
+        }
+        if (state.favoritesModel.trigger(entry.row, "", null)) {
             state.close();
         }
     }
@@ -582,14 +790,19 @@ QtObject {
     }
 
     function openPinnedMenu(index: int, item: Item, x: real, y: real, fromKeyboard: bool) {
-        const appId = String(state.favoritesData(index, "favoriteId") ?? "");
+        const entry = state.pinnedEntries[index];
+        if (!entry || entry.folder) {
+            return;
+        }
+        const appId = entry.id;
+        const favoriteRow = entry.row;
         // The all-apps model's entry knows the applet, so its actions include adding the app to
         // the desktop or the taskbar.
         const row = state.allAppsRow(appId);
         if (row >= 0) {
             state.openContextMenu(state.allAppsModel, () => row, appId, state.allAppsData(row, "actionList"), index, item, x, y, fromKeyboard);
         } else {
-            state.openContextMenu(state.favoritesModel, () => index, appId, state.favoritesData(index, "actionList"), index, item, x, y, fromKeyboard);
+            state.openContextMenu(state.favoritesModel, () => favoriteRow, appId, state.favoritesData(favoriteRow, "actionList"), index, item, x, y, fromKeyboard);
         }
     }
 
@@ -713,6 +926,7 @@ QtObject {
         state.showingAllApps = false;
         state.showingMore = false;
         state.searchHome = false;
+        state.openFolder = "";
         if (wasMore) {
             state.rebuildRecommended();
         }

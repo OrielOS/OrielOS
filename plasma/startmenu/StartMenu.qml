@@ -282,6 +282,8 @@ FocusScope {
             if (root.menu.searching) {
                 searchField.clear();
                 searchField.forceActiveFocus(Qt.OtherFocusReason);
+            } else if (root.menu.openFolder.length > 0) {
+                root.menu.openFolder = "";
             } else if (root.menu.showingAllApps || root.menu.showingMore || root.menu.searchHome) {
                 root.menu.showHome();
                 searchField.forceActiveFocus(Qt.OtherFocusReason);
