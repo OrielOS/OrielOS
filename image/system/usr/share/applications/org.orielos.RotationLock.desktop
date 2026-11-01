@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Lock screen rotation
+Comment=Stops the screen turning with the device, or lets it turn again
+Exec=/usr/libexec/orielos/rotation-lock
+Icon=rotation-locked-portrait
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Meta+O

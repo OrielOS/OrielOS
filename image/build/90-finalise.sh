@@ -156,15 +156,19 @@ grep -qxF 'X-KDE-Shortcuts=Alt+F2,Search' /usr/share/kglobalaccel/org.kde.krunne
 [[ -x /usr/bin/orielos-emoji ]] || update_errors+=("/usr/bin/orielos-emoji is missing")
 grep -qxF 'X-KDE-Shortcuts=Meta+.,Meta+;' /usr/share/kglobalaccel/org.orielos.EmojiPanel.desktop 2>/dev/null || update_errors+=("the emoji panel doesn't have Win+.")
 grep -qxF 'X-KDE-Shortcuts=Meta+Ctrl+Alt+Shift+Space' /usr/share/kglobalaccel/org.kde.plasma.emojier.desktop || update_errors+=("Plasma's emoji selector still has Win+.")
-# OrielOS's own shortcuts that run a script: HDR on Win+Alt+B, the contrast theme on Left Alt+Left
-# Shift+Print Screen and Mouse Keys on Left Alt+Left Shift+Num Lock. Their hidden entries are with
-# the apps, where kglobalaccel finds a new one, and in kglobalaccel's own folder, as the Run box's.
-for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
+# OrielOS's own shortcuts that run a script: HDR on Win+Alt+B, rotation lock on Win+O, resetting
+# the screens on Win+Ctrl+Shift+B, the contrast theme on Left Alt+Left Shift+Print Screen and Mouse
+# Keys on Left Alt+Left Shift+Num Lock. Their hidden entries are with the apps, where kglobalaccel
+# finds a new one, and in kglobalaccel's own folder, as the Run box's.
+for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.RotationLock:Meta+O org.orielos.ResetDisplays:Meta+Ctrl+Shift+B     org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
     name="${entry%%:*}.desktop"
     ln -sf "../applications/$name" "/usr/share/kglobalaccel/$name"
     grep -qxF "X-KDE-Shortcuts=${entry#*:}" "/usr/share/kglobalaccel/$name" 2>/dev/null || update_errors+=("$name doesn't have ${entry#*:}")
 done
 [[ -x /usr/libexec/orielos/accessibility-keys ]] || update_errors+=("/usr/libexec/orielos/accessibility-keys is not executable")
+for f in rotation-lock reset-displays; do
+    [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
+done
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
 grep -qxF 'NoDisplay=true' /usr/share/applications/org.kde.kinfocenter.desktop || update_errors+=("Info Center is still listed in Start")
 # One settings app: System Settings', kcmshell6's and Info Center's commands open Settings, and
