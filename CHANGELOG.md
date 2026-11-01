@@ -4,6 +4,8 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-11-01
+
 ### Added
 
 - Run this app: double-clicking a Windows program (`.exe` or `.msi`) shows the file and the website it came from and asks first, then runs it through GE-Proton in a Windows set-up of its own. The shortcuts its installer makes appear in Start, and a program that isn't an installer can be added to Start. [Windows programs](docs/windows-programs.md) explains it.
