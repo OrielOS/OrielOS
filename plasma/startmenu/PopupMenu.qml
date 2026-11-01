@@ -4,10 +4,14 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import org.kde.ki18n
 import org.kde.plasma.components as PC3
 
 // A menu whose entries are built each time it opens, from a list of plain objects:
 //   { text, icon, enabled, handler }   an item that calls handler() when chosen
+//   ..., pin: { pinned, handler }      the same, with a pin button at its end, as for a file in a
+//                                      jump list: shown while the item is hovered or highlighted, or
+//                                      always once pinned; pressing it calls pin.handler()
 //   { title: true, text }              a heading
 //   { separator: true }                a separator
 // The context menus' entries depend on the item they open for, so they can't be declared.
@@ -95,6 +99,7 @@ PC3.Menu {
                 enabled: !entry.title && (entry.enabled ?? true),
                 heading: entry.title ?? false,
                 handler: entry.handler ?? null,
+                pin: entry.pin ?? null,
             });
         }
         if (object) {
@@ -175,8 +180,10 @@ PC3.Menu {
             property string iconName: ""
             property bool heading: false
             property var handler: null
+            property var pin: null
 
             icon.name: iconName
+            rightPadding: menuItem.pin ? pinButton.width + 8 : 0
             font.bold: heading
             hoverEnabled: root.pointerMoved
 
@@ -187,6 +194,27 @@ PC3.Menu {
             }
             Keys.onReturnPressed: menuItem.click()
             Keys.onEnterPressed: menuItem.click()
+
+            PC3.ToolButton {
+                id: pinButton
+
+                anchors.right: parent.right
+                anchors.rightMargin: 4
+                anchors.verticalCenter: parent.verticalCenter
+                visible: menuItem.pin !== null && (menuItem.pin.pinned || menuItem.hovered || menuItem.highlighted)
+                display: PC3.AbstractButton.IconOnly
+                icon.name: menuItem.pin && menuItem.pin.pinned ? "window-unpin" : "window-pin"
+                text: menuItem.pin && menuItem.pin.pinned
+                    ? KI18n.i18nc("@action:button A file in a jump list", "Unpin from this list")
+                    : KI18n.i18nc("@action:button A file in a jump list", "Pin to this list")
+                focusPolicy: Qt.NoFocus
+                PC3.ToolTip.text: pinButton.text
+                PC3.ToolTip.visible: pinButton.hovered
+                onClicked: {
+                    menuItem.pin.handler();
+                    root.close();
+                }
+            }
 
             // Sees the pointer even while the item ignores hovering.
             HoverHandler {

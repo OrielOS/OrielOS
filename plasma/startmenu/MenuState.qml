@@ -736,6 +736,25 @@ QtObject {
 
     // The entries of an entry's context menu, as openContextMenu shows them and the search's
     // actions pane lists them: { text, icon, handler }, or { separator } or { title, text }.
+    // Files pinned to an app's jump list, newest first. Plasmoid.configuration.pinnedFiles keeps them
+    // as the app's ID, a tab and the file's URL.
+    function pinnedFilesOf(appId: string): var {
+        const prefix = appId + "\t";
+        return Array.from(Plasmoid.configuration.pinnedFiles ?? []).map(entry => String(entry))
+            .filter(entry => entry.startsWith(prefix)).map(entry => entry.slice(prefix.length));
+    }
+    function setFilePinned(appId: string, url: string, pinned: bool) {
+        const key = appId + "\t" + url;
+        const files = Array.from(Plasmoid.configuration.pinnedFiles ?? []).map(entry => String(entry)).filter(entry => entry !== key);
+        if (pinned) {
+            files.unshift(key);
+        }
+        Plasmoid.configuration.pinnedFiles = files;
+    }
+    function fileNameOf(url: string): string {
+        return decodeURIComponent(url.split("/").pop() || url);
+    }
+
     function contextEntries(model, findRow, favoriteId: string, actionList, pinnedIndex: int): var {
         const entries = [];
         const appId = isAppId(favoriteId) ? normaliseId(favoriteId) : "";
@@ -755,7 +774,11 @@ QtObject {
             }
         }
 
-        // The entry's own actions, without leading, doubled or trailing separators.
+        // The entry's own actions, without leading, doubled or trailing separators. Its recent files
+        // can be pinned to the list, and pinned ones show under their own heading above them.
+        const pinnedFiles = appId.length > 0 ? state.pinnedFilesOf(appId) : [];
+        const fileIcons = {};
+        let recentAt = -1;
         const actions = [];
         for (const action of Array.from(actionList ?? [])) {
             if (action.type === "separator") {
@@ -767,6 +790,29 @@ QtObject {
             } else {
                 const actionId = action.actionId ?? "";
                 const argument = action.actionArgument;
+                if (actionId === "_kicker_recentDocument" && appId.length > 0) {
+                    const url = String(Array.from(argument ?? [])[0] ?? "");
+                    fileIcons[url] = typeof action.icon === "string" ? action.icon : "";
+                    if (recentAt < 0) {
+                        // Before the Recent Files heading.
+                        recentAt = actions.length > 0 && actions[actions.length - 1].title ? actions.length - 1 : actions.length;
+                    }
+                    if (pinnedFiles.includes(url)) {
+                        continue;
+                    }
+                    actions.push({
+                        text: String(action.text ?? ""),
+                        icon: fileIcons[url],
+                        pin: { pinned: false, handler: () => state.setFilePinned(appId, url, true) },
+                        handler: () => {
+                            const row = findRow();
+                            if (row >= 0 && model.trigger(row, actionId, argument)) {
+                                state.close();
+                            }
+                        },
+                    });
+                    continue;
+                }
                 actions.push({
                     text: state.actionLabel(actionId, String(action.text ?? "")),
                     icon: typeof action.icon === "string" ? action.icon : "",
@@ -778,6 +824,33 @@ QtObject {
                         }
                     },
                 });
+            }
+        }
+        if (pinnedFiles.length > 0) {
+            const pinned = [{ title: true, text: KI18n.i18nc("@title Files pinned to an app's jump list", "Pinned") }];
+            for (const url of pinnedFiles) {
+                pinned.push({
+                    text: state.fileNameOf(url),
+                    icon: fileIcons[url] || "text-x-generic",
+                    pin: { pinned: true, handler: () => state.setFilePinned(appId, url, false) },
+                    handler: () => {
+                        Plasmoid.openFileWith(appId, url); // qmllint disable missing-property
+                        state.close();
+                    },
+                });
+            }
+            if (recentAt < 0) {
+                if (actions.length > 0 && !actions[actions.length - 1].separator) {
+                    actions.push({ separator: true });
+                }
+                recentAt = actions.length;
+            }
+            actions.splice(recentAt, 0, ...pinned);
+        }
+        // A Recent Files heading with every file pinned has nothing under it.
+        for (let i = actions.length - 1; i >= 0; --i) {
+            if (actions[i].title && (i + 1 >= actions.length || actions[i + 1].title || actions[i + 1].separator)) {
+                actions.splice(i, 1);
             }
         }
         while (actions.length > 0 && actions[actions.length - 1].separator) {
