@@ -8,6 +8,8 @@
 #include <KJsonUtils>
 #include <KLocalizedString>
 
+#include <algorithm>
+
 namespace OrielOSSettings {
 
 SettingsSearch::SettingsSearch(PageCatalogue settings, QList<Page> others)
@@ -30,7 +32,7 @@ SettingsSearch SettingsSearch::installed()
         }
     }
     PageCatalogue settings(available.categories(), pages);
-    QList<Page> others = otherModules(settings, systemSettingsModules());
+    QList<Page> others = otherModules(settings, settingsModules());
     return SettingsSearch(std::move(settings), std::move(others));
 }
 
@@ -49,6 +51,8 @@ QList<Page> SettingsSearch::otherModules(const PageCatalogue &settings, const QL
         }
         out.append({ metadata.pluginId(), { }, metadata.name(), metadata.description(), keywords, metadata.pluginId(), metadata.iconName() });
     }
+    // By name, as More settings lists them.
+    std::sort(out.begin(), out.end(), [](const Page &a, const Page &b) { return QString::localeAwareCompare(a.title, b.title) < 0; });
     return out;
 }
 

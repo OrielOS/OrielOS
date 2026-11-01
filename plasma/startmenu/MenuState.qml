@@ -874,6 +874,12 @@ QtObject {
         }
     }
 
+    // The heading for a kind of search result: Discover's results are the Store's.
+    readonly property string storeSearchName: String(Plasmoid.storeSearchName ?? "") // qmllint disable missing-property
+    function groupTitle(group: string): string {
+        return group.length > 0 && group === state.storeSearchName ? KI18n.i18nc("@title Search results from the Store", "Store") : group;
+    }
+
     // A search result's kind, such as Applications or Settings.
     function resultGroup(row: int): string {
         const model = state.resultsModel;
@@ -881,7 +887,7 @@ QtObject {
             return "";
         }
         const roles = model.KItemModels.KRoleNames;
-        return String(model.data(model.index(row, 0), roles.role("group")) ?? "");
+        return state.groupTitle(String(model.data(model.index(row, 0), roles.role("group")) ?? ""));
     }
 
     // A search result's actions, for its context menu and the actions pane.

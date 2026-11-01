@@ -5,6 +5,7 @@
 #include <KIO/ApplicationLauncherJob>
 #include <KLocalizedString>
 #include <KPluginFactory>
+#include <KPluginMetaData>
 #include <KService>
 #include <KTerminalLauncherJob>
 #include <Plasma/Applet>
@@ -51,6 +52,9 @@ void openSettings(const QString &page)
 class StartApplet : public Plasma::Applet
 {
     Q_OBJECT
+    // The heading KRunner gives Discover's search results: its plugin's name, Software Centre in
+    // English, which no translation catalogue holds. Start shows them under Store instead.
+    Q_PROPERTY(QString storeSearchName READ storeSearchName CONSTANT)
 
 public:
     StartApplet(QObject *parent, const KPluginMetaData &data, const QVariantList &args)
@@ -86,6 +90,10 @@ private:
     }
 
 public:
+    QString storeSearchName() const
+    {
+        return KPluginMetaData::findPluginById(QStringLiteral("kf6/krunner"), QStringLiteral("krunner_appstream")).name();
+    }
 
     // Runs the menu's item with this id.
     Q_INVOKABLE void activatePowerUserItem(const QString &id)

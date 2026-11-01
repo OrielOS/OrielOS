@@ -315,6 +315,9 @@ main() {
         podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/plasma/containmentactions" "$STAGING/plugins/plasma/containmentactions"
         mkdir -p "$STAGING/plugins/plasma/kcms"
         podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/plasma/kcms/systemsettings" "$STAGING/plugins/plasma/kcms/systemsettings"
+        # Start's and KRunner's settings search.
+        mkdir -p "$STAGING/plugins/kf6"
+        podman cp "$CONTAINER:/out/usr/lib64/qt6/plugins/kf6/krunner" "$STAGING/plugins/kf6/krunner"
         podman cp "$CONTAINER:/out/usr/share/locale/en@orielos" "$STAGING/locale-en@orielos"
         mkdir -p "$STAGING/bin"
         podman cp "$CONTAINER:/out/usr/bin/orielos-display-mode" "$STAGING/bin/orielos-display-mode"
@@ -334,7 +337,7 @@ main() {
         cp "$ROOT/apps/displaymode/org.orielos.DisplayMode.desktop" "$STAGING/displaymode.desktop"
         podman rm -f "$CONTAINER" >/dev/null
         CONTAINER=""
-        find "$STAGING/plugins" -type f ! -name 'org.orielos.*' ! -name 'kcm_orielos_*' -delete
+        find "$STAGING/plugins" -type f ! -name 'org.orielos.*' ! -name 'kcm_orielos_*' ! -name 'krunner_orielos_*' -delete
     fi
     step "Sideloading the shell from $(git -C "$ROOT" log -1 --format='%h %s' 2>/dev/null || echo "$ROOT") onto $HOST"
     tar -C "$STAGING" -c . | ssh "${SSH_OPTS[@]}" "$HOST" sudo bash -c "$(printf '%q' "$script")" sideload 0 "$(printf '%q' "$RESTART_USER")" "$((1 - APPS))"

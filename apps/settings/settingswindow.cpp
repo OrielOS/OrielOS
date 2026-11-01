@@ -297,8 +297,12 @@ void SettingsWindow::showHome()
             item->setData(kindRole, pageKind);
         }
     };
-    addPages(i18nc("@title On Settings' Home", "Recently used settings"), homeConfig().readEntry("RecentPages", QStringList()));
-    addPages(i18nc("@title On Settings' Home", "Recommended settings"), recommendedPages);
+    const QStringList recent = homeConfig().readEntry("RecentPages", QStringList());
+    addPages(i18nc("@title On Settings' Home", "Recently used settings"), recent);
+    // A page already under Recently used isn't recommended a second time.
+    QStringList recommended = recommendedPages;
+    recommended.removeIf([&recent](const QString &id) { return recent.contains(id); });
+    addPages(i18nc("@title On Settings' Home", "Recommended settings"), recommended);
     m_stack->setCurrentWidget(m_list);
     updateButtons();
 }
@@ -451,6 +455,11 @@ QWidget *SettingsWindow::pageWidget(const Page &page)
     const KPluginMetaData metadata = findModule(page.module);
     if (metadata.isValid()) {
         KCModule *module = KCModuleLoader::loadModule(metadata, m_stack, { }, m_engine);
+        // Info Center's pages offer Defaults and Apply but have nothing to apply; Info Center
+        // itself never shows those buttons.
+        if (isInfoModule(metadata)) {
+            module->setButtons(KAbstractConfigModule::NoAdditionalButton);
+        }
         module->load();
         connect(module, &KCModule::needsSaveChanged, this, &SettingsWindow::updateButtons);
         connect(module, &KCModule::representsDefaultsChanged, this, &SettingsWindow::updateButtons);

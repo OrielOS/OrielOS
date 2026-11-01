@@ -63,7 +63,7 @@ Item {
         }
         const roles = model.KItemModels.KRoleNames;
         const data = roleName => model.data(model.index(row, 0), roles.role(roleName));
-        return { display: String(data("display") ?? ""), decoration: data("decoration") ?? "", group: String(data("group") ?? "") };
+        return { display: String(data("display") ?? ""), decoration: data("decoration") ?? "", group: results.menu.groupTitle(String(data("group") ?? "")) };
     }
 
     RowLayout {
@@ -161,7 +161,7 @@ Item {
 
                 required property int index
                 required property var model
-                readonly property string group: String(entry.model.group ?? "")
+                readonly property string group: results.menu.groupTitle(String(entry.model.group ?? ""))
                 readonly property string previousGroup: entry.index < 2 ? "" : results.menu.resultGroup(entry.index - 1)
 
                 width: list.width

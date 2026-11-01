@@ -37,11 +37,10 @@ public:
     // category.
     SettingsSearch(PageCatalogue settings, QList<Page> others);
 
-    // Settings' installed pages and every other module System Settings lists, as installed now.
+    // Settings' installed pages and every other settings module, as installed now.
     static SettingsSearch installed();
 
-    // The other modules from System Settings' module list, leaving out those Settings has a page
-    // for.
+    // The other settings modules, leaving out those Settings has a page for.
     static QList<Page> otherModules(const PageCatalogue &settings, const QList<KPluginMetaData> &modules);
 
     // Every match for the query, Settings' first, each list best first.

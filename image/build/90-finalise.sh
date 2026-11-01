@@ -166,9 +166,10 @@ for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.ContrastTheme:Alt+Shif
 done
 [[ -x /usr/libexec/orielos/accessibility-keys ]] || update_errors+=("/usr/libexec/orielos/accessibility-keys is not executable")
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
-# One settings app: System Settings' and kcmshell6's commands open Settings, and NVIDIA's settings are
-# a page of Settings rather than a second settings app in Start.
-for f in /usr/bin/systemsettings /usr/bin/kcmshell6; do
+grep -qxF 'NoDisplay=true' /usr/share/applications/org.kde.kinfocenter.desktop || update_errors+=("Info Center is still listed in Start")
+# One settings app: System Settings', kcmshell6's and Info Center's commands open Settings, and
+# NVIDIA's settings are a page of Settings rather than a second settings app in Start.
+for f in /usr/bin/systemsettings /usr/bin/kcmshell6 /usr/bin/kinfocenter; do
     grep -q 'exec /usr/bin/orielos-settings' "$f" 2>/dev/null || update_errors+=("$f doesn't open Settings")
 done
 nvidia_entry=/usr/share/applications/nvidia-settings.desktop

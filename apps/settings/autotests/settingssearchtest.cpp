@@ -87,6 +87,19 @@ private Q_SLOTS:
         QVERIFY(display.inSettings);
     }
 
+    void listsOtherModulesByName()
+    {
+        const QList<Page> others = SettingsSearch::otherModules(settings(),
+            { module(QStringLiteral("kcm_touchscreen"), QStringLiteral("Touchscreen"), QString()),
+                module(QStringLiteral("kcm_memory"), QStringLiteral("Memory"), QString()),
+                module(QStringLiteral("kcm_activities"), QStringLiteral("Activities"), QString()) });
+        QStringList titles;
+        for (const Page &page : others) {
+            titles.append(page.title);
+        }
+        QCOMPARE(titles, (QStringList { QStringLiteral("Activities"), QStringLiteral("Memory"), QStringLiteral("Touchscreen") }));
+    }
+
     void opensOtherModulesInSettings()
     {
         const SettingsSearch search(

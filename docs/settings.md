@@ -20,7 +20,7 @@ The categories on the left come in the order you know from Windows (in a narrow 
 - **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys, a tone for Caps Lock and Num Lock under Modifier keys, and the visual bell), Zoom and colour filters, Mouse pointer (a white or black pointer, from 24 to 96 pixels) and On-screen keyboard.
 - **Privacy & security**: Device security, Firewall, App permissions, Activity history, and Diagnostics & feedback.
 - **Update**: OrielOS updates (see [Updates](updates.md)).
-- **More settings**: everything else, such as Fonts, so every setting is in one place.
+- **More settings**: everything else, by name, such as Fonts, and the system information pages such as CPU and Memory, so every setting is in one place.
 
 Choose a category to see its pages, then a page to open it. To search instead, type in **Find a setting** at the top (or press Ctrl+F). Search knows the names of the pages and the words people use for them, including Windows' own, such as "wifi", "default apps", "resolution" or "windows update". Press Enter to open the best match.
 

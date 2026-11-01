@@ -114,6 +114,11 @@ settings=$apps/systemsettings.desktop
 set_shortcuts "$settings" "Desktop Entry" "Tools,Meta+I" "Tools"
 [[ "$(head -n1 "$settings")" == "[Desktop Entry]" ]] || die "$settings doesn't start with [Desktop Entry]; update $script"
 sed -i '1a NoDisplay=true' "$settings"
+# Info Center's pages are under Settings' More settings, and its command opens Settings, so it isn't
+# a second settings app in Start.
+infocenter=$apps/org.kde.kinfocenter.desktop
+[[ "$(head -n1 "$infocenter")" == "[Desktop Entry]" ]] || die "$infocenter doesn't start with [Desktop Entry]; update $script"
+sed -i '1a NoDisplay=true' "$infocenter"
 
 # Display mode: OrielOS's own panel (apps/displaymode) has Win+P, so Plasma's screen picker
 # keeps only the Display key. Its entry exists only in kglobalaccel's folder.

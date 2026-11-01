@@ -41,15 +41,15 @@ int main(int argc, char *argv[])
     // and opens the page asked for.
     KDBusService service(KDBusService::Unique);
 
-    // Settings' own pages, then under More settings every other module System Settings lists, so
-    // nothing needs System Settings.
+    // Settings' own pages, then under More settings every other settings module, so nothing needs
+    // System Settings or Info Center.
     const PageCatalogue pages = PageCatalogue::standard().available(isInstalled);
     QList<Category> categories = pages.categories();
     QList<Page> all;
     for (const Category &category : std::as_const(categories)) {
         all.append(pages.pages(category.id));
     }
-    QList<Page> others = SettingsSearch::otherModules(pages, systemSettingsModules());
+    QList<Page> others = SettingsSearch::otherModules(pages, settingsModules());
     if (!others.isEmpty()) {
         categories.append({ SettingsWindow::moreCategoryId(), i18nc("@title Settings category", "More settings"), QStringLiteral("preferences-other") });
         for (Page &page : others) {
