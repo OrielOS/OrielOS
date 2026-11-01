@@ -21,6 +21,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - While the computer restarts into a new version, the screen says Installing updates… as it finishes.
 - Settings → Bluetooth & devices → Camera shows each camera with a live picture and its brightness.
 - Plugging in headphones, a headset, or a USB or Bluetooth speaker switches the sound to it straight away.
+- An FPS overlay, OrielOS's Game Bar: turn it on in Settings → Gaming → FPS overlay, then press Windows + G in a game to show or hide the frame rate, with frame time and processor and graphics card use if you want them. Steam from the Store gets the add-on it needs from the same page.
 
 ### Changed
 

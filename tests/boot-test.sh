@@ -122,6 +122,7 @@ SHORTCUT_TABLE=(
     "Meta+Z|0x1000005a|kwin|Snap Layouts"
     "Meta+T|0x10000054|plasmashell|cycle-panels"
     "Meta+O|0x1000004f|org.orielos.RotationLock.desktop|_launch"
+    "Meta+G|0x10000047|org.orielos.FpsOverlay.desktop|_launch"
     "Meta+Ctrl+Shift+B|0x16000042|org.orielos.ResetDisplays.desktop|_launch"
     "Meta+Up|0x11000013|kwin|OrielOS Maximise"
     "Meta+Down|0x11000015|kwin|OrielOS Restore or Minimise"

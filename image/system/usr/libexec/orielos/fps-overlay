@@ -1,0 +1,151 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# OrielOS's FPS overlay, the whole of its Game Bar: MangoHud, styled to match OrielOS, in games
+# started after it is turned on, hidden until Windows + G shows it. Turning it on sets MANGOHUD=1
+# for the user's session (environment.d, read at sign-in, and systemd's user environment), which
+# loads MangoHud's Vulkan and OpenGL layer into games; Windows + G edits MangoHud's settings file,
+# which MangoHud reads again as soon as it changes, so the overlay shows or hides in a running game.
+#
+# Usage: fps-overlay status
+#        fps-overlay on|off
+#        fps-overlay toggle
+#        fps-overlay option frametime|stats on|off
+#        fps-overlay steam-addon
+#   status       prints enabled=, shown=, frametime=, stats= (on or off) and steam= (absent, when
+#                Steam from the Store isn't installed; needs-addon; or ready)
+#   on, off      turns the overlay on or off for games started from the next sign-in
+#   toggle       shows or hides the overlay (Windows + G); when it's off, says where to turn it on
+#   option       shows frame time, or processor and graphics card use, under the frame rate
+#   steam-addon  installs MangoHud's layer for Steam from the Store, which can't see the system's
+# Tests set ORIELOS_FPS_TEST_HOME to use another home folder and skip the session and Flatpak.
+set -Eeuo pipefail
+
+home="${ORIELOS_FPS_TEST_HOME:-$HOME}"
+config_home="${ORIELOS_FPS_TEST_HOME:+$home/.config}"
+config_home="${config_home:-${XDG_CONFIG_HOME:-$home/.config}}"
+env_file="$config_home/environment.d/90-orielos-fps-overlay.conf"
+mangohud_conf="$config_home/MangoHud/MangoHud.conf"
+steam=com.valvesoftware.Steam
+layer=org.freedesktop.Platform.VulkanLayer.MangoHud
+
+die() {
+    printf 'fps-overlay: %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+testing() { [[ -n "${ORIELOS_FPS_TEST_HOME:-}" ]]; }
+
+enabled() { [[ -f "$env_file" ]] && grep -qx 'MANGOHUD=1' "$env_file"; }
+
+# A MangoHud setting is on when its line is in the file: has <key>
+has() { [[ -f "$mangohud_conf" ]] && grep -qE "^$1(=1)?$" "$mangohud_conf"; }
+
+# Write MangoHud's settings whole, keeping what is shown and the options: write_conf <shown> <frametime> <stats>
+write_conf() {
+    local tmp
+    mkdir -p "$(dirname "$mangohud_conf")"
+    tmp="$(mktemp "$mangohud_conf.XXXXXX")"
+    {
+        printf '# OrielOS FPS overlay. Settings › Gaming › FPS overlay changes it; Windows + G shows or hides it.\n'
+        printf 'legacy_layout=false\nhud_compact\nposition=top-left\noffset_x=16\noffset_y=16\n'
+        printf 'font_size=18\nround_corners=8\nbackground_alpha=0.55\nbackground_color=111318\n'
+        printf 'text_color=FFFFFF\nfps_color_change\nfps_value=30,60\nfps_color=F05A5A,F7A440,FFFFFF\n'
+        printf 'fps\n'
+        if [[ "$2" == on ]]; then printf 'frame_timing=1\nframetime\n'; else printf 'frame_timing=0\n'; fi
+        if [[ "$3" == on ]]; then printf 'cpu_stats\ngpu_stats\n'; else printf 'cpu_stats=0\ngpu_stats=0\n'; fi
+        if [[ "$1" != yes ]]; then printf 'no_display\n'; fi
+    } >"$tmp"
+    mv -f "$tmp" "$mangohud_conf"
+}
+
+current() {
+    local shown=no frametime=off stats=off
+    has no_display || shown=yes
+    [[ -f "$mangohud_conf" ]] || shown=no
+    has frametime && frametime=on
+    has cpu_stats && stats=on
+    printf '%s %s %s\n' "$shown" "$frametime" "$stats"
+}
+
+steam_state() {
+    local runtime branch
+    if testing || ! command -v flatpak >/dev/null 2>&1; then
+        printf 'absent\n'
+        return
+    fi
+    runtime="$(flatpak info --show-runtime "$steam" 2>/dev/null)" || {
+        printf 'absent\n'
+        return
+    }
+    branch="${runtime##*/}"
+    if flatpak info "$layer//$branch" >/dev/null 2>&1; then printf 'ready\n'; else printf 'needs-addon\n'; fi
+}
+
+cmd_status() {
+    local shown frametime stats
+    read -r shown frametime stats < <(current)
+    printf 'enabled=%s\nshown=%s\nframetime=%s\nstats=%s\nsteam=%s\n' \
+        "$(enabled && echo on || echo off)" "$shown" "$frametime" "$stats" "$(steam_state)"
+}
+
+cmd_switch() {
+    local shown frametime stats
+    read -r shown frametime stats < <(current)
+    if [[ "$1" == on ]]; then
+        mkdir -p "$(dirname "$env_file")"
+        printf 'MANGOHUD=1\n' >"$env_file"
+        # Hidden until Windows + G.
+        write_conf no "$frametime" "$stats"
+        testing || systemctl --user set-environment MANGOHUD=1 || true
+    else
+        rm -f "$env_file"
+        testing || systemctl --user unset-environment MANGOHUD || true
+    fi
+}
+
+cmd_toggle() {
+    local shown frametime stats
+    if ! enabled; then
+        testing || notify-send --app-name="FPS overlay" --icon=speedometer \
+            "The FPS overlay is off" "Turn it on in Settings › Gaming › FPS overlay, then sign in again." || true
+        printf 'off\n'
+        return
+    fi
+    read -r shown frametime stats < <(current)
+    if [[ "$shown" == yes ]]; then shown=no; else shown=yes; fi
+    write_conf "$shown" "$frametime" "$stats"
+    printf '%s\n' "$shown"
+}
+
+cmd_option() {
+    local shown frametime stats
+    [[ "$2" == on || "$2" == off ]] || die "option takes on or off" 2
+    read -r shown frametime stats < <(current)
+    case "$1" in
+        frametime) frametime="$2" ;;
+        stats) stats="$2" ;;
+        *) die "the options are frametime and stats" 2 ;;
+    esac
+    write_conf "$shown" "$frametime" "$stats"
+}
+
+cmd_steam_addon() {
+    local runtime
+    runtime="$(flatpak info --show-runtime "$steam" 2>/dev/null)" || die "Steam from the Store isn't installed"
+    # The add-on matches the version of the platform Steam runs on, from the same place.
+    flatpak install --noninteractive flathub "$layer//${runtime##*/}"
+}
+
+case "${1:-}" in
+    status) cmd_status ;;
+    on | off) cmd_switch "$1" ;;
+    toggle) cmd_toggle ;;
+    option)
+        [[ $# -eq 3 ]] || die "option takes a name and on or off" 2
+        cmd_option "$2" "$3"
+        ;;
+    steam-addon) cmd_steam_addon ;;
+    *) die "usage: fps-overlay status|on|off|toggle|option NAME on|off|steam-addon" 2 ;;
+esac

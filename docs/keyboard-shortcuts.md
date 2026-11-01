@@ -44,6 +44,7 @@ OrielOS uses the Windows keyboard shortcuts you already know. The Windows key is
 | Windows + Alt + D | Opens the calendar, like clicking the clock |
 | Windows + Alt + B | Turns HDR on or off on screens that can show it |
 | Windows + T | Moves the keyboard focus to the taskbar, on Start. The left and right arrow keys move along it to Search, Task View and your apps, and Enter opens the one chosen |
+| Windows + G | Shows or hides the FPS overlay over the game you're playing, once it's turned on in Settings > Gaming |
 | Windows + O | Locks the screen's rotation on a tablet or convertible, or unlocks it again |
 | Windows + Ctrl + Shift + B | Resets the screens when the picture is stuck, blank or garbled: they go off and on again and a short sound plays, and your apps stay open |
 | Windows + Space | Switches to the next keyboard layout |

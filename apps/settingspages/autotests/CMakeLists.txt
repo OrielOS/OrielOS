@@ -49,6 +49,11 @@ ecm_add_test(dndscheduletest.cpp
     LINK_LIBRARIES OrielOSDoNotDisturb Qt6::Test
 )
 
+ecm_add_test(fpsoverlaytest.cpp
+    TEST_NAME fpsoverlaytest
+    LINK_LIBRARIES OrielOSFpsOverlay Qt6::Test
+)
+
 ecm_add_test(desktopbackgroundtest.cpp
     TEST_NAME desktopbackgroundtest
     LINK_LIBRARIES OrielOSBackground Qt6::Qml Qt6::Test
@@ -80,6 +85,7 @@ ecm_add_test(pagesloadtest.cpp
     LINK_LIBRARIES KF6::KCMUtilsQuick KF6::CoreAddons Qt6::Quick Qt6::Test
 )
 add_dependencies(pagesloadtest kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_camera)
+add_dependencies(pagesloadtest kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_fpsoverlay)
 set_tests_properties(pagesloadtest PROPERTIES
     ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:kcm_orielos_accent>/../../..;QT_QPA_PLATFORM=offscreen"
 )

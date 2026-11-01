@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "A frame-rate overlay that Windows + G shows over games",
+        "Icon": "speedometer",
+        "Name": "FPS Overlay"
+    },
+    "X-KDE-Keywords": "fps,frame rate,overlay,game bar,mangohud,performance,games",
+    "X-KDE-System-Settings-Parent-Category": "hardware",
+    "X-KDE-Weight": 70
+}

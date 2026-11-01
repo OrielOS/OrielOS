@@ -133,6 +133,7 @@ done
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
     kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb \
     kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_camera; do
+    kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_fpsoverlay; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -162,7 +163,7 @@ grep -qxF 'X-KDE-Shortcuts=Meta+Ctrl+Alt+Shift+Space' /usr/share/kglobalaccel/or
 # the screens on Win+Ctrl+Shift+B, the contrast theme on Left Alt+Left Shift+Print Screen and Mouse
 # Keys on Left Alt+Left Shift+Num Lock. Their hidden entries are with the apps, where kglobalaccel
 # finds a new one, and in kglobalaccel's own folder, as the Run box's.
-for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.RotationLock:Meta+O org.orielos.ResetDisplays:Meta+Ctrl+Shift+B org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
+for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.FpsOverlay:Meta+G org.orielos.RotationLock:Meta+O org.orielos.ResetDisplays:Meta+Ctrl+Shift+B org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
     name="${entry%%:*}.desktop"
     ln -sf "../applications/$name" "/usr/share/kglobalaccel/$name"
     grep -qxF "X-KDE-Shortcuts=${entry#*:}" "/usr/share/kglobalaccel/$name" 2>/dev/null || update_errors+=("$name doesn't have ${entry#*:}")
@@ -173,7 +174,9 @@ done
 grep -qxF 'BatteryLowLevel=20' /usr/share/kde-settings/kde-profile/default/xdg/powerdevilrc 2>/dev/null || update_errors+=("OrielOS's power defaults are missing")
 grep -q '/usr/share/kde-settings/kde-profile/default/xdg' /etc/xdg/plasma-workspace/env/env.sh 2>/dev/null || update_errors+=("Fedora's kde-settings profile is no longer on XDG_CONFIG_DIRS, so OrielOS's power defaults don't apply")
 grep -qxF 'Title=Shutting down' /usr/share/plymouth/themes/orielos/orielos.plymouth || update_errors+=("The splash doesn't say Shutting down")
-for f in rotation-lock reset-displays restart-desktop; do
+for f in rotation-lock reset-displays restart-desktop fps-overlay; do
+# The FPS overlay, OrielOS's Game Bar: MangoHud, and Windows + G showing or hiding it.
+[[ -x /usr/bin/mangohud ]] || update_errors+=("MangoHud, for the FPS overlay, is missing")
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done
 # System Monitor opens on OrielOS's Processes page, with Performance and Details, and its jump list

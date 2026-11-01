@@ -22,6 +22,7 @@ umu_sha256="${BASH_REMATCH[2]}"
 
 dnf -y install --setopt=install_weak_deps=False \
     gamemode \
+    mangohud \
     steam-devices \
     solaar-udev libratbag-ratbagd openrgb-udev-rules \
     zram-generator-defaults

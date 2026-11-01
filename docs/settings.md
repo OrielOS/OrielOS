@@ -19,6 +19,7 @@ The categories on the left come in the order you know from Windows (in a narrow 
 - **Apps**: Default apps and Startup.
 - **Accounts**: Your info, with your password and other accounts, and Sign-in options: a PIN, fingerprints, dynamic lock, and the sign-in screen's settings.
 - **Time & language**: Date & time, and Language & region.
+- **Gaming**: FPS overlay (see [Games and controllers](games-and-controllers.md#the-fps-overlay)).
 - **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys, a tone for Caps Lock and Num Lock under Modifier keys, and the visual bell), Zoom and colour filters, Mouse pointer (a white or black pointer, from 24 to 96 pixels) and On-screen keyboard.
 - **Privacy & security**: Device security, Firewall, App permissions, Activity history, and Diagnostics & feedback.
 - **Update**: OrielOS updates (see [Updates](updates.md)).

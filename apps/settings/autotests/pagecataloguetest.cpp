@@ -34,7 +34,8 @@ private Q_SLOTS:
         }
         QCOMPARE(categories,
             (QStringList { QStringLiteral("system"), QStringLiteral("devices"), QStringLiteral("network"), QStringLiteral("personalisation"),
-                QStringLiteral("apps"), QStringLiteral("accounts"), QStringLiteral("time"), QStringLiteral("accessibility"), QStringLiteral("privacy"),
+                QStringLiteral("apps"), QStringLiteral("accounts"), QStringLiteral("time"), QStringLiteral("gaming"), QStringLiteral("accessibility"),
+                QStringLiteral("privacy"),
                 QStringLiteral("update") }));
     }
 
@@ -123,6 +124,7 @@ private Q_SLOTS:
         QTest::newRow("battery life") << QStringLiteral("battery life") << QStringLiteral("battery-usage");
         QTest::newRow("camera") << QStringLiteral("camera") << QStringLiteral("camera");
         QTest::newRow("volume mixer") << QStringLiteral("volume mixer") << QStringLiteral("sound");
+        QTest::newRow("game bar") << QStringLiteral("game bar") << QStringLiteral("fps-overlay");
         QTest::newRow("windows hello") << QStringLiteral("windows hello") << QStringLiteral("sign-in-options");
         QTest::newRow("nvidia") << QStringLiteral("nvidia") << QStringLiteral("nvidia");
         QTest::newRow("nvidia control panel") << QStringLiteral("nvidia control panel") << QStringLiteral("nvidia");

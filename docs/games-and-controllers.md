@@ -39,6 +39,12 @@ You don't need to change anything:
 - **Compressed memory swap (zram)**, as Fedora sets it up, so the computer stays responsive when memory runs low.
 - **umu-launcher**, which OrielOS uses to run Windows programs with Proton.
 
+## The FPS overlay
+
+OrielOS's Game Bar is one thing: a small frame-rate counter over the game you're playing. Turn it on in **Settings > Gaming > FPS overlay**; games you start after you next sign in have it, hidden until you press **Windows + G**, which shows or hides it in the game's top-left corner. The same page can add the frame time, and processor and graphics card use, under the frame rate.
+
+Steam from the Store runs its games in its own sandbox, so it needs the overlay's add-on from the Store: the page offers **Install the add-on** when Steam is installed without it. A few games with anti-cheat may refuse to start with an overlay; turn it off for those. Steam's own overlay still takes screenshots and records.
+
 ## Controllers
 
 Controllers work in Steam and in other games without extra drivers.

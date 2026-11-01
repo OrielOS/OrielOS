@@ -73,6 +73,7 @@ PageCatalogue PageCatalogue::standard()
     const QString apps = QStringLiteral("apps");
     const QString accounts = QStringLiteral("accounts");
     const QString time = QStringLiteral("time");
+    const QString gaming = QStringLiteral("gaming");
     const QString accessibility = QStringLiteral("accessibility");
     const QString privacy = QStringLiteral("privacy");
     const QString update = QStringLiteral("update");
@@ -85,6 +86,7 @@ PageCatalogue PageCatalogue::standard()
         { apps, i18nc("@title Settings category", "Apps"), QStringLiteral("preferences-desktop-default-applications") },
         { accounts, i18nc("@title Settings category", "Accounts"), QStringLiteral("preferences-system-users") },
         { time, i18nc("@title Settings category", "Time & language"), QStringLiteral("preferences-system-time") },
+        { gaming, i18nc("@title Settings category", "Gaming"), QStringLiteral("input-gaming") },
         { accessibility, i18nc("@title Settings category", "Accessibility"), QStringLiteral("preferences-desktop-accessibility") },
         { privacy, i18nc("@title Settings category", "Privacy & security"), QStringLiteral("security-high") },
         { update, i18nc("@title Settings category", "Update"), QStringLiteral("system-software-update") },
@@ -158,6 +160,10 @@ PageCatalogue PageCatalogue::standard()
         { QStringLiteral("camera"), devices, i18nc("@title Settings page", "Camera"), i18nc("@info", "Your cameras, with a live picture"),
             keywords(i18nc("@info:keywords Search words for the Camera page, separated by ;", "camera;webcam;video;brightness;camera preview")),
             QStringLiteral("kcm_orielos_camera"), { } },
+        { QStringLiteral("fps-overlay"), gaming, i18nc("@title Settings page", "FPS overlay"), i18nc("@info", "The frame rate over games, on Windows + G"),
+            keywords(i18nc("@info:keywords Search words for the FPS overlay page, separated by ;",
+                "fps;frame rate;fps counter;overlay;game bar;xbox game bar;performance overlay;mangohud;frame time")),
+            QStringLiteral("kcm_orielos_fpsoverlay"), { } },
         { QStringLiteral("game-controllers"), devices, i18nc("@title Settings page", "Game controllers"), i18nc("@info", "Test controllers and joysticks"),
             keywords(i18nc("@info:keywords Search words for the Game controllers page, separated by ;", "game controllers;gamepad;joystick;xbox;playstation")),
             QStringLiteral("kcm_gamecontroller"), { } },
