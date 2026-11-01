@@ -337,6 +337,19 @@ fi
     exit 1
 }
 
+# Low memory warning: checks the free memory each minute in a desktop session.
+systemctl --global enable orielos-low-memory-warning.timer
+if [[ "$(systemctl --global is-enabled orielos-low-memory-warning.timer 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-low-memory-warning.timer is not enabled for users
+' >&2
+    exit 1
+fi
+[[ -x /usr/libexec/orielos/low-memory-warning ]] || {
+    printf 'error: /usr/libexec/orielos/low-memory-warning is not executable
+' >&2
+    exit 1
+}
+
 # Storage Sense: frees space once a day for users who turned it on in Settings › System › Storage.
 systemctl --global enable orielos-storage-sense.timer
 if [[ "$(systemctl --global is-enabled orielos-storage-sense.timer 2>/dev/null)" != "enabled" ]]; then

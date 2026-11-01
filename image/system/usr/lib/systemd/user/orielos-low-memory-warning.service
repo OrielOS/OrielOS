@@ -1,0 +1,7 @@
+[Unit]
+Description=Warn when the computer is low on memory
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/desktop.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/orielos/low-memory-warning
