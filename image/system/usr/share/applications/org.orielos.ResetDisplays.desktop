@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Reset the screens
+Comment=Turns every screen off and on again, for when the picture is stuck or garbled
+Exec=/usr/libexec/orielos/reset-displays
+Icon=video-display
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Meta+Ctrl+Shift+B

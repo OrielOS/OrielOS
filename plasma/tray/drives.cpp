@@ -4,7 +4,9 @@
 #include "drives.h"
 #include "traylogic.h"
 
+#include <KApplicationTrader>
 #include <KLocalizedString>
+#include <KService>
 #include <Solid/Device>
 #include <Solid/DeviceNotifier>
 #include <Solid/OpticalDrive>
@@ -14,6 +16,8 @@
 
 #include <QDBusConnection>
 #include <QDBusMessage>
+#include <QFileInfo>
+#include <QLocale>
 
 #include <memory>
 
@@ -47,6 +51,16 @@ QString nameOf(const Solid::Device &drive, const QList<Solid::Device> &volumes)
         }
     }
     return Tray::driveName(label, drive.vendor(), drive.product(), drive.description());
+}
+
+// An app's name for a process's command name: the app whose program it is, else the command.
+QString appName(const QString &command)
+{
+    const KService::List apps = KApplicationTrader::query([&command](const KService::Ptr &service) {
+        const QString program = service->exec().section(QLatin1Char(' '), 0, 0);
+        return QFileInfo(program).fileName() == command;
+    });
+    return apps.isEmpty() ? command : apps.first()->name();
 }
 
 void notify(const QString &summary, const QString &body)
@@ -99,36 +113,49 @@ void Drives::eject(const QString &udi)
     // Unmount every mounted volume, then finish once the last one is done.
     auto pending = std::make_shared<int>(0);
     auto inUse = std::make_shared<bool>(false);
+    QStringList folders;
     for (Solid::Device volume : volumes) {
         auto *access = volume.as<Solid::StorageAccess>();
         if (!access || !access->isAccessible()) {
             continue;
         }
+        folders.append(access->filePath());
         ++*pending;
         // The lambda keeps its copy of the device, and so the StorageAccess, alive until it runs.
         connect(
             access, &Solid::StorageAccess::teardownDone, this,
-            [this, volume, udi, name, pending, inUse](Solid::ErrorType error) {
+            [this, volume, udi, name, pending, inUse, folders](Solid::ErrorType error) {
                 Q_UNUSED(volume)
                 if (error != Solid::NoError) {
                     *inUse = true;
                 }
                 if (--*pending == 0) {
-                    finish(udi, name, *inUse);
+                    finish(udi, name, *inUse ? folders : QStringList());
                 }
             },
             Qt::SingleShotConnection);
         access->teardown();
     }
     if (*pending == 0) {
-        finish(udi, name, false);
+        finish(udi, name, { });
     }
 }
 
-void Drives::finish(const QString &udi, const QString &name, bool inUse)
+void Drives::finish(const QString &udi, const QString &name, const QStringList &inUse)
 {
-    if (inUse) {
-        notify(i18nc("@title %1 is a drive's name", "%1 is in use", name), i18nc("@info", "Close the files and apps that use it, then eject it again."));
+    if (!inUse.isEmpty()) {
+        // Name the apps keeping it busy, as far as they can be found.
+        QStringList apps;
+        for (const QString &command : Tray::processesUsing(inUse)) {
+            const QString app = appName(command);
+            if (!apps.contains(app)) {
+                apps.append(app);
+            }
+        }
+        const QString body = apps.isEmpty() ? i18nc("@info", "Close the files and apps that use it, then eject it again.")
+                                            : i18ncp("@info %2 is a list of apps", "%2 is using it. Close it, then eject it again.",
+                                                  "%2 are using it. Close them, then eject it again.", apps.size(), QLocale().createSeparatedList(apps));
+        notify(i18nc("@title %1 is a drive's name", "%1 is in use", name), body);
         return;
     }
     Solid::Device drive(udi);

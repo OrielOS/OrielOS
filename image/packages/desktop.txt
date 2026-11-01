@@ -165,8 +165,12 @@ fedora-flathub-remote
 # (kinfocenter) and Discover are listed above.
 dolphin
 kio-extras
+# Act as Administrator in Files, for copying into a folder only an administrator can change.
+kio-admin
 konsole
 spectacle
+# Screenshot's Extract Text: copies the text in a screenshot (Tesseract's English data).
+tesseract-langpack-eng
 ark
 
 # Look: Breeze icons, cursors and GTK theme, so GTK apps match Plasma.

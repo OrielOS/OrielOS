@@ -62,12 +62,13 @@ install(DIRECTORY plasmoids/org.orielos.search plasmoids/org.orielos.taskview pl
 install(DIRECTORY look-and-feel/org.orielos.desktop look-and-feel/org.orielos.desktop.dark
     DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
 # The welcome screen at a new account's first sign-in, a look-and-feel package of its own that only
-# ksplashrc chooses: the usual welcome screen with another message.
-install(DIRECTORY look-and-feel/org.orielos.firstsignin DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
-install(FILES look-and-feel/splash/Splash.qml
-    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/org.orielos.firstsignin/contents/splash RENAME WelcomeSplash.qml)
+# ksplashrc chooses, by its path: the usual welcome screen with another message. It's kept out of
+# plasma/look-and-feel, where Settings' Themes page would list it as a theme.
+set(ORIELOS_FIRSTSIGNIN_DIR ${KDE_INSTALL_DATADIR}/orielos/first-sign-in/org.orielos.firstsignin)
+install(DIRECTORY look-and-feel/org.orielos.firstsignin/ DESTINATION ${ORIELOS_FIRSTSIGNIN_DIR})
+install(FILES look-and-feel/splash/Splash.qml DESTINATION ${ORIELOS_FIRSTSIGNIN_DIR}/contents/splash RENAME WelcomeSplash.qml)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/shell/org.orielos.desktop/contents/lockscreen/AccountPicture.qml
-    DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/org.orielos.firstsignin/contents/splash)
+    DESTINATION ${ORIELOS_FIRSTSIGNIN_DIR}/contents/splash)
 foreach(lnf org.orielos.desktop org.orielos.desktop.dark)
     # The Ctrl+Alt+Del screen, Plasma's log-out screen in Windows' layout.
     install(DIRECTORY look-and-feel/logout DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel/${lnf}/contents)

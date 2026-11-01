@@ -46,6 +46,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
       <label>The last searches that opened something, newest first, shown before anything is typed.</label>
       <default></default>
     </entry>
+    <entry name="pinnedFiles" type="StringList">
+      <label>Files pinned to an app's jump list, each as the app's desktop entry ID, a tab and the file's URL.</label>
+      <default></default>
+    </entry>
     <entry name="getStartedHidden" type="Bool">
       <label>Whether the Get started suggestions under Recommended are hidden.</label>
       <default>false</default>

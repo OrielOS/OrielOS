@@ -1,0 +1,138 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# The firewall's question, as Windows asks it the first time an app listens on the network: when
+# one of the user's apps starts accepting connections from other computers on a port the firewall
+# blocks, a notification asks whether to allow it. Allowing opens the port in the firewall's active
+# zone, now and after a restart, through the administrator prompt; either answer is remembered for
+# that app and port, so it's asked once. Connections from this computer itself are never blocked,
+# so only apps listening beyond it count. Settings > Privacy & security > Firewall shows and
+# removes what was allowed. Run by orielos-firewall-watch.service for the signed-in user.
+#   firewall-watch [--once] [--dry-run]   (--dry-run prints "ask APP PORT/PROTO" instead, for the tests)
+set -Euo pipefail
+
+once=false
+dry_run=false
+for arg in "$@"; do
+    case "$arg" in
+        --once) once=true ;;
+        --dry-run) dry_run=true ;;
+        *)
+            printf 'firewall-watch: unknown argument %s\n' "$arg" >&2
+            exit 2
+            ;;
+    esac
+done
+
+decisions="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/firewall-decisions"
+apps_dirs=("${XDG_DATA_HOME:-$HOME/.local/share}/applications" /var/lib/flatpak/exports/share/applications
+    "${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share/applications" /usr/share/applications)
+declare -A asking=()
+
+# The firewall's active zone, or nothing when the firewall isn't running.
+active_zone() {
+    local zone
+    zone="$(firewall-cmd --get-active-zones 2>/dev/null | head -n1)" || true
+    [[ -n "$zone" ]] || zone="$(firewall-cmd --get-default-zone 2>/dev/null)" || true
+    printf '%s' "$zone"
+}
+
+# Every port the zone allows, one PORT/PROTO or FROM-TO/PROTO per line: its own ports and its services'.
+allowed_ports() {
+    local zone="$1" service
+    firewall-cmd --zone="$zone" --list-ports 2>/dev/null | tr ' ' '\n'
+    for service in $(firewall-cmd --zone="$zone" --list-services 2>/dev/null); do
+        firewall-cmd --info-service="$service" 2>/dev/null | sed -n 's/^ *ports: *//p' | tr ' ' '\n'
+    done
+}
+
+# Whether PORT/PROTO is among the allowed ports or ranges on stdin.
+is_allowed() {
+    local port="$1" proto="$2"
+    awk -v port="$port" -v proto="$proto" -F/ '
+        $2 == proto {
+            n = split($1, range, "-")
+            if ((n == 1 && $1 == port) || (n == 2 && port >= range[1] && port <= range[2])) found = 1
+        }
+        END { exit !found }'
+}
+
+# What an app is called: the name of the app whose program it is, else its command name.
+app_name() {
+    local command="$1" dir file
+    for dir in "${apps_dirs[@]}"; do
+        [[ -d "$dir" ]] || continue
+        file="$(grep -lsE "^Exec=([^ ]*/)?${command}( |$)" "$dir"/*.desktop 2>/dev/null | head -n1)" || true
+        if [[ -n "$file" ]]; then
+            sed -n 's/^Name=//p' "$file" | head -n1
+            return
+        fi
+    done
+    printf '%s' "$command"
+}
+
+# The user's apps listening for TCP connections beyond this computer: COMMAND PORT per line.
+listening() {
+    ss -Hltnp 2>/dev/null | awk '
+        {
+            addr = $4
+            if (addr ~ /^127\./ || addr ~ /^\[::1\]/ || addr ~ /^\[::ffff:127\./ || addr ~ /%lo:/) next
+            port = addr; sub(/.*:/, "", port)
+            if (match($0, /users:\(\("[^"]+"/)) {
+                command = substr($0, RSTART + 9, RLENGTH - 10)
+                print command, port
+            }
+        }' | sort -u
+}
+
+ask() {
+    local command="$1" port="$2" zone="$3" name choice
+    name="$(app_name "$command")"
+    if [[ "$dry_run" == true ]]; then
+        printf 'ask %s %s/tcp\n' "$name" "$port"
+        return
+    fi
+    choice="$(notify-send --app-name=Firewall --icon=security-medium --urgency=normal \
+        --action=allow="Allow" --action=block="Keep blocking" \
+        "Allow $name to accept connections?" \
+        "The firewall stops other computers on your networks connecting to $name (port $port). Allow it if you trust $name and the networks you use." \
+        2>/dev/null || true)"
+    if [[ "$choice" == allow ]] && firewall-cmd --zone="$zone" --add-port="$port/tcp" >/dev/null 2>&1; then
+        firewall-cmd --permanent --zone="$zone" --add-port="$port/tcp" >/dev/null 2>&1 || true
+        printf '%s %s/tcp allow\n' "$command" "$port" >>"$decisions"
+    else
+        printf '%s %s/tcp block\n' "$command" "$port" >>"$decisions"
+    fi
+}
+
+check() {
+    local zone allowed command port
+    zone="$(active_zone)"
+    [[ -n "$zone" ]] || return 0
+    allowed="$(allowed_ports "$zone")"
+    mkdir -p -- "${decisions%/*}"
+    touch -- "$decisions"
+    while read -r command port; do
+        [[ -n "$command" && "$port" =~ ^[0-9]+$ ]] || continue
+        is_allowed "$port" tcp <<<"$allowed" && continue
+        grep -qF -- "$command $port/tcp " "$decisions" && continue
+        [[ -z "${asking["$command $port"]:-}" ]] || continue
+        asking["$command $port"]=1
+        if [[ "$dry_run" == true || "$once" == true ]]; then
+            ask "$command" "$port" "$zone"
+        else
+            ask "$command" "$port" "$zone" &
+        fi
+    done < <(listening)
+}
+
+if [[ "$once" == true ]]; then
+    check
+    wait
+    exit 0
+fi
+while true; do
+    check
+    sleep 5
+done

@@ -28,10 +28,11 @@ void callDBus(
     bus.send(message);
 }
 
-void launch(const QString &desktopName)
+void launch(const QString &desktopName, const QList<QUrl> &urls = { })
 {
     if (KService::Ptr service = KService::serviceByDesktopName(desktopName)) {
         auto *job = new KIO::ApplicationLauncherJob(service);
+        job->setUrls(urls);
         job->start();
     }
 }
@@ -89,6 +90,14 @@ private:
 
 public:
     QString storeSearchName() const { return KPluginMetaData::findPluginById(QStringLiteral("kf6/krunner"), QStringLiteral("krunner_appstream")).name(); }
+
+    // Opens a file pinned to an app's jump list in that app; desktopName is its desktop entry ID.
+    Q_INVOKABLE void openFileWith(const QString &desktopName, const QString &url)
+    {
+        QString name = desktopName;
+        name.remove(QLatin1String(".desktop"));
+        launch(name, { QUrl(url) });
+    }
 
     // Runs the menu's item with this id.
     Q_INVOKABLE void activatePowerUserItem(const QString &id)

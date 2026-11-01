@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Win+Ctrl+Shift+B, as in Windows: when the picture is stuck, blank or garbled, turns every screen
+# off and on again, so the graphics driver sets each one up afresh, then plays a short sound. Apps
+# and windows stay as they are. Run by Plasma's shortcut service from org.orielos.ResetDisplays.desktop,
+# inside the signed-in session, where kscreen-doctor can reach the display settings.
+set -Euo pipefail
+
+sound=/usr/share/sounds/orielos/stereo/bell.oga
+
+kscreen-doctor --dpms off >/dev/null 2>&1
+sleep 1
+kscreen-doctor --dpms on >/dev/null 2>&1
+# The sound says it's done even when the screen takes a moment longer to come back.
+timeout 5 paplay "$sound" >/dev/null 2>&1 || true

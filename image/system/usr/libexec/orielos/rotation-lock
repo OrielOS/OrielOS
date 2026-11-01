@@ -1,0 +1,50 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Win+O, as in Windows: locks the rotation of every screen that turns with the device (a tablet or
+# a convertible's screen, with an orientation sensor), or unlocks it again, and says which in the
+# on-screen display. Locking keeps each screen's own auto-rotate setting to put back. Run by
+# Plasma's shortcut service from org.orielos.RotationLock.desktop, inside the signed-in session,
+# where kscreen-doctor can reach the display settings.
+set -Eeuo pipefail
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/rotation-lock"
+# KScreen's auto-rotate policies, by the number kscreen-doctor's JSON gives.
+policies=(never inTabletMode always)
+
+osd() {
+    dbus-send --session --type=method_call --dest=org.kde.plasmashell /org/kde/osdService \
+        org.kde.osdService.showText "string:$1" "string:$2" || true
+}
+
+# Each enabled screen that can turn, and its auto-rotate policy (0 never, 1 in tablet mode, 2 always).
+screens="$(kscreen-doctor -j | python3 -I -c '
+import json, sys
+for output in json.load(sys.stdin).get("outputs", []):
+    if output.get("enabled") and "autoRotatePolicy" in output:
+        print(output["name"], output["autoRotatePolicy"])
+')"
+if [[ -z "$screens" ]]; then
+    osd object-rotate-right "This screen doesn't turn"
+    exit 0
+fi
+
+if grep -qv ' 0$' <<<"$screens"; then
+    # Lock: remember each screen's policy, then stop it turning.
+    mkdir -p -- "${state%/*}"
+    printf '%s\n' "$screens" >"$state"
+    while read -r name _; do
+        kscreen-doctor "output.$name.autoRotatePolicy.never" >/dev/null 2>&1 || true
+    done <<<"$screens"
+    osd rotation-locked-portrait "Rotation lock on"
+else
+    # Unlock: put back what each screen had, or turn it in tablet mode, KScreen's default.
+    while read -r name _; do
+        saved="$(awk -v n="$name" '$1 == n {print $2}' "$state" 2>/dev/null || true)"
+        [[ "$saved" =~ ^[12]$ ]] || saved=1
+        kscreen-doctor "output.$name.autoRotatePolicy.${policies[$saved]}" >/dev/null 2>&1 || true
+    done <<<"$screens"
+    rm -f -- "$state"
+    osd rotation-allowed "Rotation lock off"
+fi

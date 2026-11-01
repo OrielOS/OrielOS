@@ -1,5 +1,6 @@
 # A new account's first sign-in shows "Setting up your desktop" on the welcome screen; first-sign-in removes this
-# file afterwards, so later sign-ins show the usual one from /etc/xdg/ksplashrc.
+# file afterwards, so later sign-ins show the usual one from /etc/xdg/ksplashrc. The theme is named by its
+# path, as it isn't among the look-and-feel themes.
 [KSplash]
 Engine=KSplashQML
-Theme=org.orielos.firstsignin
+Theme=/usr/share/orielos/first-sign-in/org.orielos.firstsignin

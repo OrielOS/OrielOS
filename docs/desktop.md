@@ -55,11 +55,15 @@ A touchpad clicks when you tap it, and two fingers scroll the page the way Windo
 
 **Files** is where your documents, downloads, pictures and drives are. Open it from the taskbar or with Windows + E. Along the top are back, forward, up and refresh, then New, Cut, Copy, Paste, Rename, Delete, Sort, View and search, with the address bar beneath them. Folders open in the Details view, with each item's name, date modified, type and size; choose another view under **View**. Your folders (Documents, Downloads, Pictures, Music and Videos) are in the panel on the left, with USB sticks and other drives below them when they're plugged in. Right-click a file for **Send to** (a shortcut on the desktop, a copy in Documents, or a compressed folder); Ctrl + Shift + C copies its path, and Alt + P shows its preview and details at the right. Double-clicking a disc image (.iso) opens it as a drive; eject it from the drives in the panel.
 
+Some folders, such as other accounts' or the system's, only an administrator can open or change. Files offers **Act as Administrator** in such a folder, and in its menu (the button at the top right); after a warning the first time and your password, you can copy into it and change it until you close the window.
+
 ## Taking a screenshot
 
 - **Windows + Shift + S** or **PrtSc:** drag to choose part of the screen. The screenshot is saved to **Pictures > Screenshots** and copied, ready to paste; Screenshot then shows it, ready to draw on.
 - **Windows + PrtSc:** saves the whole screen to **Pictures > Screenshots**.
 - **Alt + PrtSc:** captures the window you're using.
+
+To copy the words in a screenshot, choose **Extract Text** in Screenshot's toolbar; the text is copied, ready to paste.
 
 ![Screenshot ready to capture, with the screen dimmed and the hint "Click and drag to make a selection"](images/screenshot.webp)
 
