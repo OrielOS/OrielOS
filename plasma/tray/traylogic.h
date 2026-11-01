@@ -29,4 +29,10 @@ QStringList hide(const QStringList &shown, const QString &id);
 // Solid's description of it.
 QString driveName(const QString &label, const QString &vendor, const QString &product, const QString &description);
 
+// The command names (/proc/<pid>/comm) of the processes whose working folder or an open file is
+// inside one of `folders`, each once, in /proc's order, for saying which app keeps a drive in use.
+// Only the user's own processes can be read, which is what matters. `proc` is /proc, or a stand-in
+// for the tests.
+QStringList processesUsing(const QStringList &folders, const QString &proc = QStringLiteral("/proc"));
+
 } // namespace Tray

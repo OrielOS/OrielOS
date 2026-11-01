@@ -3,6 +3,9 @@
 
 #include "traylogic.h"
 
+#include <QDir>
+#include <QFile>
+#include <QTemporaryDir>
 #include <QTest>
 
 class TrayLogicTest : public QObject
@@ -64,6 +67,36 @@ private Q_SLOTS:
             QStringLiteral("SanDisk Ultra"));
         QCOMPARE(Tray::driveName(QString(), QString(), QStringLiteral("Ultra"), QString()), QStringLiteral("Ultra"));
         QCOMPARE(Tray::driveName(QString(), QString(), QString(), QStringLiteral("32 GB Removable Media")), QStringLiteral("32 GB Removable Media"));
+    }
+
+    void processesUsingADrive()
+    {
+        // A stand-in /proc: Discord has a file open on the drive, a shell is in a folder on it,
+        // Firefox has nothing there, and a second Discord process is named once.
+        QTemporaryDir proc;
+        QVERIFY(proc.isValid());
+        const QString drive = QStringLiteral("/run/media/nathan/HOLIDAY");
+        const auto process = [&proc](const QString &pid, const QString &comm, const QString &cwd, const QStringList &files) {
+            QDir(proc.path()).mkpath(pid + QStringLiteral("/fd"));
+            const QString base = proc.path() + QLatin1Char('/') + pid;
+            QFile name(base + QStringLiteral("/comm"));
+            QVERIFY(name.open(QIODevice::WriteOnly));
+            name.write(comm.toUtf8() + '\n');
+            name.close();
+            QVERIFY(QFile::link(cwd, base + QStringLiteral("/cwd")));
+            for (qsizetype i = 0; i < files.size(); ++i) {
+                QVERIFY(QFile::link(files.at(i), base + QStringLiteral("/fd/") + QString::number(i)));
+            }
+        };
+        process(QStringLiteral("100"), QStringLiteral("discord"), QStringLiteral("/home/nathan"), { QStringLiteral("/dev/null"), drive + QStringLiteral("/photo.jpg") });
+        process(QStringLiteral("200"), QStringLiteral("bash"), drive + QStringLiteral("/Trips"), { });
+        process(QStringLiteral("300"), QStringLiteral("firefox"), QStringLiteral("/home/nathan"), { QStringLiteral("/run/media/nathan/HOLIDAY2/x") });
+        process(QStringLiteral("400"), QStringLiteral("discord"), drive, { });
+        QDir(proc.path()).mkpath(QStringLiteral("self"));
+
+        QCOMPARE(Tray::processesUsing({ drive }, proc.path()), (QStringList { QStringLiteral("discord"), QStringLiteral("bash") }));
+        QVERIFY(Tray::processesUsing({ QStringLiteral("/run/media/nathan/OTHER") }, proc.path()).isEmpty());
+        QVERIFY(Tray::processesUsing({ QString() }, proc.path()).isEmpty());
     }
 };
 
