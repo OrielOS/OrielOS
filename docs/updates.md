@@ -4,6 +4,8 @@ OrielOS updates in the background. A new version is prepared while you keep work
 
 New versions come from OrielOS's own downloads on GitHub (`ghcr.io/orielos/orielos`), and your computer checks each one's signature before preparing it. Which versions it gets depends on its [update channel](#the-update-settings): stable, the default, or testing.
 
+A computer installed before OrielOS moved to its own organisation on GitHub still updates from the earlier address, `ghcr.io/ncjsvr/orielos`. Builds that look for updates at `ghcr.io/orielos/orielos`, from v0.1.8 on, are published to the earlier address as well and signed for it, so the computer keeps getting them. It moves to the new address when it installs one of those builds, and it keeps checking each update's signature. Until that install, it keeps updating from the earlier address.
+
 ## What stays and what changes
 
 Each OrielOS version is a complete, read-only copy of the system: Fedora, the drivers, the desktop and OrielOS's own apps, all tested together. Updating swaps one copy for another at restart, so an update never leaves the system half-installed.

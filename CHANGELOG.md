@@ -23,7 +23,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Changed
 
-- OrielOS has moved to its own organisation on GitHub, and updates now come from `ghcr.io/orielos/orielos`. A computer that already runs OrielOS moves there by itself with the update that brings this change, and keeps checking each update's signature as before.
+- OrielOS has moved to its own organisation on GitHub. A computer updates from `ghcr.io/orielos/orielos` once it is running a build that looks there, which starts with v0.1.8. Until then it updates from `ghcr.io/ncjsvr/orielos`. Builds that use the new address are published to that earlier address as well, and signed for it, so the computer keeps getting updates and moves over when it installs one of them. It keeps checking each update's signature.
 - Games come the way they do on Windows: Steam from the Store, and other stores through their own launchers, such as the Epic Games Launcher or GOG Galaxy, installed with Run this app. Start no longer suggests Heroic Games Launcher or Lutris, which stay in the Store for anyone who wants them, and the guides no longer point to them.
 - The install guide says which graphics cards OrielOS needs, how to check the download on macOS, which tools write the USB stick on Windows, macOS and Linux, and which firmware settings to check if the stick isn't offered.
 - The website's download says it's the stable version, which updates itself, and how to switch to the testing channel; its "How to install" link opens the install guide. Each stable release's notes start with how to get it: the installer for new installs, or nothing to do on a computer that already runs OrielOS.

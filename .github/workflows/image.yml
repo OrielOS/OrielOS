@@ -3,8 +3,10 @@ name: Image
 # Builds the OS image when a change that affects it merges into main, or by hand: smoke-tests it in
 # a VM, checks that Flathub has the NVIDIA driver extension it needs, then publishes it to
 # ghcr.io/orielos/orielos under its version (v0.0.1, v0.0.2, ...), signs it with cosign and moves the
-# testing tag to it. The Testing release workflow then gives the build a GitHub pre-release saying
-# what's new in it.
+# testing tag to it. It then signs that same digest at ghcr.io/ncjsvr/orielos, the address from
+# before the move to the OrielOS organisation, and moves testing there, so a computer that still
+# updates from the earlier address gets the build. The Testing release workflow then gives the
+# build a GitHub pre-release saying what's new in it.
 # A pull request that changes this workflow or the build script only builds: changes are booted
 # and update-tested locally before they merge, so pull requests don't smoke-test on GitHub, and
 # they never publish.
@@ -47,7 +49,9 @@ env:
   REPOSITORY: ghcr.io/orielos/orielos
   # The image's address before OrielOS moved to its own organisation on GitHub. Builds published
   # there still count when numbering, and the newest of them is copied here before the first
-  # publish (see "Publish, sign and move testing").
+  # publish (see "Publish, sign and move testing"). Each build published here is also signed and
+  # tagged there (tools/publish-earlier.sh), so computers that still update from it keep getting
+  # updates until they install a build that uses this address.
   PREVIOUS_REPOSITORY: ghcr.io/ncjsvr/orielos
 
 jobs:
@@ -281,6 +285,36 @@ jobs:
           fi
           skopeo copy --preserve-digests "docker://${REPOSITORY}@${digest}" "docker://${REPOSITORY}:testing"
           echo "::notice::Published ${REPOSITORY}:${TAG} (${digest}) and moved testing to it"
+
+  # Computers installed before the move still update from the earlier address. This is its own job
+  # so a failure still leaves the build published at the new address, and the testing release is
+  # still written. Re-run this job to finish the earlier address.
+  earlier:
+    name: earlier address
+    needs: [build, publish]
+    if: needs.publish.result == 'success' && needs.publish.outputs.published == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: publish
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Publish, sign and move testing at the earlier address
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+          PREVIOUS_REGISTRY_TOKEN: ${{ secrets.PREVIOUS_REGISTRY_TOKEN }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: tools/publish-earlier.sh --login --tag "${TAG}" --channel testing
 
   # Each published build gets a pre-release on GitHub saying what's new in it.
   notes:

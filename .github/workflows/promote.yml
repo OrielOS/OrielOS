@@ -1,8 +1,11 @@
 name: Promote
 
 # Moves the stable tag to a build that has been on testing, without rebuilding it: the same image,
-# digest and signature. Run by hand by the maintainer once the build has passed the real-hardware
-# checklist. Each build's version is its name, so the GitHub Release is named after the build and
+# digest and signature. It does the same at ghcr.io/ncjsvr/orielos, the address from before the
+# move to the OrielOS organisation, signing the build there: computers that still update from that
+# address accept a signature only when it names that address. Run by hand by the maintainer once
+# the build has passed the real-hardware checklist. Each build's version is its name, so the
+# GitHub Release is named after the build and
 # tagged at the commit it was built from: the build's testing pre-release (the Testing release
 # workflow) becomes the stable release. Its notes say how to get it and which testing builds it
 # brings together, then give the CHANGELOG's Unreleased section at that commit, and a branch for
@@ -25,13 +28,14 @@ concurrency:
 
 env:
   REPOSITORY: ghcr.io/orielos/orielos
+  PREVIOUS_REPOSITORY: ghcr.io/ncjsvr/orielos
 
 jobs:
   promote:
     name: promote
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     environment: publish
     permissions:
       contents: write
@@ -88,6 +92,16 @@ jobs:
           echo "DIGEST=${digest}" >>"${GITHUB_ENV}"
           echo "REVISION=${revision}" >>"${GITHUB_ENV}"
           echo "::notice::stable is now ${BUILD} (${digest})"
+
+      # Before the GitHub release, so a failure here can be re-run: the release does not exist yet,
+      # and moving stable again to the same digest changes nothing.
+      - name: Move stable to it at the earlier address
+        env:
+          BUILD: ${{ inputs.build }}
+          PREVIOUS_REGISTRY_TOKEN: ${{ secrets.PREVIOUS_REGISTRY_TOKEN }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: tools/publish-earlier.sh --login --tag "${BUILD}" --channel stable
 
       # The notes are the Unreleased section as it was at the commit the build was made from:
       # anything merged after that isn't in the release.

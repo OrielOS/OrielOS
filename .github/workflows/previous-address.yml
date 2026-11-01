@@ -1,0 +1,71 @@
+name: Previous address
+
+# Publishes a build that is already at ghcr.io/orielos/orielos to the earlier address,
+# ghcr.io/ncjsvr/orielos, signs it there and moves that address's testing tag onto it
+# (tools/publish-earlier.sh). Computers installed before the move to the OrielOS organisation
+# still update from the earlier address, and they accept a signature only when it names that
+# address. The Image workflow does this for each build it publishes, Promote does it for stable
+# and Withdraw does it when testing goes back. Run this by hand for a build published before
+# those did. v0.1.8 is the first build that looks for updates at the new address, and it was
+# only published there. Leave the build empty to use whichever build testing points at now.
+# Run it while no Image run is publishing: both move testing, and the last one wins.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: Build to publish at the earlier address, such as v0.1.8. Empty uses the current testing build.
+        required: false
+        type: string
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  REPOSITORY: ghcr.io/orielos/orielos
+  PREVIOUS_REPOSITORY: ghcr.io/ncjsvr/orielos
+
+jobs:
+  publish:
+    name: publish
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: publish
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The input is checked before anything uses it, and only ever reaches the shell as an
+      # environment variable. Empty means the build the new address's testing tag points at.
+      - name: Choose the build
+        id: build
+        env:
+          BUILD: ${{ inputs.build }}
+        run: |
+          if [ -z "${BUILD}" ]; then
+              BUILD="$(skopeo inspect --format '{{index .Labels "org.opencontainers.image.version"}}' "docker://${REPOSITORY}:testing")"
+          fi
+          [[ "${BUILD}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The build looks like v0.1.8"; exit 1; }
+          echo "tag=${BUILD}" >>"${GITHUB_OUTPUT}"
+          echo "::notice::Publishing ${BUILD} to ${PREVIOUS_REPOSITORY}"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Publish, sign and move testing at the earlier address
+        env:
+          TAG: ${{ steps.build.outputs.tag }}
+          PREVIOUS_REGISTRY_TOKEN: ${{ secrets.PREVIOUS_REGISTRY_TOKEN }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: tools/publish-earlier.sh --login --tag "${TAG}" --channel testing

@@ -1,12 +1,14 @@
 name: Withdraw
 
 # Takes a bad build off the testing channel by moving the testing tag back to an earlier build,
-# without rebuilding it: the same image, digest and signature. Run by hand by the maintainer.
-# Computers on testing stage that build at their next update check, whether they run the
-# withdrawn build, have it staged or never got it, because orielos-update stages whatever digest
-# the channel points to. The withdrawn build keeps its own tag, and its testing pre-release on
-# GitHub is marked withdrawn. The next build published from main moves testing on again, so merge
-# the fix or a revert after running this.
+# without rebuilding it: the same image, digest and signature. It moves testing at
+# ghcr.io/ncjsvr/orielos, the address from before the move to the OrielOS organisation, to that
+# same build, signing it there when it has no signature for that address yet. Run by hand by the
+# maintainer. Computers on testing stage that build at their next update check, whether they run
+# the withdrawn build, have it staged or never got it, because orielos-update stages whatever
+# digest the channel points to. The withdrawn build keeps its own tag, and its testing pre-release
+# on GitHub is marked withdrawn. The next build published from main moves testing on again, so
+# merge the fix or a revert after running this.
 
 on:
   workflow_dispatch:
@@ -24,13 +26,14 @@ concurrency:
 
 env:
   REPOSITORY: ghcr.io/orielos/orielos
+  PREVIOUS_REPOSITORY: ghcr.io/ncjsvr/orielos
 
 jobs:
   withdraw:
     name: withdraw
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 60
     environment: publish
     permissions:
       contents: write
@@ -63,14 +66,30 @@ jobs:
           digest="$(skopeo inspect --format '{{.Digest}}' "docker://${REPOSITORY}:${BUILD}")" ||
               { echo "::error::There is no build ${BUILD} in ${REPOSITORY}"; exit 1; }
           current="$(skopeo inspect --format '{{.Digest}}' "docker://${REPOSITORY}:testing")"
-          if [ "${digest}" = "${current}" ]; then
-              echo "::error::testing is already ${BUILD} (${digest})"
+          # A re-run after the new address moved and the earlier address did not must continue,
+          # so the earlier address can catch up. It is an error only when both already point here.
+          previous="$(skopeo inspect --format '{{.Digest}}' "docker://${PREVIOUS_REPOSITORY}:testing" 2>/dev/null || true)"
+          if [ "${digest}" = "${current}" ] && [ "${digest}" = "${previous}" ]; then
+              echo "::error::testing is already ${BUILD} (${digest}) at both addresses"
               exit 1
           fi
-          cosign verify --key image/keys/orielos-cosign.pub "${REPOSITORY}@${digest}" >/dev/null
-          printf '%s' "${GITHUB_TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
-          skopeo copy --preserve-digests "docker://${REPOSITORY}@${digest}" "docker://${REPOSITORY}:testing"
-          echo "::notice::testing is now ${BUILD} (${digest}); it was ${current}"
+          if [ "${digest}" = "${current}" ]; then
+              echo "::notice::testing on ${REPOSITORY} is already ${BUILD}; the earlier address is updated next"
+          else
+              cosign verify --key image/keys/orielos-cosign.pub "${REPOSITORY}@${digest}" >/dev/null
+              printf '%s' "${GITHUB_TOKEN}" | skopeo login ghcr.io --username "${ACTOR}" --password-stdin
+              skopeo copy --preserve-digests "docker://${REPOSITORY}@${digest}" "docker://${REPOSITORY}:testing"
+              echo "::notice::testing is now ${BUILD} (${digest}); it was ${current}"
+          fi
+
+      # Computers still on the earlier address stage whatever testing points at there.
+      - name: Move testing back at the earlier address
+        env:
+          BUILD: ${{ inputs.build }}
+          PREVIOUS_REGISTRY_TOKEN: ${{ secrets.PREVIOUS_REGISTRY_TOKEN }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: tools/publish-earlier.sh --login --tag "${BUILD}" --channel testing
 
       # The builds after the one testing went back to are withdrawn: their testing pre-releases
       # (the Testing release workflow) say so, and the website stops offering them.
