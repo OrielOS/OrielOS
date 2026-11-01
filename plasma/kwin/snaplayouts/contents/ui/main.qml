@@ -4,6 +4,9 @@
 // Snap layouts: Win+Z shows layouts for the active window and snaps it into the area chosen with
 // the mouse or the keyboard. It's a scene effect, so the picker has the keyboard and the mouse
 // while it shows. Each screen draws a Picker; only the active window's screen shows the layouts.
+// Hovering over a window's maximise button opens the same layouts as a small menu under the button
+// (OrielOS's window frames invoke the "Snap Layouts Menu" action), without dimming the screen.
+// Dragging a window near the top of the screen drops the layouts down as the snap bar (SnapBar.qml).
 
 import QtQuick
 import org.kde.kwin
@@ -17,11 +20,16 @@ SceneEffect {
         translationDomain: "orielos-snaplayouts"
     }
 
-    // Each layout's areas, as fractions of the screen's usable area (without the taskbar).
+    // Each layout's areas, as fractions of the screen's usable area (without the taskbar), in Sill's
+    // order: two rows of three in the menu.
     readonly property var layouts: [
         [
             { x: 0, y: 0, width: 1 / 2, height: 1, name: effect.l10n.i18nc("@action A snap area", "Left half") },
             { x: 1 / 2, y: 0, width: 1 / 2, height: 1, name: effect.l10n.i18nc("@action A snap area", "Right half") },
+        ],
+        [
+            { x: 0, y: 0, width: 2 / 3, height: 1, name: effect.l10n.i18nc("@action A snap area", "Left two thirds") },
+            { x: 2 / 3, y: 0, width: 1 / 3, height: 1, name: effect.l10n.i18nc("@action A snap area", "Right third, beside two thirds") },
         ],
         [
             { x: 0, y: 0, width: 1 / 3, height: 1, name: effect.l10n.i18nc("@action A snap area", "Left third") },
@@ -29,14 +37,20 @@ SceneEffect {
             { x: 2 / 3, y: 0, width: 1 / 3, height: 1, name: effect.l10n.i18nc("@action A snap area", "Right third") },
         ],
         [
-            { x: 0, y: 0, width: 2 / 3, height: 1, name: effect.l10n.i18nc("@action A snap area", "Left two thirds") },
-            { x: 2 / 3, y: 0, width: 1 / 3, height: 1, name: effect.l10n.i18nc("@action A snap area", "Right third, beside two thirds") },
+            { x: 0, y: 0, width: 1 / 2, height: 1, name: effect.l10n.i18nc("@action A snap area", "Left half, beside two quarters") },
+            { x: 1 / 2, y: 0, width: 1 / 2, height: 1 / 2, name: effect.l10n.i18nc("@action A snap area", "Top right quarter") },
+            { x: 1 / 2, y: 1 / 2, width: 1 / 2, height: 1 / 2, name: effect.l10n.i18nc("@action A snap area", "Bottom right quarter") },
         ],
         [
             { x: 0, y: 0, width: 1 / 2, height: 1 / 2, name: effect.l10n.i18nc("@action A snap area", "Top left quarter") },
             { x: 1 / 2, y: 0, width: 1 / 2, height: 1 / 2, name: effect.l10n.i18nc("@action A snap area", "Top right quarter") },
             { x: 0, y: 1 / 2, width: 1 / 2, height: 1 / 2, name: effect.l10n.i18nc("@action A snap area", "Bottom left quarter") },
             { x: 1 / 2, y: 1 / 2, width: 1 / 2, height: 1 / 2, name: effect.l10n.i18nc("@action A snap area", "Bottom right quarter") },
+        ],
+        [
+            { x: 0, y: 0, width: 1 / 4, height: 1, name: effect.l10n.i18nc("@action A snap area", "Left quarter") },
+            { x: 1 / 4, y: 0, width: 1 / 2, height: 1, name: effect.l10n.i18nc("@action A snap area", "Middle half") },
+            { x: 3 / 4, y: 0, width: 1 / 4, height: 1, name: effect.l10n.i18nc("@action A snap area", "Right quarter") },
         ],
     ]
 
@@ -46,6 +60,10 @@ SceneEffect {
     // The highlighted area, an index into all the layouts' areas. It's the effect's, not each
     // screen's, so whichever screen KWin sends the keys to moves the highlight that shows.
     property int current: 0
+    // Whether the layouts show as the maximise button's menu rather than over the dimmed screen.
+    property bool menu: false
+    // The layout picked by its number, whose areas then take the numbers, as in Windows; -1 before.
+    property int numberedLayout: -1
 
     // If the window closes while the layouts show, there's nothing left to snap. KWin keeps a closed
     // window's object for its closing animation, so its closed signal comes first.
@@ -72,7 +90,15 @@ SceneEffect {
         }
         effect.target = window;
         effect.current = 0;
+        effect.numberedLayout = -1;
+        effect.menu = false;
         effect.visible = true;
+    }
+
+    // Show the layouts as the menu of the maximise button of the active window.
+    function openMenu() {
+        effect.open();
+        effect.menu = effect.visible;
     }
 
     function close() {
@@ -84,7 +110,33 @@ SceneEffect {
     function snap(area) {
         const window = effect.target;
         effect.close();
+        effect.snapWindow(window, area);
+    }
+
+    // KWin's own quick tile for an area that is a half or a quarter, or "": windows in KWin's tiles
+    // share their edge, so resizing one resizes its neighbour, as Windows' snapped windows do.
+    function quickTile(area): string {
+        const is = (a, b) => Math.abs(a - b) < 0.001;
+        if (is(area.width, 1 / 2) && is(area.height, 1)) {
+            return is(area.x, 0) ? "slotWindowQuickTileLeft" : "slotWindowQuickTileRight";
+        }
+        if (is(area.width, 1 / 2) && is(area.height, 1 / 2)) {
+            const left = is(area.x, 0);
+            return is(area.y, 0) ? (left ? "slotWindowQuickTileTopLeft" : "slotWindowQuickTileTopRight")
+                : (left ? "slotWindowQuickTileBottomLeft" : "slotWindowQuickTileBottomRight");
+        }
+        return "";
+    }
+
+    function snapWindow(window: QtObject, area) {
         if (!window) {
+            return;
+        }
+        const tile = effect.quickTile(area);
+        if (tile.length > 0) {
+            window.setMaximize(false, false);
+            Workspace.activeWindow = window;
+            Workspace[tile]();
             return;
         }
         const usable = Workspace.clientArea(Workspace.MaximizeArea, window);
@@ -99,10 +151,46 @@ SceneEffect {
 
     delegate: Picker {}
 
+    // The snap bar, while a window is dragged near the top of the screen.
+    readonly property SnapBar snapBar: SnapBar {
+        effect: effect
+    }
+
+    // A window is dragged by its title bar: it's the active window by then.
+    Connections {
+        target: Workspace.activeWindow
+        ignoreUnknownSignals: true
+
+        function onInteractiveMoveResizeStarted() {
+            if (Workspace.activeWindow && Workspace.activeWindow.move) {
+                effect.snapBar.start(Workspace.activeWindow);
+            }
+        }
+
+        function onInteractiveMoveResizeStepped() {
+            effect.snapBar.follow();
+        }
+
+        function onInteractiveMoveResizeFinished() {
+            effect.snapBar.drop();
+        }
+    }
+
     ShortcutHandler {
         name: "Snap Layouts"
         text: effect.l10n.i18nc("@action Global shortcut", "Show snap layouts")
         sequence: "Meta+Z"
         onActivated: effect.visible ? effect.close() : effect.open()
+    }
+
+    // No key of its own: OrielOS's window frames invoke it when the pointer rests on maximise.
+    ShortcutHandler {
+        name: "Snap Layouts Menu"
+        text: effect.l10n.i18nc("@action Global shortcut", "Show snap layouts under the maximise button")
+        onActivated: {
+            if (!effect.visible) {
+                effect.openMenu();
+            }
+        }
     }
 }

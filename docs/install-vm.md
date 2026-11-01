@@ -91,14 +91,15 @@ To check that Secure Boot is on, open the virtual machine's **Settings > Options
 
 ## What happens on first boot
 
-The first start takes under a minute. Then the setup opens with a "Welcome to Plasma Desktop" page, over Plasma's own picture. Click **Begin Setup**, and it asks, one page at a time, for:
+The first start takes under a minute. Then the setup opens with a "Welcome to Plasma Desktop" page over the OrielOS wallpaper. Click **Begin Setup**, and it asks, one page at a time, for:
 
 1. your language;
 2. your keyboard layout;
 3. a network: a list of Wi-Fi networks if your PC has Wi-Fi, or otherwise whether its cable connection reaches the internet (a virtual machine is usually connected already);
 4. your time zone;
 5. when the computer goes to sleep and when the screen turns off, if you don't use it. It starts with sleep after 15 minutes and the screen off after 10;
-6. your name, a user name and a password. This account is an administrator.
+6. a name for the computer, which other devices on the network see;
+7. your name, a user name and a password. This account is an administrator.
 
 When you click **Finish**, Plasma Setup creates your account and shows the login screen. Log in with the password you chose. Plasma Setup does not appear again on later starts.
 

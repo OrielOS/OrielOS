@@ -57,11 +57,13 @@ sed '/^Filter=/d' /usr/lib/fedora-third-party/conf.d/fedora-flathub.flatpakrepo 
 systemctl enable plasma-setup.service sddm.service
 systemctl set-default graphical.target
 
-# OrielOS's look-and-feel package (installed from plasma/ with the apps) is the default for every
-# user; its layout script sets up the taskbar for each new user. /etc/xdg comes before Fedora's
+# OrielOS Dark, the dark version of OrielOS's look-and-feel package (installed from plasma/ with the
+# apps), is the default for every user, with Breeze's dark icons; 90-finalise.sh adds its colours
+# once the colour schemes are in. Settings switches a user to light. /etc/xdg comes before Fedora's
 # kde-settings profile on XDG_CONFIG_DIRS, so this overrides Fedora's look-and-feel.
 # 90-finalise.sh checks that the package is installed.
-kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage org.orielos.desktop
+kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key LookAndFeelPackage org.orielos.desktop.dark
+kwriteconfig6 --file /etc/xdg/kdeglobals --group Icons --key Theme breeze-dark
 # Plasma's Day-Night Cycle switches between these two when it's turned on.
 kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultLightLookAndFeel org.orielos.desktop
 kwriteconfig6 --file /etc/xdg/kdeglobals --group KDE --key DefaultDarkLookAndFeel org.orielos.desktop.dark

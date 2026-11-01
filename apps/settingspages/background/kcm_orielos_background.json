@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Choose the picture on your desktop",
+        "Icon": "preferences-desktop-wallpaper",
+        "Name": "Background"
+    },
+    "X-KDE-Keywords": "background,wallpaper,desktop background,picture,photo,recent",
+    "X-KDE-System-Settings-Parent-Category": "themes",
+    "X-KDE-Weight": 20
+}

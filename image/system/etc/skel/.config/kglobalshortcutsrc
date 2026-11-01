@@ -1,12 +1,39 @@
 # OrielOS's Windows shortcuts for KWin, copied to every new user's ~/.config, where kglobalaccel
 # keeps each user's shortcuts. Each value is the active shortcut, Plasma's default and the
 # action's name; "none" means no shortcut, and \t separates two shortcuts. Shortcuts that are
-# not listed here keep Plasma's defaults.
+# not listed here keep Plasma's defaults. Close Window gives Alt+F4 to OrielOS's Close or shut down
+# KWin script, which closes the window in use or, on the desktop, offers to shut down; Maximise and
+# Minimise give Win+Up and Win+Down to OrielOS's Window shortcuts script, which maximises, restores,
+# minimises and snaps to quarters as Windows does. Alt+Space opens the window menu, and Win+Shift+Up
+# stretches a window to the screen's full height.
 [kwin]
+Window Close=none,Alt+F4,Close Window
 Overview=Meta+Tab\tMeta+W,Meta+W,Toggle Overview
 Walk Through Windows=Alt+Tab,Alt+Tab\tMeta+Tab,Walk Through Windows
 Walk Through Windows (Reverse)=Alt+Shift+Tab,Alt+Shift+Tab\tMeta+Shift+Tab,Walk Through Windows (Reverse)
-Window Maximize=Meta+Up\tMeta+PgUp,Meta+PgUp,Maximize Window
-Window Minimize=Meta+Down\tMeta+PgDown,Meta+PgDown,Minimize Window
+Window Maximize=Meta+PgUp,Meta+PgUp,Maximize Window
+Window Maximize Vertical=Meta+Shift+Up,none,Maximize Window Vertically
+Window Minimize=Meta+PgDown,Meta+PgDown,Minimize Window
+Window Operations Menu=Alt+Space\tAlt+F3,Alt+F3,Window Menu
 Window Quick Tile Bottom=none,Meta+Down,Quick Tile Window to the Bottom
 Window Quick Tile Top=none,Meta+Up,Quick Tile Window to the Top
+
+# Win+Ctrl+Enter turns the screen reader on and off, as Windows does Narrator, besides Plasma's
+# Win+Alt+S.
+[kaccess]
+Toggle Screen Reader On and Off=Meta+Ctrl+Return\tMeta+Alt+S,Meta+Alt+S,Toggle Screen Reader On and Off
+
+# Win+Space moves to the next keyboard layout, as in Windows, besides Plasma's Win+Alt+K.
+[KDE Keyboard Layout Switcher]
+Switch to Next Keyboard Layout=Meta+Space\tMeta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Layout
+
+# Ctrl+Esc opens Start, as in Windows, next to the Windows key and Plasma's Alt+F1. Walking through
+# activities has no shortcut, so Win+A reaches Quick Settings.
+[plasmashell]
+activate application launcher=Meta\tAlt+F1\tCtrl+Esc,Meta\tAlt+F1,Activate Application Launcher
+next activity=none,none,Walk through activities
+previous activity=none,none,Walk through activities (Reverse)
+
+# Win+B opens the hidden icons, as in Windows; switching the power profile keeps the Battery key.
+[org_kde_powerdevil]
+powerProfile=Battery,Battery\tMeta+B,Switch Power Profile

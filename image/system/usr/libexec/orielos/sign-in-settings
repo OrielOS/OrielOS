@@ -1,0 +1,48 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Changes the sign-in screen's settings for the whole computer, for Settings › Accounts › Sign-in
+# options, run through pkexec (org.orielos.sign-in.settings):
+#
+#   sign-in-settings ctrl-alt-del on|off    ask for Ctrl+Alt+Delete before the sign-in shows
+#   sign-in-settings startup-sound on|off   play the startup sound when the sign-in screen appears
+#
+# The first is the sign-in theme's requireCtrlAltDel, in /etc/sddm/orielos-theme.conf, which the
+# theme reads as its theme.conf.user; the second is /etc/orielos/startup-sound-off, which stops
+# orielos-startup-sound.service. ROOT_DIR, for tests, is put in front of both paths.
+set -Eeuo pipefail
+
+root="${ROOT_DIR:-}"
+theme_conf="$root/etc/sddm/orielos-theme.conf"
+sound_off="$root/etc/orielos/startup-sound-off"
+
+usage() {
+    printf 'usage: sign-in-settings ctrl-alt-del|startup-sound on|off\n' >&2
+    exit 2
+}
+
+[[ $# -eq 2 ]] || usage
+case "$2" in
+    on) value=true ;;
+    off) value=false ;;
+    *) usage ;;
+esac
+
+case "$1" in
+    ctrl-alt-del)
+        mkdir -p "${theme_conf%/*}"
+        printf '[General]\nrequireCtrlAltDel=%s\n' "$value" >"$theme_conf.new"
+        chmod 0644 "$theme_conf.new"
+        mv -f "$theme_conf.new" "$theme_conf"
+        ;;
+    startup-sound)
+        if [[ "$value" == true ]]; then
+            rm -f "$sound_off"
+        else
+            mkdir -p "${sound_off%/*}"
+            : >"$sound_off"
+        fi
+        ;;
+    *) usage ;;
+esac

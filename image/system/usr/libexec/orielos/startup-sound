@@ -1,0 +1,22 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Plays OrielOS's startup sound through the sign-in screen's sound server, once it is up: the
+# sign-in screen (SDDM, as the sddm user) starts it with its session shortly after the screen shows.
+# Run by orielos-startup-sound.service. Nothing plays if the sound server doesn't come up within 30
+# seconds, so a slow or silent computer never holds anything up.
+set -Eeuo pipefail
+
+sound=/usr/share/sounds/orielos/stereo/desktop-login.oga
+XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export XDG_RUNTIME_DIR
+
+for _ in $(seq 60); do
+    if [[ -S "$XDG_RUNTIME_DIR/pulse/native" ]] && pactl info >/dev/null 2>&1; then
+        exec paplay "$sound"
+    fi
+    sleep 0.5
+done
+printf 'startup-sound: the sign-in screen'\''s sound server did not start; no sound played\n' >&2
+exit 0

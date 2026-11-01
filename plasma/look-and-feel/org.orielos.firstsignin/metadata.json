@@ -1,0 +1,18 @@
+{
+  "KPackageStructure": "Plasma/LookAndFeel",
+  "KPlugin": {
+    "Authors": [
+      {
+        "Name": "OrielOS contributors"
+      }
+    ],
+    "Category": "",
+    "Description": "The welcome screen at a new account's first sign-in, while its desktop is set up",
+    "Id": "org.orielos.firstsignin",
+    "License": "GPL-3.0-or-later",
+    "Name": "OrielOS first sign-in",
+    "Website": "https://github.com/OrielOS/OrielOS"
+  },
+  "NoDisplay": true,
+  "X-Plasma-APIVersion": "2"
+}

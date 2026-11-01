@@ -1,0 +1,379 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Writes the SVGs of OrielOS's Plasma theme, "orielos", in Sill's look.
+
+Plasma draws panels, pop-ups, tooltips and task buttons from "nine-patch" SVG elements: four
+corners, four edges and a centre, named by convention, plus margin hints, shadows and blur masks.
+This script draws those elements from a few numbers, so the look can be changed here and the files
+written again. Any file the theme doesn't have comes from Plasma's own theme, Breeze.
+
+Colours come from the user's colour scheme through Plasma's ColorScheme-* classes, so the theme is
+dark with OrielOS Dark and light with OrielOS Light. The one fixed colour is Daylight, the sill
+line under the app in use.
+
+Usage: generate.py [OUTPUT_DIR]   (default: the theme folder next to this script's folder)
+"""
+
+import os
+import sys
+
+DAYLIGHT = "#FFB547"
+STYLE = (
+    '<style id="current-color-scheme" type="text/css">'
+    ".ColorScheme-Background { color:#1a1f2e; } "
+    ".ColorScheme-Text { color:#ffffff; } "
+    ".ColorScheme-Highlight { color:#3a66f0; } "
+    ".ColorScheme-NegativeText { color:#e05a5a; }"
+    "</style>"
+)
+
+
+class Svg:
+    """Collects elements, each at its own place on a grid so none overlap."""
+
+    def __init__(self):
+        self.parts = []
+        self.defs = []
+        self.x = 0
+        self.y = 0
+        self.row_height = 0
+
+    def slot(self, w, h):
+        if self.x + w > 600:
+            self.x = 0
+            self.y += self.row_height + 10
+            self.row_height = 0
+        x, y = self.x, self.y
+        self.x += w + 10
+        self.row_height = max(self.row_height, h)
+        return x, y
+
+    def add(self, text):
+        self.parts.append(text)
+
+    def write(self, path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
+                "<!-- SPDX-FileCopyrightText: 2026 OrielOS contributors -->\n"
+                "<!-- SPDX-License-Identifier: GPL-3.0-or-later -->\n"
+                "<!-- Written by plasma/desktoptheme/src/generate.py; change that and run it again. -->\n"
+                '<svg xmlns="http://www.w3.org/2000/svg" width="620" height="%d">\n' % (self.y + self.row_height + 10)
+            )
+            f.write("<defs>%s\n%s</defs>\n" % (STYLE, "\n".join(self.defs)))
+            f.write("\n".join(self.parts))
+            f.write("\n</svg>\n")
+
+
+def fill(cls, opacity):
+    return 'class="%s" style="fill:currentColor;fill-opacity:%s"' % (cls, opacity)
+
+
+def rounded_corner(r, c):
+    """The top-left corner piece of a rounded rectangle, c by c, with radius r <= c."""
+    return "M 0,%s L 0,%s A %s,%s 0 0 1 %s,0 L %s,0 L %s,%s Z" % (c, r, r, r, r, c, c, c)
+
+
+def corner_band(r, c, width=1):
+    """The top-left part of an outline `width` px thick with radius r, in a c by c corner piece:
+    straight from the piece's edge to the curve and on to the other edge, as a filled band. Qt
+    measures a stroked line with half its width past each end, so a stroked outline made the piece
+    larger than its slot and Plasma drew it squeezed, leaving a gap beside it; a filled band stays
+    exactly c by c."""
+    w = width
+    inner = max(r - w, 0)
+    return "M 0,%s L 0,%s A %s,%s 0 0 1 %s,0 L %s,0 L %s,%s L %s,%s A %s,%s 0 0 0 %s,%s L %s,%s Z" % (
+        c, r, r, r, r, c, c, w, r, w, inner, inner, w, r, w, c)
+
+
+ROTATE = {
+    "topleft": "",
+    "topright": "scale(-1,1)",
+    "bottomleft": "scale(1,-1)",
+    "bottomright": "scale(-1,-1)",
+}
+EDGE_SIDES = ("top", "bottom", "left", "right")
+
+
+def frame(svg, prefix, c, r, background, border=None, border_sides=EDGE_SIDES, extra=None, square=(), tint=None):
+    """A nine-patch frame: corners c by c rounded with radius r (except the corners named in
+    `square`), edges and centre filled with `background` (a (class, opacity) pair or None) and,
+    over it, `tint` (the same, or None), an optional 1 px outline `border` on the given sides, and
+    `extra`, a function that adds more drawing to a piece."""
+    p = (prefix + "-") if prefix else ""
+
+    def corner(name):
+        x, y = svg.slot(c, c)
+        ox = x + (c if "right" in name else 0)
+        oy = y + (c if "bottom" in name else 0)
+        rr = 0 if name in square else r
+        inner = []
+        shape = rounded_corner(rr, c) if rr else "M 0,0 H %s V %s H 0 Z" % (c, c)
+        for layer in (background, tint):
+            if layer:
+                inner.append('<path d="%s" %s/>' % (shape, fill(*layer)))
+        sides = [s for s in ("top", "bottom", "left", "right") if s in name]
+        if border and all(s in border_sides for s in sides) and rr:
+            inner.append('<path d="%s" class="%s" style="fill:currentColor;fill-opacity:%s"/>' % (corner_band(rr, c), border[0], border[1]))
+        elif border:
+            for s in sides:
+                if s in border_sides:
+                    if s in ("top", "bottom"):
+                        inner.append('<rect x="0" y="0" width="%s" height="1" %s/>' % (c, fill(*border)))
+                    else:
+                        inner.append('<rect x="0" y="0" width="1" height="%s" %s/>' % (c, fill(*border)))
+        if extra:
+            inner += extra(name, c, c)
+        svg.add('<g id="%s%s" transform="translate(%s,%s) %s"><rect x="0" y="0" width="%s" height="%s" style="fill:none"/>%s</g>' % (
+            p, name, ox, oy, ROTATE[name], c, c, "".join(inner)))
+
+    def edge(name):
+        w, h = (1, c) if name in ("top", "bottom") else (c, 1)
+        x, y = svg.slot(w, h)
+        inner = ['<rect x="0" y="0" width="%s" height="%s" style="fill:none"/>' % (w, h)]
+        for layer in (background, tint):
+            if layer:
+                inner.append('<rect x="0" y="0" width="%s" height="%s" %s/>' % (w, h, fill(*layer)))
+        if border and name in border_sides:
+            bx = {"top": (0, 0, w, 1), "bottom": (0, h - 1, w, 1), "left": (0, 0, 1, h), "right": (w - 1, 0, 1, h)}[name]
+            inner.append('<rect x="%s" y="%s" width="%s" height="%s" %s/>' % (bx + (fill(*border),)))
+        if extra:
+            inner += extra(name, w, h)
+        svg.add('<g id="%s%s" transform="translate(%s,%s)">%s</g>' % (p, name, x, y, "".join(inner)))
+
+    for name in ROTATE:
+        corner(name)
+    for name in EDGE_SIDES:
+        edge(name)
+    x, y = svg.slot(c, c)
+    centre = '<rect x="0" y="0" width="%s" height="%s" style="fill:none"/>' % (c, c)
+    for layer in (background, tint):
+        if layer:
+            centre += '<rect x="0" y="0" width="%s" height="%s" %s/>' % (c, c, fill(*layer))
+    svg.add('<g id="%scenter" transform="translate(%s,%s)">%s</g>' % (p, x, y, centre))
+
+
+def hints(svg, prefix, top, bottom, left, right, kind="margin"):
+    p = (prefix + "-") if prefix else ""
+    for side, size in (("top", top), ("bottom", bottom), ("left", left), ("right", right)):
+        w, h = (2, size) if side in ("top", "bottom") else (size, 2)
+        x, y = svg.slot(w, h)
+        svg.add('<rect id="%shint-%s-%s" x="%s" y="%s" width="%s" height="%s" fill="#ff00ff"/>' % (p, side, kind, x, y, w, h))
+
+
+def masks(svg, c, r):
+    frame(svg, "mask", c, r, ("ColorScheme-Text", 1))
+
+
+def shadows(svg, top, bottom, side, alpha):
+    """Soft shadows around a frame: `top`, `bottom` and `side` px deep, starting at `alpha`."""
+    grads = {
+        "top": ("0", "1", "0", "0"),
+        "bottom": ("0", "0", "0", "1"),
+        "left": ("1", "0", "0", "0"),
+        "right": ("0", "0", "1", "0"),
+    }
+    for name, (x1, y1, x2, y2) in grads.items():
+        svg.defs.append(
+            '<linearGradient id="shade-%s" x1="%s" y1="%s" x2="%s" y2="%s">'
+            '<stop offset="0" stop-color="#000" stop-opacity="%s"/><stop offset="1" stop-color="#000" stop-opacity="0"/>'
+            "</linearGradient>" % (name, x1, y1, x2, y2, alpha)
+        )
+    size = {"top": (1, top), "bottom": (1, bottom), "left": (side, 1), "right": (side, 1)}
+    for name, (w, h) in size.items():
+        x, y = svg.slot(w, h)
+        svg.add('<rect id="shadow-%s" x="%s" y="%s" width="%s" height="%s" fill="url(#shade-%s)"/>' % (name, x, y, w, h, name))
+    for name in ("topleft", "topright", "bottomleft", "bottomright"):
+        w, h = side, (top if "top" in name else bottom)
+        x, y = svg.slot(w, h)
+        cx = x + (0 if "right" in name else w)
+        cy = y + (h if "top" in name else 0)
+        rr = max(w, h)
+        svg.defs.append(
+            '<radialGradient id="shade-%s" cx="%s" cy="%s" r="%s" gradientUnits="userSpaceOnUse" '
+            'gradientTransform="translate(%s,%s) scale(%s,%s) translate(%s,%s)">'
+            '<stop offset="0" stop-color="#000" stop-opacity="%s"/><stop offset="1" stop-color="#000" stop-opacity="0"/>'
+            "</radialGradient>" % (name, cx, cy, rr, cx, cy, w / rr, h / rr, -cx, -cy, alpha)
+        )
+        svg.add('<rect id="shadow-%s" x="%s" y="%s" width="%s" height="%s" fill="url(#shade-%s)"/>' % (name, x, y, w, h, name))
+    hints(svg, "shadow", top, bottom, side, side)
+
+
+def pane(path, opacity, radius=8, margin=12, tint=None):
+    """Pop-ups: Start, Quick Settings, notifications, the calendar and menus. A rounded pane of the
+    window colour with a thin light rim and a soft shadow; translucent over Plasma's blur."""
+    svg = Svg()
+    frame(svg, "", radius, radius, ("ColorScheme-Background", opacity), border=("ColorScheme-Text", 0.13), tint=tint)
+    hints(svg, "", margin, margin, margin, margin)
+    masks(svg, radius, radius)
+    shadows(svg, top=10, bottom=28, side=20, alpha=0.32)
+    svg.write(path)
+
+
+def tooltip(path, opacity):
+    svg = Svg()
+    frame(svg, "", 6, 6, ("ColorScheme-Background", opacity), border=("ColorScheme-Text", 0.13))
+    hints(svg, "", 6, 6, 8, 8)
+    masks(svg, 6, 6)
+    shadows(svg, top=6, bottom=14, side=10, alpha=0.28)
+    svg.write(path)
+
+
+def panel(path, opacity, tint=None):
+    """The taskbar: a full-width bar of the window colour with a hairline along its top. Plasma
+    leaves out the edges that touch the screen's edges."""
+    svg = Svg()
+    frame(svg, "", 4, 0, ("ColorScheme-Background", opacity), border=("ColorScheme-Text", 0.09), border_sides=("top",), tint=tint)
+    hints(svg, "", 4, 4, 4, 4)
+    masks(svg, 4, 0)
+    shadows(svg, top=8, bottom=8, side=8, alpha=0.18)
+    svg.write(path)
+
+
+def tasks(path):
+    """Task buttons. The app in use has a soft highlight and a Daylight line under its icon, the
+    sill; other running apps get a short grey dash; hovering highlights; an app asking for
+    attention is tinted. The line sits in the bottom edge, between corners wide enough that it
+    stays short on a square taskbar button."""
+
+    def line(colour_attrs, height=3):
+        def draw(name, w, h):
+            if name != "bottom":
+                return []
+            return ['<rect x="0" y="%s" width="%s" height="%s" %s/>' % (h - height - 2, w, height, colour_attrs)]
+        return draw
+
+    svg = Svg()
+    daylight = 'style="fill:%s"' % DAYLIGHT
+    dash = fill("ColorScheme-Text", 0.45)
+    # (state, corner size, background, line)
+    states = [
+        ("focus", 13, ("ColorScheme-Text", 0.12), line(daylight)),
+        ("normal", 19, None, line(dash)),
+        ("minimized", 19, None, line(dash)),
+        ("hover", 13, ("ColorScheme-Text", 0.08), None),
+        ("attention", 13, ("ColorScheme-NegativeText", 0.30), line(dash)),
+    ]
+    for state, c, background, extra in states:
+        frame(svg, state, c, 6, background, extra=extra)
+        hints(svg, state, 4, 4, 4, 4)
+    svg.write(path)
+
+
+def lineedit(path):
+    """Text fields, such as Start's search box: Sill's pill, faintly filled with a thin rim; with the
+    keyboard in it, the rim turns the highlight colour and a line underlines it."""
+
+    def underline(name, w, h):
+        # Sill's inset line: 2 px of the highlight colour along the inside of the pill's lower
+        # edge, following its rounded ends. Corners are drawn as the top-left one and flipped, so
+        # the band follows the corner's outer curve.
+        if name == "bottom":
+            return ['<rect x="0" y="%s" width="%s" height="2" %s/>' % (h - 2, w, fill("ColorScheme-Highlight", 1))]
+        if name in ("bottomleft", "bottomright"):
+            return ['<path d="%s" class="ColorScheme-Highlight" style="fill:currentColor"/>' % corner_band(w, w, 2)]
+        return []
+
+    svg = Svg()
+    # Corners as deep as half the field, so it's a pill: Plasma squeezes the pieces of a frame
+    # shorter than two corners, so the margins keep the field at least 2c tall.
+    c = 18
+    frame(svg, "base", c, c, ("ColorScheme-Text", 0.07), border=("ColorScheme-Text", 0.16))
+    frame(svg, "hover", c, c, None, border=("ColorScheme-Text", 0.30))
+    frame(svg, "focus", c, c, None, border=("ColorScheme-Highlight", 0.70), extra=underline)
+    # No separate keyboard-focus ring around the field: the focus frame above is the ring.
+    frame(svg, "focusframe", c, c, None)
+    # The base's margins hold the text, for Sill's 40 px field. Plasma draws the hover and focus
+    # frames outside the base by their own margins, and takes a margin of 0 as missing (and uses
+    # the corner's size instead), so theirs are 1 px.
+    hints(svg, "base", 11, 11, 14, 14)
+    for state in ("hover", "focus", "focusframe"):
+        hints(svg, state, 1, 1, 1, 1)
+    x, y = svg.slot(2, 2)
+    svg.add('<rect id="hint-focus-over-base" x="%s" y="%s" width="2" height="2" fill="#ff00ff"/>' % (x, y))
+    svg.write(path)
+
+
+def viewitem(path):
+    """Rows and tiles in lists and grids, such as Start's pinned apps: a rounded highlight on hover
+    and a highlight-coloured one when selected."""
+    svg = Svg()
+    for state, background in (
+        ("normal", None),
+        ("hover", ("ColorScheme-Text", 0.08)),
+        ("selected", ("ColorScheme-Highlight", 0.22)),
+        ("selected+hover", ("ColorScheme-Highlight", 0.30)),
+    ):
+        frame(svg, state, 6, 6, background)
+    hints(svg, "", 4, 4, 6, 6)
+    svg.write(path)
+
+
+def heading(path):
+    """Headers and footers of pop-ups, such as Start's footer: the footer is a darker band with a
+    hairline along its top, its lower corners rounded to fit the pane; headers stay clear."""
+    svg = Svg()
+    frame(svg, "header", 8, 0, None)
+    frame(svg, "footer", 8, 8, ("ColorScheme-Background", 0.0), border=("ColorScheme-Text", 0.08),
+          border_sides=("top",), square=("topleft", "topright"))
+    # The band itself: black over the pane, which works in dark and light.
+    svg.parts = [part.replace('class="ColorScheme-Background" style="fill:currentColor;fill-opacity:0.0"',
+                              'style="fill:#000000;fill-opacity:0.18"') for part in svg.parts]
+    hints(svg, "", 8, 8, 12, 12)
+    x, y = svg.slot(2, 2)
+    svg.add('<rect id="hint-stretch-borders" x="%s" y="%s" width="2" height="2" fill="#ff00ff"/>' % (x, y))
+    svg.write(path)
+
+
+ACCENT_METADATA = """{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "",
+        "Description": "OrielOS's Plasma theme with the accent colour on Start, the taskbar and pop-ups",
+        "Id": "orielos-accent",
+        "License": "GPL-3.0-or-later",
+        "Name": "OrielOS with accent colour",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API": "5.0"
+}
+"""
+
+
+def main():
+    # --accent writes orielos-accent: the same theme with the accent colour over Start, the taskbar
+    # and pop-ups, as Windows' "Show accent colour on Start and taskbar". Settings' Accent colour
+    # page switches between the two. A theme takes missing pieces from Breeze, not from another
+    # theme, so the variant is a whole theme of its own.
+    args = [a for a in sys.argv[1:] if a != "--accent"]
+    accent = len(args) != len(sys.argv) - 1
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    out = args[0] if args else os.path.join(here, "orielos-accent" if accent else "orielos")
+    tint = ("ColorScheme-Highlight", 0.3) if accent else None
+    # Solid pieces are used without compositing; translucent/ ones over Plasma's blur.
+    pane(os.path.join(out, "dialogs", "background.svg"), 0.97, tint=tint)
+    pane(os.path.join(out, "translucent", "dialogs", "background.svg"), 0.68, tint=tint)
+    tooltip(os.path.join(out, "widgets", "tooltip.svg"), 0.97)
+    tooltip(os.path.join(out, "translucent", "widgets", "tooltip.svg"), 0.78)
+    panel(os.path.join(out, "widgets", "panel-background.svg"), 0.97, tint=tint)
+    panel(os.path.join(out, "translucent", "widgets", "panel-background.svg"), 0.72, tint=tint)
+    tasks(os.path.join(out, "widgets", "tasks.svg"))
+    lineedit(os.path.join(out, "widgets", "lineedit.svg"))
+    viewitem(os.path.join(out, "widgets", "viewitem.svg"))
+    heading(os.path.join(out, "widgets", "plasmoidheading.svg"))
+    if accent:
+        with open(os.path.join(out, "metadata.json"), "w", encoding="utf-8", newline="\n") as f:
+            f.write(ACCENT_METADATA)
+        with open(os.path.join(out, "plasmarc"), "w", encoding="utf-8", newline="\n") as f:
+            f.write("[AdaptiveTransparency]\nenabled=true\n")
+    print("wrote the OrielOS Plasma theme to", out)
+
+
+if __name__ == "__main__":
+    main()

@@ -317,7 +317,8 @@ KCM.SimpleKCM {
                 visible: root.settings.canGoBack
                 enabled: !root.settings.busy
                 text: root.l10n.i18nc("@action:button", "&Go back to the previous version…")
-                icon.name: "edit-undo"
+                // It asks for an administrator: KDE's administrator mark, as Windows' shield.
+                icon.name: "dialog-password"
                 onClicked: goBackDialog.open()
             }
 
@@ -325,7 +326,7 @@ KCM.SimpleKCM {
                 visible: root.settings.hasPrevious
                 enabled: root.settings.canRemovePrevious && !root.settings.busy
                 text: root.l10n.i18nc("@action:button", "Re&move the previous version…")
-                icon.name: "edit-delete"
+                icon.name: "dialog-password"
                 onClicked: removeDialog.open()
             }
 

@@ -15,18 +15,21 @@ struct SettingsResult
     // The Settings page's ID, or the module's for System Settings.
     QString id;
     QString title;
-    // Where it opens, such as "Settings › System".
+    // Where it opens, such as "Settings › System" or "Settings › More settings".
     QString subtext;
     QString icon;
-    // The program and its arguments: orielos-settings <page>, or systemsettings <module>.
+    // The program and its arguments: orielos-settings <page>, or orielos-settings <module> for a
+    // module Settings has no page of its own for.
     QStringList command;
     // As PageCatalogue::rank(): 0 when the title starts with the query, up to 3.
     int rank = 0;
+    // Whether it's one of Settings' own pages rather than one under More settings.
     bool inSettings = true;
 };
 
 // What search shows for settings: Settings' own pages first, then the other modules System
-// Settings lists, so every module can still be found, each opened where it lives and none twice.
+// Settings lists, under Settings' More settings, so every module can still be found, all of them in
+// Settings and none twice.
 class SettingsSearch
 {
 public:
@@ -34,11 +37,10 @@ public:
     // category.
     SettingsSearch(PageCatalogue settings, QList<Page> others);
 
-    // Settings' installed pages and every other module System Settings lists, as installed now.
+    // Settings' installed pages and every other settings module, as installed now.
     static SettingsSearch installed();
 
-    // The other modules from System Settings' module list, leaving out those Settings has a page
-    // for.
+    // The other settings modules, leaving out those Settings has a page for.
     static QList<Page> otherModules(const PageCatalogue &settings, const QList<KPluginMetaData> &modules);
 
     // Every match for the query, Settings' first, each list best first.

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Accessibility, volume and keyboard
+Comment=The first-run setup's bottom-left corner
+Exec=/usr/libexec/orielos-setup-corner
+Icon=preferences-desktop-accessibility
+NoDisplay=true
+StartupNotify=false

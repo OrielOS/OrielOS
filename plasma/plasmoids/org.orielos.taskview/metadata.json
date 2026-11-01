@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "Shows every open window and the desktops, as Win+Tab does",
+        "Icon": "view-grid",
+        "Id": "org.orielos.taskview",
+        "License": "GPL-3.0-or-later",
+        "Name": "Task View",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

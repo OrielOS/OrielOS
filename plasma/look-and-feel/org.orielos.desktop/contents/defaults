@@ -16,7 +16,7 @@ ColorScheme=OrielOSLight
 Theme=breeze
 
 [plasmarc][Theme]
-name=default
+name=orielos
 
 [Wallpaper]
 Image=OrielOS
@@ -29,4 +29,4 @@ library=org.kde.breeze
 theme=Breeze
 
 [ksplashrc][KSplash]
-Theme=org.kde.breeze.desktop
+Theme=org.orielos.desktop

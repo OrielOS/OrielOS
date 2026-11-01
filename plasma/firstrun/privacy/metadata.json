@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "KDE/PlasmaSetup",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Description": "Choose whether apps may find out where the computer is.",
+        "Id": "org.orielos.plasmasetup.privacy",
+        "License": "GPL-3.0-or-later",
+        "Name": "Privacy"
+    },
+    "NoDisplay": true,
+    "X-KDE-ParentApp": "org.kde.plasmasetup",
+    "X-KDE-Weight": 21
+}

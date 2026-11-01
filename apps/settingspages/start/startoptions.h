@@ -22,6 +22,10 @@ class StartOptions : public QObject
     Q_PROPERTY(bool available READ isAvailable NOTIFY changed)
     Q_PROPERTY(bool showRecentlyAdded READ showRecentlyAdded WRITE setShowRecentlyAdded NOTIFY changed)
     Q_PROPERTY(bool showRecentFiles READ showRecentFiles WRITE setShowRecentFiles NOTIFY changed)
+    // The shortcuts next to the power button, by ID.
+    Q_PROPERTY(QStringList folders READ folders NOTIFY changed)
+    // 0 more pins, 1 the default, 2 more recommendations.
+    Q_PROPERTY(int layout READ layout WRITE setLayout NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
 
 public:
@@ -35,6 +39,10 @@ public:
     void setShowRecentlyAdded(bool show);
     bool showRecentFiles() const { return m_settings->state().showRecentFiles; }
     void setShowRecentFiles(bool show);
+    QStringList folders() const { return m_settings->state().startFolders; }
+    Q_INVOKABLE void setFolder(const QString &id, bool shown);
+    int layout() const;
+    void setLayout(int layout);
     QString error() const { return m_settings->error(); }
 
 Q_SIGNALS:

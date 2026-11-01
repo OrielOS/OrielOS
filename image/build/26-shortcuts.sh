@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Windows keyboard shortcuts and plain names for the system tools. Gives System Monitor
 # Ctrl+Shift+Esc, KRunner Win+R and Spectacle a Win+PrtSc action that saves a full screenshot
-# without a dialog, moves the Spectacle shortcuts those keys clash with, and renames System
-# Monitor, Spectacle and Dolphin to Process Manager, Screenshot and Files, and the taskbar widget
-# to Taskbar. System Settings gives Win+I and its place in Start to OrielOS's Settings app. The
+# without a dialog, moves the Spectacle shortcuts those keys clash with, and renames
+# Spectacle and Dolphin to Screenshot and Files (System Monitor keeps its name), gives Win+. to OrielOS's
+# emoji panel instead of Plasma's emoji selector, and renames the taskbar widget
+# to Taskbar. System Settings gives Win+I and its place in Start to OrielOS's Settings app, and
+# Plasma's screen picker gives Win+P to OrielOS's Display mode panel. The
 # KWin shortcuts (Win+Tab and Win+Up/Down) are in system/etc/skel/.config/kglobalshortcutsrc.
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
@@ -57,16 +59,20 @@ link_accel() {
     ln -sf "$apps/$name" "$accel/$name"
 }
 
-# Process Manager: System Monitor, on Ctrl+Shift+Esc as well as Plasma's Win+Esc.
+# System Monitor, under its own name, on Ctrl+Shift+Esc as well as Plasma's Win+Esc.
 monitor=$apps/org.kde.plasma-systemmonitor.desktop
-rename_entry "$monitor" "System Monitor" "Process Manager" "System monitor" "$script"
-add_keywords "$monitor" "System monitor" "processes;tasks;end task;not responding;performance;cpu;memory;"
+add_keywords "$monitor" "System Monitor" "processes;tasks;end task;not responding;performance;cpu;memory;"
 set_shortcuts "$monitor" "Desktop Entry" "Meta+Esc" "Ctrl+Shift+Esc,Meta+Esc"
 link_accel org.kde.plasma-systemmonitor.desktop
 
-# Run: KRunner on Win+R. Spectacle's region recording had Win+R as its second shortcut; it
-# keeps Win+Shift+R.
-set_shortcuts "$accel/org.kde.krunner.desktop" "Desktop Entry" "Alt+Space,Alt+F2,Search" "Meta+R,Alt+Space,Alt+F2,Search"
+# Run: Win+R opens OrielOS's Run box (its own desktop entry gives it the key), KRunner keeps Alt+F2
+# and the Search key, and Alt+Space goes to the window menu, as in Windows. Spectacle's region
+# recording had Win+R as its second shortcut; it keeps Win+Shift+R.
+set_shortcuts "$accel/org.kde.krunner.desktop" "Desktop Entry" "Alt+Space,Alt+F2,Search" "Alt+F2,Search"
+
+# Emoji: Win+. and Win+; open OrielOS's emoji panel (its own desktop entry gives it the keys), with
+# kaomoji, symbols and the clipboard as well; Plasma's emoji selector keeps its other shortcut.
+set_shortcuts "$accel/org.kde.plasma.emojier.desktop" "Desktop Entry" "Meta+.,Meta+Ctrl+Alt+Shift+Space" "Meta+Ctrl+Alt+Shift+Space"
 
 # Screenshot: Spectacle. Win+Shift+S (a rectangular region) is Plasma's default. Win+PrtSc
 # saves the whole desktop to Pictures/Screenshots without opening Spectacle's window, as on
@@ -108,6 +114,15 @@ settings=$apps/systemsettings.desktop
 set_shortcuts "$settings" "Desktop Entry" "Tools,Meta+I" "Tools"
 [[ "$(head -n1 "$settings")" == "[Desktop Entry]" ]] || die "$settings doesn't start with [Desktop Entry]; update $script"
 sed -i '1a NoDisplay=true' "$settings"
+# Info Center's pages are under Settings' More settings, and its command opens Settings, so it isn't
+# a second settings app in Start.
+infocenter=$apps/org.kde.kinfocenter.desktop
+[[ "$(head -n1 "$infocenter")" == "[Desktop Entry]" ]] || die "$infocenter doesn't start with [Desktop Entry]; update $script"
+sed -i '1a NoDisplay=true' "$infocenter"
+
+# Display mode: OrielOS's own panel (apps/displaymode) has Win+P, so Plasma's screen picker
+# keeps only the Display key. Its entry exists only in kglobalaccel's folder.
+set_shortcuts "$accel/org.kde.kscreen.desktop" "Desktop Action ShowOSD" "Display,Meta+P" "Display"
 
 # Plasma's defaults that OrielOS keeps; fail if a package update moves one of them.
 grep -qxF 'X-KDE-Shortcuts=Meta+E' "$apps/org.kde.dolphin.desktop" || die "Dolphin is no longer on Meta+E; update $script"

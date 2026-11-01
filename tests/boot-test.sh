@@ -4,8 +4,9 @@
 # device it then finishes setup the way the wizard does (creates a user and marks setup done),
 # restarts the VM and checks that the second boot reaches the login screen without Plasma Setup.
 # On the second boot it checks the services, starts OrielOS's apps and logs the new user in to a
-# Plasma Wayland session inside the VM, and checks that the new user got the OrielOS taskbar with
-# OrielOS's Start menu, the OrielOS wallpaper and the Windows keyboard shortcuts. It checks the
+# Plasma Wayland session inside the VM, and checks that the new user's desktop is OrielOS's own
+# shell, with the OrielOS taskbar, OrielOS's Start menu, the OrielOS wallpaper and the Windows
+# keyboard shortcuts. It checks the
 # gaming defaults (ntsync, the sysctl settings, zram swap, GameMode, umu-launcher, the controller
 # and peripheral udev rules and drivers) and that Fedora's countme reporting is off.
 # It also checks that the Store shows Flathub only and that
@@ -91,6 +92,7 @@ DESKTOP_COLOURS=""
 SOUND_STATE=""
 # The new user's taskbar, read from their Plasma layout after the desktop login.
 TASKBAR_READ=0
+PLASMA_DESKTOP_FILE=""
 TASKBAR_PANELS=""
 TASKBAR_LOCATION=""
 TASKBAR_ORDER=""
@@ -103,20 +105,23 @@ WALLPAPER_FILE=""
 # empty when only the action name is fixed. Keep in step with docs/keyboard-shortcuts.md.
 SHORTCUT_TABLE=(
     "Meta+E|0x10000045|org.kde.dolphin.desktop|_launch"
-    "Meta+R|0x10000052|org.kde.krunner.desktop|_launch"
+    "Meta+R|0x10000052|org.orielos.Run.desktop|_launch"
     "Meta+L|0x1000004c|ksmserver|Lock Session"
     "Meta+D|0x10000044|kwin|Show Desktop"
     "Meta+Tab|0x11000001|kwin|Overview"
     "Meta+I|0x10000049|org.orielos.Settings.desktop|_launch"
+    "Meta+Pause|0x11000008|org.orielos.Settings.desktop|About"
+    "Meta+U|0x10000055|org.orielos.Settings.desktop|Accessibility"
+    "Meta+P|0x10000050|org.orielos.DisplayMode.desktop|_launch"
     "Meta+Shift+S|0x12000053|org.kde.spectacle.desktop|_launch"
     "Meta+V|0x10000056||show-on-mouse-pos"
-    "Meta+.|0x1000002e|org.kde.plasma.emojier.desktop|_launch"
+    "Meta+.|0x1000002e|org.orielos.EmojiPanel.desktop|_launch"
     "Ctrl+Shift+Esc|0x07000000|org.kde.plasma-systemmonitor.desktop|_launch"
     "Meta+Left|0x11000012|kwin|Window Quick Tile Left"
     "Meta+Right|0x11000014|kwin|Window Quick Tile Right"
     "Meta+Z|0x1000005a|kwin|Snap Layouts"
-    "Meta+Up|0x11000013|kwin|Window Maximize"
-    "Meta+Down|0x11000015|kwin|Window Minimize"
+    "Meta+Up|0x11000013|kwin|OrielOS Maximise"
+    "Meta+Down|0x11000015|kwin|OrielOS Restore or Minimise"
     "Meta+Print|0x11000009|org.kde.spectacle.desktop|FullScreenToFile"
 )
 SHORTCUTS_OUT=""
@@ -241,6 +246,8 @@ first_boot() {
     if [[ "$status" == "running" && -r "$WORK/first-boot.ppm" ]]; then
         SETUP_COLOURS="$(count_colours "$WORK/first-boot.ppm")" || true
     fi
+    # The setup sets the time zone from the network when it can; offline it stays as installed.
+    info "First boot: the time zone during setup is $(vm_ssh timedatectl show -p Timezone --value 2>/dev/null || echo unknown)"
 }
 
 # Restart the VM from inside, and move the start of the current boot's log to the new kernel's
@@ -599,7 +606,7 @@ stop_dolphin() {
     wait_for_dolphin stopped 10
 }
 
-# Print "favorites=<value>" for each OrielOS Start menu in a plasma-org.kde.plasma.desktop-appletsrc
+# Print "favorites=<value>" for each OrielOS Start menu in a plasma-org.orielos.desktop-appletsrc
 # file: the pinned apps in its [Configuration][General] group. Plasma leaves the setting out while
 # the pins are the defaults (unpinning the one app added removes it), so a missing setting prints
 # the default from the Start menu's main.xml. Prints nothing if there is no Start menu.
@@ -638,7 +645,7 @@ PY
 #   read_start_favorites <name>
 read_start_favorites() {
     local out
-    vm_ssh cat "/home/$TEST_USER/.config/plasma-org.kde.plasma.desktop-appletsrc" >"$RESULTS/$1" 2>/dev/null || return 1
+    vm_ssh cat "/home/$TEST_USER/.config/plasma-org.orielos.desktop-appletsrc" >"$RESULTS/$1" 2>/dev/null || return 1
     out="$(start_favorites "$RESULTS/$1")" || return 1
     [[ -n "$out" ]] || return 1
     sed -n '1s/^favorites=//p' <<<"$out"
@@ -830,7 +837,7 @@ start_menu_more_checks() {
 # wallpaper's light image is installed.
 read_taskbar() {
     local out
-    vm_ssh cat "/home/$TEST_USER/.config/plasma-org.kde.plasma.desktop-appletsrc" >"$RESULTS/plasma-appletsrc" 2>/dev/null || return 0
+    vm_ssh cat "/home/$TEST_USER/.config/plasma-org.orielos.desktop-appletsrc" >"$RESULTS/plasma-appletsrc" 2>/dev/null || return 0
     out="$(taskbar_summary "$RESULTS/plasma-appletsrc")" || return 0
     TASKBAR_READ=1
     TASKBAR_PANELS="$(sed -n 's/^panels=//p' <<<"$out")"
@@ -840,9 +847,12 @@ read_taskbar() {
     TASKBAR_ICON="$(sed -n 's/^icon=//p' <<<"$out")"
     WALLPAPER_IMAGE="$(sed -n 's/^wallpaper=//p' <<<"$out")"
     WALLPAPER_FILE="$(vm_ssh "test -f /usr/share/wallpapers/OrielOS/contents/images/3840x2160.jpg && echo present || echo missing" 2>&1)" || true
+    # Plasma's own desktop shell would keep its desktop in this file; a new user of the OrielOS
+    # shell never gets one.
+    PLASMA_DESKTOP_FILE="$(vm_ssh "test -e /home/$TEST_USER/.config/plasma-org.kde.plasma.desktop-appletsrc && echo present || echo absent" 2>&1)" || true
 }
 
-# Print a summary of the panels in a plasma-org.kde.plasma.desktop-appletsrc file:
+# Print a summary of the panels in a plasma-org.orielos.desktop-appletsrc file:
 # "wallpaper=<the desktops' Image values, comma-separated>", "panels=<count>" and,
 # when there is exactly one panel, "location=<edge>" (4 is the bottom), "order=<widgets>" (plugin
 # names without org.kde.plasma. or org.orielos.), "launchers=<pinned apps>" and "icon=<the Start
@@ -1233,12 +1243,23 @@ run_checks() {
         pass "Universal Blue's key is trusted (mokutil --test-key: enrolled; state: key=enrolled; v4l2loopback loaded; systemd-modules-load.service active)"
     fi
 
-    taskbar="panelspacer startmenu icontasks panelspacer systemtray digitalclock showdesktop"
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "The desktop is OrielOS's own shell: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ "$TASKBAR_READ" -ne 1 ]]; then
+        fail "The desktop is OrielOS's own shell: $TEST_USER has no ~/.config/plasma-org.orielos.desktop-appletsrc, so plasmashell didn't load org.orielos.desktop"
+    elif [[ "$PLASMA_DESKTOP_FILE" != "absent" ]]; then
+        fail "The desktop is OrielOS's own shell: $TEST_USER also has Plasma's desktop file, plasma-org.kde.plasma.desktop-appletsrc (${PLASMA_DESKTOP_FILE:-no answer})"
+    else
+        pass "The desktop is OrielOS's own shell (plasma-org.orielos.desktop-appletsrc, and no desktop file for Plasma's shell)"
+    fi
+
+    taskbar="panelspacer startmenu search taskview icontasks panelspacer systemtray quicksettings clock showdesktop"
     if [[ "$SSH_OK" -ne 1 ]]; then
         fail "The OrielOS taskbar is set up: $no_ssh"
         hint "$ssh_hint"
     elif [[ "$TASKBAR_READ" -ne 1 ]]; then
-        fail "The OrielOS taskbar is set up: could not read $TEST_USER's ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
+        fail "The OrielOS taskbar is set up: could not read $TEST_USER's ~/.config/plasma-org.orielos.desktop-appletsrc"
     elif [[ "$TASKBAR_PANELS" != "1" ]]; then
         fail "$TEST_USER does not have exactly one panel (${TASKBAR_PANELS:-no} panels; see plasma-appletsrc in the results)"
     elif [[ "$TASKBAR_LOCATION" != "4" ]]; then
@@ -1257,7 +1278,7 @@ run_checks() {
         fail "Taskbar: Start is OrielOS's Start menu: $no_ssh"
         hint "$ssh_hint"
     elif [[ "$TASKBAR_READ" -ne 1 ]]; then
-        fail "Taskbar: Start is OrielOS's Start menu: could not read $TEST_USER's ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
+        fail "Taskbar: Start is OrielOS's Start menu: could not read $TEST_USER's ~/.config/plasma-org.orielos.desktop-appletsrc"
     elif [[ " $TASKBAR_ORDER " != *" startmenu "* ]]; then
         fail "Taskbar: $TEST_USER's panel has no org.orielos.startmenu (widgets: ${TASKBAR_ORDER:-none})"
     elif [[ " $TASKBAR_ORDER " =~ \ (kickoff|kicker|kickerdash)\  ]]; then
@@ -1273,7 +1294,7 @@ run_checks() {
         fail "The OrielOS wallpaper is set: $no_ssh"
         hint "$ssh_hint"
     elif [[ "$TASKBAR_READ" -ne 1 ]]; then
-        fail "The OrielOS wallpaper is set: could not read $TEST_USER's ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
+        fail "The OrielOS wallpaper is set: could not read $TEST_USER's ~/.config/plasma-org.orielos.desktop-appletsrc"
     elif [[ "$WALLPAPER_IMAGE" != "$wallpaper" ]]; then
         fail "$TEST_USER's desktop does not use the OrielOS wallpaper (Image: ${WALLPAPER_IMAGE:-none}; expected: $wallpaper)"
     elif [[ "$WALLPAPER_FILE" != "present" ]]; then
@@ -1303,10 +1324,10 @@ run_checks() {
         fail "Windows shortcuts are set, but more than one action has the same shortcut: $(paste -sd ';' - <<<"$SHORTCUT_CLASHES")"
     elif [[ -z "$WIN_E_SECONDS" ]]; then
         fail "Windows shortcuts are set, but pressing Win+E over QMP did not start Dolphin within 20 s"
-    elif [[ "$TOOL_NAMES" != "Name=Process Manager,Name=Screenshot,Name=Files,Name=Clipboard history" ]]; then
-        fail "System Monitor, Spectacle, Dolphin and the clipboard history do not have their OrielOS names in Start (${TOOL_NAMES:-no output})"
+    elif [[ "$TOOL_NAMES" != "Name=System Monitor,Name=Screenshot,Name=Files,Name=Clipboard history" ]]; then
+        fail "System Monitor, Spectacle, Dolphin and the clipboard history do not have their expected names in Start (${TOOL_NAMES:-no output})"
     else
-        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows Process Manager, Screenshot, Files and Clipboard history)"
+        pass "Windows shortcuts are set (${#SHORTCUT_TABLE[@]} shortcuts and the Win key map to the expected actions in $TEST_USER's session; Win+E started Dolphin in $WIN_E_SECONDS s; Start shows System Monitor, Screenshot, Files and Clipboard history)"
     fi
 
     info "Store and Firefox"

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 OrielOS contributors -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Written by plasma/desktoptheme/src/generate.py; change that and run it again. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="72">
+<defs><style id="current-color-scheme" type="text/css">.ColorScheme-Background { color:#1a1f2e; } .ColorScheme-Text { color:#ffffff; } .ColorScheme-Highlight { color:#3a66f0; } .ColorScheme-NegativeText { color:#e05a5a; }</style>
+</defs>
+<g id="focus-topleft" transform="translate(0,0) "><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/></g>
+<g id="focus-topright" transform="translate(36,0) scale(-1,1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/></g>
+<g id="focus-bottomleft" transform="translate(46,13) scale(1,-1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/></g>
+<g id="focus-bottomright" transform="translate(82,13) scale(-1,-1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/></g>
+<g id="focus-top" transform="translate(92,0)"><rect x="0" y="0" width="1" height="13" style="fill:none"/><rect x="0" y="0" width="1" height="13" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/></g>
+<g id="focus-bottom" transform="translate(103,0)"><rect x="0" y="0" width="1" height="13" style="fill:none"/><rect x="0" y="0" width="1" height="13" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/><rect x="0" y="8" width="1" height="3" style="fill:#FFB547"/></g>
+<g id="focus-left" transform="translate(114,0)"><rect x="0" y="0" width="13" height="1" style="fill:none"/><rect x="0" y="0" width="13" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/></g>
+<g id="focus-right" transform="translate(137,0)"><rect x="0" y="0" width="13" height="1" style="fill:none"/><rect x="0" y="0" width="13" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/></g>
+<g id="focus-center" transform="translate(160,0)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><rect x="0" y="0" width="13" height="13" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.12"/></g>
+<rect id="focus-hint-top-margin" x="183" y="0" width="2" height="4" fill="#ff00ff"/>
+<rect id="focus-hint-bottom-margin" x="195" y="0" width="2" height="4" fill="#ff00ff"/>
+<rect id="focus-hint-left-margin" x="207" y="0" width="4" height="2" fill="#ff00ff"/>
+<rect id="focus-hint-right-margin" x="221" y="0" width="4" height="2" fill="#ff00ff"/>
+<g id="normal-topleft" transform="translate(235,0) "><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<g id="normal-topright" transform="translate(283,0) scale(-1,1)"><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<g id="normal-bottomleft" transform="translate(293,19) scale(1,-1)"><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<g id="normal-bottomright" transform="translate(341,19) scale(-1,-1)"><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<g id="normal-top" transform="translate(351,0)"><rect x="0" y="0" width="1" height="19" style="fill:none"/></g>
+<g id="normal-bottom" transform="translate(362,0)"><rect x="0" y="0" width="1" height="19" style="fill:none"/><rect x="0" y="14" width="1" height="3" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.45"/></g>
+<g id="normal-left" transform="translate(373,0)"><rect x="0" y="0" width="19" height="1" style="fill:none"/></g>
+<g id="normal-right" transform="translate(402,0)"><rect x="0" y="0" width="19" height="1" style="fill:none"/></g>
+<g id="normal-center" transform="translate(431,0)"><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<rect id="normal-hint-top-margin" x="460" y="0" width="2" height="4" fill="#ff00ff"/>
+<rect id="normal-hint-bottom-margin" x="472" y="0" width="2" height="4" fill="#ff00ff"/>
+<rect id="normal-hint-left-margin" x="484" y="0" width="4" height="2" fill="#ff00ff"/>
+<rect id="normal-hint-right-margin" x="498" y="0" width="4" height="2" fill="#ff00ff"/>
+<g id="minimized-topleft" transform="translate(512,0) "><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<g id="minimized-topright" transform="translate(560,0) scale(-1,1)"><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<g id="minimized-bottomleft" transform="translate(570,19) scale(1,-1)"><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<g id="minimized-bottomright" transform="translate(19,48) scale(-1,-1)"><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<g id="minimized-top" transform="translate(29,29)"><rect x="0" y="0" width="1" height="19" style="fill:none"/></g>
+<g id="minimized-bottom" transform="translate(40,29)"><rect x="0" y="0" width="1" height="19" style="fill:none"/><rect x="0" y="14" width="1" height="3" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.45"/></g>
+<g id="minimized-left" transform="translate(51,29)"><rect x="0" y="0" width="19" height="1" style="fill:none"/></g>
+<g id="minimized-right" transform="translate(80,29)"><rect x="0" y="0" width="19" height="1" style="fill:none"/></g>
+<g id="minimized-center" transform="translate(109,29)"><rect x="0" y="0" width="19" height="19" style="fill:none"/></g>
+<rect id="minimized-hint-top-margin" x="138" y="29" width="2" height="4" fill="#ff00ff"/>
+<rect id="minimized-hint-bottom-margin" x="150" y="29" width="2" height="4" fill="#ff00ff"/>
+<rect id="minimized-hint-left-margin" x="162" y="29" width="4" height="2" fill="#ff00ff"/>
+<rect id="minimized-hint-right-margin" x="176" y="29" width="4" height="2" fill="#ff00ff"/>
+<g id="hover-topleft" transform="translate(190,29) "><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-topright" transform="translate(226,29) scale(-1,1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-bottomleft" transform="translate(236,42) scale(1,-1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-bottomright" transform="translate(272,42) scale(-1,-1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-top" transform="translate(282,29)"><rect x="0" y="0" width="1" height="13" style="fill:none"/><rect x="0" y="0" width="1" height="13" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-bottom" transform="translate(293,29)"><rect x="0" y="0" width="1" height="13" style="fill:none"/><rect x="0" y="0" width="1" height="13" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-left" transform="translate(304,29)"><rect x="0" y="0" width="13" height="1" style="fill:none"/><rect x="0" y="0" width="13" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-right" transform="translate(327,29)"><rect x="0" y="0" width="13" height="1" style="fill:none"/><rect x="0" y="0" width="13" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-center" transform="translate(350,29)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><rect x="0" y="0" width="13" height="13" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<rect id="hover-hint-top-margin" x="373" y="29" width="2" height="4" fill="#ff00ff"/>
+<rect id="hover-hint-bottom-margin" x="385" y="29" width="2" height="4" fill="#ff00ff"/>
+<rect id="hover-hint-left-margin" x="397" y="29" width="4" height="2" fill="#ff00ff"/>
+<rect id="hover-hint-right-margin" x="411" y="29" width="4" height="2" fill="#ff00ff"/>
+<g id="attention-topleft" transform="translate(425,29) "><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="attention-topright" transform="translate(461,29) scale(-1,1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="attention-bottomleft" transform="translate(471,42) scale(1,-1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="attention-bottomright" transform="translate(507,42) scale(-1,-1)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><path d="M 0,13 L 0,6 A 6,6 0 0 1 6,0 L 13,0 L 13,13 Z" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="attention-top" transform="translate(517,29)"><rect x="0" y="0" width="1" height="13" style="fill:none"/><rect x="0" y="0" width="1" height="13" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="attention-bottom" transform="translate(528,29)"><rect x="0" y="0" width="1" height="13" style="fill:none"/><rect x="0" y="0" width="1" height="13" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/><rect x="0" y="8" width="1" height="3" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.45"/></g>
+<g id="attention-left" transform="translate(539,29)"><rect x="0" y="0" width="13" height="1" style="fill:none"/><rect x="0" y="0" width="13" height="1" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="attention-right" transform="translate(562,29)"><rect x="0" y="0" width="13" height="1" style="fill:none"/><rect x="0" y="0" width="13" height="1" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="attention-center" transform="translate(585,29)"><rect x="0" y="0" width="13" height="13" style="fill:none"/><rect x="0" y="0" width="13" height="13" class="ColorScheme-NegativeText" style="fill:currentColor;fill-opacity:0.3"/></g>
+<rect id="attention-hint-top-margin" x="0" y="58" width="2" height="4" fill="#ff00ff"/>
+<rect id="attention-hint-bottom-margin" x="12" y="58" width="2" height="4" fill="#ff00ff"/>
+<rect id="attention-hint-left-margin" x="24" y="58" width="4" height="2" fill="#ff00ff"/>
+<rect id="attention-hint-right-margin" x="38" y="58" width="4" height="2" fill="#ff00ff"/>
+</svg>

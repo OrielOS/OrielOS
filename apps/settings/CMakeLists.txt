@@ -5,7 +5,7 @@
 # Widgets, and OrielOS's own, under categories in the order Windows Settings uses.
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets)
-find_package(KF6 6.0 REQUIRED COMPONENTS KCMUtils WidgetsAddons DBusAddons WindowSystem CoreAddons Runner KIO JobWidgets)
+find_package(KF6 6.0 REQUIRED COMPONENTS KCMUtils WidgetsAddons DBusAddons WindowSystem CoreAddons Runner KIO JobWidgets Config Service)
 
 # The categories, pages and search, finding the modules, and the search Start and KRunner use,
 # apart from the window, so the runner and the unit tests can use them. Position-independent,
@@ -18,7 +18,7 @@ add_library(OrielOSSettingsCatalogue STATIC
 set_target_properties(OrielOSSettingsCatalogue PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(OrielOSSettingsCatalogue PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(OrielOSSettingsCatalogue PRIVATE TRANSLATION_DOMAIN="orielos-settings")
-target_link_libraries(OrielOSSettingsCatalogue PUBLIC Qt6::Core KF6::I18n KF6::CoreAddons)
+target_link_libraries(OrielOSSettingsCatalogue PUBLIC Qt6::Core KF6::I18n KF6::CoreAddons KF6::Service)
 
 add_executable(orielos-settings main.cpp settingswindow.cpp settingswindow.h)
 target_compile_definitions(orielos-settings PRIVATE
@@ -31,6 +31,8 @@ target_link_libraries(orielos-settings PRIVATE
     Qt6::Qml
     KF6::I18n
     KF6::CoreAddons
+    KF6::ConfigCore
+    KF6::KIOGui
     KF6::KCMUtils
     KF6::WidgetsAddons
     KF6::DBusAddons

@@ -1,0 +1,5 @@
+# The welcome screen between signing in and the desktop is OrielOS's: it carries on from the sign-in
+# screen with a spinner and "Welcome". Both OrielOS look-and-feel packages carry the same one.
+[KSplash]
+Engine=KSplashQML
+Theme=org.orielos.desktop

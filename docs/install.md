@@ -60,7 +60,9 @@ The installer doesn't ask for an account: OrielOS asks for it when it first star
 
 - **On a PC with Windows**, a menu lists OrielOS and Windows for five seconds at every start; OrielOS starts if you don't choose.
 - During the very first start, a red line about **"Load Kernel Modules"** may flash past. It's expected: your PC doesn't trust OrielOS's extra drivers yet (the next step fixes that).
-- **The first-run setup** asks for your language, keyboard layout, network, time zone and power settings, then creates your account.
+- **The first-run setup** asks for your language, keyboard layout and network, checks for a newer OrielOS (one it finds starts the next time you restart), sets the time zone, then asks for your power settings and a name for the computer, creates your account and asks whether apps may use your location. The time zone comes from your network: setup asks Fedora's geolocation service, the one Fedora's own installer uses, which time zone your internet address is in. It asks you to choose only when that doesn't work, for example without a connection. OrielOS collects no diagnostic data and has no advertising ID, so there's nothing else to switch off.
+- **At the bottom left of every setup page**: **Accessibility** turns on the screen reader, the magnifier, the on-screen keyboard or high contrast; the volume; and the keyboard layout, which you can click to switch. Windows + Ctrl + Enter starts the screen reader at any point, and Shift + F10 opens a terminal for technicians.
+- **Your first sign-in** says "Setting up your desktop" while your account is prepared, and afterwards suggests setting up a PIN, which is quicker to type than your password.
 
   ![The first-run setup's Language page over the desktop wallpaper, with a list of languages to choose from](images/first-start-language.webp)
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+  <kcfgfile name=""/>
+
+  <group name="General">
+    <entry name="peek" type="Bool">
+      <label>Whether resting the pointer on the strip shows the desktop until the pointer leaves. Settings › Personalisation › Taskbar changes it.</label>
+      <default>false</default>
+    </entry>
+  </group>
+</kcfg>

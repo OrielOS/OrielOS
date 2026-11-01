@@ -2,7 +2,7 @@
 # Installs the OrielOS image to a disk file, boots it under QEMU/KVM with Secure Boot, a software
 # TPM and a 1920x1080 screen, and saves a numbered set of screenshots that show what OrielOS looks
 # like: the boot splash, Plasma Setup's pages, the sign-in screen, the desktop, Start, a setting
-# found from Start, Files, the Store, Process Manager, the taskbar's menu for an app that isn't
+# found from Start, Files, the Store, System Monitor, the taskbar's menu for an app that isn't
 # pinned and one that is, Settings and some of its pages, Firefox,
 # Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock
 # screen. It drives the VM with QMP mouse clicks and key presses, as a person would, and uses SSH
@@ -37,7 +37,7 @@ TOUR_PASSWORD="orielos-tour"
 NEXT_X=1283
 NEXT_Y=883
 # The middle of the taskbar's icons: Firefox, pinned, and the one after the pinned apps, where a
-# running app that isn't pinned (Process Manager) appears.
+# running app that isn't pinned (System Monitor) appears.
 TASKBAR_Y=1056
 PINNED_X=981
 UNPINNED_X=1064
@@ -293,7 +293,7 @@ desktop_tour() {
     shot 09-store
     close_apps
 
-    press_and_shot 10-process-manager 10 keys:ctrl+shift+esc
+    press_and_shot 10-system-monitor 10 keys:ctrl+shift+esc
     # The taskbar's menu for a running app that isn't pinned (Pin to taskbar) and for a pinned one
     # (Unpin from taskbar).
     press_and_shot 10-taskbar-menu-pin 3 "rclick:$UNPINNED_X,$TASKBAR_Y"

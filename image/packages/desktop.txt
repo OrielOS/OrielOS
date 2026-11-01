@@ -40,9 +40,14 @@ kde-settings-sddm
 # wallpapers, which the wizard uses.
 plasma-setup
 
-# Settings, power and hardware integration.
+# Settings, power and hardware integration. UPower reports batteries (for laptops, and for
+# wireless mice, keyboards and controllers) to PowerDevil and the shell; without it nothing shows a
+# battery. fprintd drives fingerprint readers, for signing in and confirming who you are.
 plasma-systemsettings
 powerdevil
+upower
+fprintd
+fprintd-pam
 tuned-ppd
 switcheroo-control
 plasma-disks
@@ -119,6 +124,21 @@ atmel-firmware
 intel-vsc-firmware
 dvb-firmware
 
+# Built-in cameras that sit on the processor's camera interface rather than USB, as in many recent
+# Intel laptops: libcamera drives them and its PipeWire plugin hands them to apps (through the
+# camera portal for Flatpak apps). USB webcams work without these.
+libcamera
+libcamera-ipa
+pipewire-plugin-libcamera
+
+# The screen reader, Orca, as Windows has Narrator built in: Win+Ctrl+Enter or Settings turns it on.
+# It speaks through Speech Dispatcher with the eSpeak NG voices.
+orca
+speech-dispatcher
+speech-dispatcher-espeak-ng
+espeak-ng
+python3-speechd
+
 # Bluetooth, including sending files to and from phones.
 bluez
 bluez-obexd
@@ -141,7 +161,7 @@ flatpak-kcm
 fedora-flathub-remote
 
 # The everyday system tools: Files, Terminal, Screenshot and archive support in Files.
-# Process Manager (plasma-systemmonitor), System Settings, the system information page
+# System Monitor (plasma-systemmonitor), System Settings, the system information page
 # (kinfocenter) and Discover are listed above.
 dolphin
 kio-extras

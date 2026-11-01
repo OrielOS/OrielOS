@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 OrielOS contributors -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Written by plasma/desktoptheme/src/generate.py; change that and run it again. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="16">
+<defs><style id="current-color-scheme" type="text/css">.ColorScheme-Background { color:#1a1f2e; } .ColorScheme-Text { color:#ffffff; } .ColorScheme-Highlight { color:#3a66f0; } .ColorScheme-NegativeText { color:#e05a5a; }</style>
+</defs>
+<g id="normal-topleft" transform="translate(0,0) "><rect x="0" y="0" width="6" height="6" style="fill:none"/></g>
+<g id="normal-topright" transform="translate(22,0) scale(-1,1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/></g>
+<g id="normal-bottomleft" transform="translate(32,6) scale(1,-1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/></g>
+<g id="normal-bottomright" transform="translate(54,6) scale(-1,-1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/></g>
+<g id="normal-top" transform="translate(64,0)"><rect x="0" y="0" width="1" height="6" style="fill:none"/></g>
+<g id="normal-bottom" transform="translate(75,0)"><rect x="0" y="0" width="1" height="6" style="fill:none"/></g>
+<g id="normal-left" transform="translate(86,0)"><rect x="0" y="0" width="6" height="1" style="fill:none"/></g>
+<g id="normal-right" transform="translate(102,0)"><rect x="0" y="0" width="6" height="1" style="fill:none"/></g>
+<g id="normal-center" transform="translate(118,0)"><rect x="0" y="0" width="6" height="6" style="fill:none"/></g>
+<g id="hover-topleft" transform="translate(134,0) "><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-topright" transform="translate(156,0) scale(-1,1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-bottomleft" transform="translate(166,6) scale(1,-1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-bottomright" transform="translate(188,6) scale(-1,-1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-top" transform="translate(198,0)"><rect x="0" y="0" width="1" height="6" style="fill:none"/><rect x="0" y="0" width="1" height="6" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-bottom" transform="translate(209,0)"><rect x="0" y="0" width="1" height="6" style="fill:none"/><rect x="0" y="0" width="1" height="6" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-left" transform="translate(220,0)"><rect x="0" y="0" width="6" height="1" style="fill:none"/><rect x="0" y="0" width="6" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-right" transform="translate(236,0)"><rect x="0" y="0" width="6" height="1" style="fill:none"/><rect x="0" y="0" width="6" height="1" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="hover-center" transform="translate(252,0)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><rect x="0" y="0" width="6" height="6" class="ColorScheme-Text" style="fill:currentColor;fill-opacity:0.08"/></g>
+<g id="selected-topleft" transform="translate(268,0) "><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected-topright" transform="translate(290,0) scale(-1,1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected-bottomleft" transform="translate(300,6) scale(1,-1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected-bottomright" transform="translate(322,6) scale(-1,-1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected-top" transform="translate(332,0)"><rect x="0" y="0" width="1" height="6" style="fill:none"/><rect x="0" y="0" width="1" height="6" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected-bottom" transform="translate(343,0)"><rect x="0" y="0" width="1" height="6" style="fill:none"/><rect x="0" y="0" width="1" height="6" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected-left" transform="translate(354,0)"><rect x="0" y="0" width="6" height="1" style="fill:none"/><rect x="0" y="0" width="6" height="1" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected-right" transform="translate(370,0)"><rect x="0" y="0" width="6" height="1" style="fill:none"/><rect x="0" y="0" width="6" height="1" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected-center" transform="translate(386,0)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><rect x="0" y="0" width="6" height="6" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.22"/></g>
+<g id="selected+hover-topleft" transform="translate(402,0) "><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="selected+hover-topright" transform="translate(424,0) scale(-1,1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="selected+hover-bottomleft" transform="translate(434,6) scale(1,-1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="selected+hover-bottomright" transform="translate(456,6) scale(-1,-1)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><path d="M 0,6 L 0,6 A 6,6 0 0 1 6,0 L 6,0 L 6,6 Z" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="selected+hover-top" transform="translate(466,0)"><rect x="0" y="0" width="1" height="6" style="fill:none"/><rect x="0" y="0" width="1" height="6" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="selected+hover-bottom" transform="translate(477,0)"><rect x="0" y="0" width="1" height="6" style="fill:none"/><rect x="0" y="0" width="1" height="6" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="selected+hover-left" transform="translate(488,0)"><rect x="0" y="0" width="6" height="1" style="fill:none"/><rect x="0" y="0" width="6" height="1" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="selected+hover-right" transform="translate(504,0)"><rect x="0" y="0" width="6" height="1" style="fill:none"/><rect x="0" y="0" width="6" height="1" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<g id="selected+hover-center" transform="translate(520,0)"><rect x="0" y="0" width="6" height="6" style="fill:none"/><rect x="0" y="0" width="6" height="6" class="ColorScheme-Highlight" style="fill:currentColor;fill-opacity:0.3"/></g>
+<rect id="hint-top-margin" x="536" y="0" width="2" height="4" fill="#ff00ff"/>
+<rect id="hint-bottom-margin" x="548" y="0" width="2" height="4" fill="#ff00ff"/>
+<rect id="hint-left-margin" x="560" y="0" width="6" height="2" fill="#ff00ff"/>
+<rect id="hint-right-margin" x="576" y="0" width="6" height="2" fill="#ff00ff"/>
+</svg>

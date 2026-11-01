@@ -1,0 +1,6 @@
+# Accessibility as in Windows: pressing Shift five times asks whether to turn on Sticky Keys, and
+# holding Shift for eight seconds asks about slow keys (Windows' Filter Keys). A user's own choices
+# in Settings › Accessibility win.
+[Keyboard]
+Gestures=true
+GestureConfirmation=true

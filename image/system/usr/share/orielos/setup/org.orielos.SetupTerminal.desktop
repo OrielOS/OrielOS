@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Terminal
+Comment=A terminal during the first-run setup, as Shift+F10 opens one in Windows' setup
+Exec=konsole
+Icon=utilities-terminal
+NoDisplay=true
+X-KDE-Shortcuts=Shift+F10

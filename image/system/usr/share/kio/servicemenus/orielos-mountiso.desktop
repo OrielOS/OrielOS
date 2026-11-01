@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Service
+MimeType=application/x-cd-image;application/vnd.efi.iso;
+Actions=mount;
+
+[Desktop Action mount]
+Name=Mount
+Icon=media-mount
+Exec=/usr/libexec/orielos/mount-iso %f

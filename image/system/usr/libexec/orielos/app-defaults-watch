@@ -1,0 +1,102 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Says so when an app default was reset, as Windows does: when the app that opened web links,
+# email links, PDF files, pictures, music, videos or text files is removed, a notification names
+# the app that opens them now, or offers Settings' Default apps page when none does. It remembers
+# each default from the last run, with its app's name (gone with the app), in
+# ~/.local/state/orielos/app-defaults. Run at each sign-in and
+# whenever the installed apps change, by orielos-app-defaults.service and .path.
+#   app-defaults-watch [--dry-run]   (prints the notifications instead, for the tests)
+set -Euo pipefail
+
+dry_run=false
+[[ "${1:-}" == --dry-run ]] && dry_run=true
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/app-defaults"
+mkdir -p -- "${state%/*}"
+
+# Each kind of file or link: the MIME type, and how the notification names it.
+kinds=(
+    "x-scheme-handler/https|web links"
+    "x-scheme-handler/mailto|email links"
+    "application/pdf|PDF files"
+    "image/jpeg|pictures"
+    "audio/mpeg|music"
+    "video/mp4|videos"
+    "text/plain|text files"
+)
+
+# The desktop entry with this ID, from the user's apps or the system's, or nothing.
+entry_file() {
+    local dir
+    local -a dirs
+    IFS=: read -r -a dirs <<<"${XDG_DATA_HOME:-$HOME/.local/share}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    for dir in "${dirs[@]}"; do
+        if [[ -n "$dir" && -f "$dir/applications/$1" ]]; then
+            printf '%s\n' "$dir/applications/$1"
+            return
+        fi
+    done
+}
+
+# The default app for a MIME type, as GLib's gio reads the freedesktop.org settings (xdg-mime needs a
+# KDE tool OrielOS doesn't have), or nothing.
+default_app() {
+    LC_ALL=C gio mime "$1" 2>/dev/null | sed -n 's/^Default application for .*: //p' | head -n1
+}
+
+# An app's name from its desktop entry, or its ID when the entry is gone.
+app_name() {
+    local file name=""
+    file="$(entry_file "$1")"
+    [[ -n "$file" ]] && name="$(sed -n 's/^Name=//p' "$file" | head -n1)"
+    printf '%s\n' "${name:-${1%.desktop}}"
+}
+
+notify() {
+    if [[ "$dry_run" == true ]]; then
+        printf 'notify: %s\n' "$1"
+        return
+    fi
+    local choice
+    choice="$(notify-send --app-name=OrielOS --icon=preferences-desktop-default-applications \
+        --action=settings="Default apps" "An app default was reset" "$1" 2>/dev/null || true)"
+    if [[ "$choice" == settings ]]; then
+        orielos-settings default-apps >/dev/null 2>&1 &
+    fi
+}
+
+# Each line is TYPE=APP|NAME.
+declare -A before=() names=()
+if [[ -f "$state" ]]; then
+    while IFS='=' read -r type value; do
+        [[ -n "$type" ]] || continue
+        before["$type"]="${value%%|*}"
+        names["$type"]="${value#*|}"
+    done <"$state"
+fi
+
+new_state=""
+for kind in "${kinds[@]}"; do
+    type="${kind%%|*}"
+    label="${kind#*|}"
+    now="$(default_app "$type")"
+    old="${before[$type]:-}"
+    old_name="${names[$type]:-${old%.desktop}}"
+    # Reset: the old default's app is gone and something else, or nothing, opens these now.
+    if [[ -n "$old" && "$now" != "$old" && -z "$(entry_file "$old")" ]]; then
+        if [[ -n "$now" ]]; then
+            notify "$old_name was removed, so $(app_name "$now") now opens $label."
+        else
+            notify "$old_name was removed. Choose an app for $label in Default apps."
+        fi
+    fi
+    name=""
+    [[ -n "$now" ]] && name="$(app_name "$now")"
+    new_state+="$type=$now|$name"$'\n'
+done
+if [[ "$dry_run" != true ]]; then
+    printf '%s' "$new_state" >"$state.new" && mv -f -- "$state.new" "$state"
+fi

@@ -1,0 +1,86 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Storage Sense, as Windows has it: frees space by deleting temporary files that apps haven't used
+# for 30 days and Bin items older than the age chosen in Settings › System › Storage (30 days
+# unless changed; never if 0). orielos-storage-sense.timer runs it once a day; it does nothing
+# unless Storage Sense is on.
+#   storage-sense [--now] [--all] [--config FILE]
+#     --now     run even when Storage Sense is off (Settings' Run now and Clean up now)
+#     --all     also empty the whole Bin and the thumbnails (Settings' Clean up now)
+#     --config  read the settings from FILE instead of orielos-storagesenserc
+# Exits 1 if something couldn't be removed, such as a file in use.
+set -Euo pipefail
+
+now=false
+all=false
+config=orielos-storagesenserc
+while (($# > 0)); do
+    case "$1" in
+        --now) now=true ;;
+        --all) all=true ;;
+        --config)
+            config="${2:?--config needs a file}"
+            shift
+            ;;
+        *)
+            printf 'storage-sense: unknown argument %s\n' "$1" >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
+setting() {
+    kreadconfig6 --file "$config" --group StorageSense --key "$1" --default "$2" 2>/dev/null || printf '%s\n' "$2"
+}
+
+if [[ "$now" != true && "$(setting Enabled false)" != true ]]; then
+    exit 0
+fi
+bin_days="$(setting BinDays 30)"
+[[ "$bin_days" =~ ^[0-9]+$ ]] || bin_days=30
+
+cache="${XDG_CACHE_HOME:-$HOME/.cache}"
+trash="${XDG_DATA_HOME:-$HOME/.local/share}/Trash"
+failed=0
+
+# Temporary files: those neither changed nor read for 30 days. Folders left empty go too, but
+# never the cache folder itself.
+if [[ -d "$cache" ]]; then
+    find "$cache" -xdev -type f -mtime +30 -atime +30 -delete 2>/dev/null || failed=1
+    find "$cache" -xdev -mindepth 1 -type d -empty -delete 2>/dev/null || true
+    if [[ "$all" == true && -d "$cache/thumbnails" ]]; then
+        find "$cache/thumbnails" -mindepth 1 -delete 2>/dev/null || failed=1
+    fi
+fi
+
+# The Bin: each item has an info file that records when it was deleted.
+if [[ -d "$trash/info" ]]; then
+    if [[ "$all" == true ]]; then
+        for part in files info expunged; do
+            if [[ -d "$trash/$part" ]]; then
+                find "$trash/$part" -mindepth 1 -delete 2>/dev/null || failed=1
+            fi
+        done
+        rm -f -- "$trash/directorysizes"
+    elif ((bin_days > 0)); then
+        cutoff="$(date -d "-$bin_days days" +%s)"
+        for info in "$trash/info"/*.trashinfo; do
+            [[ -e "$info" ]] || continue
+            deleted="$(sed -n 's/^DeletionDate=//p' "$info" | head -n1)"
+            when="$(date -d "$deleted" +%s 2>/dev/null)" || continue
+            ((when < cutoff)) || continue
+            name="$(basename -- "$info" .trashinfo)"
+            if rm -rf -- "$trash/files/$name"; then
+                rm -f -- "$info"
+                # Dolphin keeps the sizes of folders in the Bin; drop the gone one's line.
+                [[ -f "$trash/directorysizes" ]] && sed -i "/ ${name//\//\/}\$/d" "$trash/directorysizes"
+            else
+                failed=1
+            fi
+        done
+    fi
+fi
+exit "$failed"

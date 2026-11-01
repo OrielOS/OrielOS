@@ -1,0 +1,12 @@
+[Unit]
+Description=Turn on Do not disturb during the hours set in Settings
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/settings.md
+After=plasma-plasmashell.service
+
+[Service]
+# At each sign-in, for hours that had already started, and from the timer when they start.
+Type=oneshot
+ExecStart=/usr/libexec/orielos/dnd-schedule
+
+[Install]
+WantedBy=plasma-workspace.target

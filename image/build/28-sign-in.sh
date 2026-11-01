@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The sign-in screen: installs OrielOS's SDDM theme and makes it the one SDDM shows. The theme is
-# Breeze's with OrielOS's Main.qml, metadata and settings from image/sddm/orielos (mounted at
-# /sddm): Breeze's other files are copied in unchanged. It fails the build unless Breeze's
+# Breeze's with OrielOS's QML files (Main.qml and the parts it uses), metadata and settings from
+# image/sddm/orielos (mounted at /sddm): Breeze's other files are copied in unchanged. It fails the build unless Breeze's
 # Main.qml is exactly the version OrielOS's is based on, so a Plasma update can't mix the two;
 # then rebase image/sddm/orielos/Main.qml on the new file and update the checksum here.
 set -Eeuo pipefail
@@ -27,9 +27,13 @@ main() {
     install -d "$theme"
     cp -a "$breeze/." "$theme/"
     rm -f "$theme/preview.png"
-    for f in Main.qml metadata.desktop theme.conf; do
-        install -m 0644 "/sddm/$f" "$theme/$f"
+    for f in /sddm/*.qml /sddm/metadata.desktop /sddm/theme.conf; do
+        install -m 0644 "$f" "$theme/${f##*/}"
     done
+    # SDDM reads theme.conf.user over theme.conf. /usr is read-only, so it links to a file in /etc,
+    # where a setting such as "press Ctrl+Alt+Delete to sign in" can be changed; until then the
+    # link points nowhere and SDDM skips it.
+    ln -sf /etc/sddm/orielos-theme.conf "$theme/theme.conf.user"
 
     # Fedora's /usr/lib/sddm/sddm.conf.d chooses its own Breeze variant; /etc/sddm.conf.d comes after
     # it, so this setting wins.

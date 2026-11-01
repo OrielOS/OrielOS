@@ -2,42 +2,71 @@
 
 Settings is where you change how OrielOS works. Open it with Windows + I, or choose **Settings** in Start. If it's already open, Windows + I brings it to the front.
 
+Settings opens on **Home**: the settings you used most recently, then recommended ones such as Display, Sound, Network, Bluetooth, Background and Update. Your picture and name are at the top left; click them for Your info.
+
 ## Finding a setting
 
 ![Settings open on System, with the categories on the left and System's pages, such as Display, Sound and Power mode, on the right](images/settings.webp)
 
-The categories on the left come in the order you know from Windows:
+The categories on the left come in the order you know from Windows (in a narrow window they hide behind the menu button beside the page's title):
 
-- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode and About.
+- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
-- **Personalisation**: Background, Themes (including dark mode), Accent colour, Lock screen, Start and Taskbar.
+- **Personalisation**: Background, Themes (including dark mode), Accent colour (with Show accent colour on Start and taskbar, and Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.
 - **Apps**: Default apps and Startup.
-- **Accounts**: Your info, with your password and other accounts.
+- **Accounts**: Your info, with your password and other accounts, and Sign-in options: a PIN, fingerprints, dynamic lock, and the sign-in screen's settings.
 - **Time & language**: Date & time, and Language & region.
-- **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys and the visual bell), Zoom and colour filters, and On-screen keyboard.
+- **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys, a tone for Caps Lock and Num Lock under Modifier keys, and the visual bell), Zoom and colour filters, Mouse pointer (a white or black pointer, from 24 to 96 pixels) and On-screen keyboard.
 - **Privacy & security**: Device security, Firewall, App permissions, Activity history, and Diagnostics & feedback.
 - **Update**: OrielOS updates (see [Updates](updates.md)).
+- **More settings**: everything else, by name, such as Fonts, and the system information pages such as CPU and Memory, so every setting is in one place.
 
 Choose a category to see its pages, then a page to open it. To search instead, type in **Find a setting** at the top (or press Ctrl+F). Search knows the names of the pages and the words people use for them, including Windows' own, such as "wifi", "default apps", "resolution" or "windows update". Press Enter to open the best match.
 
-You can also search from Start: type what you're looking for, such as "wifi" or "dark mode", and the setting opens in Settings. Settings that Settings doesn't have a page for yet, such as Fonts, still show up in Start's results and open in System Settings.
+You can also search from Start: type what you're looking for, such as "wifi", "dark mode" or "nvidia", and the setting opens in Settings. Anything that asks for System Settings, such as a "Configure…" button, opens Settings instead.
+
+Buttons and switches that ask for an administrator's password are marked with a key icon.
+
+OrielOS has four high-contrast colour schemes for when text needs to stand out as much as possible: **OrielOS High Contrast Black**, **Ocean**, **Evening** and **Paper**. Left Alt + Left Shift + Print Screen turns Black on, or goes back to the scheme you had; choose another under **More settings > Colours**, and the shortcut then turns that one on and off instead.
 
 ## Applying changes
 
 Some pages change things as soon as you choose them. Others show **Apply** and **Reset** at the bottom: Apply keeps your changes, and Reset puts back the settings you had. **Defaults** puts back OrielOS's own settings. If you leave a page, or close Settings, with changes you haven't applied, Settings asks whether to apply or discard them.
 
-Some changes, such as the date and time, ask for an administrator's password.
+Some changes, such as the date and time, ask for an administrator's password. The prompt dims the rest of the screen and asks "Do you want to allow this app to make changes to your device?", with the app's name and its publisher: OrielOS, or the maker of the service that asks, for anything that comes with OrielOS, and **Publisher: Unknown** in red for a program from anywhere else. **Show more details** shows the program's location and the command it runs. Type the password (or your PIN) and choose **Yes**, or choose **No**.
 
 ## Power mode
 
-**System > Power mode** chooses between **Performance**, **Balanced** and **Power saver**, the same choice as in the battery and power icon in the system tray. OrielOS starts in Performance, on mains power and on battery; whichever mode you choose is kept, also after restarts and updates. If the computer holds Performance back, for example because it's too hot, the page says so.
+**System > Power mode** chooses between **Performance**, **Balanced** and **Power saver**. OrielOS starts in Performance, on mains power and on battery; whichever mode you choose is kept, also after restarts and updates. If the computer holds Performance back, for example because it's too hot, the page says so.
 
 ## Start and the taskbar
 
 **Personalisation > Start** chooses what Start shows under Recommended: turn off **Show recently added apps** or **Show recently opened files** and Start stops listing them straight away.
 
-**Personalisation > Taskbar** sets **Taskbar alignment**, Centre or Left, and **Automatically hide the taskbar**, which hides it until you move the pointer to the bottom of the screen. Changes apply at once. If you've rearranged the taskbar's widgets yourself, alignment can't be set here any more; the page says so.
+**Personalisation > Taskbar** sets **Taskbar alignment**, Centre or Left, **Automatically hide the taskbar**, which hides it until you move the pointer to the bottom of the screen, and **Use small taskbar buttons**, for a lower taskbar with smaller icons. Changes apply at once. If you've rearranged the taskbar's widgets yourself, alignment can't be set here any more; the page says so. **Apps' icons on the taskbar** lists the apps with tray icons running now, each with a switch: switched on, the app's icon stays on the taskbar beside the arrow; switched off, it waits among the hidden icons.
+
+## Background
+
+**Personalisation > Background** shows your desktop picture as it fits the screen. Under **Recent images** are the last five pictures you used, whether you chose them here or from the desktop's own menu; click one to use it again. **Browse photos** chooses a picture of your own, and **Choose a fit** sets how it fills the screen: Fill, Fit, Stretch, Tile or Centre. The picture changes on every screen at once. Slideshows, plain colours and pictures from the internet are under **More backgrounds**.
+
+## Recent activity
+
+**Privacy & security > Recent activity** lists the apps that used the camera, the microphone or this computer's location in the last seven days, newest first, with when each one last did; an app that's using one now says **Using it now**. OrielOS keeps this list on the computer and never sends it anywhere. Apps that reach the camera through the camera portal, as some apps from the Store do, aren't listed yet.
+
+## Storage
+
+**System > Storage** shows how much of the disk is used and what fills it: installed apps, temporary files, the Bin, your Documents, Pictures, Videos, Music, Downloads and Desktop folders, and **System and other** for the rest. Click one to open it in Files (installed apps open the Apps page). **Clean up now** empties the Bin and deletes thumbnails and the temporary files that apps haven't used for 30 days, after asking.
+
+**Storage Sense**, off until you turn it on, frees space by itself once a day: it deletes temporary files that apps haven't used for 30 days and empties Bin items that have been there longer than you choose (1, 14, 30 or 60 days, or never). **Run Storage Sense now** runs it straight away.
+
+## Do not disturb at set times
+
+**System > Do not disturb** turns Do not disturb on by itself during the hours you choose: **From** and **To**, and whether it **Repeats** daily, on weekdays or at weekends. Hours that start in the evening and end in the morning count from the day they start. Notifications still go to the notification centre while it's on.
+
+## Fonts
+
+**Personalisation > Fonts** lists the installed fonts, each with a sample written in it, and a search box. To install fonts for your account, drag TrueType or OpenType files (`.ttf`, `.otf`, `.ttc`) onto the page, or click **Browse and install fonts**. Apps that are already open show new fonts the next time they start.
 
 ## Accent colour
 

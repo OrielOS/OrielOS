@@ -1,0 +1,6 @@
+# OrielOS's own shell, org.orielos.desktop (plasma/shell/), is the desktop for every user.
+# plasmashell and the lock screen read ShellPackage from here when the user's own plasmashellrc
+# doesn't set it. It lives in /etc, so going back to an earlier OrielOS version, whose /etc has no
+# such file, brings back Plasma's desktop shell with the user's earlier desktop.
+[Shell]
+ShellPackage=org.orielos.desktop

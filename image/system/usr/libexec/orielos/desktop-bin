@@ -1,0 +1,31 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Puts the Bin on the user's desktop, as Windows has its Recycle Bin at the top left: a link to the
+# Bin (trash:/) in the Desktop folder, whose icon shows whether the Bin is empty or full. It runs
+# once per user, from orielos-desktop-bin.service at sign-in; a note in ~/.local/state/orielos stops
+# it from running again, so a user who deletes the link keeps it deleted. A desktop that already
+# links to the Bin gets no second one.
+set -Eeuo pipefail
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/desktop-bin"
+[[ -e "$state" ]] && exit 0
+
+desktop="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
+if [[ -z "$desktop" || "$desktop" == "$HOME" ]]; then
+    desktop="$HOME/Desktop"
+fi
+mkdir -p -- "$desktop" "${state%/*}"
+
+if ! grep -qsx 'URL=trash:/' -- "$desktop"/*.desktop; then
+    cat >"$desktop/Bin.desktop" <<'LINK'
+[Desktop Entry]
+Type=Link
+Name=Bin
+Icon=orielos-bin-full-symbolic
+EmptyIcon=orielos-bin-symbolic
+URL=trash:/
+LINK
+fi
+touch -- "$state"

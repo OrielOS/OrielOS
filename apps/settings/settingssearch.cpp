@@ -8,6 +8,8 @@
 #include <KJsonUtils>
 #include <KLocalizedString>
 
+#include <algorithm>
+
 namespace OrielOSSettings {
 
 SettingsSearch::SettingsSearch(PageCatalogue settings, QList<Page> others)
@@ -18,19 +20,19 @@ SettingsSearch::SettingsSearch(PageCatalogue settings, QList<Page> others)
 
 SettingsSearch SettingsSearch::installed()
 {
-    const PageCatalogue available = PageCatalogue::standard().available([](const QString &module) { return findModule(module).isValid(); });
+    const PageCatalogue available = PageCatalogue::standard().available(isInstalled);
     // A page shows its module's icon unless it has one of its own, as in the Settings window.
     QList<Page> pages;
     for (const Category &category : available.categories()) {
         for (Page page : available.pages(category.id)) {
-            if (page.icon.isEmpty()) {
+            if (page.icon.isEmpty() && !isAppModule(page.module)) {
                 page.icon = findModule(page.module).iconName();
             }
             pages.append(page);
         }
     }
     PageCatalogue settings(available.categories(), pages);
-    QList<Page> others = otherModules(settings, systemSettingsModules());
+    QList<Page> others = otherModules(settings, settingsModules());
     return SettingsSearch(std::move(settings), std::move(others));
 }
 
@@ -49,6 +51,8 @@ QList<Page> SettingsSearch::otherModules(const PageCatalogue &settings, const QL
         }
         out.append({ metadata.pluginId(), { }, metadata.name(), metadata.description(), keywords, metadata.pluginId(), metadata.iconName() });
     }
+    // By name, as More settings lists them.
+    std::sort(out.begin(), out.end(), [](const Page &a, const Page &b) { return QString::localeAwareCompare(a.title, b.title) < 0; });
     return out;
 }
 
@@ -71,9 +75,9 @@ QList<SettingsResult> SettingsSearch::search(const QString &query) const
         out.append({
             page.module,
             page.title,
-            i18nc("@info Where a found setting opens", "System Settings"),
+            i18nc("@info Where a found setting opens", "Settings › More settings"),
             page.icon,
-            { QStringLiteral("systemsettings"), page.module },
+            { QStringLiteral("orielos-settings"), page.module },
             rank,
             false,
         });

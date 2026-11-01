@@ -1,0 +1,5 @@
+# Notifications as Windows shows them: pop-ups at the bottom right, above the clock, without
+# Plasma's countdown line. They still leave after five seconds, and stay while hovered.
+[Notifications]
+PopupPosition=BottomRight
+ShowPopupTimeout=false

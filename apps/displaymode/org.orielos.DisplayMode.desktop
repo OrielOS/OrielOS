@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Display mode
+Comment=Choose how the screens are used: this computer's screen only, duplicate, extend or the second screen only
+Keywords=project;projector;second screen;duplicate;mirror;extend;display;monitor;
+Exec=orielos-display-mode
+Icon=osd-duplicate
+Terminal=false
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Meta+P

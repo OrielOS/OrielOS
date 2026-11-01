@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Turning do not disturb on at set times",
+        "Icon": "notifications-disabled",
+        "Name": "Do Not Disturb"
+    },
+    "X-KDE-Keywords": "do not disturb,quiet hours,focus,schedule,notifications,silence",
+    "X-KDE-System-Settings-Parent-Category": "workspace",
+    "X-KDE-Weight": 60
+}

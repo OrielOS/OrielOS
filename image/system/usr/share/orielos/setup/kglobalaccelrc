@@ -1,0 +1,10 @@
+# The shortcuts the first-run setup's session allows: Plasma Setup's own (the screen reader and
+# KWin's zoom) and OrielOS's Shift+F10 terminal. Used instead of Plasma Setup's kglobalaccelrc by
+# orielos-first-run.conf, so keep Plasma Setup's entries in step with its own file.
+[General]
+useAllowList=true
+
+[AllowedShortcuts]
+kaccess=Toggle Screen Reader On and Off
+kwin=MoveZoomDown,MoveZoomLeft,MoveZoomRight,MoveZoomUp,view_actual_size,view_zoom_in,view_zoom_out
+org.orielos.SetupTerminal.desktop=_launch

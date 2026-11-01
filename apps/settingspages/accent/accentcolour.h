@@ -9,6 +9,8 @@
 #include <QObject>
 #include <QProcess>
 #include <QVariantList>
+
+#include <functional>
 #include <qqmlintegration.h>
 
 namespace OrielOSSettingsPages {
@@ -31,6 +33,12 @@ class AccentColour : public QObject
     Q_PROPERTY(QColor themeColour READ themeColour NOTIFY changed)
     Q_PROPERTY(bool busy READ isBusy NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    // Windows' Transparency effects: the taskbar and pop-ups show the blurred desktop through them.
+    // Off, KWin's blur is off and the theme draws them solid.
+    Q_PROPERTY(bool transparency READ transparency WRITE setTransparency NOTIFY changed)
+    // Windows' Show accent colour on Start and taskbar: OrielOS's Plasma theme with the accent
+    // over Start, the taskbar and pop-ups (orielos-accent) instead of the plain one.
+    Q_PROPERTY(bool accentOnTaskbar READ accentOnTaskbar WRITE setAccentOnTaskbar NOTIFY changed)
 
 public:
     explicit AccentColour(QObject *parent = nullptr);
@@ -49,10 +57,20 @@ public:
     Q_INVOKABLE void useThemeColour();
     // Read the settings again.
     Q_INVOKABLE void reload();
+    bool transparency() const { return m_transparency; }
+    void setTransparency(bool transparency);
+    bool accentOnTaskbar() const { return m_accentOnTaskbar; }
+    void setAccentOnTaskbar(bool accent);
 
     // Run program with arguments, then the accent's, instead of plasma-apply-colorscheme. For the
     // unit tests.
     void setCommandForTesting(const QString &program, const QStringList &arguments);
+    // Use this file for kwinrc and call this instead of asking KWin to reconfigure. For the unit
+    // tests.
+    void setKWinForTesting(const QString &config, std::function<void()> reconfigure);
+    // Read plasmarc from this file and start program with the theme's name instead of
+    // plasma-apply-desktoptheme. For the unit tests.
+    void setThemeForTesting(const QString &config, const QString &program);
 
 Q_SIGNALS:
     void changed();
@@ -73,6 +91,12 @@ private:
     QString m_program;
     QStringList m_arguments;
     KConfigWatcher::Ptr m_watcher;
+    bool m_transparency = true;
+    bool m_accentOnTaskbar = false;
+    QString m_plasmaConfig;
+    QString m_themeProgram;
+    QString m_kwinConfig;
+    std::function<void()> m_reconfigure;
 };
 
 } // namespace OrielOSSettingsPages

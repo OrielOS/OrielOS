@@ -106,6 +106,10 @@ PageCatalogue PageCatalogue::standard()
         { QStringLiteral("notifications"), system, i18nc("@title Settings page", "Notifications"), i18nc("@info", "Alerts from apps and the system"),
             keywords(i18nc("@info:keywords Search words for the Notifications page, separated by ;", "notifications;alerts;do not disturb;focus")),
             QStringLiteral("kcm_notifications"), { } },
+        { QStringLiteral("do-not-disturb"), system, i18nc("@title Settings page", "Do not disturb"), i18nc("@info", "Quiet notifications at set times"),
+            keywords(i18nc("@info:keywords Search words for the Do not disturb page, separated by ;",
+                "do not disturb;dnd;quiet hours;focus assist;schedule;automatically;silence notifications")),
+            QStringLiteral("kcm_orielos_donotdisturb"), { } },
         { QStringLiteral("power"), system, i18nc("@title Settings page", "Power & sleep"), i18nc("@info", "Sleep, screen off and battery"),
             keywords(i18nc(
                 "@info:keywords Search words for the Power & sleep page, separated by ;", "power;sleep;battery;screen off;turn off;lid;energy;power plan")),
@@ -114,6 +118,19 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc("@info:keywords Search words for the Power mode page, separated by ;",
                 "power mode;power profile;performance;best performance;balanced;power saver;battery saver;energy saver")),
             QStringLiteral("kcm_orielos_powermode"), { } },
+        { QStringLiteral("storage"), system, i18nc("@title Settings page", "Storage"), i18nc("@info", "Free space, clean-up and Storage Sense"),
+            keywords(i18nc("@info:keywords Search words for the Storage page, separated by ;",
+                "storage;disk space;free space;storage sense;clean up;cleanup;temporary files;bin;recycle bin;disk usage;full disk")),
+            QStringLiteral("kcm_orielos_storage"), { } },
+        { QStringLiteral("multitasking"), system, i18nc("@title Settings page", "Multitasking"), i18nc("@info", "Snap windows, snap layouts and Alt + Tab"),
+            keywords(i18nc("@info:keywords Search words for the Multitasking page, separated by ;",
+                "multitasking;snap;snap windows;snap layouts;snap assist;aero snap;alt+tab;alt tab;desktops;virtual desktops")),
+            QStringLiteral("kcm_orielos_multitasking"), { } },
+        { QStringLiteral("nvidia"), system, i18nc("@title Settings page", "NVIDIA settings"),
+            i18nc("@info", "The NVIDIA graphics card's own settings, in NVIDIA's app"),
+            keywords(i18nc("@info:keywords Search words for the NVIDIA settings page, separated by ;",
+                "nvidia;nvidia settings;nvidia control panel;graphics card;gpu;geforce;rtx;driver")),
+            QStringLiteral("app:nvidia-settings"), QStringLiteral("nvidia-settings") },
         { QStringLiteral("about"), system, i18nc("@title Settings page", "About"), i18nc("@info", "This computer, its specifications and OrielOS's version"),
             keywords(i18nc("@info:keywords Search words for the About page, separated by ;",
                 "about;system information;specifications;specs;version;processor;memory;ram;graphics card;pc info")),
@@ -150,6 +167,11 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc("@info:keywords Search words for the Proxy page, separated by ;", "proxy;proxy server")), QStringLiteral("kcm_proxy"), { } },
         { QStringLiteral("background"), personalisation, i18nc("@title Settings page", "Background"), i18nc("@info", "The picture on your desktop"),
             keywords(i18nc("@info:keywords Search words for the Background page, separated by ;", "background;wallpaper;desktop background;picture")),
+            QStringLiteral("kcm_orielos_background"), { } },
+        { QStringLiteral("background-more"), personalisation, i18nc("@title Settings page", "More backgrounds"),
+            i18nc("@info", "Slideshows, plain colours and pictures from the internet"),
+            keywords(i18nc("@info:keywords Search words for the More backgrounds page, separated by ;",
+                "slideshow;solid colour;solid color;plain colour;picture of the day;wallpaper plugin")),
             QStringLiteral("kcm_wallpaper"), { } },
         { QStringLiteral("themes"), personalisation, i18nc("@title Settings page", "Themes"),
             i18nc("@info", "Light and dark mode, and the look of the desktop"),
@@ -167,10 +189,14 @@ PageCatalogue PageCatalogue::standard()
             keywords(
                 i18nc("@info:keywords Search words for the Start page, separated by ;", "start;start menu;recommended;recent files;recently added;new apps")),
             QStringLiteral("kcm_orielos_start"), { } },
-        { QStringLiteral("taskbar"), personalisation, i18nc("@title Settings page", "Taskbar"), i18nc("@info", "Alignment, and hiding the taskbar"),
+        { QStringLiteral("taskbar"), personalisation, i18nc("@title Settings page", "Taskbar"),
+            i18nc("@info", "Taskbar items, alignment, combining buttons and hiding the taskbar"),
             keywords(i18nc("@info:keywords Search words for the Taskbar page, separated by ;",
-                "taskbar;panel;taskbar alignment;centre;center;left;auto-hide;autohide;hide taskbar")),
+                "taskbar;panel;taskbar alignment;centre;center;left;auto-hide;autohide;hide taskbar;combine;labels;task view;search button;seconds;clock")),
             QStringLiteral("kcm_orielos_taskbar"), { } },
+        { QStringLiteral("fonts"), personalisation, i18nc("@title Settings page", "Fonts"), i18nc("@info", "Install fonts and see the installed ones"),
+            keywords(i18nc("@info:keywords Search words for the Fonts page, separated by ;", "fonts;font;install font;add font;typeface;ttf;otf")),
+            QStringLiteral("kcm_orielos_fonts"), { } },
         { QStringLiteral("default-apps"), apps, i18nc("@title Settings page", "Default apps"),
             i18nc("@info", "Which app opens web pages, email, music and more"),
             keywords(i18nc("@info:keywords Search words for the Default apps page, separated by ;", "default apps;default browser;open with;file types")),
@@ -183,6 +209,11 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc(
                 "@info:keywords Search words for the Your info page, separated by ;", "accounts;users;your info;password;account picture;add user;family")),
             QStringLiteral("kcm_users"), { } },
+        { QStringLiteral("sign-in-options"), accounts, i18nc("@title Settings page", "Sign-in options"),
+            i18nc("@info", "PIN, fingerprint, dynamic lock and the sign-in screen"),
+            keywords(i18nc("@info:keywords Search words for the Sign-in options page, separated by ;",
+                "sign-in options;pin;fingerprint;face;windows hello;dynamic lock;ctrl+alt+delete;startup sound;sign in;lock;wake")),
+            QStringLiteral("kcm_orielos_signin"), { } },
         { QStringLiteral("date-time"), time, i18nc("@title Settings page", "Date & time"), i18nc("@info", "Time zone and setting the clock"),
             keywords(i18nc("@info:keywords Search words for the Date & time page, separated by ;", "date;time;clock;time zone;timezone;ntp")),
             QStringLiteral("kcm_clock"), { } },
@@ -200,6 +231,10 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc("@info:keywords Search words for the Zoom and colour filters page, separated by ;",
                 "zoom;magnifier;magnify;colour filters;color filters;colour blindness;color blindness;invert colours;invert colors;contrast")),
             QStringLiteral("kcm_kwin_effects"), { } },
+        { QStringLiteral("mouse-pointer"), accessibility, i18nc("@title Settings page", "Mouse pointer"), i18nc("@info", "The pointer's colour and size"),
+            keywords(i18nc("@info:keywords Search words for the Mouse pointer page, separated by ;",
+                "mouse pointer;pointer;cursor;cursor size;pointer size;bigger pointer;large cursor;white pointer;black pointer")),
+            QStringLiteral("kcm_orielos_pointer"), { } },
         { QStringLiteral("on-screen-keyboard"), accessibility, i18nc("@title Settings page", "On-screen keyboard"),
             i18nc("@info", "A keyboard on the screen, for touch screens"),
             keywords(
@@ -218,6 +253,11 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc("@info:keywords Search words for the App permissions page, separated by ;",
                 "app permissions;permissions;camera;microphone;location;files;flatpak;sandbox")),
             QStringLiteral("kcm_app-permissions"), { } },
+        { QStringLiteral("recent-activity"), privacy, i18nc("@title Settings page", "Recent activity"),
+            i18nc("@info", "Which apps used the camera, microphone or location this week"),
+            keywords(i18nc("@info:keywords Search words for the Recent activity page, separated by ;",
+                "recent activity;camera;webcam;microphone;mic;location;used;privacy;who used")),
+            QStringLiteral("kcm_orielos_recentactivity"), { } },
         { QStringLiteral("activity-history"), privacy, i18nc("@title Settings page", "Activity history"),
             i18nc("@info", "Whether recently opened files are remembered, and clearing them"),
             keywords(i18nc("@info:keywords Search words for the Activity history page, separated by ;",
@@ -261,6 +301,22 @@ QList<Page> PageCatalogue::pages(const QString &categoryId) const
     QList<Page> out;
     std::copy_if(m_pages.cbegin(), m_pages.cend(), std::back_inserter(out), [&categoryId](const Page &page) { return page.category == categoryId; });
     return out;
+}
+
+QString PageCatalogue::targetFromArgument(const QString &argument)
+{
+    static const QString scheme = QStringLiteral("orielos-settings:");
+    if (!argument.startsWith(scheme)) {
+        return argument;
+    }
+    QString target = argument.mid(scheme.size());
+    while (target.startsWith(QLatin1Char('/'))) {
+        target.remove(0, 1);
+    }
+    while (target.endsWith(QLatin1Char('/'))) {
+        target.chop(1);
+    }
+    return target;
 }
 
 std::optional<Page> PageCatalogue::page(const QString &idOrModule) const

@@ -17,6 +17,9 @@ Item {
     // The index of this layout's first area among all of them, and the highlighted one.
     required property int firstIndex
     required property int current
+    // The layout's number, shown at its top left, or 0 for none; whether its areas show theirs.
+    property int number: 0
+    property bool numberedAreas: false
 
     signal highlighted(int areaIndex)
     signal chosen(var area)
@@ -52,6 +55,31 @@ Item {
                 onEntered: tile.highlighted(tile.firstIndex + area.index)
                 onClicked: tile.chosen(area.modelData)
             }
+
+            Text {
+                anchors.centerIn: parent
+                visible: tile.numberedAreas
+                text: area.index + 1
+                font.weight: Font.DemiBold
+                color: area.highlighted ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
+            }
+        }
+    }
+
+    Rectangle {
+        x: -Kirigami.Units.smallSpacing
+        y: -Kirigami.Units.smallSpacing
+        width: Kirigami.Units.gridUnit * 1.2
+        height: width
+        radius: width / 2
+        visible: tile.number > 0
+        color: Kirigami.Theme.textColor
+
+        Text {
+            anchors.centerIn: parent
+            text: tile.number
+            font.weight: Font.DemiBold
+            color: Kirigami.Theme.backgroundColor
         }
     }
 }

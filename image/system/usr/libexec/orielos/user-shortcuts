@@ -1,0 +1,86 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Gives accounts made before them the Windows shortcuts that live in each user's
+# kglobalshortcutsrc (new accounts get the same from /etc/skel):
+#   - Alt+F4 for OrielOS's Close or shut down KWin script, which KWin's Close Window gives up;
+#   - Ctrl+Esc for Start, next to the Windows key and Alt+F1;
+#   - (second round) Win+Up and Win+Down for OrielOS's Window shortcuts KWin script, which KWin's
+#     Maximise, Minimise and quick tiles give up; Alt+Space for the window menu; Win+Shift+Up for
+#     stretching a window to the full height; Win+Space for the next keyboard layout; Win+Ctrl+Enter
+#     for the screen reader;
+#   - (third round) Win+A for Quick Settings, which Plasma's Walk through activities and its
+#     reverse give up (they took Win+A and Win+Shift+A, so the key never reached Quick Settings);
+#   - (fourth round) Win+B for the hidden icons, which switching the power profile gives up (it
+#     keeps the Battery key).
+# A shortcut the user changed is left as it is. Each round runs once per user, before Plasma's
+# shortcut service starts, by orielos-user-shortcuts.service.
+set -Eeuo pipefail
+
+states="${XDG_STATE_HOME:-$HOME/.local/state}/orielos"
+mkdir -p -- "$states"
+config="${XDG_CONFIG_HOME:-$HOME/.config}/kglobalshortcutsrc"
+tab=$'\t'
+
+# Sets a shortcut to value when it is unset or still one of the given old shortcuts.
+#   set_shortcut <component> <action key> <value> <old shortcut>...
+set_shortcut() {
+    local group="$1" key="$2" value="$3" current old
+    shift 3
+    current="$(kreadconfig6 --file "$config" --group "$group" --key "$key" 2>/dev/null || true)"
+    if [[ -z "$current" ]]; then
+        kwriteconfig6 --file "$config" --group "$group" --key "$key" "$value"
+        return
+    fi
+    for old in "$@"; do
+        if [[ "${current%%,*}" == "$old" ]]; then
+            kwriteconfig6 --file "$config" --group "$group" --key "$key" "$value"
+            return
+        fi
+    done
+}
+
+kwin_shortcut() {
+    set_shortcut kwin "$@"
+}
+
+if [[ ! -e "$states/user-shortcuts-2" ]]; then
+    kwin_shortcut "Window Maximize" "Meta+PgUp,Meta+PgUp,Maximize Window" "Meta+PgUp" "Meta+Up${tab}Meta+PgUp"
+    kwin_shortcut "Window Minimize" "Meta+PgDown,Meta+PgDown,Minimize Window" "Meta+PgDown" "Meta+Down${tab}Meta+PgDown"
+    kwin_shortcut "Window Quick Tile Top" "none,Meta+Up,Quick Tile Window to the Top" "Meta+Up"
+    kwin_shortcut "Window Quick Tile Bottom" "none,Meta+Down,Quick Tile Window to the Bottom" "Meta+Down"
+    kwin_shortcut "Window Maximize Vertical" "Meta+Shift+Up,none,Maximize Window Vertically" "none"
+    kwin_shortcut "Window Operations Menu" "Alt+Space${tab}Alt+F3,Alt+F3,Window Menu" "Alt+F3"
+    set_shortcut "KDE Keyboard Layout Switcher" "Switch to Next Keyboard Layout" \
+        "Meta+Space${tab}Meta+Alt+K,Meta+Alt+K,Switch to Next Keyboard Layout" "Meta+Alt+K"
+    set_shortcut kaccess "Toggle Screen Reader On and Off" \
+        "Meta+Ctrl+Return${tab}Meta+Alt+S,Meta+Alt+S,Toggle Screen Reader On and Off" "Meta+Alt+S"
+    touch -- "$states/user-shortcuts-2"
+fi
+
+if [[ ! -e "$states/user-shortcuts-3" ]]; then
+    set_shortcut plasmashell "next activity" "none,none,Walk through activities" "Meta+A"
+    set_shortcut plasmashell "previous activity" "none,none,Walk through activities (Reverse)" "Meta+Shift+A"
+    touch -- "$states/user-shortcuts-3"
+fi
+
+if [[ ! -e "$states/user-shortcuts-4" ]]; then
+    set_shortcut org_kde_powerdevil powerProfile "Battery,Battery${tab}Meta+B,Switch Power Profile" "Battery${tab}Meta+B"
+    touch -- "$states/user-shortcuts-4"
+fi
+
+state="$states/user-shortcuts-1"
+[[ -e "$state" ]] && exit 0
+
+close="$(kreadconfig6 --file "$config" --group kwin --key "Window Close" 2>/dev/null || true)"
+if [[ -z "$close" || "${close%%,*}" == "Alt+F4" ]]; then
+    kwriteconfig6 --file "$config" --group kwin --key "Window Close" "none,Alt+F4,Close Window"
+fi
+
+launcher="$(kreadconfig6 --file "$config" --group plasmashell --key "activate application launcher" 2>/dev/null || true)"
+if [[ -z "$launcher" || "${launcher%%,*}" == "Meta${tab}Alt+F1" ]]; then
+    kwriteconfig6 --file "$config" --group plasmashell --key "activate application launcher" \
+        "Meta${tab}Alt+F1${tab}Ctrl+Esc,Meta${tab}Alt+F1,Activate Application Launcher"
+fi
+touch -- "$state"

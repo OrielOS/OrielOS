@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "KWin/Effect",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "Window Management",
+        "Description": "After a window snaps to one half of the screen, the other half shows the other windows to fill it with",
+        "EnabledByDefault": true,
+        "Id": "orielos-snapassist",
+        "License": "GPL-3.0-or-later",
+        "Name": "Snap Assist"
+    },
+    "X-KDE-Ordering": 61,
+    "X-Plasma-API": "declarativescript"
+}

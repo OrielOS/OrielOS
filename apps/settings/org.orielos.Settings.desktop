@@ -4,10 +4,22 @@ Name=Settings
 GenericName=Settings
 Comment=Change how OrielOS works
 Keywords=settings;control panel;preferences;configuration;options;system settings;
-Exec=orielos-settings
+Exec=orielos-settings %u
+MimeType=x-scheme-handler/orielos-settings;
 Icon=preferences-system
 Terminal=false
 Categories=Qt;KDE;Settings;
 StartupNotify=true
 SingleMainWindow=true
 X-KDE-Shortcuts=Meta+I
+Actions=About;Accessibility;
+
+[Desktop Action About]
+Name=About this PC
+Exec=orielos-settings about
+X-KDE-Shortcuts=Meta+Pause
+
+[Desktop Action Accessibility]
+Name=Accessibility settings
+Exec=orielos-settings accessibility
+X-KDE-Shortcuts=Meta+U

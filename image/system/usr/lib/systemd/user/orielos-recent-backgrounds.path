@@ -1,0 +1,10 @@
+[Unit]
+Description=Remember the desktop picture when it changes
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/settings.md
+
+[Path]
+PathChanged=%h/.config/plasma-org.orielos.desktop-appletsrc
+Unit=orielos-recent-backgrounds.service
+
+[Install]
+WantedBy=plasma-workspace.target

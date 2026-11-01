@@ -1,0 +1,17 @@
+{
+    "KPackageStructure": "KDE/PlasmaSetup",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Description": "Check for a newer version of OrielOS.",
+        "Id": "org.orielos.plasmasetup.updates",
+        "License": "GPL-3.0-or-later",
+        "Name": "Updates"
+    },
+    "NoDisplay": true,
+    "X-KDE-ParentApp": "org.kde.plasmasetup",
+    "X-KDE-Weight": 12
+}

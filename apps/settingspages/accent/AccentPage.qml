@@ -95,11 +95,61 @@ KCM.SimpleKCM {
             onClicked: root.accent.useThemeColour()
         }
 
+        QQC2.Switch {
+            text: root.l10n.i18nc("@option:check", "Show accent colour on Start and taskbar")
+            checked: root.accent.accentOnTaskbar
+            onToggled: {
+                root.accent.accentOnTaskbar = checked;
+                checked = Qt.binding(() => root.accent.accentOnTaskbar);
+            }
+        }
+
+        QQC2.Switch {
+            text: root.l10n.i18nc("@option:check", "Transparency effects")
+            checked: root.accent.transparency
+            onToggled: {
+                root.accent.transparency = checked;
+                checked = Qt.binding(() => root.accent.transparency);
+            }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            font: Kirigami.Theme.smallFont
+            textFormat: Text.PlainText
+            text: root.l10n.i18nc("@info", "The taskbar, Start and other pop-ups show the blurred desktop through them. Off, they're solid.")
+        }
+
         Kirigami.InlineMessage {
             Layout.fillWidth: true
             visible: root.accent.error.length > 0
             type: Kirigami.MessageType.Error
             text: root.accent.error
+        }
+
+        // Related settings, as Windows lists them at the foot of a page.
+        Kirigami.Heading {
+            Layout.topMargin: Kirigami.Units.gridUnit
+            level: 4
+            textFormat: Text.PlainText
+            text: root.l10n.i18nc("@title:group", "Related settings")
+        }
+
+        Repeater {
+            model: [
+                { page: "themes", text: root.l10n.i18nc("@action:button A related Settings page", "Themes") },
+                { page: "background", text: root.l10n.i18nc("@action:button A related Settings page", "Background") },
+            ]
+
+            delegate: Kirigami.LinkButton {
+                id: related
+
+                required property var modelData
+
+                text: related.modelData.text
+                onClicked: Qt.openUrlExternally("orielos-settings:" + related.modelData.page)
+            }
         }
     }
 }

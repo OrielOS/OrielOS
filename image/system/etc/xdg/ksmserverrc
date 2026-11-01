@@ -1,0 +1,5 @@
+# Shut down, Restart and Sign out happen at once, as in Windows, without Plasma's confirmation
+# screen; apps with unsaved work still ask first. Ctrl+Alt+Del still shows OrielOS's
+# Ctrl+Alt+Del screen.
+[General]
+confirmLogout=false

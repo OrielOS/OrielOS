@@ -1,0 +1,53 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Files' Send to, as in Windows' Explorer (the orielos-sendto service menu):
+#   send-to desktop FILE...     puts a shortcut to each on the desktop
+#   send-to documents FILE...   copies each to Documents, with Files' progress and replace questions
+set -Eeuo pipefail
+
+[[ $# -ge 2 ]] || {
+    printf 'usage: send-to desktop|documents FILE...\n' >&2
+    exit 2
+}
+where="$1"
+shift
+
+# A folder from xdg-user-dir, or the usual one under the home folder when it has none (it then
+# answers with the home folder itself).
+user_dir() {
+    local dir
+    dir="$(xdg-user-dir "$1" 2>/dev/null || true)"
+    if [[ -z "$dir" || "$dir" == "$HOME" ]]; then
+        dir="$HOME/$2"
+    fi
+    printf '%s' "$dir"
+}
+
+case "$where" in
+    desktop)
+        desktop="$(user_dir DESKTOP Desktop)"
+        mkdir -p -- "$desktop"
+        for file in "$@"; do
+            # A link shows with the shortcut arrow; a second one for the same name gets a number.
+            name="$(basename -- "$file")"
+            target="$desktop/$name"
+            n=2
+            while [[ -e "$target" || -L "$target" ]]; do
+                target="$desktop/$name ($n)"
+                n=$((n + 1))
+            done
+            ln -s -- "$(realpath -- "$file")" "$target"
+        done
+        ;;
+    documents)
+        documents="$(user_dir DOCUMENTS Documents)"
+        mkdir -p -- "$documents"
+        exec kioclient copy "$@" "$documents/"
+        ;;
+    *)
+        printf 'send-to: unknown place %s\n' "$where" >&2
+        exit 2
+        ;;
+esac

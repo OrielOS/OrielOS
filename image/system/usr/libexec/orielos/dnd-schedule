@@ -1,0 +1,82 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Do not disturb at set times, as Windows' "Turn on do not disturb automatically" does: during the
+# hours chosen in Settings › System › Do not disturb (every day, on weekdays or at weekends, by the
+# day the hours start), notifications stay quiet until the hours end. Do not disturb already on for
+# longer is left as it is. orielos-dnd-schedule.timer runs this when the hours start, and
+# orielos-dnd-schedule.service at each sign-in, for hours that started before it.
+#   dnd-schedule [--config FILE] [--now "DATE"]   (--now for the tests)
+set -Euo pipefail
+
+config=orielos-dndrc
+notify="${XDG_CONFIG_HOME:-$HOME/.config}/plasmanotifyrc"
+now="$(date +%s)"
+while (($# > 0)); do
+    case "$1" in
+        --config)
+            config="${2:?--config needs a file}"
+            shift
+            ;;
+        --now)
+            now="$(date -d "${2:?--now needs a date}" +%s)" || exit 2
+            shift
+            ;;
+        --notify-config)
+            notify="${2:?--notify-config needs a file}"
+            shift
+            ;;
+        *)
+            printf 'dnd-schedule: unknown argument %s\n' "$1" >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
+setting() {
+    kreadconfig6 --file "$config" --group Schedule --key "$1" --default "$2" 2>/dev/null || printf '%s\n' "$2"
+}
+
+[[ "$(setting Enabled false)" == true ]] || exit 0
+from="$(setting From 22:00)"
+to="$(setting To 07:00)"
+days="$(setting Days daily)"
+[[ "$from" =~ ^[0-9]{1,2}:[0-9]{2}$ && "$to" =~ ^[0-9]{1,2}:[0-9]{2}$ && "$from" != "$to" ]] || exit 0
+
+# Whether hours starting on this day (YYYY-MM-DD) count.
+counts() {
+    local weekday
+    weekday="$(date -d "$1" +%u)"
+    case "$days" in
+        weekdays) ((weekday <= 5)) ;;
+        weekends) ((weekday >= 6)) ;;
+        *) true ;;
+    esac
+}
+
+# Hours that started today or, overnight, yesterday.
+for offset in 0 -1; do
+    day="$(date -d "@$now" +%F)"
+    day="$(date -d "$day $offset day" +%F)"
+    counts "$day" || continue
+    start="$(date -d "$day $from" +%s)"
+    end="$(date -d "$day $to" +%s)"
+    ((end > start)) || end="$(date -d "$day $to 1 day" +%s)"
+    if ((start <= now && now < end)); then
+        current="$(kreadconfig6 --file "$notify" --group DoNotDisturb --key Until 2>/dev/null || true)"
+        if [[ -n "$current" ]]; then
+            IFS=, read -r y mo d h mi s <<<"$current"
+            if [[ -n "${s:-}" ]] && (($(date -d "$y-$mo-$d $h:$mi:$s" +%s 2>/dev/null || echo 0) >= end)); then
+                exit 0
+            fi
+        fi
+        # KConfig keeps the time as year,month,day,hour,minute,second.
+        until="$(date -d "@$end" '+%Y,%-m,%-d,%-H,%-M,%-S')"
+        kwriteconfig6 --file "$notify" --group DoNotDisturb --key Until --notify "$until"
+        printf 'dnd-schedule: Do not disturb until %s\n' "$until"
+        exit 0
+    fi
+done
+exit 0

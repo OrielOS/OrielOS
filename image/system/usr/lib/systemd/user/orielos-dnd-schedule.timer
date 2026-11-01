@@ -1,0 +1,12 @@
+[Unit]
+Description=Start Do not disturb's hours
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/settings.md
+
+# Settings › System › Do not disturb writes the start time to
+# ~/.config/systemd/user/orielos-dnd-schedule.timer.d/schedule.conf and turns the timer on.
+[Timer]
+OnCalendar=*-*-* 22:00:00
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

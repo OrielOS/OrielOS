@@ -1,0 +1,5 @@
+# A new account's first sign-in shows "Setting up your desktop" on the welcome screen; first-sign-in removes this
+# file afterwards, so later sign-ins show the usual one from /etc/xdg/ksplashrc.
+[KSplash]
+Engine=KSplashQML
+Theme=org.orielos.firstsignin

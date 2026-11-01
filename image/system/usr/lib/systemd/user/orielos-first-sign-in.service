@@ -1,0 +1,13 @@
+[Unit]
+Description=Hand later sign-ins the usual welcome screen, and suggest a PIN, after the first
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/install.md
+After=plasma-plasmashell.service
+
+[Service]
+# Each sign-in; only the first one changes anything (see the script). The PIN suggestion waits for
+# an answer, so the unit runs in the background of the session.
+Type=simple
+ExecStart=/usr/libexec/orielos/first-sign-in
+
+[Install]
+WantedBy=plasma-workspace.target

@@ -18,23 +18,44 @@ namespace {
 const QString fakeDesktop = QStringLiteral(R"JS(
 function makeWidget(id, type, config) {
     return {
-        id: id, type: type, config: config || {}, reloads: 0, currentConfigGroup: [],
+        id: id, type: type, config: config || {}, reloads: 0, currentConfigGroup: [], removed: false,
+        geometry: { x: 10 * id, y: 0, width: 40, height: 48 },
+        get configKeys() { return Object.keys(this.config); },
         readConfig: function (key, fallback) { return key in this.config ? this.config[key] : fallback; },
         writeConfig: function (key, value) { this.config[key] = value; },
         reloadConfig: function () { this.reloads += 1; },
+        remove: function () { this.removed = true; },
     };
 }
 function makePanel(list, order, hiding) {
     return {
         list: list, hiding: hiding || "none", currentConfigGroup: [], config: { AppletOrder: order },
         widgetIds: list.map(function (w) { return w.id; }),
-        widgets: function (type) { return this.list.filter(function (w) { return !type || w.type === type; }); },
+        added: [],
+        addWidget: function (type, x, y, width, height) {
+            var widget = makeWidget(100 + this.added.length, type, {});
+            this.added.push({ type: type, x: x });
+            this.list.push(widget);
+            return widget;
+        },
+        widgets: function (type) { return this.list.filter(function (w) { return !w.removed && (!type || w.type === type); }); },
         widgetById: function (id) { return this.list.filter(function (w) { return w.id === id; })[0]; },
         readConfig: function (key, fallback) { return key in this.config ? this.config[key] : fallback; },
     };
 }
 var desktop = [];
 function panels() { return desktop; }
+var screenCount = 1;
+var made = [];
+function Panel() {
+    var created = makePanel([], "");
+    created.screen = 0;
+    created.writeConfig = function (key, value) { this.config[key] = value; };
+    created.remove = function () { desktop.splice(desktop.indexOf(this), 1); };
+    desktop.push(created);
+    made.push(created);
+    return created;
+}
 var printed = "";
 function print(text) { printed += text; }
 )JS");
@@ -43,7 +64,7 @@ function print(text) { printed += text; }
 const QString orielosTaskbar = QStringLiteral(R"JS(
 var leftSpacer = makeWidget(1, "org.kde.plasma.panelspacer", { expanding: true });
 var start = makeWidget(2, "org.orielos.startmenu", {});
-var taskbar = makePanel([leftSpacer, start, makeWidget(3, "org.kde.plasma.icontasks"),
+var taskbar = makePanel([leftSpacer, start, makeWidget(3, "org.kde.plasma.icontasks", { launchers: "applications:org.kde.dolphin.desktop" }),
     makeWidget(4, "org.kde.plasma.panelspacer", { expanding: true }), makeWidget(5, "org.kde.plasma.systemtray")], "1;2;3;4;5");
 desktop = [taskbar];
 )JS");
@@ -185,6 +206,182 @@ private Q_SLOTS:
         QCOMPARE(shown->evaluate(QStringLiteral("taskbar.hiding")).toString(), QStringLiteral("none"));
     }
 
+    void changesTheTaskbarsItems()
+    {
+        // Search, Task View and the clock on the taskbar too, as layout.js lays it out.
+        const QString full = orielosTaskbar + QStringLiteral(R"JS(
+var search = makeWidget(6, "org.orielos.search", {});
+var taskView = makeWidget(7, "org.orielos.taskview", {});
+var clock = makeWidget(8, "org.orielos.clock", {});
+var sliver = makeWidget(9, "org.orielos.showdesktop", {});
+taskbar.list.push(search, taskView, clock, sliver);
+)JS");
+        const auto before = runScript(full);
+        QVERIFY(before);
+        const ShellState state = printedState(*before);
+        QVERIFY(state.hasSearch && state.showSearch);
+        QVERIFY(state.hasTaskView && state.showTaskView);
+        QVERIFY(state.hasTasks && state.combineButtons);
+        QVERIFY(state.hasClock && !state.showSeconds);
+        QVERIFY(state.hasSliver && !state.peek);
+
+        const auto hidden = runScript(full, ShellSettings::Change { ShellSettings::Setting::ShowTaskView, false });
+        QVERIFY(hidden);
+        QCOMPARE(hidden->evaluate(QStringLiteral("taskView.config.shown")).toBool(), false);
+        QCOMPARE(hidden->evaluate(QStringLiteral("taskView.reloads")).toInt(), 1);
+        QVERIFY(!printedState(*hidden).showTaskView);
+        QVERIFY(printedState(*hidden).showSearch);
+
+        // Never combined: Plasma's labelled task manager in the icon-only one's place, with its
+        // pinned apps, not grouping.
+        const auto apart = runScript(full, ShellSettings::Change { ShellSettings::Setting::CombineButtons, false });
+        QVERIFY(apart);
+        QVERIFY(apart->evaluate(QStringLiteral("taskbar.list[2].removed")).toBool());
+        QCOMPARE(apart->evaluate(QStringLiteral("taskbar.added[0].type")).toString(), QStringLiteral("org.kde.plasma.taskmanager"));
+        QCOMPARE(apart->evaluate(QStringLiteral("taskbar.added[0].x")).toInt(), 32);
+        QCOMPARE(apart->evaluate(QStringLiteral("taskbar.widgets(\"org.kde.plasma.taskmanager\")[0].config.groupingStrategy")).toInt(), 0);
+        QCOMPARE(apart->evaluate(QStringLiteral("taskbar.widgets(\"org.kde.plasma.taskmanager\")[0].config.launchers")).toString(),
+            QStringLiteral("applications:org.kde.dolphin.desktop"));
+        QVERIFY(!printedState(*apart).combineButtons);
+        QVERIFY(printedState(*apart).hasTasks);
+
+        // And back: combined again on the icon-only one.
+        const auto together
+            = runScript(full + QStringLiteral("taskbar.list[2].type = \"org.kde.plasma.taskmanager\"; taskbar.list[2].config.groupingStrategy = 0;"),
+                ShellSettings::Change { ShellSettings::Setting::CombineButtons, true });
+        QVERIFY(together);
+        QCOMPARE(together->evaluate(QStringLiteral("taskbar.added[0].type")).toString(), QStringLiteral("org.kde.plasma.icontasks"));
+        QVERIFY(printedState(*together).combineButtons);
+
+        const auto seconds = runScript(full, ShellSettings::Change { ShellSettings::Setting::ShowSeconds, true });
+        QVERIFY(seconds);
+        QCOMPARE(seconds->evaluate(QStringLiteral("clock.config.showSeconds")).toBool(), true);
+        QVERIFY(printedState(*seconds).showSeconds);
+
+        const auto peek = runScript(full, ShellSettings::Change { ShellSettings::Setting::Peek, true });
+        QVERIFY(peek);
+        QCOMPARE(peek->evaluate(QStringLiteral("sliver.config.peek")).toBool(), true);
+        QCOMPARE(peek->evaluate(QStringLiteral("sliver.reloads")).toInt(), 1);
+        QVERIFY(printedState(*peek).peek);
+    }
+
+    void combinesOnEveryTaskbar()
+    {
+        const QString extra = orielosTaskbar + QStringLiteral(R"JS(
+var other = makePanel([makeWidget(20, "org.kde.plasma.icontasks", { showOnlyCurrentScreen: true })], "20");
+other.config.orielosExtraTaskbar = true;
+desktop.push(other);
+)JS");
+        const auto apart = runScript(extra, ShellSettings::Change { ShellSettings::Setting::CombineButtons, false });
+        QVERIFY(apart);
+        QVERIFY(apart->evaluate(QStringLiteral("other.list[0].removed")).toBool());
+        QCOMPARE(apart->evaluate(QStringLiteral("other.widgets(\"org.kde.plasma.taskmanager\")[0].config.showOnlyCurrentScreen")).toBool(), true);
+        QCOMPARE(apart->evaluate(QStringLiteral("other.widgets(\"org.kde.plasma.taskmanager\")[0].config.groupingStrategy")).toInt(), 0);
+        QCOMPARE(apart->evaluate(QStringLiteral("taskbar.widgets(\"org.kde.plasma.taskmanager\").length")).toInt(), 1);
+    }
+
+    void addsTaskbarsToOtherDisplays()
+    {
+        // Two displays, the taskbar on the first: a second taskbar for the second display, with
+        // Start (and its pins), the display's own windows and the clock, but no system tray.
+        const QString twoScreens = orielosTaskbar + QStringLiteral(R"JS(
+screenCount = 2;
+taskbar.screen = 0;
+taskbar.height = 48;
+start.config.favorites = "org.kde.dolphin.desktop";
+)JS");
+        const auto engine = runScript(twoScreens, ShellSettings::Change { ShellSettings::Setting::AllDisplays, true });
+        QVERIFY(engine);
+        QCOMPARE(engine->evaluate(QStringLiteral("made.length")).toInt(), 1);
+        QCOMPARE(engine->evaluate(QStringLiteral("made[0].screen")).toInt(), 1);
+        QCOMPARE(engine->evaluate(QStringLiteral("made[0].widgets(\"org.orielos.startmenu\")[0].config.favorites")).toString(),
+            QStringLiteral("org.kde.dolphin.desktop"));
+        QCOMPARE(engine->evaluate(QStringLiteral("made[0].widgets(\"org.kde.plasma.icontasks\")[0].config.showOnlyCurrentScreen")).toBool(), true);
+        QCOMPARE(engine->evaluate(QStringLiteral("made[0].widgets(\"org.kde.plasma.systemtray\").length")).toInt(), 0);
+        QCOMPARE(engine->evaluate(QStringLiteral("taskbar.list[2].config.showOnlyCurrentScreen")).toBool(), true);
+        QVERIFY(printedState(*engine).allDisplays);
+
+        // Off again: the added taskbar goes.
+        const auto off = runScript(twoScreens + QStringLiteral(R"JS(
+var extra = new Panel;
+extra.screen = 1;
+extra.config.orielosExtraTaskbar = true;
+made = [];
+)JS"),
+            ShellSettings::Change { ShellSettings::Setting::AllDisplays, false });
+        QVERIFY(off);
+        QCOMPARE(off->evaluate(QStringLiteral("desktop.length")).toInt(), 1);
+        QVERIFY(!printedState(*off).allDisplays);
+    }
+
+    void makesTheTaskbarButtonsSmaller()
+    {
+        const QString extra = orielosTaskbar + QStringLiteral(R"JS(
+taskbar.height = 48;
+var other = makePanel([makeWidget(20, "org.kde.plasma.icontasks", {})], "20");
+other.config.orielosExtraTaskbar = true;
+other.height = 48;
+var unrelated = makePanel([makeWidget(30, "org.kde.plasma.kickoff", {})], "30");
+unrelated.height = 32;
+desktop.push(other, unrelated);
+)JS");
+        const auto small = runScript(extra, ShellSettings::Change { ShellSettings::Setting::SmallButtons, true });
+        QVERIFY(small);
+        QCOMPARE(small->evaluate(QStringLiteral("taskbar.height")).toInt(), 40);
+        QCOMPARE(small->evaluate(QStringLiteral("other.height")).toInt(), 40);
+        QCOMPARE(small->evaluate(QStringLiteral("unrelated.height")).toInt(), 32);
+        QVERIFY(printedState(*small).smallButtons);
+
+        const auto usual = runScript(
+            extra + QStringLiteral("taskbar.height = 40;\nother.height = 40;\n"), ShellSettings::Change { ShellSettings::Setting::SmallButtons, false });
+        QVERIFY(usual);
+        QCOMPARE(usual->evaluate(QStringLiteral("taskbar.height")).toInt(), 48);
+        QCOMPARE(usual->evaluate(QStringLiteral("other.height")).toInt(), 48);
+        QVERIFY(!printedState(*usual).smallButtons);
+    }
+
+    void changesStartsFolders()
+    {
+        const auto engine = runScript(orielosTaskbar + QStringLiteral("start.config.folders = \"files,downloads,settings\";"),
+            ShellSettings::Change { ShellSettings::Setting::FolderDocuments, true });
+        QVERIFY(engine);
+        // In Windows' order.
+        QCOMPARE(engine->evaluate(QStringLiteral("start.config.folders")).toString(), QStringLiteral("settings,files,documents,downloads"));
+        QCOMPARE(printedState(*engine).startFolders,
+            (QStringList { QStringLiteral("settings"), QStringLiteral("files"), QStringLiteral("documents"), QStringLiteral("downloads") }));
+
+        const auto off = runScript(orielosTaskbar, ShellSettings::Change { ShellSettings::Setting::FolderFiles, false });
+        QVERIFY(off);
+        QCOMPARE(off->evaluate(QStringLiteral("start.config.folders")).toString(), QStringLiteral("settings,downloads"));
+        QCOMPARE(ShellSettings::folderId(ShellSettings::Setting::FolderPersonal), QStringLiteral("personal"));
+        QCOMPARE(ShellSettings::folderSetting(QStringLiteral("music")), std::optional { ShellSettings::Setting::FolderMusic });
+        QVERIFY(!ShellSettings::folderSetting(QStringLiteral("bin")));
+    }
+
+    void changesStartsLayout()
+    {
+        const auto engine = runScript(orielosTaskbar, ShellSettings::Change { ShellSettings::Setting::LayoutMorePins, true });
+        QVERIFY(engine);
+        QCOMPARE(engine->evaluate(QStringLiteral("start.config.layout")).toString(), QStringLiteral("morePins"));
+        QCOMPARE(printedState(*engine).startLayout, QStringLiteral("morePins"));
+        QCOMPARE(engine->evaluate(QStringLiteral("start.reloads")).toInt(), 1);
+
+        const auto unread = runScript(orielosTaskbar);
+        QVERIFY(unread);
+        QCOMPARE(printedState(*unread).startLayout, QStringLiteral("default"));
+        QCOMPARE(ShellSettings::layoutId(ShellSettings::Setting::LayoutMoreRecommendations), QStringLiteral("moreRecommendations"));
+        QVERIFY(ShellSettings::layoutId(ShellSettings::Setting::Peek).isEmpty());
+    }
+
+    void withoutTheItemsNothingChanges()
+    {
+        // The plain taskbar has no Search, Task View or clock; asking for them changes nothing.
+        const auto engine = runScript(orielosTaskbar, ShellSettings::Change { ShellSettings::Setting::ShowSearch, false });
+        QVERIFY(engine);
+        QVERIFY(!printedState(*engine).hasSearch);
+        QVERIFY(!printedState(*engine).hasClock);
+    }
+
     void findsStartOnAnyPanel()
     {
         const auto engine = runScript(
@@ -219,7 +416,14 @@ private Q_SLOTS:
         FakeDesktop desktop;
         ShellSettings settings(desktop.runner());
         QCOMPARE(desktop.calls.size(), 1);
-        QVERIFY(!desktop.calls.first().script.contains(QLatin1String("writeConfig(")));
+        // The first script only reads: it's the script with no change in it, which leaves the
+        // desktop as it was.
+        QCOMPARE(desktop.calls.first().script, ShellSettings::script());
+        const QString snapshot = QStringLiteral(
+            "JSON.stringify(desktop.map(function (p) { return [p.hiding, p.config, p.list.map(function (w) { return [w.type, w.config, w.removed]; })]; }))");
+        const auto engine = runScript(orielosTaskbar + QStringLiteral("var desktopBefore = ") + snapshot + QStringLiteral(";"));
+        QVERIFY(engine);
+        QCOMPARE(engine->evaluate(snapshot).toString(), engine->evaluate(QStringLiteral("desktopBefore")).toString());
         QVERIFY(!settings.isReady());
         QVERIFY(!settings.state().hasStart);
         desktop.answer(true, QStringLiteral(R"({"hasStart":true,"showRecentFiles":false,"canAlign":true,"centred":false,"autoHide":true})"));
@@ -317,6 +521,51 @@ private Q_SLOTS:
         QCOMPARE(settings.error(), QStringLiteral("The taskbar's settings couldn't be read."));
     }
 
+    void readsAndChangesTheTrayIcons()
+    {
+        const QString withTray = orielosTaskbar
+            + QStringLiteral(
+                "var tray = makeWidget(6, \"org.orielos.tray\", { shownItems: [\"steam\"] }); taskbar.list.push(tray); taskbar.widgetIds.push(6);");
+        const auto engine = runScript(withTray);
+        QVERIFY(engine);
+        ShellState state = printedState(*engine);
+        QVERIFY(state.hasTray);
+        QCOMPARE(state.trayShown, QStringList { QStringLiteral("steam") });
+
+        const auto shown = runScript(withTray, ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, QStringLiteral("discord") });
+        QVERIFY(shown);
+        state = printedState(*shown);
+        QCOMPARE(state.trayShown, (QStringList { QStringLiteral("steam"), QStringLiteral("discord") }));
+        QCOMPARE(shown->evaluate(QStringLiteral("tray.reloads")).toInt(), 1);
+
+        const auto hidden = runScript(withTray, ShellSettings::Change { ShellSettings::Setting::TrayIcon, false, QStringLiteral("steam") });
+        QVERIFY(hidden);
+        QVERIFY(printedState(*hidden).trayShown.isEmpty());
+
+        // Read back from the file, the list is text.
+        const auto text = runScript(orielosTaskbar
+            + QStringLiteral("taskbar.list.push(makeWidget(6, \"org.orielos.tray\", { shownItems: \"steam,obs\" })); taskbar.widgetIds.push(6);"));
+        QVERIFY(text);
+        QCOMPARE(printedState(*text).trayShown, (QStringList { QStringLiteral("steam"), QStringLiteral("obs") }));
+
+        // Without OrielOS's tray there's nothing to change.
+        const auto none = runScript(orielosTaskbar, ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, QStringLiteral("steam") });
+        QVERIFY(none);
+        QVERIFY(!printedState(*none).hasTray);
+    }
+
+    void trayIconIdsCantBreakTheScript()
+    {
+        const QString id = QStringLiteral("a\"); print(\"x\"); //");
+        const QString script = ShellSettings::script(ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, id });
+        const auto engine = runScript(
+            orielosTaskbar + QStringLiteral("var tray = makeWidget(6, \"org.orielos.tray\", {}); taskbar.list.push(tray); taskbar.widgetIds.push(6);"),
+            ShellSettings::Change { ShellSettings::Setting::TrayIcon, true, id });
+        QVERIFY(engine);
+        QCOMPARE(printedState(*engine).trayShown, QStringList { id });
+        QVERIFY(!script.contains(QLatin1String("print(\"x\")")));
+    }
+
     // The pages' models.
 
     void startOptionsChangeOnlyWhatsThere()
@@ -359,6 +608,26 @@ private Q_SLOTS:
         desktop.answer(true, QStringLiteral(R"({"hasStart":true,"canAlign":false,"centred":true,"autoHide":true})"));
         QVERIFY(options.autoHide());
         QVERIFY(options.error().isEmpty());
+    }
+
+    void taskbarOptionsMoveTrayIcons()
+    {
+        FakeDesktop desktop;
+        TaskbarOptions options(new ShellSettings(desktop.runner()));
+        desktop.answer(true, QStringLiteral(R"({"hasStart":true,"hasTray":true,"trayShown":["steam"]})"));
+        QVERIFY(options.hasTray());
+        QCOMPARE(options.trayShown(), QStringList { QStringLiteral("steam") });
+        // Already on the taskbar: nothing to run.
+        options.setTrayIconShown(QStringLiteral("steam"), true);
+        QVERIFY(desktop.calls.isEmpty());
+
+        options.setTrayIconShown(QStringLiteral("discord"), true);
+        QCOMPARE(desktop.calls.size(), 1);
+        QCOMPARE(options.trayShown(), (QStringList { QStringLiteral("steam"), QStringLiteral("discord") }));
+        QVERIFY(desktop.calls.first().script.contains(QLatin1String(R"(setTrayShown(["discord"][0], true))")));
+        // A failed change goes back.
+        desktop.answer(false, QStringLiteral("plasmashell went away"));
+        QCOMPARE(options.trayShown(), QStringList { QStringLiteral("steam") });
     }
 };
 

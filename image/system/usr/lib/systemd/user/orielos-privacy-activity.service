@@ -1,0 +1,14 @@
+[Unit]
+Description=Note which apps use the camera, the microphone and the location
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/settings.md
+After=pipewire.service
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/orielos/privacy-activity
+Nice=10
+Restart=on-failure
+RestartSec=30s
+
+[Install]
+WantedBy=plasma-workspace.target

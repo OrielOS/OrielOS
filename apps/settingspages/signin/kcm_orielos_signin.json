@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "PIN, fingerprint, dynamic lock and the sign-in screen",
+        "Icon": "preferences-system-users",
+        "Name": "Sign-in Options"
+    },
+    "X-KDE-Keywords": "sign-in options,pin,fingerprint,face,windows hello,dynamic lock,ctrl alt delete,startup sound,sign in,lock,wake",
+    "X-KDE-System-Settings-Parent-Category": "security-privacy",
+    "X-KDE-Weight": 40
+}

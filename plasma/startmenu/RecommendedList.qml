@@ -16,16 +16,23 @@ Item {
 
     readonly property GridView view: grid
     readonly property int columns: 2
+    // Whether the list scrolls, on the More page; on the home page it shows what fits.
+    property bool scrollable: false
+
+    // Up from the first row: the page decides where the keyboard goes.
+    signal exitedTop()
 
     GridView {
         id: grid
 
         anchors.fill: parent
         clip: true
-        interactive: false
+        interactive: recommended.scrollable
+        boundsBehavior: Flickable.StopAtBounds
         model: recommended.menu.recommendedItems
         cellWidth: Math.floor(width / recommended.columns)
-        cellHeight: Kirigami.Units.iconSizes.medium + Kirigami.Units.largeSpacing * 2 + Kirigami.Units.smallSpacing
+        // Sill's rows: a 32 px icon and two lines, 56 px apart.
+        cellHeight: 56
         keyNavigationEnabled: false
         currentIndex: 0
 
@@ -81,7 +88,7 @@ Item {
                 if (index >= columns) {
                     grid.currentIndex = index - columns;
                 } else {
-                    recommended.menu.focusPinned();
+                    recommended.exitedTop();
                 }
                 event.accepted = true;
                 break;

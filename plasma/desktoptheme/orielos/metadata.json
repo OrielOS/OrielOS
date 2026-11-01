@@ -1,0 +1,16 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "OrielOS contributors"
+            }
+        ],
+        "Category": "",
+        "Description": "OrielOS's Plasma theme: translucent panes with a thin rim, and the sill under the app in use",
+        "Id": "orielos",
+        "License": "GPL-3.0-or-later",
+        "Name": "OrielOS",
+        "Website": "https://orielos.org"
+    },
+    "X-Plasma-API": "5.0"
+}

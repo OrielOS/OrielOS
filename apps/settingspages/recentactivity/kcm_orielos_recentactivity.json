@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Which apps used the camera, microphone or location recently",
+        "Icon": "view-history",
+        "Name": "Recent Activity"
+    },
+    "X-KDE-Keywords": "recent activity,camera,microphone,location,privacy,used,apps,webcam,mic",
+    "X-KDE-System-Settings-Parent-Category": "security-privacy",
+    "X-KDE-Weight": 60
+}

@@ -1,0 +1,43 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Keeps the list of recent desktop pictures that Settings' Background page offers to pick again:
+# when the picture changes, from the page or from the desktop's own menu, it goes first in
+# ~/.local/state/orielos/recent-backgrounds, one path a line, at most five. Run at each sign-in and
+# whenever Plasma saves the desktop's settings, by orielos-recent-backgrounds.service and .path.
+#   recent-backgrounds [appletsrc] [state]   (other files, for the tests)
+set -Euo pipefail
+
+appletsrc="${1:-${XDG_CONFIG_HOME:-$HOME/.config}/plasma-org.orielos.desktop-appletsrc}"
+state="${2:-${XDG_STATE_HOME:-$HOME/.local/state}/orielos/recent-backgrounds}"
+[[ -r "$appletsrc" ]] || exit 0
+
+# The first desktop's picture: Image in its [Containments][N][Wallpaper][org.kde.image][General].
+image="$(awk '
+    /^\[/ { in_group = ($0 ~ /^\[Containments\]\[[0-9]+\]\[Wallpaper\]\[org\.kde\.image\]\[General\]$/); next }
+    in_group && /^Image=/ { sub(/^Image=/, ""); print; exit }
+' "$appletsrc")"
+[[ -n "$image" ]] || exit 0
+
+# A file: URL as a path, its %-escapes decoded; a package's name as its folder.
+case "$image" in
+    file://*)
+        path="${image#file://}"
+        printf -v path '%b' "${path//%/\\x}"
+        ;;
+    /*) path="$image" ;;
+    *) path="/usr/share/wallpapers/$image" ;;
+esac
+path="${path%/}"
+[[ -e "$path" ]] || exit 0
+
+mkdir -p -- "${state%/*}"
+if [[ -f "$state" ]] && [[ "$(head -n1 -- "$state")" == "$path" ]]; then
+    exit 0
+fi
+{
+    printf '%s\n' "$path"
+    [[ -f "$state" ]] && grep -vxF -- "$path" "$state"
+} | head -n5 >"$state.new"
+mv -f -- "$state.new" "$state"

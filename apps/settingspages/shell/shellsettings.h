@@ -6,10 +6,10 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 #include <optional>
-#include <utility>
 
 namespace OrielOSSettingsPages {
 
@@ -25,6 +25,33 @@ struct ShellState
     bool canAlign = false;
     bool centred = true;
     bool autoHide = false;
+    // The Search and Task View buttons, the task manager and the clock on the taskbar, and their
+    // settings; a button or widget that isn't there can't be changed.
+    bool hasSearch = false;
+    bool showSearch = true;
+    bool hasTaskView = false;
+    bool showTaskView = true;
+    bool hasTasks = false;
+    // Each app's windows on one button (Windows' "Always combine"), or each window on its own.
+    bool combineButtons = true;
+    bool hasClock = false;
+    bool showSeconds = false;
+    // Pointing at the show desktop strip at the far end peeks at the desktop.
+    bool hasSliver = false;
+    bool peek = false;
+    // A taskbar on every display, each listing that display's windows.
+    bool allDisplays = false;
+    // Smaller taskbar buttons: the taskbars 40 px high rather than 48.
+    bool smallButtons = false;
+    // The shortcuts next to Start's power button, by ID (settings, files, documents, downloads,
+    // music, pictures, videos, network, personal), in Windows' order.
+    QStringList startFolders = { QStringLiteral("files"), QStringLiteral("downloads"), QStringLiteral("settings") };
+    // Start's layout: morePins, default or moreRecommendations.
+    QString startLayout = QStringLiteral("default");
+    // OrielOS's tray on the taskbar, and the apps whose icons it shows on the taskbar rather than
+    // under its arrow, by the icons' ids.
+    bool hasTray = false;
+    QStringList trayShown;
 
     // The state a script printed, or nothing if the output isn't that JSON.
     static std::optional<ShellState> fromJson(const QString &json);
@@ -44,8 +71,45 @@ public:
         ShowRecentFiles,
         Centred,
         AutoHide,
+        ShowSearch,
+        ShowTaskView,
+        CombineButtons,
+        ShowSeconds,
+        Peek,
+        AllDisplays,
+        SmallButtons,
+        // One shortcut next to Start's power button each.
+        FolderSettings,
+        FolderFiles,
+        FolderDocuments,
+        FolderDownloads,
+        FolderMusic,
+        FolderPictures,
+        FolderVideos,
+        FolderNetwork,
+        FolderPersonal,
+        // Start's layout; a change to true chooses it.
+        LayoutMorePins,
+        LayoutDefault,
+        LayoutMoreRecommendations,
+        // An app's icon on the taskbar, or under the tray's arrow; the change names the app.
+        TrayIcon,
     };
-    using Change = std::pair<Setting, bool>;
+
+    // A layout setting's name in Start's settings, or empty for any other setting.
+    static QString layoutId(Setting setting);
+
+    // A folder setting's ID in Start's folders list, or empty for any other setting.
+    static QString folderId(Setting setting);
+    // The folder setting for an ID, if there is one.
+    static std::optional<Setting> folderSetting(const QString &id);
+    // A setting and its new value; a TrayIcon change also has the icon's id.
+    struct Change
+    {
+        Setting setting;
+        bool value;
+        QString item = { };
+    };
 
     // Runs a script in the desktop, then calls done with whether it ran, and what it printed or
     // why it failed.
@@ -65,6 +129,8 @@ public:
 
     void reload();
     void change(Setting setting, bool value);
+    // Puts an app's icon on the taskbar, or under the tray's arrow.
+    void changeTrayIcon(const QString &item, bool shown);
 
     // The script that makes the change, if any, then prints the settings as JSON.
     static QString script(std::optional<Change> change = std::nullopt);

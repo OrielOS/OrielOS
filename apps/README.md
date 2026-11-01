@@ -39,6 +39,8 @@ settingspages/       OrielOS's own Settings pages, each a Plasma settings module
   taskbar/            kcm_orielos_taskbar, Taskbar: TaskbarOptions (QML module org.orielos.taskbar) and its page
   security/           kcm_orielos_security, Device security: the anti-cheat self-test (QML module org.orielos.security) and its page
   power/              kcm_orielos_powermode, Power mode: PowerMode (QML module org.orielos.powermode) and its page
+  background/         kcm_orielos_background, Background: DesktopBackground (QML module org.orielos.background) and its page
+  recentactivity/     kcm_orielos_recentactivity, Recent activity: RecentActivity (QML module org.orielos.recentactivity) and its page
   autotests/          Qt Test unit tests for both models, and a test that loads both modules
 updatenotifier/       orielos-update-notifier, the update tray icon
   main.cpp            start-up, translations, --state and --boot-id-file
@@ -51,6 +53,20 @@ runapp/               orielos-run-app, Run this app: opens Windows programs (.ex
   qml/Main.qml        the window: confirm, running, and what was added to Start
   org.orielos.RunApp.desktop  the handler for Windows programs, hidden from Start
   autotests/          Qt Test unit tests for the library, with shortcuts built byte by byte
+displaymode/          orielos-display-mode, Display mode on Windows + P: how the screens are used
+  displaylayout.h/.cpp  where each mode puts the screens (static library OrielOSDisplayLayout)
+  displayswitcher.h/.cpp  DisplaySwitcher, the panel's model: reads and applies the screens through libkscreen
+  main.cpp            start-up, the layer-shell panel, one instance (Windows + P again moves on) and --apply
+  qml/Main.qml        the panel: four choices in Sill's card, the one in use marked
+  org.orielos.DisplayMode.desktop  Windows + P, hidden from Start
+  autotests/          Qt Test unit tests for the layouts
+emojipanel/           orielos-emoji, the emoji panel on Windows + .: emoji, kaomoji, symbols and the clipboard
+  clipboardhistory.h/.cpp  ClipboardHistory, the clipboard tab's model: the desktop's history and copying
+  main.cpp            start-up and one instance (Windows + . again brings it forward)
+  qml/Main.qml        the panel and its tabs; emoji from Plasma's emoji selector (org.kde.plasma.emoji)
+  qml/CharacterGrid.qml  a grid of characters to pick from
+  qml/characters.js   the kaomoji and symbols, in groups
+  org.orielos.EmojiPanel.desktop  Windows + . and Windows + ;, hidden from Start
 updatesettings/       kcm_orielos_update, the Update settings page (a Plasma settings module)
   updatesettings.h/.cpp  UpdateSettings, the page's model (QML module org.orielos.updatesettings)
   updatecommands.h/.cpp  running orielos-update through pkexec, and following the check unit
@@ -98,7 +114,7 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
 `krunner_orielos_settings` (`settings/runner/`) is a KRunner plugin, installed to `kf6/krunner`, that Start's search uses in place of System Settings' runner, `krunner_systemsettings`; `etc/xdg/krunnerrc` in the image turns System Settings' runner off in KRunner too. It searches with `SettingsSearch`:
 
 - **Settings' pages** come first, found by the same rules as Settings' own search field (`PageCatalogue::search`, with the Windows words), and open with `orielos-settings <page>`. Their subtext says where they are, such as "Settings › System".
-- **Every other module** System Settings lists (from `plasma/kcms/systemsettings` and `systemsettings_qwidgets`, with a category and not hidden) follows, found by its name, description and `X-KDE-Keywords`, and opens with `systemsettings <module>`. Modules Settings has a page for are left out, so nothing shows twice.
+- **Every other settings module** follows (`settingsModules()`: System Settings' and Info Center's, including those they leave out of their own lists, but not hidden ones, those only for phones and tablets, or System Settings' home page), found by its name, description and `X-KDE-Keywords`, and opens with `orielos-settings <module>` under More settings. Modules Settings has a page for are left out, so nothing shows twice.
 - A page whose title matches gets a high category relevance in KRunner, above apps found only by their keywords; System Settings' modules get less. Commands start through `KIO::CommandLauncherJob`, so the window gets an activation token and comes to the front.
 - The modules are found once, in the runner's `init()`, which KRunner runs on the runner's own thread before its first match; they only change with an OS update, which needs a restart. The query is split into words once per search, and a page's keywords and description are only looked at when its title doesn't match. A program that can't start says so in a notification (`KNotificationJobUiDelegate`).
 - **Testing.** `settingssearchtest` covers the search with made-up pages and modules; `settingsrunnertest` loads the built runner the way Start does, through `KRunner::AbstractRunnerTest`, and checks the commands it gives for OrielOS's pages and for Plasma's Fonts module.

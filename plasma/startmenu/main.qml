@@ -22,10 +22,16 @@ PlasmoidItem {
     switchWidth: Kirigami.Units.gridUnit * 1000
     switchHeight: Kirigami.Units.gridUnit * 1000
     hideOnWindowDeactivate: true
+    // The OrielOS shell opens the menu in the middle of the taskbar, like Sill's.
+    readonly property bool centredPopup: true
+    // Set by Win+S and the taskbar's Search button until the menu shows its search home.
+    property bool openingForSearch: false
 
     fullRepresentation: StartMenu {
         plasmoidItem: root
         focus: true
+        openForSearch: root.openingForSearch
+        onSearchOpened: root.openingForSearch = false
     }
 
     compactRepresentation: MouseArea {
@@ -44,13 +50,22 @@ PlasmoidItem {
 
         hoverEnabled: true
         activeFocusOnTab: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
 
         Accessible.name: Plasmoid.title
         Accessible.description: root.toolTipMainText
         Accessible.role: Accessible.Button
 
         onPressed: wasExpanded = root.expanded
-        onClicked: root.expanded = !wasExpanded
+        onClicked: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                // Windows' power user menu, as Win+X opens it.
+                root.expanded = false;
+                root.openPowerUserMenu();
+                return;
+            }
+            root.expanded = !wasExpanded;
+        }
         Keys.onPressed: event => {
             if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                 root.expanded = !root.expanded;
@@ -63,6 +78,28 @@ PlasmoidItem {
             source: Plasmoid.icon
             active: startButton.containsMouse || startButton.pressed || root.expanded
         }
+    }
+
+    // Win+S and the taskbar's Search button (through the applet class): Start on its search home,
+    // or closed again when that's already showing, as Win+S does in Windows.
+    function openForSearch() {
+        if (root.expanded && !root.openingForSearch) {
+            root.expanded = false;
+            return;
+        }
+        root.openingForSearch = true;
+        root.expanded = true;
+    }
+
+    // Win+X (through the applet class) and a right-click on the button open it.
+    function openPowerUserMenu() {
+        powerUserMenu.open = !powerUserMenu.open;
+    }
+
+    PowerUserMenu {
+        id: powerUserMenu
+        visualParent: root.compactRepresentationItem
+        onChosen: id => Plasmoid.activatePowerUserItem(id) // qmllint disable missing-property
     }
 
     Component.onCompleted: {

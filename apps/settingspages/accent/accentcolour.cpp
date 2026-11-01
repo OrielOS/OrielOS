@@ -8,6 +8,8 @@
 #include <KLocalizedString>
 #include <KSharedConfig>
 
+#include <QDBusConnection>
+#include <QDBusMessage>
 #include <QStandardPaths>
 
 namespace OrielOSSettingsPages {
@@ -25,6 +27,13 @@ AccentColour::AccentColour(QObject *parent)
     : QObject(parent)
     , m_program(QStringLiteral("plasma-apply-colorscheme"))
     , m_watcher(KConfigWatcher::create(KSharedConfig::openConfig(QStringLiteral("kdeglobals"))))
+    , m_kwinConfig(QStringLiteral("kwinrc"))
+    , m_plasmaConfig(QStringLiteral("plasmarc"))
+    , m_themeProgram(QStringLiteral("plasma-apply-desktoptheme"))
+    , m_reconfigure([]() {
+        QDBusConnection::sessionBus().send(QDBusMessage::createMethodCall(
+            QStringLiteral("org.kde.KWin"), QStringLiteral("/KWin"), QStringLiteral("org.kde.KWin"), QStringLiteral("reconfigure")));
+    })
 {
     // The Themes page, or any other, may change the colours too.
     connect(m_watcher.data(), &KConfigWatcher::configChanged, this, [this](const KConfigGroup &group) {
@@ -79,7 +88,53 @@ void AccentColour::reload()
         const KConfig schemeFile(path, KConfig::SimpleConfig);
         m_themeColour = KConfigGroup(&schemeFile, QStringLiteral("Colors:Selection")).readEntry("BackgroundNormal", QColor());
     }
+    // OrielOS turns the blur on in /etc/xdg/kwinrc.
+    const KConfig kwin(m_kwinConfig);
+    m_transparency = KConfigGroup(&kwin, QStringLiteral("Plugins")).readEntry("blurEnabled", true);
+    const KConfig plasma(m_plasmaConfig);
+    m_accentOnTaskbar = KConfigGroup(&plasma, QStringLiteral("Theme")).readEntry("name", QString()) == QLatin1String("orielos-accent");
     Q_EMIT changed();
+}
+
+void AccentColour::setAccentOnTaskbar(bool accent)
+{
+    if (accent == m_accentOnTaskbar) {
+        return;
+    }
+    // The tool records the theme in plasmarc and tells the desktop, which redraws at once.
+    if (QProcess::startDetached(m_themeProgram, { accent ? QStringLiteral("orielos-accent") : QStringLiteral("orielos") })) {
+        m_accentOnTaskbar = accent;
+        m_error.clear();
+    } else {
+        m_error = i18nc("@info", "The accent colour couldn't be shown on Start and the taskbar.");
+    }
+    Q_EMIT changed();
+}
+
+void AccentColour::setThemeForTesting(const QString &config, const QString &program)
+{
+    m_plasmaConfig = config;
+    m_themeProgram = program;
+    reload();
+}
+
+void AccentColour::setTransparency(bool transparency)
+{
+    if (transparency == m_transparency) {
+        return;
+    }
+    KConfig kwin(m_kwinConfig);
+    KConfigGroup(&kwin, QStringLiteral("Plugins")).writeEntry("blurEnabled", transparency, KConfig::Notify);
+    kwin.sync();
+    m_reconfigure();
+    reload();
+}
+
+void AccentColour::setKWinForTesting(const QString &config, std::function<void()> reconfigure)
+{
+    m_kwinConfig = config;
+    m_reconfigure = std::move(reconfigure);
+    reload();
 }
 
 void AccentColour::choose(const QColor &colour)

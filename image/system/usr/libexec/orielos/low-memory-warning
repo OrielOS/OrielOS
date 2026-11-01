@@ -1,0 +1,60 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Windows' "Your computer is low on memory": when less than 5 % of the memory is free and the swap
+# is nearly full too, a notification asks to close apps, with a button that opens System Monitor.
+# It warns at most once every ten minutes. orielos-low-memory-warning.timer runs it each minute.
+#   low-memory-warning [--meminfo FILE] [--dry-run]   (for the tests)
+set -Euo pipefail
+
+meminfo=/proc/meminfo
+dry_run=false
+while (($# > 0)); do
+    case "$1" in
+        --meminfo)
+            meminfo="${2:?--meminfo needs a file}"
+            shift
+            ;;
+        --dry-run) dry_run=true ;;
+        *)
+            printf 'low-memory-warning: unknown argument %s\n' "$1" >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
+# A value from meminfo, in kB.
+value() {
+    awk -v key="$1:" '$1 == key { print $2; found = 1 } END { if (!found) print 0 }' "$meminfo"
+}
+
+total="$(value MemTotal)"
+available="$(value MemAvailable)"
+swap_total="$(value SwapTotal)"
+swap_free="$(value SwapFree)"
+((total > 0)) || exit 0
+((available * 100 < total * 5)) || exit 0
+((swap_total == 0 || swap_free * 100 < swap_total * 10)) || exit 0
+
+if [[ "$dry_run" == true ]]; then
+    echo low
+    exit 0
+fi
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/orielos/low-memory-warned"
+mkdir -p -- "${state%/*}"
+if [[ -e "$state" ]] && (($(date +%s) - $(stat -c %Y -- "$state") < 600)); then
+    exit 0
+fi
+touch -- "$state"
+
+choice="$(notify-send --app-name=OrielOS --icon=dialog-warning --urgency=critical \
+    --action=open="Open System Monitor" \
+    "Your computer is low on memory" \
+    "Close some apps to free up memory. System Monitor shows which apps use the most." 2>/dev/null || true)"
+if [[ "$choice" == open ]]; then
+    kioclient exec /usr/share/applications/org.kde.plasma-systemmonitor.desktop >/dev/null 2>&1 &
+fi
+exit 0

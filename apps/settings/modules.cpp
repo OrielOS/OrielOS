@@ -3,6 +3,8 @@
 
 #include "modules.h"
 
+#include <KService>
+
 #include <QSet>
 
 namespace OrielOSSettings {
@@ -28,14 +30,15 @@ KPluginMetaData findModule(const QString &id)
     return { };
 }
 
-QList<KPluginMetaData> systemSettingsModules()
+QList<KPluginMetaData> settingsModules()
 {
     QList<KPluginMetaData> out;
     QSet<QString> seen;
-    for (const QString &space : { QStringLiteral("plasma/kcms/systemsettings"), QStringLiteral("plasma/kcms/systemsettings_qwidgets") }) {
+    for (const QString &space : moduleNamespaces()) {
         for (const KPluginMetaData &metadata : KPluginMetaData::findPlugins(space)) {
-            if (metadata.isHidden() || metadata.value(QStringLiteral("X-KDE-System-Settings-Parent-Category")).isEmpty()
-                || seen.contains(metadata.pluginId())) {
+            const QStringList formFactors = metadata.formFactors();
+            const bool forDesktops = formFactors.isEmpty() || formFactors.contains(QLatin1String("desktop"));
+            if (metadata.isHidden() || !forDesktops || metadata.pluginId() == QLatin1String("kcm_landingpage") || seen.contains(metadata.pluginId())) {
                 continue;
             }
             seen.insert(metadata.pluginId());
@@ -43,6 +46,29 @@ QList<KPluginMetaData> systemSettingsModules()
         }
     }
     return out;
+}
+
+bool isInfoModule(const KPluginMetaData &metadata)
+{
+    return metadata.fileName().contains(QLatin1String("/plasma/kcms/kinfocenter/"));
+}
+
+bool isAppModule(const QString &module)
+{
+    return module.startsWith(QLatin1String("app:"));
+}
+
+QString appDesktopName(const QString &module)
+{
+    return module.mid(4);
+}
+
+bool isInstalled(const QString &module)
+{
+    if (isAppModule(module)) {
+        return KService::serviceByDesktopName(appDesktopName(module)) != nullptr;
+    }
+    return findModule(module).isValid();
 }
 
 } // namespace OrielOSSettings

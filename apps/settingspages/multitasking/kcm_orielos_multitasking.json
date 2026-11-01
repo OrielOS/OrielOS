@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Snap windows, snap layouts, snap assist and Alt+Tab",
+        "Icon": "preferences-system-windows-actions",
+        "Name": "Multitasking"
+    },
+    "X-KDE-Keywords": "multitasking,snap,snap windows,snap layouts,snap assist,alt+tab,alt tab,desktops,virtual desktops",
+    "X-KDE-System-Settings-Parent-Category": "windowmanagement",
+    "X-KDE-Weight": 30
+}
