@@ -9,8 +9,8 @@ if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
 breeze=/usr/share/sddm/themes/breeze
 theme=/usr/share/sddm/themes/orielos
-# sha256 of Main.qml in sddm-breeze 6.7.5.
-upstream=136ce0f867812b97e0e19f687e6b5ee90270068ef58149833c281d2c70c4a3af
+# sha256 of Main.qml in sddm-breeze 6.8.2.
+upstream=7fad7305b19e6783b6f0ede1d4bf5c489cd1a23003224798911a5ecf179af8a9
 
 die() {
     printf 'error: %s\n' "$1" >&2

@@ -11,16 +11,16 @@ set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
 PACKAGES=/usr/share/plasma/packages
-# sha256 of each page's metadata.json in plasma-setup 6.7.5.
+# sha256 of each page's metadata.json in plasma-setup 6.8.2.
 declare -A METADATA_SUMS=(
-    [language]=43ed694acf5a38e6257b7684e87145cd0f7fe5bdd1fd0153c14de4d9ec9cdb0d
-    [keyboard]=ba792eea0eb9dcb0919945e510a861c8c1c97c3c3115fdc8542664f40bf05aef
-    [prepare]=e429621b9e07e14ebe002169ac85ca2e6c076f3951ee026d28511de0437cd4c3
-    [account]=97bb689c9a14d323e7ec3bff1c30c69fa9fc84c0c451b03d72ccde2e6d492ddd
-    [hostname]=efe6aa2b919eb3e5e7abb5e0210f1dd623f20cb54430ea871d239c7b76b210fa
-    [time]=23fd1bd8b3f461942eb7dcb1c1f9b0732cbe11aef741a30f155e050719abc0f2
-    [wifi]=90d36d9bfd5c7455905a9a693a459ca655e6c0fa470e3d3f9f6101cf7bad1aeb
-    [finished]=7fcbc52132eb2ba75ace08cd5b1124dc8b67f9ed3eeb1d57a4f5e68ca000ad84
+    [language]=ad55415b4c4d468957ee02a2bd437e846b27a4891df13f95be3c5b62e29e9d0b
+    [keyboard]=5222cc5bd731a414c5aea3617abd717c6e1ca15b445e644c54947c473c112612
+    [prepare]=2c77e29cafcee3e20bfe857e342c6f05a9b505b048754737fdf0b11e2fa1868b
+    [account]=f3f27a603db3c704a264c04bf93f26a804d41f12885d69b3bdf03e2411e309d0
+    [hostname]=5ae15d723257d305bc5064717daf1e3e07ba168faf4c383644c4a5e5c483edb5
+    [time]=ae6797c64bbfaed52783ef506ade750f51ccbf003cf2d310f3f4687d031a8035
+    [wifi]=820ed61cf9a6d5e0e813fee3334d74fc67555cc07c91cbd49aeaa8b8d820e69a
+    [finished]=14f846bf110d674002a685135508b7d1ebdd30da48717ab8bfc8e333758490b1
 )
 # The weights OrielOS gives Plasma Setup's pages. OrielOS's network page is 11, its time zone page
 # 15 and its power page 18; the finished page stays at 200.
@@ -28,7 +28,7 @@ declare -A METADATA_SUMS=(
 declare -A WEIGHTS=([language]=0 [keyboard]=5 [wifi]=10 [hostname]=19 [account]=20)
 REMOVE=(prepare time)
 FINISHED_UI="$PACKAGES/org.kde.plasmasetup.finished/contents/ui"
-# sha256 of the finished page's konqi-calling.png in plasma-setup 6.7.5.
+# sha256 of the finished page's konqi-calling.png in plasma-setup 6.8.2.
 KONQI_SUM=7183631a020d2017997b259ac925519f48beaf4fc173b4c126cc688415ed3be1
 # The OrielOS logo, installed from the apps build (plasma/CMakeLists.txt).
 FINISHED_LOGO=/usr/share/orielos/first-run/finished-logo.png
