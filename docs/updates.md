@@ -75,7 +75,7 @@ To turn this off, clear **Update apps automatically** under **Apps from the Stor
 
 ## If an update doesn't start
 
-You don't need to do anything. If a new version fails to reach the desktop twice in a row, for example because it stops partway through starting or the screen stays black, the next start uses the previous version instead. Once its desktop is up, OrielOS keeps that version, tells you in a notification that the update was undone, and doesn't offer the version that failed again until a newer one is published. There's no question to answer at startup.
+You don't need to do anything. If a new version fails to reach the desktop twice in a row, for example because it stops partway through starting or the screen stays black, the next start uses the previous version instead. A start counts as reaching the desktop once someone signs in, so if you restart a computer twice at the sign-in screen just after an update, OrielOS goes back to the previous version too. Once its desktop is up, OrielOS keeps that version, tells you in a notification that the update was undone, and doesn't offer the version that failed again until a newer one is published. There's no question to answer at startup.
 
 ## Going back yourself
 

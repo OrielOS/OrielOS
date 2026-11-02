@@ -233,6 +233,9 @@ fi
 # installed. Each desktop session then asks orielos-boot-success.service to mark the start as
 # good, through a user unit enabled for every user here and a polkit rule that allows only that.
 systemctl --global enable orielos-mark-boot-success.service
+# bootupd writes that configuration only at installation; this brings OrielOS's snippets in it up
+# to date at each start, so changes to them reach computers installed earlier.
+systemctl enable orielos-boot-menu-config.service
 boot_menu_errors=()
 # 13_orielos-windows.cfg adds Windows to the menu, and shows it, on PCs that also have Windows.
 for menu_snippet in /usr/lib/bootupd/grub2-static/configs.d/12_orielos-menu.cfg \
@@ -246,11 +249,16 @@ done
 if [[ "$(systemctl --global is-enabled orielos-mark-boot-success.service 2>/dev/null)" != "enabled" ]]; then
     boot_menu_errors+=("orielos-mark-boot-success.service is not enabled for users")
 fi
+if [[ "$(systemctl is-enabled orielos-boot-menu-config.service 2>/dev/null)" != "enabled" ]]; then
+    boot_menu_errors+=("orielos-boot-menu-config.service is not enabled")
+fi
 for f in /usr/lib/systemd/system/orielos-boot-success.service /usr/lib/systemd/system/orielos-boot-menu.service /usr/share/polkit-1/rules.d/50-orielos-boot-success.rules; do
     [[ -r "$f" ]] || boot_menu_errors+=("$f is missing")
 done
-[[ -x /usr/libexec/orielos/boot-flags ]] || boot_menu_errors+=("/usr/libexec/orielos/boot-flags is not executable")
-for cmd in grub2-editenv lsblk findmnt mountpoint unshare flock ostree; do
+for tool in boot-flags boot-menu-config; do
+    [[ -x "/usr/libexec/orielos/$tool" ]] || boot_menu_errors+=("/usr/libexec/orielos/$tool is not executable")
+done
+for cmd in grub2-editenv grub2-script-check lsblk findmnt mountpoint unshare flock ostree; do
     command -v "$cmd" >/dev/null || boot_menu_errors+=("$cmd, which the boot menu's flags or removing the previous build need, is not installed")
 done
 if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then

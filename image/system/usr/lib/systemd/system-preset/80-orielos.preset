@@ -6,6 +6,8 @@ disable bootc-fetch-apply-updates.timer
 enable orielos-update-check.timer
 # Records each boot's update state before login, for the desktop's update notifier.
 enable orielos-update-state.service
+# Brings OrielOS's part of the boot menu's configuration up to date with each version.
+enable orielos-boot-menu-config.service
 # Updates the apps from the Store in the background, unless that's turned off.
 enable orielos-app-update.timer
 # A desktop does not listen for SSH.
