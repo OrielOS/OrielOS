@@ -156,7 +156,7 @@ QVariantList GameSettings::games() const
             { QStringLiteral("icon"), QString() }, { QStringLiteral("windows"), false } });
     }
     for (const WindowsProgram &program : m_programs) {
-        out.append(QVariantMap { { QStringLiteral("appId"), windowsPrefix + program.prefix }, { QStringLiteral("name"), program.name },
+        out.append(QVariantMap { { QStringLiteral("appId"), QString(windowsPrefix + program.prefix) }, { QStringLiteral("name"), program.name },
             { QStringLiteral("art"), QString() }, { QStringLiteral("icon"), program.icon }, { QStringLiteral("windows"), true } });
     }
     return out;

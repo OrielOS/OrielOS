@@ -346,7 +346,7 @@ private Q_SLOTS:
 
     void appliesLaunchOptions()
     {
-        const Command base = command(QStringLiteral("/p"), QStringLiteral("/p/game.exe"), { QStringLiteral("-x") });
+        const Command base = OrielOSRunApp::command(QStringLiteral("/p"), QStringLiteral("/p/game.exe"), { QStringLiteral("-x") });
         QCOMPARE(launchOptionsFile(QStringLiteral("/d"), QStringLiteral("epic")), QStringLiteral("/d/orielos/windows-apps/epic/launch-options"));
 
         const Command none = withLaunchOptions(base, QString());
