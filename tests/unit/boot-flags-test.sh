@@ -89,7 +89,12 @@ is() {
 
 setup
 run trial
-check "trial creates the file and puts the next start on trial" is "orielos_fails=0 orielos_trial=1"
+check "trial creates the file and puts the next start on trial" is "orielos_boot_ok=1 orielos_fails=0 orielos_trial=1"
+
+setup
+flags orielos_boot_ok=0 orielos_trial=0 orielos_fails=0
+run trial
+check "a start no one signed in to before an update doesn't count against the update" is "orielos_boot_ok=1 orielos_fails=0 orielos_trial=1"
 
 setup
 flags orielos_boot_ok=0 orielos_trial=1 orielos_fails=1

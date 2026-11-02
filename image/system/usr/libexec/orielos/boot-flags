@@ -16,7 +16,9 @@
 #           version on trial or kept has proven itself, so orielos_trial=0 and orielos_fails=0. If
 #           the previous version was started in place of a failed update but not kept yet, it
 #           runs orielos-update undo-update first.
-#   trial   a newly installed version starts next (orielos-update, after staging it)
+#   trial   a newly installed version starts next (orielos-update, after staging it). The start
+#           running now is the old version's, so it counts as good: if no one signed in during
+#           it, that mustn't count as the new version's first failure.
 #   clear   no version is on trial (orielos-update, after going back)
 #   kept    OrielOS kept the previous version after a failed update (orielos-update undo-update)
 #   menu    show the boot menu at the next start (orielos-boot-menu.service, from Shift + Restart)
@@ -145,7 +147,7 @@ main() {
             set_flags orielos_boot_ok=1 orielos_trial=0 orielos_fails=0
             log "marked this start as good"
             ;;
-        trial) set_flags orielos_trial=1 orielos_fails=0 ;;
+        trial) set_flags orielos_boot_ok=1 orielos_trial=1 orielos_fails=0 ;;
         clear) set_flags orielos_trial=0 orielos_fails=0 ;;
         kept) set_flags orielos_trial=kept orielos_fails=0 ;;
         menu) set_flags orielos_menu=1 ;;
