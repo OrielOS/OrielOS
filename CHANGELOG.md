@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Fix it, in Game Settings: when a game from Steam won't start or misbehaves, Fix it starts it once with Proton's log on, says in plain words what most likely went wrong, and applies a fix for that game with one click, such as another version of Proton or turning off a switch. It checks that the game then keeps running, every change can be undone, and it suggests what worked on this PC first next time.
 - Game Settings, a new app: for each game in Steam from the Store, choose the Proton version and turn on the DLSS upgrade, HDR, gamescope, the FPS overlay, GameMode or DX12 descriptor heaps. Settings → Gaming opens it. Programs installed with Run this app, such as game stores' launchers, are listed too.
 - Game Settings' Will it run? says whether a game with anti-cheat runs on OrielOS, from AreWeAntiCheatYet's list, kept up to date online.
 - Git and Distrobox are in OrielOS, next to Podman and Toolbx, and a new guide, Writing code on OrielOS, explains setting up containers, an editor and command-line tools.

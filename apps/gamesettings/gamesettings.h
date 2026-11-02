@@ -13,6 +13,8 @@
 #include <QVariantMap>
 #include <qqmlintegration.h>
 
+#include <optional>
+
 namespace OrielOSGames {
 
 // What Game Settings shows and changes: the games in Steam from the Store, each with its
@@ -65,6 +67,10 @@ public:
     // Asks Steam to quit, so changes can be written.
     Q_INVOKABLE void closeSteam();
     Q_INVOKABLE void reload();
+
+    // For Fix it: Steam's files, and Will it run?'s verdict on a game with exactly this name.
+    const SteamLibrary &library() const { return m_library; }
+    std::optional<Verdict> verdictFor(const QString &name) const;
 
 Q_SIGNALS:
     void changed();

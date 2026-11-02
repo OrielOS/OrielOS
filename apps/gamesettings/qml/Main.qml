@@ -18,6 +18,9 @@ Kirigami.ApplicationWindow {
     id: root
 
     readonly property GameSettings settings: GameSettings {}
+    readonly property FixIt fixIt: FixIt {
+        settings: root.settings
+    }
     property string pendingAddon: ""
     property string pendingGame: ""
     property string pendingOption: ""
@@ -172,6 +175,13 @@ Kirigami.ApplicationWindow {
             // Read again after every change, which raises the revision.
             readonly property var current: root.settings.revision >= 0 ? root.settings.settingsFor(page.appId) : ({})
             readonly property bool locked: root.settings.steamRunning && !page.windows
+            // Fix it's state for this game; while it runs the game, Steam is open on purpose.
+            readonly property string fixState: root.fixIt.appId === page.appId ? root.fixIt.state : "idle"
+            readonly property bool fixing: ["starting", "playing", "closing", "verifying"].indexOf(page.fixState) >= 0
+            readonly property var verdict: {
+                const found = root.settings.revision >= 0 ? root.settings.willItRun(page.gameName) : [];
+                return found.length > 0 && found[0].name.toLowerCase() === page.gameName.toLowerCase() ? found[0] : null;
+            }
 
             title: page.gameName
 
@@ -180,7 +190,7 @@ Kirigami.ApplicationWindow {
 
                 Kirigami.InlineMessage {
                     Layout.fillWidth: true
-                    visible: page.locked
+                    visible: page.locked && !page.fixing
                     type: Kirigami.MessageType.Information
                     text: KI18n.i18nc("@info", "Close Steam to change these settings.")
                     actions: [
@@ -268,6 +278,140 @@ Kirigami.ApplicationWindow {
                     text: page.windows
                         ? KI18n.i18nc("@info", "These apply whenever this program, or a game it installed, starts from Start.")
                         : KI18n.i18nc("@info", "These go into the game's launch options in Steam, next to anything you typed there yourself. Turning one off takes out only what it added.")
+                }
+
+                // Will it run? for this game, and Fix it: when the game won't start or misbehaves,
+                // Fix it starts it once with Proton's log on and suggests a fix for what it finds.
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Kirigami.Units.largeSpacing
+                    visible: !page.windows
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Kirigami.Heading {
+                        Layout.fillWidth: true
+                        level: 3
+                        text: KI18n.i18nc("@title:group", "Will it run?")
+                    }
+
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        visible: page.verdict !== null
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        text: page.verdict ? page.verdict.reason : ""
+                    }
+
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        text: {
+                            switch (page.fixState) {
+                            case "blocked":
+                                return KI18n.i18nc("@info", "Fix it can't help with this game: its publisher decides whether it runs on Linux.");
+                            case "starting":
+                                return KI18n.i18nc("@info", "Starting the game with Proton's log on.");
+                            case "playing":
+                                return KI18n.i18nc("@info", "Play until the problem happens, then close the game.");
+                            case "closing":
+                                return KI18n.i18nc("@info", "Closing Steam to read the log and put the game's settings back.");
+                            case "diagnosed":
+                                return KI18n.i18nc("@info", "This is most likely what went wrong. Nothing has changed yet: choose a fix, and you can undo it afterwards.");
+                            case "nothing-found":
+                                return KI18n.i18nc("@info", "Fix it didn't find a problem it knows in Proton's log. The game's settings are as they were.");
+                            case "verifying":
+                                return KI18n.i18nc("@info", "Starting the game again. It counts as fixed once it keeps running for 2 minutes.");
+                            case "worked":
+                                return KI18n.i18nc("@info", "Fixed: the game kept running for 2 minutes.");
+                            case "undone":
+                                return KI18n.i18nc("@info", "The game's settings are back as they were before the fix.");
+                            case "no-log":
+                            case "failed":
+                                return root.fixIt.message;
+                            default:
+                                return KI18n.i18nc("@info", "If the game won't start or misbehaves, Fix it starts it once to see what goes wrong, then suggests a fix. Nothing changes until you choose one.");
+                            }
+                        }
+                    }
+
+                    QQC2.BusyIndicator {
+                        visible: page.fixing
+                        running: visible
+                    }
+
+                    Repeater {
+                        model: ["diagnosed", "failed"].indexOf(page.fixState) >= 0 ? root.fixIt.causes : []
+
+                        delegate: ColumnLayout {
+                            id: cause
+
+                            required property var modelData
+                            required property int index
+
+                            Layout.fillWidth: true
+                            Layout.topMargin: Kirigami.Units.smallSpacing
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Kirigami.Heading {
+                                Layout.fillWidth: true
+                                level: 4
+                                wrapMode: Text.Wrap
+                                textFormat: Text.PlainText
+                                text: cause.modelData.cause
+                            }
+
+                            Repeater {
+                                model: cause.modelData.fixes
+
+                                delegate: RowLayout {
+                                    id: fix
+
+                                    required property var modelData
+                                    required property int index
+
+                                    Layout.fillWidth: true
+                                    spacing: Kirigami.Units.largeSpacing
+
+                                    QQC2.Label {
+                                        Layout.fillWidth: true
+                                        wrapMode: Text.Wrap
+                                        textFormat: Text.PlainText
+                                        text: fix.modelData.explanation
+                                    }
+
+                                    QQC2.Button {
+                                        visible: !fix.modelData.advice
+                                        enabled: !page.locked
+                                        highlighted: cause.index === 0 && fix.index === 0
+                                        text: KI18n.i18nc("@action:button", "Apply")
+                                        Accessible.description: fix.modelData.explanation
+                                        onClicked: root.fixIt.apply(cause.modelData.id, fix.modelData.id)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Button {
+                            visible: !page.fixing && page.fixState !== "blocked"
+                            enabled: !page.locked && !root.settings.busy
+                            text: KI18n.i18nc("@action:button", "Fix it")
+                            icon.name: "tools-wizard"
+                            onClicked: root.fixIt.start(page.appId, page.gameName)
+                        }
+
+                        QQC2.Button {
+                            visible: !page.fixing && root.settings.revision >= 0 && page.fixState.length > 0 && root.fixIt.canUndo(page.appId)
+                            enabled: !page.locked
+                            text: KI18n.i18nc("@action:button", "Undo the last fix")
+                            icon.name: "edit-undo"
+                            onClicked: root.fixIt.undo(page.appId)
+                        }
+                    }
                 }
             }
         }
