@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "The cameras, with a live picture and brightness",
+        "Icon": "camera-web",
+        "Name": "Camera"
+    },
+    "X-KDE-Keywords": "camera,webcam,video,brightness,preview",
+    "X-KDE-System-Settings-Parent-Category": "hardware",
+    "X-KDE-Weight": 60
+}

@@ -16,3 +16,8 @@ Action=Popup
 Name=Update undone
 Comment=An update didn't reach the desktop, so OrielOS went back to the previous version
 Action=Popup
+
+[Event/updateInstalled]
+Name=Update installed
+Comment=OrielOS was updated, with a way to see what's new
+Action=Popup

@@ -1,0 +1,17 @@
+[Unit]
+Description=Show the update screen while the computer finishes an OrielOS update as it shuts down
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/updates.md
+# Started with the unit that finishes a staged update at shut down, and ordered after it, so it
+# stops, switching the boot splash to its update screen, just before that unit does its work.
+After=ostree-finalize-staged.service bootc-finalize-staged.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/usr/libexec/orielos/update-splash
+# It never holds up the shut down.
+TimeoutStopSec=10
+
+[Install]
+WantedBy=ostree-finalize-staged.service bootc-finalize-staged.service

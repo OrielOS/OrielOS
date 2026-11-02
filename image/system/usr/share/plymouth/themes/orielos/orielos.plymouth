@@ -3,7 +3,8 @@
 #
 # OrielOS's boot splash: the OrielOS logo in the middle of a black screen, so the boot continues
 # from the firmware's screen without a flash of colour, with Plymouth's spinner below it. It uses
-# Plymouth's two-step module. watermark.png is artwork/splash/orielos-splash-white.png; the spinner,
+# Plymouth's two-step module, which shows "Shutting down" or "Restarting" over the spinner when
+# the computer turns off. watermark.png is artwork/splash/orielos-splash-white.png; the spinner,
 # password and keyboard images are copied from Plymouth's spinner theme at build time
 # (image/build/90-finalise.sh).
 
@@ -37,14 +38,17 @@ UseEndAnimation=false
 
 [shutdown]
 UseEndAnimation=false
+Title=Shutting down
 
 [reboot]
 UseEndAnimation=false
+Title=Restarting
 
 [updates]
 SuppressMessages=true
-ProgressBarShowPercentComplete=true
-UseProgressBar=true
+# bootc reports no progress as it finishes an update, so the spinner shows instead of a bar.
+ProgressBarShowPercentComplete=false
+UseProgressBar=false
 Title=Installing updates…
 SubTitle=Don't turn off your computer
 

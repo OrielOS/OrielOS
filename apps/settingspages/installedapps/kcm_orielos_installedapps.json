@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "The apps from the Store, and where apps can come from",
+        "Icon": "applications-all",
+        "Name": "Installed Apps"
+    },
+    "X-KDE-Keywords": "installed apps,uninstall,remove,apps,programs,flatpak,store",
+    "X-KDE-System-Settings-Parent-Category": "applications",
+    "X-KDE-Weight": 50
+}

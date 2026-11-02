@@ -12,6 +12,20 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Files can act as administrator, for folders only an administrator can open or change, from its menu or the bar it shows in such a folder.
 - When a USB drive can't be ejected, the notification names the apps still using it.
 - Screenshot's Extract Text copies the text in a screenshot.
+- System Monitor opens on a Processes page with your apps above every other process, and has Performance and Details pages, with graphics card use alongside processor, memory, disk and network. Its jump list in Start and on the taskbar offers Run new task, Startup apps and Restart the taskbar and desktop.
+- Energy saver turns on by itself when a laptop's battery reaches 20 %, dimming the screen, and the battery icon shows a leaf whenever energy saver is on. At 5 % the computer shuts down instead of running flat.
+- Settings → System → Battery usage shows the battery's charge and power use over time, and its health.
+- The sign-in screen's power menu says Update and restart and Update and shut down while an update waits, and the power buttons there and in Start show an orange dot. The screen says Shutting down or Restarting while the computer turns off.
+- Choose when the computer restarts to finish an update: Pick a time in the update notification or in Settings → Update schedules the restart for any time in the next week. Settings → Update also sets your active hours, and can restart the computer by itself outside them once an update is ready (off unless you turn it on).
+- Settings → Update lists the update history, every version the computer has run with the date it was installed, and shows what's new in the version you're running. After an update, a notification says which version is running, with See what's new.
+- While the computer restarts into a new version, the screen says Installing updates… as it finishes.
+- Settings → Bluetooth & devices → Camera shows each camera with a live picture and its brightness.
+- Plugging in headphones, a headset, or a USB or Bluetooth speaker switches the sound to it straight away.
+- An FPS overlay, OrielOS's Game Bar: turn it on in Settings → Gaming → FPS overlay, then press Windows + G in a game to show or hide the frame rate, with frame time and processor and graphics card use if you want them. Steam from the Store gets the add-on it needs from the same page.
+- Settings → Apps → Installed apps lists the apps from the Store with their version, size and install date, and uninstalls them, asking first. The same page chooses where apps can come from: anywhere, anywhere with the Store suggested first, or the Store only, which stops downloaded Windows programs from running. Windows + X's Installed apps opens it.
+- Settings → Apps → Restart apps after signing in chooses whether your open apps come back when you sign in again.
+- Settings → Privacy & security → Device security shows the computer's protection at the top: whether the firewall is on and whether updates are working.
+- Holding Shift while choosing Restart in Start shows the boot menu, with its recovery options, at the next start.
 
 ### Changed
 

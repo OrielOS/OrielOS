@@ -8,6 +8,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QStandardPaths>
@@ -238,6 +240,48 @@ SecurityCheck signedDrivers(const SecuritySources &sources)
 QList<SecurityCheck> runSecurityChecks(const SecuritySources &sources)
 {
     return { secureBoot(sources), tpm(sources), lockdown(sources), bpfLsm(sources), kexec(sources), iommu(sources), signedDrivers(sources) };
+}
+
+QList<SecurityCheck> runProtectionChecks(const SecuritySources &sources)
+{
+    QList<SecurityCheck> checks;
+
+    SecurityCheck firewall { QStringLiteral("firewall"), i18nc("@title Part of the computer's protection", "Firewall") };
+    bool active = false;
+    if (sources.firewallActive) {
+        active = sources.firewallActive();
+    } else {
+        QProcess process;
+        process.start(QStringLiteral("systemctl"), { QStringLiteral("is-active"), QStringLiteral("--quiet"), QStringLiteral("firewalld.service") });
+        active = process.waitForFinished(3000) && process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
+    }
+    firewall.result = active ? SecurityCheck::Result::Met : SecurityCheck::Result::NotMet;
+    firewall.explanation = active ? i18nc("@info", "The firewall is on: other computers can only connect to apps you allowed.")
+                                  : i18nc("@info", "The firewall is off. Turn it on under Privacy & security › Firewall.");
+    checks.append(firewall);
+
+    SecurityCheck updates { QStringLiteral("updates"), i18nc("@title Part of the computer's protection", "Updates") };
+    QFile state(QDir(sources.root).filePath(QStringLiteral("var/lib/orielos/update/state.json")));
+    const QJsonObject object = state.open(QIODevice::ReadOnly) ? QJsonDocument::fromJson(state.readAll()).object() : QJsonObject();
+    const QString result = object.value(QLatin1String("result")).toString();
+    const QDateTime checkedAt = QDateTime::fromString(object.value(QLatin1String("checkedAt")).toString(), Qt::ISODate);
+    const QDateTime now = sources.now ? sources.now() : QDateTime::currentDateTimeUtc();
+    const bool paused = object.value(QLatin1String("pausedUntil")).isString();
+    if (result.isEmpty() || result == QLatin1String("never-checked")) {
+        updates.result = SecurityCheck::Result::Unknown;
+        updates.explanation = i18nc("@info", "OrielOS hasn't checked for updates yet.");
+    } else if (paused) {
+        updates.result = SecurityCheck::Result::NotMet;
+        updates.explanation = i18nc("@info", "Updates are paused. Resume them under Update.");
+    } else if (checkedAt.isValid() && checkedAt.daysTo(now) <= 7 && result != QLatin1String("error")) {
+        updates.result = SecurityCheck::Result::Met;
+        updates.explanation = i18nc("@info", "OrielOS checked for updates in the last week.");
+    } else {
+        updates.result = SecurityCheck::Result::NotMet;
+        updates.explanation = i18nc("@info", "OrielOS hasn't been able to update for over a week. Check for updates under Update.");
+    }
+    checks.append(updates);
+    return checks;
 }
 
 } // namespace OrielOSSettingsPages

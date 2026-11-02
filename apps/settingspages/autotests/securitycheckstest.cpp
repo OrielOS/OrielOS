@@ -11,6 +11,7 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimeZone>
 
 using namespace OrielOSSettingsPages;
 using Result = SecurityCheck::Result;
@@ -285,6 +286,40 @@ private Q_SLOTS:
         system.gate->release();
         QVERIFY(changed.wait());
         QVERIFY(security.allMet());
+    }
+
+    void protection()
+    {
+        QTemporaryDir root;
+        QDir(root.path()).mkpath(QStringLiteral("var/lib/orielos/update"));
+        const auto writeState = [&root](const QByteArray &json) {
+            QFile file(root.filePath(QStringLiteral("var/lib/orielos/update/state.json")));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(json);
+        };
+        const QDateTime now(QDate(2026, 11, 2), QTime(12, 0), QTimeZone::UTC);
+        SecuritySources sources;
+        sources.root = root.path();
+        sources.now = [now] { return now; };
+        bool firewall = true;
+        sources.firewallActive = [&firewall] { return firewall; };
+
+        // No state yet: updates couldn't be checked.
+        QList<SecurityCheck> checks = runProtectionChecks(sources);
+        QCOMPARE(checks.size(), 2);
+        QCOMPARE(checks.at(0).id, QStringLiteral("firewall"));
+        QCOMPARE(checks.at(0).result, SecurityCheck::Result::Met);
+        QCOMPARE(checks.at(1).result, SecurityCheck::Result::Unknown);
+
+        writeState(R"({"result": "up-to-date", "checkedAt": "2026-11-01T12:00:00Z", "pausedUntil": null})");
+        QCOMPARE(runProtectionChecks(sources).at(1).result, SecurityCheck::Result::Met);
+        writeState(R"({"result": "up-to-date", "checkedAt": "2026-10-20T12:00:00Z", "pausedUntil": null})");
+        QCOMPARE(runProtectionChecks(sources).at(1).result, SecurityCheck::Result::NotMet);
+        writeState(R"({"result": "paused", "checkedAt": "2026-11-01T12:00:00Z", "pausedUntil": "2026-11-20T12:00:00Z"})");
+        QCOMPARE(runProtectionChecks(sources).at(1).result, SecurityCheck::Result::NotMet);
+
+        firewall = false;
+        QCOMPARE(runProtectionChecks(sources).at(0).result, SecurityCheck::Result::NotMet);
     }
 };
 

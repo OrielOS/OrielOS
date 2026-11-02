@@ -27,6 +27,15 @@ struct Build
     bool operator==(const Build &) const = default;
 };
 
+// A build this computer ran, and when it first started.
+struct HistoryEntry
+{
+    QString version;
+    QDateTime startedAt;
+
+    bool operator==(const HistoryEntry &) const = default;
+};
+
 // The desktop's view of OrielOS updates, read from the state file that orielos-update writes
 // (/var/lib/orielos/update/state.json). The update tray icon and the Update settings page both
 // use it. Everything here is pure: the current time and boot ID are passed in, so the logic can be
@@ -61,6 +70,15 @@ public:
     bool appUpdates() const { return m_appUpdates; }
     // When the apps were last brought up to date, or an invalid time when that isn't known.
     QDateTime appsUpdatedAt() const { return m_appsUpdatedAt; }
+    // The builds this computer ran, newest first.
+    QList<HistoryEntry> history() const { return m_history; }
+    // When the restart that finishes an update is scheduled, or an invalid time when it isn't.
+    QDateTime restartAt() const { return m_restartAt; }
+    // The hours the computer is usually in use, 0 to 23 in local time; 8 to 17 when not set.
+    int activeHoursStart() const { return m_activeHoursStart; }
+    int activeHoursEnd() const { return m_activeHoursEnd; }
+    // OrielOS schedules the restart by itself, outside the active hours, once an update is ready.
+    bool autoRestart() const { return m_autoRestart; }
 
     // The file describes one boot; after a restart it is stale until it is written again.
     bool isForThisBoot(const QString &currentBootId) const;
@@ -95,6 +113,11 @@ private:
     bool m_rollbackQueued = false;
     bool m_appUpdates = true;
     QDateTime m_appsUpdatedAt;
+    QList<HistoryEntry> m_history;
+    QDateTime m_restartAt;
+    int m_activeHoursStart = 8;
+    int m_activeHoursEnd = 17;
+    bool m_autoRestart = false;
 };
 
 // Pauses last a whole number of weeks.
@@ -113,5 +136,9 @@ Channel channelFromName(const QString &name);
 QString statusText(const UpdateState &state, const QString &currentBootId, const QDateTime &now);
 // How a date is shown to people, in their own locale.
 QString displayDate(const QDateTime &time);
+// What's new in <version> (such as v0.1.9), from OrielOS's changelog in Markdown: the body of its
+// "## [0.1.9]" section, or, for a build newer than any listed, of "## [Unreleased]", whose changes
+// a build carries until its version is added. Empty when neither has anything.
+QString changelogSection(const QString &changelog, const QString &version);
 
 } // namespace OrielOSUpdates

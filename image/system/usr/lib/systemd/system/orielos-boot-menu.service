@@ -1,0 +1,12 @@
+[Unit]
+Description=Show the boot menu, with its recovery options, at the next start
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/updates.md
+# Started from Start when Shift is held while choosing Restart; polkit lets the person at the
+# computer start this unit and nothing else.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/orielos/boot-flags menu
+# The EFI system partition is mounted only inside this service, and only while it runs.
+PrivateMounts=yes
+ProtectHome=yes

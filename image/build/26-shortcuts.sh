@@ -65,6 +65,34 @@ add_keywords "$monitor" "System Monitor" "processes;tasks;end task;not respondin
 set_shortcuts "$monitor" "Desktop Entry" "Meta+Esc" "Ctrl+Shift+Esc,Meta+Esc"
 link_accel org.kde.plasma-systemmonitor.desktop
 
+# System Monitor's jump list: its pages are OrielOS's (/usr/share/plasma-systemmonitor), so KDE's
+# actions for the pages OrielOS hides make way for Performance, Run new task, Startup apps and
+# restarting the taskbar and desktop, as Task Manager offers.
+grep -qxF "Actions=overview;history;processes;applications;" "$monitor" ||
+    die "$monitor no longer has KDE's four page actions; update $script"
+awk '/^\[Desktop Action /{skip=1} /^\[Desktop Entry\]/{skip=0} !skip && !/^Actions=/' "$monitor" >"$monitor.new"
+cat >>"$monitor.new" <<'ENTRY'
+Actions=performance;run;startup;restart-desktop;
+
+[Desktop Action performance]
+Name=Performance
+Exec=plasma-systemmonitor --page-id orielos-performance.page
+
+[Desktop Action run]
+Name=Run new task
+Exec=orielos-run
+
+[Desktop Action startup]
+Name=Startup apps
+Exec=orielos-settings startup-apps
+
+[Desktop Action restart-desktop]
+Name=Restart the taskbar and desktop
+Exec=/usr/libexec/orielos/restart-desktop
+ENTRY
+mv "$monitor.new" "$monitor"
+grep -q '^\[Desktop Action overview\]' "$monitor" && die "could not replace System Monitor's actions"
+
 # Run: Win+R opens OrielOS's Run box (its own desktop entry gives it the key), KRunner keeps Alt+F2
 # and the Search key, and Alt+Space goes to the window menu, as in Windows. Spectacle's region
 # recording had Win+R as its second shortcut; it keeps Win+Shift+R.

@@ -21,6 +21,10 @@
 #        orielos-update forget DIGEST
 #        orielos-update app-updates on|off
 #        orielos-update apps
+#        orielos-update restart-at TIME|cancel
+#        orielos-update active-hours START END
+#        orielos-update auto-restart on|off
+#        orielos-update restart-if-waiting
 #        orielos-update --help
 #   status     show the channel, the pause, the last check, the running build, the build staged
 #              for the next restart, the previous build and the rejected builds
@@ -45,6 +49,17 @@
 #              turn automatic updates of apps from the Store on or off; they're on until turned off
 #   apps       update every app and runtime from the Store, unless app updates are off or the
 #              connection is metered; orielos-app-update.service runs it
+#   restart-at restart at TIME (UTC, as 2026-11-02T03:00:00Z), within a week, to finish the update or
+#              go back, replacing any restart scheduled before; cancel drops it
+#   active-hours
+#              the hours the computer is usually in use, START to END (0 to 23, local time), which
+#              OrielOS never restarts it in by itself; 8 to 17 until set
+#   auto-restart
+#              whether OrielOS schedules the restart by itself once an update is ready, at 03:00 or,
+#              when that is within the active hours, as they end; off until turned on
+#   restart-if-waiting
+#              restart now if an update or going back waits for a restart; the scheduled restart's
+#              timer runs it
 # The update source is set in /usr/lib/orielos/update.conf and can be overridden in
 # /etc/orielos/update.conf. The state for the desktop is in /var/lib/orielos/update/state.json.
 # Once the image carries OrielOS's signing key (/etc/pki/containers/orielos.pub), a registry build
@@ -68,6 +83,11 @@ GE_PROTON=com.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable
 STATE_FILE="$STATE_DIR/state.json"
 # The running build's digest and when it first started, for removing the previous build on time.
 RUNNING="$STATE_DIR/running"
+# Each build this computer has run, with when it first started, oldest first.
+HISTORY="$STATE_DIR/history"
+# Restarts for updates: one someone scheduled, the active hours and automatic restarts.
+RESTART="$STATE_DIR/restart"
+RESTART_UNIT="orielos-scheduled-restart"
 BOOT_FLAGS="$PREFIX/usr/libexec/orielos/boot-flags"
 KEEP_DAYS=14
 BUILD_INFO="$PREFIX/usr/lib/orielos/build-info"
@@ -167,6 +187,80 @@ clear_ended_pause() {
     epoch="$(epoch_of "$until")"
     if ((epoch <= $(now))); then save_settings "$(channel_setting)" ""; fi
 }
+
+# A restart setting, or <default>: restart_setting <key> <default>
+restart_setting() {
+    local value
+    value="$(value_of "$RESTART" "$1")"
+    printf '%s\n' "${value:-$2}"
+}
+
+# Change one restart setting and keep the others: set_restart_setting <key> <value>
+set_restart_setting() {
+    local tmp
+    mkdir -p "$STATE_DIR"
+    tmp="$(mktemp "$RESTART.XXXXXX")"
+    if [[ -r "$RESTART" ]]; then grep -v "^$1=" "$RESTART" >"$tmp" || true; fi
+    printf '%s=%s\n' "$1" "$2" >>"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$RESTART"
+}
+
+# The scheduled restart as a UTC time, or nothing when none is scheduled or its time has passed.
+restart_at_setting() {
+    local at epoch
+    at="$(value_of "$RESTART" restart_at)"
+    epoch="$(epoch_of "$at")"
+    if [[ -n "$epoch" ]] && ((epoch > $(now))); then printf '%s\n' "$at"; fi
+}
+
+active_start() { restart_setting active_start 8; }
+active_end() { restart_setting active_end 17; }
+
+# Succeed if <hour> (0 to 23) is within the active hours, which may run past midnight.
+in_active_hours() {
+    local hour="$1" start end
+    start="$(active_start)"
+    end="$(active_end)"
+    if ((start < end)); then
+        ((hour >= start && hour < end))
+    else
+        ((hour >= start || hour < end))
+    fi
+}
+
+# When OrielOS restarts by itself for an update, as seconds since the epoch: the next 03:00 local
+# time at least an hour away, or the end of the active hours when 03:00 is within them.
+auto_restart_time() {
+    local hour=3 day time
+    if in_active_hours 3; then hour="$(active_end)"; fi
+    day="$(date -d "@$(now)" +%F)"
+    time="$(date -d "$day $hour:00" +%s)"
+    while ((time < $(now) + 3600)); do time=$((time + 24 * 60 * 60)); done
+    printf '%s\n' "$time"
+}
+
+# Schedule the restart for <seconds since the epoch>, replacing any scheduled before. The timer is
+# systemd's, for this boot only: the restart it waits for makes it pointless afterwards.
+schedule_restart() {
+    local epoch="$1"
+    if [[ -z "$PREFIX" ]]; then
+        systemctl stop "$RESTART_UNIT.timer" 2>/dev/null || true
+        systemctl reset-failed "$RESTART_UNIT.timer" "$RESTART_UNIT.service" 2>/dev/null || true
+        systemd-run --quiet --unit="$RESTART_UNIT" --timer-property=AccuracySec=1s \
+            --on-calendar="$(date -u -d "@$epoch" '+%Y-%m-%d %H:%M:%S') UTC" \
+            /usr/bin/orielos-update restart-if-waiting || die "couldn't schedule the restart"
+    else
+        # Tests log the timer they would make.
+        systemctl start "$RESTART_UNIT.timer" "@$epoch"
+    fi
+    set_restart_setting restart_at "$(iso_time "$epoch")"
+}
+
+cancel_restart() {
+    systemctl stop "$RESTART_UNIT.timer" 2>/dev/null || true
+    set_restart_setting restart_at ""
+}
 #END
 
 #BEGIN bootc
@@ -226,6 +320,22 @@ note_running() {
     printf 'digest=%s\nsince=%s\n' "$digest" "$(iso_time "$(now)")" >"$tmp"
     chmod 0644 "$tmp"
     mv -f "$tmp" "$RUNNING"
+    # The update history keeps the last 50 builds.
+    tmp="$(mktemp "$HISTORY.XXXXXX")"
+    if [[ -r "$HISTORY" ]]; then tail -n 49 "$HISTORY" >"$tmp"; fi
+    printf '%s\t%s\t%s\n' "$(iso_time "$(now)")" "$(booted_version)" "$digest" >>"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$HISTORY"
+}
+
+# The update history as a JSON array, newest first, at most 20 builds.
+history_json() {
+    if [[ -r "$HISTORY" ]]; then
+        tail -n 20 "$HISTORY" | jq -R -s 'split("\n") | map(select(length > 0) | split("\t")
+            | {startedAt: .[0], version: .[1], digest: .[2]}) | reverse'
+    else
+        printf '[]\n'
+    fi
 }
 
 # When the previous build is removed, KEEP_DAYS after the running build first started, as UTC ISO
@@ -300,6 +410,11 @@ write_state() {
         --argjson rollbackQueued "$queued" \
         --argjson appUpdates "$([[ "$(app_updates_setting)" == on ]] && echo true || echo false)" \
         --arg appsUpdatedAt "$(value_of "$APPS_STATE" updated_at)" \
+        --argjson history "$(history_json)" \
+        --arg restartAt "$(restart_at_setting)" \
+        --argjson activeStart "$(active_start)" \
+        --argjson activeEnd "$(active_end)" \
+        --argjson autoRestart "$([[ "$(restart_setting auto_restart off)" == on ]] && echo true || echo false)" \
         '{
             bootId: $bootId,
             channel: $channel,
@@ -312,7 +427,11 @@ write_state() {
             previous: $previous,
             rollbackQueued: $rollbackQueued,
             appUpdates: $appUpdates,
-            appsUpdatedAt: (if $appsUpdatedAt == "" then null else $appsUpdatedAt end)
+            appsUpdatedAt: (if $appsUpdatedAt == "" then null else $appsUpdatedAt end),
+            history: $history,
+            restartAt: (if $restartAt == "" then null else $restartAt end),
+            activeHours: {start: $activeStart, end: $activeEnd},
+            autoRestart: $autoRestart
         }' >"$tmp"
     chmod 0644 "$tmp"
     mv -f "$tmp" "$STATE_FILE"
@@ -503,7 +622,68 @@ cmd_check() {
     fi
     # On trial until it reaches the desktop; the boot loader starts the previous build if it can't.
     boot_flags trial
+    if [[ "$(restart_setting auto_restart off)" == on && -z "$(restart_at_setting)" ]]; then
+        schedule_restart "$(auto_restart_time)"
+    fi
     finish 0 staged "OrielOS $version is ready and starts at the next restart."
+}
+
+cmd_restart_at() {
+    local epoch
+    need bootc jq
+    load_status
+    if [[ "$1" == cancel ]]; then
+        cancel_restart
+        refresh_state
+        printf 'The scheduled restart is cancelled.\n'
+        return 0
+    fi
+    epoch="$(epoch_of "$1")"
+    [[ -n "$epoch" ]] || die "restart-at takes a UTC time such as 2026-11-02T03:00:00Z, or cancel" 2
+    if ((epoch < $(now) + 60 || epoch > $(now) + 7 * 24 * 60 * 60)); then
+        die "the restart must be between a minute and a week from now" 2
+    fi
+    has_deployment staged || rollback_queued || die "nothing is waiting for a restart"
+    schedule_restart "$epoch"
+    refresh_state
+    printf 'OrielOS restarts at %s.\n' "$(iso_time "$epoch")"
+}
+
+cmd_active_hours() {
+    local start="$1" end="$2"
+    [[ "$start" =~ ^([0-9]|1[0-9]|2[0-3])$ && "$end" =~ ^([0-9]|1[0-9]|2[0-3])$ && "$start" != "$end" ]] ||
+        die "active-hours takes two different hours from 0 to 23" 2
+    need bootc jq
+    set_restart_setting active_start "$start"
+    set_restart_setting active_end "$end"
+    load_status
+    refresh_state
+    printf 'Active hours are %s:00 to %s:00.\n' "$start" "$end"
+}
+
+cmd_auto_restart() {
+    [[ "$1" == on || "$1" == off ]] || die "auto-restart takes on or off" 2
+    need bootc jq
+    set_restart_setting auto_restart "$1"
+    load_status
+    if [[ "$1" == on ]] && has_deployment staged && [[ -z "$(restart_at_setting)" ]]; then
+        schedule_restart "$(auto_restart_time)"
+    fi
+    refresh_state
+    printf 'Automatic restarts for updates are %s.\n' "$1"
+}
+
+cmd_restart_if_waiting() {
+    need bootc jq systemctl
+    load_status
+    set_restart_setting restart_at ""
+    if has_deployment staged || rollback_queued; then
+        printf 'Restarting to finish the update.\n'
+        systemctl reboot
+    else
+        refresh_state
+        printf 'Nothing is waiting for a restart.\n'
+    fi
 }
 
 cmd_check_now() {
@@ -757,10 +937,11 @@ main() {
             usage
             return 0
             ;;
-        status | check | check-now | resume | refresh | rollback | remove-previous | undo-update | apps)
+        status | check | check-now | resume | refresh | rollback | remove-previous | undo-update | apps | restart-if-waiting)
             [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2
             ;;
-        pause | channel | stage | forget | app-updates) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
+        pause | channel | stage | forget | app-updates | restart-at | auto-restart) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
+        active-hours) [[ $# -eq 3 ]] || die "active-hours needs two arguments (see orielos-update --help)" 2 ;;
         "")
             usage >&2
             exit 2
@@ -791,6 +972,10 @@ main() {
         forget) cmd_forget "$2" ;;
         app-updates) cmd_app_updates "$2" ;;
         apps) cmd_apps ;;
+        restart-at) cmd_restart_at "$2" ;;
+        active-hours) cmd_active_hours "$2" "$3" ;;
+        auto-restart) cmd_auto_restart "$2" ;;
+        restart-if-waiting) cmd_restart_if_waiting ;;
     esac
 }
 

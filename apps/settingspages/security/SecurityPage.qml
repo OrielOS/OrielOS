@@ -35,6 +35,58 @@ KCM.SimpleKCM {
     ColumnLayout {
         spacing: Kirigami.Units.largeSpacing
 
+        Kirigami.Heading {
+            Layout.fillWidth: true
+            level: 3
+            text: root.l10n.i18nc("@title:group", "Protection")
+        }
+
+        Repeater {
+            model: root.security.protection
+
+            delegate: RowLayout {
+                id: protectionRow
+
+                required property var modelData
+
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.largeSpacing
+
+                Kirigami.Icon {
+                    Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                    Layout.alignment: Qt.AlignTop
+                    source: protectionRow.modelData.result === "met" ? "data-success" : protectionRow.modelData.result === "not-met" ? "data-warning" : "data-information"
+                    Accessible.ignored: true
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Kirigami.Heading {
+                        Layout.fillWidth: true
+                        level: 4
+                        textFormat: Text.PlainText
+                        text: protectionRow.modelData.title
+                    }
+
+                    QQC2.Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        textFormat: Text.PlainText
+                        text: protectionRow.modelData.explanation
+                    }
+                }
+            }
+        }
+
+        Kirigami.Heading {
+            Layout.fillWidth: true
+            level: 3
+            text: root.l10n.i18nc("@title:group", "Games with anti-cheat")
+        }
+
         QQC2.Label {
             Layout.fillWidth: true
             wrapMode: Text.Wrap

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Show or hide the FPS overlay
+Comment=Shows or hides the frame rate over the game you're playing
+Exec=/usr/libexec/orielos/fps-overlay toggle
+Icon=speedometer
+NoDisplay=true
+StartupNotify=false
+X-KDE-Shortcuts=Meta+G

@@ -1,4 +1,4 @@
-# Keeps the image build context (the repository root) small. Only image/, apps/, plasma/,
+# Keeps the image build context (the repository root) small. Only image/, apps/, plasma/, CHANGELOG.md,
 # artwork/ and CMakeLists.txt are used by image/Containerfile.
 .git
 .github

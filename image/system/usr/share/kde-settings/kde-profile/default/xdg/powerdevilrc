@@ -1,0 +1,19 @@
+# OrielOS's power defaults for every user, below /etc/xdg/powerdevilrc (where the first-run setup
+# writes its sleep and screen-off choices) and each user's own settings, on XDG_CONFIG_DIRS through
+# Fedora's kde-settings profile. Being in the image, they reach existing installs on their next
+# update, which a file in /etc wouldn't.
+#
+# Energy saver turns on by itself at 20 % battery: PowerDevil's LowBattery profile switches to the
+# power-saver power profile and dims the screen. At 5 % the computer shuts down (8): Windows
+# hibernates there, and OrielOS has no hibernation.
+[BatteryManagement]
+BatteryLowLevel=20
+BatteryCriticalLevel=5
+BatteryCriticalAction=8
+
+[LowBattery][Performance]
+PowerProfile=power-saver
+
+[LowBattery][Display]
+UseProfileSpecificDisplayBrightness=true
+DisplayBrightness=30

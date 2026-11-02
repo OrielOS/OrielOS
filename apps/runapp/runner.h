@@ -47,6 +47,10 @@ private:
     Q_PROPERTY(QString error READ error NOTIFY changed)
     // The program itself can go in Start: it isn't an installer, and nothing was added for it.
     Q_PROPERTY(bool canAddItself READ canAddItself NOTIFY changed)
+    // Where this person lets apps come from, chosen in Settings › Apps › Installed apps: anywhere
+    // (the default), suggest (anywhere, with the Store suggested first) or store (the Store only,
+    // so Windows programs don't run).
+    Q_PROPERTY(QString appSource READ appSource CONSTANT)
 
 public:
     // dataHome, stateHome and applicationsDir are normally ~/.local/share, ~/.local/state and
@@ -65,6 +69,7 @@ public:
     bool failed() const;
     QString error() const;
     bool canAddItself() const;
+    QString appSource() const;
 
     Q_INVOKABLE void run();
     Q_INVOKABLE void addItself();

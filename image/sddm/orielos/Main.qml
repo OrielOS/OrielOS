@@ -9,7 +9,8 @@
 // sign-in shows from the moment the screen appears, over the blurred wallpaper: the chosen
 // account's picture and name and a rounded password box. Every account is listed at the bottom
 // left, with Other user for typing a name; the keyboard layout, the on-screen keyboard, a power
-// menu (Sleep, Restart, Shut down; no Hibernate, which OrielOS doesn't offer) and the battery are
+// menu (Sleep, Restart, Shut down; no Hibernate, which OrielOS doesn't offer; "Update and restart"
+// and "Update and shut down", with an orange dot on the button, while an update waits) and the battery are
 // at the bottom right. Breeze's other files come from its theme unchanged, copied at build time
 // (image/build/28-sign-in.sh), which stops the build if Breeze's Main.qml changes. Keep the look in
 // step with the lock screen (plasma/shell/org.orielos.desktop/contents/lockscreen/).
@@ -17,6 +18,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as QQC2
+import Qt.labs.folderlistmodel
 
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.extras as PlasmaExtras
@@ -426,13 +428,37 @@ Item {
 
         PlasmaComponents3.ToolButton {
             id: powerButton
+
+            // An update downloaded in the background waits as a staged deployment until the next
+            // start, which installs it, as Start's power menu says too.
+            readonly property bool updateWaiting: stagedUpdate.count > 0
+
             Layout.alignment: Qt.AlignBottom
             display: PlasmaComponents3.AbstractButton.IconOnly
             text: i18ndc("plasma-desktop-sddm-theme", "@action:button", "Shut Down")
             icon.name: "system-shutdown"
             onClicked: powerMenu.popup(powerButton, 0, -powerMenu.implicitHeight)
-            PlasmaComponents3.ToolTip.text: text
+            PlasmaComponents3.ToolTip.text: updateWaiting ? i18ndc("plasma-desktop-sddm-theme", "@info:tooltip", "Power (an update is waiting)") : text
             PlasmaComponents3.ToolTip.visible: hovered && !powerMenu.visible
+
+            FolderListModel {
+                id: stagedUpdate
+                folder: "file:///run/ostree"
+                nameFilters: ["staged-deployment"]
+                showDirs: false
+                showHidden: false
+            }
+
+            Rectangle {
+                visible: powerButton.updateWaiting
+                width: Kirigami.Units.smallSpacing * 2
+                height: width
+                radius: width / 2
+                color: "#f7a440"
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: Kirigami.Units.smallSpacing
+            }
 
             PlasmaComponents3.Menu {
                 id: powerMenu
@@ -444,13 +470,15 @@ Item {
                 }
                 PlasmaComponents3.MenuItem {
                     icon.name: "system-reboot"
-                    text: i18ndc("plasma-desktop-sddm-theme", "@action:button", "Restart")
+                    text: powerButton.updateWaiting ? i18ndc("plasma-desktop-sddm-theme", "@action:button Restart, installing the waiting update", "Update and restart")
+                                                    : i18ndc("plasma-desktop-sddm-theme", "@action:button", "Restart")
                     enabled: sddm.canReboot
                     onTriggered: sddm.reboot()
                 }
                 PlasmaComponents3.MenuItem {
                     icon.name: "system-shutdown"
-                    text: i18ndc("plasma-desktop-sddm-theme", "@action:button", "Shut Down")
+                    text: powerButton.updateWaiting ? i18ndc("plasma-desktop-sddm-theme", "@action:button Shut down, installing the waiting update", "Update and shut down")
+                                                    : i18ndc("plasma-desktop-sddm-theme", "@action:button", "Shut Down")
                     enabled: sddm.canPowerOff
                     onTriggered: sddm.powerOff()
                 }

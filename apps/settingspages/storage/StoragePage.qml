@@ -238,7 +238,7 @@ KCM.SimpleKCM {
 
         Kirigami.LinkButton {
             text: root.l10n.i18nc("@action:button A related Settings page", "Installed apps")
-            onClicked: Qt.openUrlExternally("orielos-settings:apps")
+            onClicked: Qt.openUrlExternally("orielos-settings:installed-apps")
         }
     }
 

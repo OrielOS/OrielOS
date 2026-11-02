@@ -109,8 +109,10 @@ fi
 # tray icon and the Update settings page; both units are enabled here for the same reason as above. No update state may be in
 # the image: it belongs to each computer.
 systemctl enable orielos-update-check.timer orielos-update-state.service orielos-app-update.timer
+# The update screen at shut down starts with whichever unit finishes a staged update.
+systemctl enable orielos-update-splash.service
 update_errors=()
-for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer; do
+for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer orielos-update-splash.service; do
     if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
         update_errors+=("$unit is not enabled")
     fi
@@ -130,7 +132,7 @@ done
 # OrielOS's own Settings pages besides Update.
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
     kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb \
-    kcm_orielos_background kcm_orielos_recentactivity; do
+    kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -160,15 +162,29 @@ grep -qxF 'X-KDE-Shortcuts=Meta+Ctrl+Alt+Shift+Space' /usr/share/kglobalaccel/or
 # the screens on Win+Ctrl+Shift+B, the contrast theme on Left Alt+Left Shift+Print Screen and Mouse
 # Keys on Left Alt+Left Shift+Num Lock. Their hidden entries are with the apps, where kglobalaccel
 # finds a new one, and in kglobalaccel's own folder, as the Run box's.
-for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.RotationLock:Meta+O org.orielos.ResetDisplays:Meta+Ctrl+Shift+B org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
+for entry in org.orielos.HdrToggle:Meta+Alt+B org.orielos.FpsOverlay:Meta+G org.orielos.RotationLock:Meta+O org.orielos.ResetDisplays:Meta+Ctrl+Shift+B org.orielos.ContrastTheme:Alt+Shift+Print org.orielos.MouseKeys:Alt+Shift+NumLock; do
     name="${entry%%:*}.desktop"
     ln -sf "../applications/$name" "/usr/share/kglobalaccel/$name"
     grep -qxF "X-KDE-Shortcuts=${entry#*:}" "/usr/share/kglobalaccel/$name" 2>/dev/null || update_errors+=("$name doesn't have ${entry#*:}")
 done
 [[ -x /usr/libexec/orielos/accessibility-keys ]] || update_errors+=("/usr/libexec/orielos/accessibility-keys is not executable")
-for f in rotation-lock reset-displays; do
+# Power: energy saver at 20 % and shutting down at 5 % come from PowerDevil's defaults in Fedora's
+# kde-settings profile, which must still be on XDG_CONFIG_DIRS; Plymouth names a shut down and a restart.
+grep -qxF 'BatteryLowLevel=20' /usr/share/kde-settings/kde-profile/default/xdg/powerdevilrc 2>/dev/null || update_errors+=("OrielOS's power defaults are missing")
+grep -q '/usr/share/kde-settings/kde-profile/default/xdg' /etc/xdg/plasma-workspace/env/env.sh 2>/dev/null || update_errors+=("Fedora's kde-settings profile is no longer on XDG_CONFIG_DIRS, so OrielOS's power defaults don't apply")
+grep -qxF 'Title=Shutting down' /usr/share/plymouth/themes/orielos/orielos.plymouth || update_errors+=("The splash doesn't say Shutting down")
+# The FPS overlay, OrielOS's Game Bar: MangoHud, and Windows + G showing or hiding it.
+[[ -x /usr/bin/mangohud ]] || update_errors+=("MangoHud, for the FPS overlay, is missing")
+for f in rotation-lock reset-displays restart-desktop fps-overlay; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done
+# System Monitor opens on OrielOS's Processes page, with Performance and Details, and its jump list
+# can restart the taskbar and desktop.
+for f in orielos-processes orielos-performance orielos-details; do
+    [[ -f "/usr/share/plasma-systemmonitor/$f.page" ]] || update_errors+=("System Monitor's $f page is missing")
+done
+grep -qx 'startPage=orielos-processes.page' /etc/xdg/systemmonitorrc 2>/dev/null || update_errors+=("System Monitor doesn't start on the Processes page")
+grep -qx 'Exec=/usr/libexec/orielos/restart-desktop' /usr/share/applications/org.kde.plasma-systemmonitor.desktop || update_errors+=("System Monitor's jump list can't restart the desktop")
 grep -qxF 'NoDisplay=true' /usr/share/applications/systemsettings.desktop || update_errors+=("System Settings is still listed in Start")
 grep -qxF 'NoDisplay=true' /usr/share/applications/org.kde.kinfocenter.desktop || update_errors+=("Info Center is still listed in Start")
 # One settings app: System Settings', kcmshell6's and Info Center's commands open Settings, and
@@ -228,7 +244,7 @@ done
 if [[ "$(systemctl --global is-enabled orielos-mark-boot-success.service 2>/dev/null)" != "enabled" ]]; then
     boot_menu_errors+=("orielos-mark-boot-success.service is not enabled for users")
 fi
-for f in /usr/lib/systemd/system/orielos-boot-success.service /usr/share/polkit-1/rules.d/50-orielos-boot-success.rules; do
+for f in /usr/lib/systemd/system/orielos-boot-success.service /usr/lib/systemd/system/orielos-boot-menu.service /usr/share/polkit-1/rules.d/50-orielos-boot-success.rules; do
     [[ -r "$f" ]] || boot_menu_errors+=("$f is missing")
 done
 [[ -x /usr/libexec/orielos/boot-flags ]] || boot_menu_errors+=("/usr/libexec/orielos/boot-flags is not executable")

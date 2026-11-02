@@ -13,6 +13,7 @@ import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.components as PC3
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.plasma.plasma5support as P5Support
+import org.kde.plasma.plasmoid
 
 // The bar along the bottom: the account button on the left, the power button on the right.
 PlasmaExtras.PlasmoidHeading {
@@ -44,6 +45,10 @@ PlasmaExtras.PlasmoidHeading {
                         icon: String(model.data(index, Qt.DecorationRole) ?? ""),
                         handler: () => {
                             footer.menu.close();
+                            // Shift + Restart opens the boot menu, with its recovery options, next.
+                            if (action.id === "reboot" && Plasmoid.shiftHeld()) { // qmllint disable missing-property
+                                Plasmoid.showBootMenuNextStart(); // qmllint disable missing-property
+                            }
                             model.trigger(row, "", null);
                         },
                     });
@@ -223,9 +228,21 @@ PlasmaExtras.PlasmoidHeading {
             Accessible.name: text
             Accessible.role: Accessible.ButtonMenu
 
-            PC3.ToolTip.text: text
+            PC3.ToolTip.text: footer.updateWaiting ? KI18n.i18nc("@info:tooltip", "Power (an update is waiting)") : text
             PC3.ToolTip.delay: Kirigami.Units.toolTipDelay
             PC3.ToolTip.visible: hovered && !powerMenu.opened
+
+            // The orange dot that says an update waits for the next restart or shut down.
+            Rectangle {
+                visible: footer.updateWaiting
+                width: Kirigami.Units.smallSpacing * 2
+                height: width
+                radius: width / 2
+                color: "#f7a440"
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: Kirigami.Units.smallSpacing
+            }
 
             onPressed: powerButton.menuWasOpen = powerMenu.visible || powerMenu.justClosed
             onClicked: {

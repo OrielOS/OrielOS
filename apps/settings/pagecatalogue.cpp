@@ -73,6 +73,7 @@ PageCatalogue PageCatalogue::standard()
     const QString apps = QStringLiteral("apps");
     const QString accounts = QStringLiteral("accounts");
     const QString time = QStringLiteral("time");
+    const QString gaming = QStringLiteral("gaming");
     const QString accessibility = QStringLiteral("accessibility");
     const QString privacy = QStringLiteral("privacy");
     const QString update = QStringLiteral("update");
@@ -85,6 +86,7 @@ PageCatalogue PageCatalogue::standard()
         { apps, i18nc("@title Settings category", "Apps"), QStringLiteral("preferences-desktop-default-applications") },
         { accounts, i18nc("@title Settings category", "Accounts"), QStringLiteral("preferences-system-users") },
         { time, i18nc("@title Settings category", "Time & language"), QStringLiteral("preferences-system-time") },
+        { gaming, i18nc("@title Settings category", "Gaming"), QStringLiteral("input-gaming") },
         { accessibility, i18nc("@title Settings category", "Accessibility"), QStringLiteral("preferences-desktop-accessibility") },
         { privacy, i18nc("@title Settings category", "Privacy & security"), QStringLiteral("security-high") },
         { update, i18nc("@title Settings category", "Update"), QStringLiteral("system-software-update") },
@@ -94,14 +96,15 @@ PageCatalogue PageCatalogue::standard()
     QList<Page> pages {
         { QStringLiteral("display"), system, i18nc("@title Settings page", "Display"), i18nc("@info", "Resolution, scale, refresh rate, HDR and arrangement"),
             keywords(i18nc("@info:keywords Search words for the Display page, separated by ;",
-                "display;screen;monitor;resolution;scale;scaling;size;refresh rate;hz;hdr;orientation;rotation;multiple displays")),
+                "display;screen;monitor;resolution;scale;scaling;size;refresh rate;hz;hdr;orientation;rotation;multiple displays;identify;main "
+                "display;arrange;variable refresh rate;adaptive sync;freesync;g-sync;rotation lock")),
             QStringLiteral("kcm_kscreen"), { } },
         { QStringLiteral("night-light"), system, i18nc("@title Settings page", "Night light"), i18nc("@info", "Warmer colours in the evening"),
             keywords(i18nc("@info:keywords Search words for the Night light page, separated by ;", "night light;blue light;warm;colour temperature")),
             QStringLiteral("kcm_nightlight"), { } },
         { QStringLiteral("sound"), system, i18nc("@title Settings page", "Sound"), i18nc("@info", "Speakers, headphones, microphones and volume"),
             keywords(i18nc("@info:keywords Search words for the Sound page, separated by ;",
-                "sound;audio;volume;speakers;headphones;headset;microphone;mic;output;input")),
+                "sound;audio;volume;speakers;headphones;headset;microphone;mic;output;input;volume mixer;app volume;balance;mono audio")),
             QStringLiteral("kcm_pulseaudio"), { } },
         { QStringLiteral("notifications"), system, i18nc("@title Settings page", "Notifications"), i18nc("@info", "Alerts from apps and the system"),
             keywords(i18nc("@info:keywords Search words for the Notifications page, separated by ;", "notifications;alerts;do not disturb;focus")),
@@ -118,6 +121,10 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc("@info:keywords Search words for the Power mode page, separated by ;",
                 "power mode;power profile;performance;best performance;balanced;power saver;battery saver;energy saver")),
             QStringLiteral("kcm_orielos_powermode"), { } },
+        { QStringLiteral("battery-usage"), system, i18nc("@title Settings page", "Battery usage"), i18nc("@info", "Charge and power use over time"),
+            keywords(i18nc("@info:keywords Search words for the Battery usage page, separated by ;",
+                "battery usage;battery life;battery health;battery history;charge;energy;power use;wattage")),
+            QStringLiteral("kcm_energyinfo"), { } },
         { QStringLiteral("storage"), system, i18nc("@title Settings page", "Storage"), i18nc("@info", "Free space, clean-up and Storage Sense"),
             keywords(i18nc("@info:keywords Search words for the Storage page, separated by ;",
                 "storage;disk space;free space;storage sense;clean up;cleanup;temporary files;bin;recycle bin;disk usage;full disk")),
@@ -151,6 +158,13 @@ PageCatalogue PageCatalogue::standard()
         { QStringLiteral("printers"), devices, i18nc("@title Settings page", "Printers"), i18nc("@info", "Add and manage printers"),
             keywords(i18nc("@info:keywords Search words for the Printers page, separated by ;", "printers;printing;print;scanner")),
             QStringLiteral("kcm_printer_manager"), { } },
+        { QStringLiteral("camera"), devices, i18nc("@title Settings page", "Camera"), i18nc("@info", "Your cameras, with a live picture"),
+            keywords(i18nc("@info:keywords Search words for the Camera page, separated by ;", "camera;webcam;video;brightness;camera preview")),
+            QStringLiteral("kcm_orielos_camera"), { } },
+        { QStringLiteral("fps-overlay"), gaming, i18nc("@title Settings page", "FPS overlay"), i18nc("@info", "The frame rate over games, on Windows + G"),
+            keywords(i18nc("@info:keywords Search words for the FPS overlay page, separated by ;",
+                "fps;frame rate;fps counter;overlay;game bar;xbox game bar;performance overlay;mangohud;frame time")),
+            QStringLiteral("kcm_orielos_fpsoverlay"), { } },
         { QStringLiteral("game-controllers"), devices, i18nc("@title Settings page", "Game controllers"), i18nc("@info", "Test controllers and joysticks"),
             keywords(i18nc("@info:keywords Search words for the Game controllers page, separated by ;", "game controllers;gamepad;joystick;xbox;playstation")),
             QStringLiteral("kcm_gamecontroller"), { } },
@@ -201,9 +215,19 @@ PageCatalogue PageCatalogue::standard()
             i18nc("@info", "Which app opens web pages, email, music and more"),
             keywords(i18nc("@info:keywords Search words for the Default apps page, separated by ;", "default apps;default browser;open with;file types")),
             QStringLiteral("kcm_componentchooser"), { } },
+        { QStringLiteral("installed-apps"), apps, i18nc("@title Settings page", "Installed apps"),
+            i18nc("@info", "Uninstall apps, and choose where apps can come from"),
+            keywords(i18nc("@info:keywords Search words for the Installed apps page, separated by ;",
+                "installed apps;uninstall;remove app;apps and features;programs;add or remove programs;app size;where to get apps")),
+            QStringLiteral("kcm_orielos_installedapps"), { } },
         { QStringLiteral("startup-apps"), apps, i18nc("@title Settings page", "Startup"), i18nc("@info", "Apps that start when you sign in"),
             keywords(i18nc("@info:keywords Search words for the Startup page, separated by ;", "startup;autostart;start at login;login items")),
             QStringLiteral("kcm_autostart"), { } },
+        { QStringLiteral("restart-apps"), apps, i18nc("@title Settings page", "Restart apps after signing in"),
+            i18nc("@info", "Open the apps you had open, after a restart"),
+            keywords(i18nc(
+                "@info:keywords Search words for the Restart apps page, separated by ;", "restart apps;restore session;reopen apps;session;restartable apps")),
+            QStringLiteral("kcm_smserver"), { } },
         { QStringLiteral("your-info"), accounts, i18nc("@title Settings page", "Your info"),
             i18nc("@info", "Your name, picture and password, and other accounts"),
             keywords(i18nc(

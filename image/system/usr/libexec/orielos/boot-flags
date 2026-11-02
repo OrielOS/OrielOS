@@ -8,9 +8,10 @@
 #                    to reach the desktop twice; kept once OrielOS kept that previous version;
 #                    0 otherwise
 #   orielos_fails    1 once the version on trial failed to reach the desktop
+#   orielos_menu     1 to show the boot menu at the next start only; GRUB sets 0 again
 # A start that fails while the flags say fallback or kept shows the boot menu.
 #
-# Usage: boot-flags good|trial|clear|kept|status
+# Usage: boot-flags good|trial|clear|kept|menu|status
 #   good    this start reached the desktop (orielos-boot-success.service): orielos_boot_ok=1. A
 #           version on trial or kept has proven itself, so orielos_trial=0 and orielos_fails=0. If
 #           the previous version was started in place of a failed update but not kept yet, it
@@ -18,6 +19,7 @@
 #   trial   a newly installed version starts next (orielos-update, after staging it)
 #   clear   no version is on trial (orielos-update, after going back)
 #   kept    OrielOS kept the previous version after a failed update (orielos-update undo-update)
+#   menu    show the boot menu at the next start (orielos-boot-menu.service, from Shift + Restart)
 #   status  print the flags, one name=value per line
 # It finds the partition on the disk that holds the root file system, and mounts it in its own
 # mount namespace for as long as it runs. Tests set ORIELOS_BOOT_FLAGS_FILE to use a file instead.
@@ -35,7 +37,7 @@ log() {
 }
 
 usage() {
-    sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 cleanup() {
@@ -94,7 +96,7 @@ set_flags() {
 main() {
     local cmd="${1:-}" trial
     case "$cmd" in
-        good | trial | clear | kept | status) [[ $# -eq 1 ]] || {
+        good | trial | clear | kept | menu | status) [[ $# -eq 1 ]] || {
             usage >&2
             exit 2
         } ;;
@@ -146,6 +148,7 @@ main() {
         trial) set_flags orielos_trial=1 orielos_fails=0 ;;
         clear) set_flags orielos_trial=0 orielos_fails=0 ;;
         kept) set_flags orielos_trial=kept orielos_fails=0 ;;
+        menu) set_flags orielos_menu=1 ;;
     esac
 }
 

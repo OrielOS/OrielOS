@@ -11,6 +11,7 @@
 #include <QDBusPendingCall>
 #include <QFile>
 #include <QFileInfo>
+#include <QLocale>
 
 #include <utility>
 
@@ -48,6 +49,9 @@ QString failureText(const QString &command, const QString &detail)
     if (command == QLatin1String("remove-previous")) {
         return i18nc("@info %1 is the reason", "Couldn't remove the previous version: %1", reason);
     }
+    if (command == QLatin1String("restart-at")) {
+        return i18nc("@info %1 is the reason", "Couldn't schedule the restart: %1", reason);
+    }
     return i18nc("@info %1 is the reason", "Couldn't change the update settings: %1", reason);
 }
 
@@ -62,6 +66,7 @@ UpdateSettings::UpdateSettings(QObject *parent)
     m_environment.monitor = new SystemdCheckMonitor(this);
     m_environment.now = [] { return QDateTime::currentDateTimeUtc(); };
     m_environment.restart = logoutAndReboot;
+    m_environment.changelogPath = QStringLiteral("/usr/share/doc/orielos/CHANGELOG.md");
     init();
 }
 
@@ -256,6 +261,65 @@ QStringList UpdateSettings::pauseChoices() const
     return labels;
 }
 
+bool UpdateSettings::restartScheduled() const
+{
+    return isForThisBoot() && (updateWaiting() || goingBack()) && m_state.restartAt().isValid() && m_state.restartAt() > now();
+}
+
+QString UpdateSettings::restartAt() const
+{
+    if (!restartScheduled()) {
+        return { };
+    }
+    const QDateTime local = m_state.restartAt().toLocalTime();
+    const qint64 days = now().toLocalTime().date().daysTo(local.date());
+    const QString time = QLocale().toString(local.time(), QLocale::ShortFormat);
+    if (days == 0) {
+        return i18nc("@info %1 is a time", "today at %1", time);
+    }
+    if (days == 1) {
+        return i18nc("@info %1 is a time", "tomorrow at %1", time);
+    }
+    return i18nc("@info %1 is a day of the week, %2 a time", "%1 at %2", QLocale().dayName(local.date().dayOfWeek()), time);
+}
+
+QStringList UpdateSettings::restartDays() const
+{
+    const QDate today = now().toLocalTime().date();
+    QStringList days { i18nc("@item:inlistbox", "Today"), i18nc("@item:inlistbox", "Tomorrow") };
+    for (int day = 2; day < 7; ++day) {
+        days.append(QLocale().dayName(today.addDays(day).dayOfWeek()));
+    }
+    return days;
+}
+
+QStringList UpdateSettings::hourChoices() const
+{
+    QStringList hours;
+    for (int hour = 0; hour < 24; ++hour) {
+        hours.append(QLocale().toString(QTime(hour, 0), QLocale::ShortFormat));
+    }
+    return hours;
+}
+
+QVariantList UpdateSettings::history() const
+{
+    QVariantList out;
+    for (const HistoryEntry &entry : m_state.history()) {
+        out.append(QVariantMap { { QStringLiteral("version"), entry.version }, { QStringLiteral("date"), displayDate(entry.startedAt) } });
+    }
+    return out;
+}
+
+QString UpdateSettings::whatsNew() const
+{
+    QFile file(m_environment.changelogPath);
+    if (m_environment.changelogPath.isEmpty() || !file.open(QIODevice::ReadOnly)) {
+        return { };
+    }
+    return changelogSection(QString::fromUtf8(file.readAll()), m_state.running().version);
+}
+
 void UpdateSettings::run(const QStringList &arguments)
 {
     m_busy = true;
@@ -328,6 +392,39 @@ void UpdateSettings::setAppUpdates(bool on)
     }
     m_pendingAppUpdates = on;
     run({ QStringLiteral("app-updates"), on ? QStringLiteral("on") : QStringLiteral("off") });
+}
+
+void UpdateSettings::scheduleRestart(int day, int hour, int minute)
+{
+    if (m_busy || !(updateWaiting() || goingBack()) || day < 0 || day > 6 || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        return;
+    }
+    const QDateTime when(now().toLocalTime().date().addDays(day), QTime(hour, minute));
+    run({ QStringLiteral("restart-at"), when.toUTC().toString(Qt::ISODate) });
+}
+
+void UpdateSettings::cancelRestart()
+{
+    if (m_busy || !restartScheduled()) {
+        return;
+    }
+    run({ QStringLiteral("restart-at"), QStringLiteral("cancel") });
+}
+
+void UpdateSettings::setActiveHours(int start, int end)
+{
+    if (m_busy || start < 0 || start > 23 || end < 0 || end > 23 || start == end || (start == m_state.activeHoursStart() && end == m_state.activeHoursEnd())) {
+        return;
+    }
+    run({ QStringLiteral("active-hours"), QString::number(start), QString::number(end) });
+}
+
+void UpdateSettings::setAutoRestart(bool on)
+{
+    if (m_busy || on == m_state.autoRestart()) {
+        return;
+    }
+    run({ QStringLiteral("auto-restart"), on ? QStringLiteral("on") : QStringLiteral("off") });
 }
 
 void UpdateSettings::restart()

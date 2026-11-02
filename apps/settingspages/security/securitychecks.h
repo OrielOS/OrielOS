@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QDateTime>
 #include <QList>
 #include <QString>
 
@@ -39,11 +40,19 @@ struct SecuritySources
     std::function<std::optional<QString>(const QString &module)> moduleSigner;
     // Whether to stop: checked between modules, the slow part. Optional.
     std::function<bool()> cancelled;
+    // Whether the firewall is running. By default, asks systemd about firewalld.
+    std::function<bool()> firewallActive;
+    // The current time, for how long ago updates were checked. By default, the clock.
+    std::function<QDateTime()> now;
 };
 
 // Every requirement, in order: Secure Boot, the TPM and its measured-boot log, kernel lockdown, the
 // BPF security module, kexec turned off, the IOMMU, and signed drivers. Reads files and runs
 // modinfo for each loaded module, so it takes a second or so: run it off the GUI thread.
 QList<SecurityCheck> runSecurityChecks(const SecuritySources &sources = { });
+
+// The computer's protection at a glance, as Windows' security app shows it: the firewall, and
+// updates, from the state orielos-update writes. Quick enough for the GUI thread.
+QList<SecurityCheck> runProtectionChecks(const SecuritySources &sources = { });
 
 } // namespace OrielOSSettingsPages

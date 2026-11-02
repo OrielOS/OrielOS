@@ -346,8 +346,10 @@ matches_contract() {
         and .running == {version: "44.1", digest: $d} and .staged == null
         and .previous == null and .rollbackQueued == false
         and .appUpdates == true and .appsUpdatedAt == null
-        and (keys | sort) == ["appUpdates", "appsUpdatedAt", "bootId", "channel", "checkedAt", "message", "pausedUntil",
-            "previous", "result", "rollbackQueued", "running", "staged"]
+        and .restartAt == null and .activeHours == {start: 8, end: 17} and .autoRestart == false
+        and (.history | type) == "array"
+        and (keys | sort) == ["activeHours", "appUpdates", "appsUpdatedAt", "autoRestart", "bootId", "channel", "checkedAt",
+            "history", "message", "pausedUntil", "previous", "restartAt", "result", "rollbackQueued", "running", "staged"]
     ' "$WORK/root/var/lib/orielos/update/state.json" >/dev/null
 }
 
@@ -602,6 +604,69 @@ for value in "" yes 1; do
     check "app-updates '$value' is refused with exit 2 and changes nothing" \
         test "$RC" -eq 2 -a ! -e "$WORK/root/var/lib/orielos/update/settings"
 done
+#END
+
+#BEGIN Update history and restarts
+setup
+run refresh
+check "refresh starts the update history with the running build" \
+    test "$(state '.history | length')" -eq 1 -a "$(state '.history[0].version')" == 44.1 -a "$(state '.history[0].startedAt')" == "$(iso "$NOW")"
+bootc_status "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"
+at $((NOW + 60)) refresh
+check "a new build goes first in the history" \
+    test "$(state '.history | length')" -eq 2 -a "$(state '.history[0].version')" == 44.2 -a "$(state '.history[1].version')" == 44.1
+at $((NOW + 120)) refresh
+check "the same build isn't added twice" test "$(state '.history | length')" -eq 2
+
+setup
+run active-hours 9 18
+check "active-hours sets the hours" test "$RC" -eq 0 -a "$(state .activeHours.start)" -eq 9 -a "$(state .activeHours.end)" -eq 18
+for hours in "5 5" "8 24" "x 3"; do
+    setup
+    # shellcheck disable=SC2086 # two arguments on purpose
+    run active-hours $hours
+    check "active-hours '$hours' is refused with exit 2" test "$RC" -eq 2 -a ! -e "$WORK/root/var/lib/orielos/update/restart"
+done
+
+setup
+run restart-at "$(iso $((NOW + 3600)))"
+check "restart-at refuses when nothing waits for a restart" test "$RC" -eq 1
+bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"
+run restart-at "$(iso $((NOW + 30)))"
+check "restart-at refuses a time less than a minute away" test "$RC" -eq 2
+run restart-at "$(iso $((NOW + 8 * 24 * 3600)))"
+check "restart-at refuses a time more than a week away" test "$RC" -eq 2
+run restart-at "$(iso $((NOW + 3600)))"
+check "restart-at schedules the restart" test "$RC" -eq 0 -a "$(state .restartAt)" == "$(iso $((NOW + 3600)))"
+check "with a timer" called "systemctl start orielos-scheduled-restart.timer @$((NOW + 3600))"
+at $((NOW + 7200)) refresh
+check "a scheduled restart whose time has passed isn't shown" test "$(state .restartAt)" == null
+run restart-at cancel
+check "restart-at cancel drops it" test "$RC" -eq 0 -a "$(state .restartAt)" == null
+check "and stops the timer" called "systemctl stop orielos-scheduled-restart.timer"
+
+setup
+bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"
+run auto-restart on
+day="$(date -d "@$NOW" +%F)"
+expected="$(date -d "$day 3:00" +%s)"
+while ((expected < NOW + 3600)); do expected=$((expected + 86400)); done
+check "auto-restart on schedules the waiting update's restart for 03:00" \
+    test "$RC" -eq 0 -a "$(state .autoRestart)" == true -a "$(state .restartAt)" == "$(iso "$expected")"
+run active-hours 0 6
+run auto-restart off
+run restart-at cancel
+run auto-restart on
+expected="$(date -d "$day 6:00" +%s)"
+while ((expected < NOW + 3600)); do expected=$((expected + 86400)); done
+check "when 03:00 is within the active hours, the restart is as they end" test "$(state .restartAt)" == "$(iso "$expected")"
+
+setup
+run restart-if-waiting
+check "restart-if-waiting doesn't restart when nothing waits" not_called "systemctl reboot"
+bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"
+run restart-if-waiting
+check "restart-if-waiting restarts for a waiting update" called "systemctl reboot"
 #END
 
 printf '%d passed, %d failed\n' "$PASSED" "$FAILED"

@@ -93,6 +93,42 @@ private Q_SLOTS:
         QCOMPARE(off.appsUpdatedAt(), QDateTime(QDate(2026, 10, 25), QTime(9, 0), QTimeZone::UTC));
     }
 
+    void readsHistoryAndRestarts()
+    {
+        // A file from before these fields existed: no history, nothing scheduled, the default hours.
+        const UpdateState before = UpdateState::fromJson(stateJson());
+        QVERIFY(before.history().isEmpty());
+        QVERIFY(!before.restartAt().isValid());
+        QCOMPARE(before.activeHoursStart(), 8);
+        QCOMPARE(before.activeHoursEnd(), 17);
+        QVERIFY(!before.autoRestart());
+
+        QByteArray json = stateJson();
+        json.replace("\"bootId\"",
+            R"("history": [{"version": "44.1", "startedAt": "2026-10-24T08:00:00Z", "digest": "x"}, {"version": "", "startedAt": "bad"}],
+            "restartAt": "2026-10-26T03:00:00Z", "activeHours": {"start": 22, "end": 6}, "autoRestart": true, "bootId")");
+        const UpdateState state = UpdateState::fromJson(json);
+        QCOMPARE(state.history(), (QList<HistoryEntry> { { QStringLiteral("44.1"), QDateTime(QDate(2026, 10, 24), QTime(8, 0), QTimeZone::UTC) } }));
+        QCOMPARE(state.restartAt(), QDateTime(QDate(2026, 10, 26), QTime(3, 0), QTimeZone::UTC));
+        QCOMPARE(state.activeHoursStart(), 22);
+        QCOMPARE(state.activeHoursEnd(), 6);
+        QVERIFY(state.autoRestart());
+
+        // Hours that can't be right fall back to the default.
+        json.replace(R"({"start": 22, "end": 6})", R"({"start": 5, "end": 5})");
+        QCOMPARE(UpdateState::fromJson(json).activeHoursStart(), 8);
+    }
+
+    void findsWhatsNew()
+    {
+        const QString changelog = QStringLiteral("# Changelog\n\nIntro.\n\n## [Unreleased]\n\n### Added\n\n- New thing.\n\n## [0.1.9] - 2026-11-01\n\n### "
+                                                 "Added\n\n- The shell.\n\n## [0.1.8] - 2026-10-31\n\n- Older.\n");
+        QCOMPARE(changelogSection(changelog, QStringLiteral("v0.1.9")), QStringLiteral("### Added\n\n- The shell."));
+        QCOMPARE(changelogSection(changelog, QStringLiteral("v0.1.10")), QStringLiteral("### Added\n\n- New thing."));
+        QCOMPARE(changelogSection(changelog, QString()), QStringLiteral("### Added\n\n- New thing."));
+        QCOMPARE(changelogSection(QStringLiteral("## [Unreleased]\n\n## [0.1.9]\n"), QStringLiteral("v0.2.0")), QString());
+    }
+
     void ignoresUnknownFields()
     {
         QByteArray json = stateJson();

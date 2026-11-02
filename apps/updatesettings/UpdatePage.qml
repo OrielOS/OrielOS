@@ -107,12 +107,28 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             visible: root.settings.updateWaiting
             type: Kirigami.MessageType.Positive
-            text: root.l10n.i18nc("@info", "OrielOS %1 is ready. Restart to finish updating. Your files and apps stay as they are.", root.settings.stagedVersion)
+            text: root.settings.restartScheduled
+                ? root.l10n.i18nc("@info %2 is a day and time, such as tomorrow at 03:00", "OrielOS %1 is ready. The computer restarts %2 to finish updating. Your files and apps stay as they are.", root.settings.stagedVersion, root.settings.restartAt)
+                : root.l10n.i18nc("@info", "OrielOS %1 is ready. Restart to finish updating. Your files and apps stay as they are.", root.settings.stagedVersion)
             actions: [
                 Kirigami.Action {
                     text: root.l10n.i18nc("@action:button", "Restart &now")
                     icon.name: "system-reboot"
                     onTriggered: root.settings.restart()
+                },
+                Kirigami.Action {
+                    text: root.l10n.i18nc("@action:button", "Pic&k a time…")
+                    icon.name: "chronometer"
+                    visible: !root.settings.restartScheduled
+                    enabled: !root.settings.busy
+                    onTriggered: scheduleDialog.open()
+                },
+                Kirigami.Action {
+                    text: root.l10n.i18nc("@action:button", "D&on't restart then")
+                    icon.name: "dialog-cancel"
+                    visible: root.settings.restartScheduled
+                    enabled: !root.settings.busy
+                    onTriggered: root.settings.cancelRestart()
                 }
             ]
         }
@@ -293,6 +309,99 @@ KCM.SimpleKCM {
 
             Item {
                 Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Active hours")
+            }
+
+            RowLayout {
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.ComboBox {
+                    id: activeStart
+
+                    model: root.settings.hourChoices
+                    currentIndex: root.settings.activeHoursStart
+                    enabled: !root.settings.busy
+                    Accessible.name: root.l10n.i18nc("@label:listbox", "Active hours start")
+                    onActivated: index => {
+                        root.settings.setActiveHours(index, activeEnd.currentIndex);
+                        currentIndex = Qt.binding(() => root.settings.activeHoursStart);
+                    }
+                }
+
+                QQC2.Label {
+                    text: root.l10n.i18nc("@label between two times", "to")
+                }
+
+                QQC2.ComboBox {
+                    id: activeEnd
+
+                    model: root.settings.hourChoices
+                    currentIndex: root.settings.activeHoursEnd
+                    enabled: !root.settings.busy
+                    Accessible.name: root.l10n.i18nc("@label:listbox", "Active hours end")
+                    onActivated: index => {
+                        root.settings.setActiveHours(activeStart.currentIndex, index);
+                        currentIndex = Qt.binding(() => root.settings.activeHoursEnd);
+                    }
+                }
+            }
+
+            QQC2.Label {
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+                text: root.l10n.i18nc("@info", "When you usually use this computer. OrielOS never restarts it for an update during these hours.")
+                font: Kirigami.Theme.smallFont
+                color: Kirigami.Theme.disabledTextColor
+                wrapMode: Text.Wrap
+            }
+
+            QQC2.CheckBox {
+                text: root.l10n.i18nc("@option:check", "Restart automatically outside active &hours")
+                checked: root.settings.autoRestart
+                enabled: !root.settings.busy
+                onClicked: {
+                    root.settings.setAutoRestart(checked);
+                    checked = Qt.binding(() => root.settings.autoRestart);
+                }
+            }
+
+            QQC2.Label {
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+                text: root.l10n.i18nc("@info", "Once an update is ready, the computer restarts at 3:00 at night, or as your active hours end if 3:00 is within them. Save your work before leaving it on.")
+                font: Kirigami.Theme.smallFont
+                color: Kirigami.Theme.disabledTextColor
+                wrapMode: Text.Wrap
+            }
+
+            Item {
+                Kirigami.FormData.isSection: true
+                Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Update history")
+            }
+
+            Repeater {
+                model: root.settings.history
+
+                QQC2.Label {
+                    required property var modelData
+
+                    text: root.l10n.i18nc("@info %1 is a version, %2 a date", "OrielOS %1, installed %2", modelData.version, modelData.date)
+                }
+            }
+
+            QQC2.Label {
+                visible: root.settings.history.length === 0
+                text: root.l10n.i18nc("@info", "No updates have been installed yet.")
+                color: Kirigami.Theme.disabledTextColor
+            }
+
+            QQC2.Button {
+                visible: root.settings.whatsNew.length > 0
+                text: root.l10n.i18nc("@action:button", "&What's new in this version")
+                icon.name: "documentinfo"
+                onClicked: whatsNewDialog.open()
+            }
+
+            Item {
+                Kirigami.FormData.isSection: true
                 Kirigami.FormData.label: root.l10n.i18nc("@title:group", "Previous version")
                 visible: root.settings.hasPrevious
             }
@@ -338,6 +447,75 @@ KCM.SimpleKCM {
                 color: Kirigami.Theme.disabledTextColor
                 wrapMode: Text.Wrap
             }
+        }
+    }
+
+    Kirigami.PromptDialog {
+        id: scheduleDialog
+
+        title: root.l10n.i18nc("@title:dialog", "Pick a time to restart")
+        subtitle: root.l10n.i18nc("@info", "The computer restarts then to finish updating. Save your work before then.")
+        standardButtons: QQC2.Dialog.NoButton
+        customFooterActions: [
+            Kirigami.Action {
+                text: root.l10n.i18nc("@action:button", "Sche&dule the restart")
+                icon.name: "chronometer"
+                onTriggered: {
+                    root.settings.scheduleRestart(restartDay.currentIndex, restartHour.currentIndex, restartMinute.currentIndex * 15);
+                    scheduleDialog.close();
+                }
+            },
+            Kirigami.Action {
+                text: root.l10n.i18nc("@action:button", "Cancel")
+                icon.name: "dialog-cancel"
+                onTriggered: scheduleDialog.close()
+            }
+        ]
+
+        RowLayout {
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.ComboBox {
+                id: restartDay
+
+                model: root.settings.restartDays
+                // Tonight is the usual choice.
+                currentIndex: 0
+                Accessible.name: root.l10n.i18nc("@label:listbox", "Day")
+            }
+
+            QQC2.ComboBox {
+                id: restartHour
+
+                model: root.settings.hourChoices
+                currentIndex: 23
+                Accessible.name: root.l10n.i18nc("@label:listbox", "Hour")
+            }
+
+            QQC2.ComboBox {
+                id: restartMinute
+
+                model: [":00", ":15", ":30", ":45"]
+                currentIndex: 0
+                Accessible.name: root.l10n.i18nc("@label:listbox", "Minutes past the hour")
+            }
+        }
+    }
+
+    Kirigami.Dialog {
+        id: whatsNewDialog
+
+        title: root.l10n.i18nc("@title:dialog %1 is a version", "What's new in OrielOS %1", root.settings.runningVersion)
+        preferredWidth: Kirigami.Units.gridUnit * 32
+        preferredHeight: Kirigami.Units.gridUnit * 28
+        standardButtons: QQC2.Dialog.Close
+
+        QQC2.Label {
+            padding: Kirigami.Units.largeSpacing
+            text: root.settings.whatsNew
+            textFormat: Text.MarkdownText
+            wrapMode: Text.Wrap
+            onLinkActivated: link => Qt.openUrlExternally(link)
         }
     }
 

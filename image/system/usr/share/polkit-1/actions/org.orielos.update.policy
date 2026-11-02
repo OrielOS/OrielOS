@@ -7,8 +7,9 @@ SPDX-FileCopyrightText: 2026 OrielOS contributors
 SPDX-License-Identifier: GPL-3.0-or-later
 
 What the Update settings page may ask orielos-update to do through pkexec. Anyone using the
-computer may pause, resume and check for updates, and turn automatic app updates on or off,
-without a password; changing which builds the
+computer may pause, resume and check for updates, turn automatic app updates on or off, schedule
+the restart that finishes an update and set the active hours and automatic restarts, without a
+password; changing which builds the
 computer gets, going back to the previous version and removing it need an administrator. pkexec
 picks the action by the program and its first argument.
 -->
@@ -99,5 +100,40 @@ picks the action by the program and its first argument.
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">remove-previous</annotate>
+  </action>
+  <action id="org.orielos.update.restart-at">
+    <description>Schedule the restart that finishes an OrielOS update</description>
+    <message>Authentication is needed to schedule the restart for an OrielOS update</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">restart-at</annotate>
+  </action>
+
+  <action id="org.orielos.update.active-hours">
+    <description>Set the active hours for OrielOS updates</description>
+    <message>Authentication is needed to set the active hours for OrielOS updates</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">active-hours</annotate>
+  </action>
+
+  <action id="org.orielos.update.auto-restart">
+    <description>Turn automatic restarts for OrielOS updates on or off</description>
+    <message>Authentication is needed to change automatic restarts for OrielOS updates</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-update</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">auto-restart</annotate>
   </action>
 </policyconfig>
