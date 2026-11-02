@@ -1,7 +1,7 @@
 ---
 title: OrielOS v0.1.9: its own desktop shell
 date: 2026-11-02
-summary: v0.1.9 is the new stable OrielOS. The taskbar, Start and the lock screen now run in OrielOS's own shell, with Run this app and GE-Proton for Steam out of testing.
+summary: v0.1.9 is the new stable OrielOS. The taskbar, Start and lock screen now run in OrielOS's own shell, with Run this app and GE-Proton for Steam out of testing.
 image: /images/news/orielos-v0-1-9.png
 image_alt: An OrielOS Settings window with the snap layouts panel open above it, showing six ways to arrange windows, over the dark blue Nightfall wallpaper and the centred taskbar
 image_width: 1200
@@ -14,7 +14,7 @@ New to OrielOS? [Download it](/download/) and follow [Install OrielOS](/guides/i
 
 ## Its own shell
 
-The taskbar, Start and the lock screen now run in OrielOS's own shell. It'll take over more of the desktop in coming versions. Your pinned apps and wallpaper carry over the first time it starts, and going back to the previous version brings your old desktop back as you left it.
+The taskbar, Start and lock screen now run in OrielOS's own shell. It'll take over more of the desktop in coming versions. Your pinned apps and wallpaper carry over the first time it starts, and going back to the previous version brings your old desktop back as you left it.
 
 - Start opens in the middle of the screen, with pages of pinned apps, a More page for Recommended, and Downloads, Files and Settings by the power button. Pinned apps can be dragged around, and dropping one on another makes a folder.
 - Search and Task View sit next to Start. Windows + S opens Start ready to search, with your recent searches and most used apps.
