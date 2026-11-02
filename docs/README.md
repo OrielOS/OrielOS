@@ -22,6 +22,7 @@ Contains:
 - [Windows programs](windows-programs.md): running a Windows `.exe` or `.msi` with Run this app, its Start entries, and removing a program.
 - [Writing code on OrielOS](development.md): Terminal, Git, containers with Toolbx and Distrobox, an editor from the Store, and command-line tools.
 - [Privacy](privacy.md): OrielOS collects nothing; every place it connects to, and why.
+- [Switching back to stock Fedora](leaving-orielos.md): changing a computer from OrielOS to Fedora Kinoite without reinstalling, what stays, and switching back.
 - [Getting help](help.md): where to look things up, where to ask, and how to report a problem.
 - `images/`: the screenshots in these guides, taken from OrielOS.
 
