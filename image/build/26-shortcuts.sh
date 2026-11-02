@@ -100,7 +100,10 @@ set_shortcuts "$accel/org.kde.krunner.desktop" "Desktop Entry" "Alt+Space,Alt+F2
 
 # Emoji: Win+. and Win+; open OrielOS's emoji panel (its own desktop entry gives it the keys), with
 # kaomoji, symbols and the clipboard as well; Plasma's emoji selector keeps its other shortcut.
-set_shortcuts "$accel/org.kde.plasma.emojier.desktop" "Desktop Entry" "Meta+.,Meta+Ctrl+Alt+Shift+Space" "Meta+Ctrl+Alt+Shift+Space"
+# Its kglobalaccel entry may be a hard link to its menu entry (it is since Plasma 6.8.2), so the
+# menu entry changes and the kglobalaccel one becomes a link to it, as for System Monitor.
+set_shortcuts "$apps/org.kde.plasma.emojier.desktop" "Desktop Entry" "Meta+.,Meta+Ctrl+Alt+Shift+Space" "Meta+Ctrl+Alt+Shift+Space"
+link_accel org.kde.plasma.emojier.desktop
 
 # Screenshot: Spectacle. Win+Shift+S (a rectangular region) is Plasma's default. Win+PrtSc
 # saves the whole desktop to Pictures/Screenshots without opening Spectacle's window, as on
@@ -160,7 +163,6 @@ set_shortcuts "$accel/org.kde.kscreen.desktop" "Desktop Action ShowOSD" "Display
 # Plasma's defaults that OrielOS keeps; fail if a package update moves one of them.
 grep -qxF 'X-KDE-Shortcuts=Meta+E' "$apps/org.kde.dolphin.desktop" || die "Dolphin is no longer on Meta+E; update $script"
 grep -qxF 'X-KDE-Shortcuts=Print,Meta+Shift+S' "$spectacle" || die "Spectacle is no longer on Meta+Shift+S; update $script"
-grep -q '^X-KDE-Shortcuts=Meta+\.,' "$apps/org.kde.plasma.emojier.desktop" || die "the emoji picker is no longer on Meta+.; update $script"
 
 # No two app shortcuts may share a key. Each entry's shortcuts are counted once per file name,
 # because some kglobalaccel entries are links to the menu entries.
