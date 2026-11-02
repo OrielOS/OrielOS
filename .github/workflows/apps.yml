@@ -40,7 +40,7 @@ jobs:
               rc=2
           else
               git diff --quiet HEAD^1 HEAD -- \
-                  apps plasma artwork data CMakeLists.txt \
+                  apps plasma artwork CMakeLists.txt \
                   image/Containerfile image/build/apps-builder.sh image/pins.env \
                   .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh .github/workflows/apps.yml \
                   ':(exclude)*.md' || rc=$?
@@ -58,26 +58,6 @@ jobs:
           esac
           echo "changed=${changed}" >>"${GITHUB_OUTPUT}"
 
-      # Compiled objects are kept between runs, so an app change recompiles only what it touches.
-      # The cache is keyed on the pinned images (the compiler comes from the builder image). A pull
-      # request's cache is its own: it can read main's but never replace it.
-      - name: Restore the compiler cache
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/ccache
-          key: apps-ccache-${{ hashFiles('image/pins.env') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: apps-ccache-${{ hashFiles('image/pins.env') }}-
-
       - name: Build and test the apps
         if: steps.changes.outputs.changed == 'true'
-        env:
-          ORIELOS_CCACHE_DIR: ${{ runner.temp }}/ccache
         run: tools/test-apps.sh
-
-      - name: Keep the compiler cache
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ runner.temp }}/ccache
-          key: apps-ccache-${{ hashFiles('image/pins.env') }}-${{ github.run_id }}-${{ github.run_attempt }}

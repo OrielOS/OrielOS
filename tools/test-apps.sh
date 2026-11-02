@@ -7,7 +7,6 @@
 # Usage: tools/test-apps.sh [--pins FILE] [--tag REF] [--help]
 #   --pins FILE   pins file (default image/pins.env)
 #   --tag REF     tag for the built stage (default localhost/orielos-app-builder)
-# Set ORIELOS_CCACHE_DIR to a folder to keep a compiler cache there between builds.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,7 +23,7 @@ die() {
 step() { printf '==> %s\n' "$1"; }
 
 usage() {
-    sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,9p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 main() {
@@ -59,14 +58,9 @@ main() {
 
     # From OrielOS's copy where it has it (tools/lib/pins.sh): upstream registries drop old digests.
     BUILDER_IMAGE="$(pull_pin "$BUILDER_IMAGE")" || die "can't pull $BUILDER_IMAGE from OrielOS's copy or upstream"
-    local cache=()
-    if [[ -n "${ORIELOS_CCACHE_DIR:-}" ]]; then
-        mkdir -p "$ORIELOS_CCACHE_DIR" || die "cannot create $ORIELOS_CCACHE_DIR"
-        cache=(--volume "$(cd "$ORIELOS_CCACHE_DIR" && pwd):/ccache:z")
-    fi
     step "Building and testing the apps in $BUILDER_IMAGE"
     if ! podman build --pull=missing -f "$ROOT/image/Containerfile" --target app-builder \
-        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" "${cache[@]}" -t "$TAG" "$ROOT"; then
+        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" -t "$TAG" "$ROOT"; then
         die "the apps failed to build, a test failed or qmllint reported a problem; see the output above"
     fi
     step "Done: the apps built and passed their tests ($TAG)"
