@@ -66,17 +66,37 @@ jobs:
         with:
           persist-credentials: false
 
-      # The image and its build stages need tens of gigabytes. The runner's preinstalled
-      # toolchains are removed, and Podman's storage and temporary files go on the larger /mnt
-      # disk, mounted where the scripts expect them (the installer reads /var/lib/containers).
+      # The image and its build stages need tens of gigabytes. Podman's storage and temporary
+      # files go on /mnt, mounted where the scripts expect them (the installer reads
+      # /var/lib/containers). The runner's disk has room for the build as it comes (145 GB with
+      # about 88 GB free), so its preinstalled toolchains are no longer deleted first, which took
+      # one to two minutes.
       - name: Make room for the build
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /usr/local/share/boost
+          df -h / /mnt
           sudo mkdir -p /mnt/containers /mnt/builds /mnt/tmp /mnt/vm /var/lib/containers/storage /var/lib/orielos/vm
           sudo mount --bind /mnt/containers /var/lib/containers/storage
           sudo mount --bind /mnt/vm /var/lib/orielos/vm
           sudo chmod 1777 /mnt/tmp
-          df -h / /mnt
+
+      # Podman commits every build step as a layer. Ubuntu's kernel turns on overlayfs's
+      # redirect_dir, which stops Podman using the kernel's own diff for that, so it compared the
+      # whole image at each of the 28 steps, about 13 s each. Overlay mounts made without it
+      # can use the fast diff; the layers' contents are the same either way.
+      - name: Let Podman use overlayfs's own diff
+        run: |
+          sudo modprobe overlay
+          echo N | sudo tee /sys/module/overlay/parameters/redirect_dir >/dev/null
+          echo "Native overlay diff: $(sudo podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}')"
+
+      # The apps compile with the compiler cache the apps workflow keeps on main (or, for a pull
+      # request, its own), so this build only reads it.
+      - name: Restore the compiler cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: apps-ccache-${{ hashFiles('image/pins.env') }}-image-${{ github.run_id }}
+          restore-keys: apps-ccache-${{ hashFiles('image/pins.env') }}-
 
       # The packages apt downloads are kept between runs, so a slow mirror only costs the first run
       # on each new runner image. apt checks every cached file against Ubuntu's signed package
@@ -149,7 +169,8 @@ jobs:
       - name: Build the image
         env:
           TAG: ${{ steps.tag.outputs.tag }}
-        run: sudo env TMPDIR=/mnt/tmp tools/build-image.sh --version "${TAG}" --output /mnt/builds --keep 1
+          CCACHE: ${{ runner.temp }}/ccache
+        run: sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" tools/build-image.sh --version "${TAG}" --output /mnt/builds --keep 1
 
       # Flatpak apps need Flathub's GL extension for the image's NVIDIA driver version, or they
       # lose GPU acceleration after the update.

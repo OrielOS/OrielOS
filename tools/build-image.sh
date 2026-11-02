@@ -14,7 +14,8 @@
 #   --clean-only       only remove old builds, then exit
 # The image is tagged localhost/orielos:<version> and localhost/orielos:latest.
 # Runs as root; re-executes itself through sudo otherwise. Stops at once if another build or a VM
-# test is running.
+# test is running. Set ORIELOS_CCACHE_DIR to a folder to compile the apps with a compiler cache
+# kept there.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -41,7 +42,7 @@ die() {
 step() { printf '==> %s\n' "$1"; }
 
 usage() {
-    sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 check_pin() {
@@ -201,9 +202,16 @@ main() {
     # The app-builder stage is built and tagged first, as tools/test-apps.sh does. Untagged, its
     # layers would be removed by the image prune in cleanup, so every build would rebuild the
     # apps and every layer after them.
+    # The compiler cache is mounted for this build only. The image build below reuses these
+    # layers, so the folder is never mounted into, or left behind in, the image itself.
+    local cache=()
+    if [[ -n "${ORIELOS_CCACHE_DIR:-}" ]]; then
+        mkdir -p "$ORIELOS_CCACHE_DIR" || die "cannot create $ORIELOS_CCACHE_DIR"
+        cache=(--volume "$(cd "$ORIELOS_CCACHE_DIR" && pwd):/ccache:z")
+    fi
     step "Building the apps ($REPO-app-builder)"
     podman build --pull=missing -f "$ROOT/image/Containerfile" --target app-builder \
-        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" -t "$REPO-app-builder" "$ROOT"
+        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" "${cache[@]}" -t "$REPO-app-builder" "$ROOT"
 
     step "Building $REPO:$tag"
     podman build --pull=missing -f "$ROOT/image/Containerfile" \

@@ -69,6 +69,15 @@ jobs:
           key: apps-ccache-${{ hashFiles('image/pins.env') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: apps-ccache-${{ hashFiles('image/pins.env') }}-
 
+      # Without overlayfs's redirect_dir, which Ubuntu's kernel turns on, Podman commits each
+      # build step with the kernel's own diff instead of comparing the whole image.
+      - name: Let Podman use overlayfs's own diff
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          sudo modprobe overlay
+          echo N | sudo tee /sys/module/overlay/parameters/redirect_dir >/dev/null
+          echo "Native overlay diff: $(podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}')"
+
       - name: Build and test the apps
         if: steps.changes.outputs.changed == 'true'
         env:
