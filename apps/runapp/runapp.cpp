@@ -602,8 +602,8 @@ QString writeStartEntry(const QString &applicationsDir, const QString &name, con
 std::optional<KnownApp> knownApp(const QByteArray &list, const QString &fileName)
 {
     const QString suffix = QFileInfo(fileName).suffix().toLower();
-    const bool packageFile = suffix == QLatin1String("msix") || suffix == QLatin1String("msixbundle") || suffix == QLatin1String("appx")
-        || suffix == QLatin1String("appxbundle");
+    const bool packageFile
+        = suffix == QLatin1String("msix") || suffix == QLatin1String("msixbundle") || suffix == QLatin1String("appx") || suffix == QLatin1String("appxbundle");
     const QString name = prefixName(fileName);
     const QJsonArray apps = QJsonDocument::fromJson(list).object().value(QLatin1String("apps")).toArray();
     for (const QJsonValue &value : apps) {

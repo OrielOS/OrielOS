@@ -202,7 +202,7 @@ QString SteamLibrary::launchOptions(const QString &appId) const
 {
     const auto config = readVdf(localConfigPath());
     const VdfNode *apps = config ? config->find({ QStringLiteral("UserLocalConfigStore"), QStringLiteral("Software"), QStringLiteral("Valve"),
-                                                    QStringLiteral("Steam"), QStringLiteral("apps") })
+                                       QStringLiteral("Steam"), QStringLiteral("apps") })
                                  : nullptr;
     const VdfNode *app = apps ? apps->child(appId) : nullptr;
     return app ? app->valueOf(QStringLiteral("LaunchOptions")) : QString();

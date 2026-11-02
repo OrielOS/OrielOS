@@ -72,7 +72,8 @@ private Q_SLOTS:
         QTest::addColumn<QString>("options");
         QTest::addColumn<GameOptions>("expected");
         QTest::newRow("none") << QString() << GameOptions { };
-        QTest::newRow("all") << QStringLiteral("PROTON_DLSS_UPGRADE=1 PROTON_ENABLE_WAYLAND=1 MANGOHUD=1 VKD3D_CONFIG=descriptor_heap gamemoderun gamescope -f -- %command%")
+        QTest::newRow("all") << QStringLiteral(
+            "PROTON_DLSS_UPGRADE=1 PROTON_ENABLE_WAYLAND=1 MANGOHUD=1 VKD3D_CONFIG=descriptor_heap gamemoderun gamescope -f -- %command%")
                              << GameOptions { true, true, true, true, true, true };
         QTest::newRow("arguments only") << QStringLiteral("-novid -high") << GameOptions { };
     }
@@ -119,16 +120,20 @@ private Q_SLOTS:
         const QString root = dir.filePath(QStringLiteral("Steam"));
         const QString second = dir.filePath(QStringLiteral("Games"));
         write(root + QStringLiteral("/steamapps/libraryfolders.vdf"),
-            QStringLiteral("\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"%1\"\n\t}\n\t\"1\"\n\t{\n\t\t\"path\"\t\t\"%2\"\n\t}\n}\n").arg(root, second).toUtf8());
+            QStringLiteral("\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"%1\"\n\t}\n\t\"1\"\n\t{\n\t\t\"path\"\t\t\"%2\"\n\t}\n}\n")
+                .arg(root, second)
+                .toUtf8());
         write(root + QStringLiteral("/steamapps/appmanifest_570.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"570\"\n\t\"name\"\t\t\"Dota 2\"\n}\n");
-        write(root + QStringLiteral("/steamapps/appmanifest_1493710.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"1493710\"\n\t\"name\"\t\t\"Proton Experimental\"\n}\n");
+        write(root + QStringLiteral("/steamapps/appmanifest_1493710.acf"),
+            "\"AppState\"\n{\n\t\"appid\"\t\t\"1493710\"\n\t\"name\"\t\t\"Proton Experimental\"\n}\n");
         write(root + QStringLiteral("/steamapps/appmanifest_2805730.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"2805730\"\n\t\"name\"\t\t\"Proton 10.0\"\n}\n");
         write(second + QStringLiteral("/steamapps/appmanifest_730.acf"), "\"AppState\"\n{\n\t\"appid\"\t\t\"730\"\n\t\"name\"\t\t\"Counter-Strike 2\"\n}\n");
         write(root + QStringLiteral("/appcache/librarycache/730/library_600x900.jpg"), "jpg");
         write(dir.filePath(QStringLiteral("ge/files/compatibilitytool.vdf")),
             "\"compatibilitytools\"\n{\n\t\"compat_tools\"\n\t{\n\t\t\"GE-Proton\"\n\t\t{\n\t\t\t\"display_name\"\t\t\"GE-Proton (Flatpak)\"\n\t\t}\n\t}\n}\n");
         write(root + QStringLiteral("/config/config.vdf"),
-            "\"InstallConfigStore\"\n{\n\t\"Software\"\n\t{\n\t\t\"Valve\"\n\t\t{\n\t\t\t\"Steam\"\n\t\t\t{\n\t\t\t\t\"CompatToolMapping\"\n\t\t\t\t{\n\t\t\t\t\t\"0\"\n\t\t\t\t\t{\n\t\t\t\t\t\t\"name\"\t\t\"GE-Proton\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n");
+            "\"InstallConfigStore\"\n{\n\t\"Software\"\n\t{\n\t\t\"Valve\"\n\t\t{\n\t\t\t\"Steam\"\n\t\t\t{\n\t\t\t\t\"CompatToolMapping\"\n\t\t\t\t{"
+            "\n\t\t\t\t\t\"0\"\n\t\t\t\t\t{\n\t\t\t\t\t\t\"name\"\t\t\"GE-Proton\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n");
         write(root + QStringLiteral("/userdata/1234/config/localconfig.vdf"), "\"UserLocalConfigStore\"\n{\n\t\"Software\"\n\t{\n\t}\n}\n");
 
         const SteamLibrary steam(root);
@@ -185,8 +190,8 @@ private Q_SLOTS:
         QVERIFY(answers.search(QStringLiteral("  ")).isEmpty());
 
         // OrielOS's own verdict wins, and adds games the list doesn't have.
-        const WillItRun ours = WillItRun::fromJson(data,
-            R"({"games": [{"name": "Valorant", "status": "Running", "reason": "Tested."}, {"name": "Our Game", "status": "Supported"}]})");
+        const WillItRun ours = WillItRun::fromJson(
+            data, R"({"games": [{"name": "Valorant", "status": "Running", "reason": "Tested."}, {"name": "Our Game", "status": "Supported"}]})");
         QCOMPARE(ours.search(QStringLiteral("valorant")).first().status, Verdict::Status::Works);
         QCOMPARE(ours.search(QStringLiteral("valorant")).first().reason, QStringLiteral("Tested."));
         QCOMPARE(ours.search(QStringLiteral("our game")).first().status, Verdict::Status::Works);

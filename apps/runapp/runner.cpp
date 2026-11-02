@@ -8,17 +8,17 @@
 #include <KFormat>
 #include <KLocalizedString>
 
+#include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
-#include <QCoreApplication>
-#include <QSaveFile>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QNetworkAccessManager>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QProcessEnvironment>
+#include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QUrl>

@@ -82,7 +82,8 @@ void GameSettings::fetchWillItRun()
     QNetworkReply *reply = network->get(request);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         reply->deleteLater();
-        const QByteArray copy = reply->error() == QNetworkReply::NoError ? WillItRun::trimmed(reply->readAll(), QDate::currentDate().toString(Qt::ISODate)) : QByteArray();
+        const QByteArray copy
+            = reply->error() == QNetworkReply::NoError ? WillItRun::trimmed(reply->readAll(), QDate::currentDate().toString(Qt::ISODate)) : QByteArray();
         if (copy.isEmpty()) {
             return;
         }
@@ -117,14 +118,16 @@ void GameSettings::reload()
 {
     m_games = m_library.games();
     m_tools = m_library.compatTools(extensionFolders);
-    m_steamRunning = runQuietly(QStringLiteral("flatpak"), { QStringLiteral("ps"), QStringLiteral("--columns=application") }).split(QLatin1Char('\n')).contains(steamApp);
+    m_steamRunning
+        = runQuietly(QStringLiteral("flatpak"), { QStringLiteral("ps"), QStringLiteral("--columns=application") }).split(QLatin1Char('\n')).contains(steamApp);
     ++m_revision;
     Q_EMIT changed();
 }
 
 void GameSettings::checkSteam()
 {
-    const bool running = runQuietly(QStringLiteral("flatpak"), { QStringLiteral("ps"), QStringLiteral("--columns=application") }).split(QLatin1Char('\n')).contains(steamApp);
+    const bool running
+        = runQuietly(QStringLiteral("flatpak"), { QStringLiteral("ps"), QStringLiteral("--columns=application") }).split(QLatin1Char('\n')).contains(steamApp);
     if (running != m_steamRunning) {
         m_steamRunning = running;
         if (!running) {
@@ -133,7 +136,7 @@ void GameSettings::checkSteam()
             return;
         }
         ++m_revision;
-    Q_EMIT changed();
+        Q_EMIT changed();
     }
 }
 
@@ -148,7 +151,8 @@ QVariantList GameSettings::games() const
 
 QVariantList GameSettings::tools() const
 {
-    QVariantList out { QVariantMap { { QStringLiteral("id"), QString() }, { QStringLiteral("name"), i18nc("@item:inlistbox", "Steam's default (GE-Proton)") } } };
+    QVariantList out { QVariantMap {
+        { QStringLiteral("id"), QString() }, { QStringLiteral("name"), i18nc("@item:inlistbox", "Steam's default (GE-Proton)") } } };
     for (const CompatTool &tool : m_tools) {
         out.append(QVariantMap { { QStringLiteral("id"), tool.id }, { QStringLiteral("name"), tool.displayName } });
     }
@@ -174,7 +178,8 @@ void GameSettings::setTool(const QString &appId, const QString &toolId)
     if (m_steamRunning) {
         return;
     }
-    m_error = m_library.setCompatTool(appId, toolId) ? QString() : i18nc("@info", "Steam's settings couldn't be changed. Start Steam once, close it, then try again.");
+    m_error = m_library.setCompatTool(appId, toolId) ? QString()
+                                                     : i18nc("@info", "Steam's settings couldn't be changed. Start Steam once, close it, then try again.");
     ++m_revision;
     Q_EMIT changed();
 }
@@ -204,8 +209,9 @@ void GameSettings::setOption(const QString &appId, const QString &name, bool on)
     } else {
         return;
     }
-    m_error = m_library.setLaunchOptions(appId, options.apply(current)) ? QString()
-                                                                        : i18nc("@info", "Steam's settings couldn't be changed. Start Steam once, close it, then try again.");
+    m_error = m_library.setLaunchOptions(appId, options.apply(current))
+        ? QString()
+        : i18nc("@info", "Steam's settings couldn't be changed. Start Steam once, close it, then try again.");
     ++m_revision;
     Q_EMIT changed();
 }
@@ -227,7 +233,8 @@ QString GameSettings::missingAddon(const QString &name) const
 void GameSettings::installAddon(const QString &addon)
 {
     if (addon == QLatin1String("gamescope")) {
-        runDetached(QStringLiteral("flatpak"), { QStringLiteral("install"), QStringLiteral("--noninteractive"), QStringLiteral("flathub"), gamescopeExtension + QStringLiteral("//stable") });
+        runDetached(QStringLiteral("flatpak"),
+            { QStringLiteral("install"), QStringLiteral("--noninteractive"), QStringLiteral("flathub"), gamescopeExtension + QStringLiteral("//stable") });
     } else if (addon == QLatin1String("overlay")) {
         runDetached(QStringLiteral("/usr/libexec/orielos/fps-overlay"), { QStringLiteral("steam-addon") });
     }

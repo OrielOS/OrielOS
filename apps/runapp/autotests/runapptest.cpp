@@ -301,10 +301,12 @@ private Q_SLOTS:
         QTest::addColumn<QString>("store");
         QTest::addColumn<bool>("launcher");
         QTest::addColumn<bool>("package");
-        QTest::newRow("discord") << QStringLiteral("DiscordSetup.exe") << QStringLiteral("Discord") << QStringLiteral("com.discordapp.Discord") << false << false;
-        QTest::newRow("spotify") << QStringLiteral("SpotifyFullSetup.exe") << QStringLiteral("Spotify") << QStringLiteral("com.spotify.Client") << false << false;
-        QTest::newRow("obs") << QStringLiteral("OBS-Studio-31.0-Windows-Installer.exe") << QStringLiteral("OBS Studio") << QStringLiteral("com.obsproject.Studio")
-                             << false << false;
+        QTest::newRow("discord") << QStringLiteral("DiscordSetup.exe") << QStringLiteral("Discord") << QStringLiteral("com.discordapp.Discord") << false
+                                 << false;
+        QTest::newRow("spotify") << QStringLiteral("SpotifyFullSetup.exe") << QStringLiteral("Spotify") << QStringLiteral("com.spotify.Client") << false
+                                 << false;
+        QTest::newRow("obs") << QStringLiteral("OBS-Studio-31.0-Windows-Installer.exe") << QStringLiteral("OBS Studio")
+                             << QStringLiteral("com.obsproject.Studio") << false << false;
         QTest::newRow("epic") << QStringLiteral("EpicInstaller-18.4.0.msi") << QStringLiteral("Epic Games Launcher") << QString() << true << false;
         QTest::newRow("gog") << QStringLiteral("GOG_Galaxy_2.0.exe") << QStringLiteral("GOG Galaxy") << QString() << true << false;
         QTest::newRow("battle.net") << QStringLiteral("Battle.net-Setup.exe") << QStringLiteral("Battle.net") << QString() << true << false;
