@@ -14,7 +14,8 @@ set -Eeuo pipefail
 
 GRUB_CFG="${ORIELOS_GRUB_CFG:-/boot/grub2/grub.cfg}"
 SNIPPETS="${ORIELOS_GRUB_STATIC:-/usr/lib/bootupd/grub2-static}/configs.d"
-TMP=""
+WORK=""
+PART=""
 
 # Copies each OrielOS section from its snippet in place of the file's own, and adds the missing
 # ones before the first of bootupd's sections that sorts after them. Sections nested inside a
@@ -67,7 +68,21 @@ log() {
 }
 
 cleanup() {
-    if [[ -n "$TMP" ]]; then rm -f "$TMP"; fi
+    if [[ -n "$WORK" ]]; then rm -rf "$WORK"; fi
+    if [[ -n "$PART" ]]; then rm -f "$PART"; fi
+}
+
+# /boot is read-only on most installations (a bind mount of the read-only /sysroot). The service
+# runs with PrivateMounts=yes, so making it writable here doesn't reach the rest of the system.
+make_writable() {
+    local dir="$1" target
+    [[ -w "$dir" ]] && return 0
+    target="$(findmnt -no TARGET -T "$dir")"
+    # A bind mount's own flag first, which leaves the file system's options alone.
+    if ! mount -o remount,bind,rw "$target" 2>/dev/null && ! mount -o remount,rw "$target"; then
+        log "couldn't make $target writable; keeping $GRUB_CFG as it is"
+        exit 1
+    fi
 }
 
 main() {
@@ -97,19 +112,24 @@ main() {
     done
     if [[ ${#ours[@]} -eq 0 ]]; then return 0; fi
 
+    # The new file is put together outside /boot, so a start with nothing to change never writes there.
     trap cleanup EXIT
-    TMP="$(mktemp "$GRUB_CFG.XXXXXX")"
-    awk -v dir="$SNIPPETS" -v ours="${ours[*]}" -v missing="${missing[*]}" "$REWRITE" "$GRUB_CFG" >"$TMP"
-    if cmp -s "$TMP" "$GRUB_CFG"; then return 0; fi
-    if ! grub2-script-check "$TMP"; then
+    WORK="$(mktemp -d)"
+    awk -v dir="$SNIPPETS" -v ours="${ours[*]}" -v missing="${missing[*]}" "$REWRITE" "$GRUB_CFG" >"$WORK/grub.cfg"
+    if cmp -s "$WORK/grub.cfg" "$GRUB_CFG"; then return 0; fi
+    if ! grub2-script-check "$WORK/grub.cfg"; then
         log "the new boot menu configuration has errors; keeping $GRUB_CFG as it is"
         exit 1
     fi
-    chmod --reference="$GRUB_CFG" "$TMP"
-    chcon --reference="$GRUB_CFG" "$TMP" 2>/dev/null || true
-    sync -f "$TMP"
-    mv -f "$TMP" "$GRUB_CFG"
-    TMP=""
+
+    make_writable "$(dirname "$GRUB_CFG")"
+    PART="$(mktemp "$GRUB_CFG.XXXXXX")"
+    cp "$WORK/grub.cfg" "$PART"
+    chmod --reference="$GRUB_CFG" "$PART"
+    chcon --reference="$GRUB_CFG" "$PART" 2>/dev/null || true
+    sync -f "$PART"
+    mv -f "$PART" "$GRUB_CFG"
+    PART=""
     sync -f "$GRUB_CFG"
     log "brought OrielOS's boot menu sections up to date: ${ours[*]}"
 }

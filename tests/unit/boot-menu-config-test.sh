@@ -77,6 +77,7 @@ load_env -f "${orielos_env}" orielos_boot_ok orielos_trial orielos_fails
 fwsetup --is-supported
 ### END 30_uefi-firmware.cfg ###
 CFG
+    # shellcheck disable=SC2016 # GRUB's variables, written as they are
     printf 'set timeout_style=hidden\nload_env -f "${orielos_env}" orielos_boot_ok orielos_trial orielos_fails orielos_menu\n' >"$STATIC/configs.d/12_orielos-menu.cfg"
     printf 'menuentry "Windows" {\n  chainloader /EFI/Microsoft/Boot/bootmgfw.efi\n}\n' >"$STATIC/configs.d/13_orielos-windows.cfg"
     printf 'blscfg\n' >"$STATIC/configs.d/10_blscfg.cfg"
@@ -115,6 +116,10 @@ touch -d '2026-01-01' "$CFG"
 run
 check "a second run changes nothing" cmp -s "$CFG" "$WORK/after"
 check "and doesn't write the file again" test "$(date -r "$CFG" +%Y)" == 2026 -a "$(date -r "$CFG" +%m%d)" == 0101
+chmod a-w "$WORK/grub2"
+run
+check "nor needs its folder to be writable" test "$RC" -eq 0
+chmod u+w "$WORK/grub2"
 
 setup
 rm "$STATIC/configs.d/13_orielos-windows.cfg"

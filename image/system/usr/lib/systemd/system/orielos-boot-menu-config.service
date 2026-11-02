@@ -9,6 +9,9 @@ ConditionPathExists=/boot/grub2/grub.cfg
 [Service]
 Type=oneshot
 ExecStart=/usr/libexec/orielos/boot-menu-config
+# /boot is read-only on most installations: the script makes it writable in this service's own
+# mount namespace only, and only when there is something to change.
+PrivateMounts=yes
 
 [Install]
 WantedBy=multi-user.target
