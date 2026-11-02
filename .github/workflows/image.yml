@@ -34,6 +34,7 @@ on:
     paths:
       - tools/build-image.sh
       - tools/next-version.sh
+      - tools/lib/stage-inputs.sh
       - .github/workflows/image.yml
   workflow_dispatch:
 
@@ -166,11 +167,17 @@ jobs:
           echo "tag=${tag}" >>"${GITHUB_OUTPUT}"
           echo "::notice::This build is ${tag}"
 
+      # cosign checks the signature of a prebuilt stage before the build starts from it.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      # The build starts from the prebuilt OS base and build tools (.github/workflows/stages.yml)
+      # where they were built from this commit's inputs, and builds them itself otherwise.
       - name: Build the image
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           CCACHE: ${{ runner.temp }}/ccache
-        run: sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" tools/build-image.sh --version "${TAG}" --output /mnt/builds --keep 1
+        run: sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" PATH="${PATH}" tools/build-image.sh --use-published --version "${TAG}" --output /mnt/builds --keep 1
 
       # Flatpak apps need Flathub's GL extension for the image's NVIDIA driver version, or they
       # lose GPU acceleration after the update.

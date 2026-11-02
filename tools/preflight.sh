@@ -26,7 +26,7 @@ SKIPPED=0
 # The files the app build reads, as in .github/workflows/apps.yml. Markdown files never count.
 APP_PATHS=(apps plasma artwork data CMakeLists.txt image/Containerfile image/build/apps-builder.sh
     image/pins.env .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh
-    .github/workflows/apps.yml ':(exclude)*.md')
+    tools/lib/stage-inputs.sh .github/workflows/apps.yml ':(exclude)*.md')
 CONVENTIONAL='^(feat|fix|docs|chore|test|build|ci|refactor|perf|style|revert)(\([a-z0-9._/-]+\))?!?: [^ ]'
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
