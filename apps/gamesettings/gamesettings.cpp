@@ -33,6 +33,13 @@ QString antiCheatCache()
     return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + QStringLiteral("/orielos/anticheat-games.json");
 }
 
+const QString windowsPrefix = QStringLiteral("windows:");
+
+QString dataHome()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+}
+
 QByteArray readFile(const QString &path)
 {
     QFile file(path);
@@ -117,6 +124,7 @@ QVariantList GameSettings::willItRun(const QString &words) const
 void GameSettings::reload()
 {
     m_games = m_library.games();
+    m_programs = windowsPrograms(QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation));
     m_tools = m_library.compatTools(extensionFolders);
     m_steamRunning
         = runQuietly(QStringLiteral("flatpak"), { QStringLiteral("ps"), QStringLiteral("--columns=application") }).split(QLatin1Char('\n')).contains(steamApp);
@@ -144,7 +152,12 @@ QVariantList GameSettings::games() const
 {
     QVariantList out;
     for (const SteamGame &game : m_games) {
-        out.append(QVariantMap { { QStringLiteral("appId"), game.appId }, { QStringLiteral("name"), game.name }, { QStringLiteral("art"), game.art } });
+        out.append(QVariantMap { { QStringLiteral("appId"), game.appId }, { QStringLiteral("name"), game.name }, { QStringLiteral("art"), game.art },
+            { QStringLiteral("icon"), QString() }, { QStringLiteral("windows"), false } });
+    }
+    for (const WindowsProgram &program : m_programs) {
+        out.append(QVariantMap { { QStringLiteral("appId"), windowsPrefix + program.prefix }, { QStringLiteral("name"), program.name },
+            { QStringLiteral("art"), QString() }, { QStringLiteral("icon"), program.icon }, { QStringLiteral("windows"), true } });
     }
     return out;
 }
@@ -161,9 +174,10 @@ QVariantList GameSettings::tools() const
 
 QVariantMap GameSettings::settingsFor(const QString &appId) const
 {
-    const GameOptions options = GameOptions::read(m_library.launchOptions(appId));
+    const bool windows = appId.startsWith(windowsPrefix);
+    const GameOptions options = GameOptions::read(windows ? windowsLaunchOptions(dataHome(), appId.mid(windowsPrefix.size())) : m_library.launchOptions(appId));
     return {
-        { QStringLiteral("tool"), m_library.compatTool(appId) },
+        { QStringLiteral("tool"), windows ? QString() : m_library.compatTool(appId) },
         { QStringLiteral("dlssUpgrade"), options.dlssUpgrade },
         { QStringLiteral("waylandHdr"), options.waylandHdr },
         { QStringLiteral("gamescope"), options.gamescope },
@@ -186,10 +200,14 @@ void GameSettings::setTool(const QString &appId, const QString &toolId)
 
 void GameSettings::setOption(const QString &appId, const QString &name, bool on)
 {
-    if (m_steamRunning) {
+    // Programs installed with Run this app keep their options in a file of their own, which
+    // Run this app reads when it starts them; Steam's wait until Steam is closed.
+    const bool windows = appId.startsWith(windowsPrefix);
+    const QString prefix = appId.mid(windowsPrefix.size());
+    if (m_steamRunning && !windows) {
         return;
     }
-    const QString current = m_library.launchOptions(appId);
+    const QString current = windows ? windowsLaunchOptions(dataHome(), prefix) : m_library.launchOptions(appId);
     GameOptions options = GameOptions::read(current);
     if (name == QLatin1String("dlssUpgrade")) {
         options.dlssUpgrade = on;
@@ -209,9 +227,13 @@ void GameSettings::setOption(const QString &appId, const QString &name, bool on)
     } else {
         return;
     }
-    m_error = m_library.setLaunchOptions(appId, options.apply(current))
-        ? QString()
-        : i18nc("@info", "Steam's settings couldn't be changed. Start Steam once, close it, then try again.");
+    if (windows) {
+        m_error = setWindowsLaunchOptions(dataHome(), prefix, options.apply(current)) ? QString() : i18nc("@info", "The program's settings couldn't be saved.");
+    } else {
+        m_error = m_library.setLaunchOptions(appId, options.apply(current))
+            ? QString()
+            : i18nc("@info", "Steam's settings couldn't be changed. Start Steam once, close it, then try again.");
+    }
     ++m_revision;
     Q_EMIT changed();
 }

@@ -5,6 +5,7 @@
 #include "steamlibrary.h"
 #include "vdf.h"
 #include "willitrun.h"
+#include "windowsprograms.h"
 
 #include <QDir>
 #include <QFile>
@@ -204,6 +205,30 @@ private Q_SLOTS:
         QCOMPARE(cached.fetched(), QStringLiteral("2026-11-02"));
         QCOMPARE(cached.search(QStringLiteral("a game")).first().antiCheats, QStringList { QStringLiteral("BattlEye") });
         QVERIFY(WillItRun::trimmed("not json", QStringLiteral("x")).isEmpty());
+    }
+
+    void readsWindowsPrograms()
+    {
+        QTemporaryDir dir;
+        const QString apps = dir.filePath(QStringLiteral("applications"));
+        write(apps + QStringLiteral("/orielos-epic-1.desktop"),
+            "[Desktop Entry]\nName=Epic Games Launcher\nIcon=epic\nExec=orielos-run-app --launch epic x\nX-OrielOS-WindowsPrefix=epic\n");
+        write(apps + QStringLiteral("/orielos-epic-2.desktop"), "[Desktop Entry]\nName=Fortnite\nX-OrielOS-WindowsPrefix=epic\n");
+        write(apps + QStringLiteral("/orielos-7z.desktop"), "[Desktop Entry]\nName=7-Zip\nX-OrielOS-WindowsPrefix=7z\n");
+        write(apps + QStringLiteral("/firefox.desktop"), "[Desktop Entry]\nName=Firefox\n");
+        const QList<WindowsProgram> programs = windowsPrograms(apps);
+        QCOMPARE(programs.size(), 2);
+        QCOMPARE(programs.at(0).name, QStringLiteral("7-Zip"));
+        QCOMPARE(programs.at(1).prefix, QStringLiteral("epic"));
+        QCOMPARE(programs.at(1).icon, QStringLiteral("epic"));
+
+        const QString data = dir.filePath(QStringLiteral("data"));
+        QVERIFY(windowsLaunchOptions(data, QStringLiteral("epic")).isEmpty());
+        QVERIFY(setWindowsLaunchOptions(data, QStringLiteral("epic"), QStringLiteral("MANGOHUD=1 %command%")));
+        QCOMPARE(windowsLaunchOptions(data, QStringLiteral("epic")), QStringLiteral("MANGOHUD=1 %command%"));
+        QVERIFY(QFile::exists(data + QStringLiteral("/orielos/windows-apps/epic/launch-options")));
+        QVERIFY(setWindowsLaunchOptions(data, QStringLiteral("epic"), QString()));
+        QVERIFY(!QFile::exists(data + QStringLiteral("/orielos/windows-apps/epic/launch-options")));
     }
 
     void withoutSteam()

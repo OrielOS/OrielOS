@@ -52,6 +52,14 @@ struct Command
 };
 Command command(const QString &prefix, const QString &filePath, const QStringList &arguments = { });
 
+// Where Game Settings keeps a program's launch options, in the form Steam's take ("MANGOHUD=1
+// gamemoderun %command%"): beside its prefix, at orielos/windows-apps/<name>/launch-options.
+QString launchOptionsFile(const QString &dataHome, const QString &name);
+// The command with launch options applied: variables before %command% go into its environment,
+// other words before it run the command (gamemoderun, gamescope -f --), and words after it are
+// added to the program's arguments. Options without %command% are all arguments.
+Command withLaunchOptions(Command command, const QString &options);
+
 // Whether umu-launcher still has to download GE-Proton or its runtime: true when dataHome has no
 // Steam/compatibilitytools.d/GE-Proton* and no umu folder.
 bool needsFirstDownload(const QString &dataHome);

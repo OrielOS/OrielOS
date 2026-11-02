@@ -344,6 +344,27 @@ private Q_SLOTS:
         QVERIFY(!knownApp(data, QStringLiteral("SteamworksTool.exe")));
     }
 
+    void appliesLaunchOptions()
+    {
+        const Command base = command(QStringLiteral("/p"), QStringLiteral("/p/game.exe"), { QStringLiteral("-x") });
+        QCOMPARE(launchOptionsFile(QStringLiteral("/d"), QStringLiteral("epic")), QStringLiteral("/d/orielos/windows-apps/epic/launch-options"));
+
+        const Command none = withLaunchOptions(base, QString());
+        QCOMPARE(none.program, QStringLiteral("umu-run"));
+        QCOMPARE(none.arguments, base.arguments);
+
+        const Command all = withLaunchOptions(base, QStringLiteral("MANGOHUD=1 PROTON_DLSS_UPGRADE=1 gamemoderun gamescope -f -- %command% -novid"));
+        QCOMPARE(all.environment.value(QStringLiteral("MANGOHUD")), QStringLiteral("1"));
+        QCOMPARE(all.environment.value(QStringLiteral("PROTON_DLSS_UPGRADE")), QStringLiteral("1"));
+        QCOMPARE(all.environment.value(QStringLiteral("WINEPREFIX")), QStringLiteral("/p"));
+        QCOMPARE(all.program, QStringLiteral("gamemoderun"));
+        QCOMPARE(all.arguments, (QStringList { QStringLiteral("gamescope"), QStringLiteral("-f"), QStringLiteral("--"), QStringLiteral("umu-run"),
+                                    QStringLiteral("/p/game.exe"), QStringLiteral("-x"), QStringLiteral("-novid") }));
+
+        // Without %command%, everything is the program's arguments.
+        QCOMPARE(withLaunchOptions(base, QStringLiteral("-novid")).arguments.last(), QStringLiteral("-novid"));
+    }
+
     void choosesTheList()
     {
         QTemporaryDir dir;

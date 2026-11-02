@@ -6,7 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
-- Game Settings, a new app: for each game in Steam from the Store, choose the Proton version and turn on the DLSS upgrade, HDR, gamescope, the FPS overlay, GameMode or DX12 descriptor heaps. Settings → Gaming opens it.
+- Game Settings, a new app: for each game in Steam from the Store, choose the Proton version and turn on the DLSS upgrade, HDR, gamescope, the FPS overlay, GameMode or DX12 descriptor heaps. Settings → Gaming opens it. Programs installed with Run this app, such as game stores' launchers, are listed too.
 - Game Settings' Will it run? says whether a game with anti-cheat runs on OrielOS, from AreWeAntiCheatYet's list, kept up to date online.
 - Git and Distrobox are in OrielOS, next to Podman and Toolbx, and a new guide, Writing code on OrielOS, explains setting up containers, an editor and command-line tools.
 - Run this app knows common programs: it offers the Store's version of apps such as Discord and Spotify first, notes what to expect from game stores' launchers, and explains before anything runs that Microsoft Store packages (MSIX) can't run on OrielOS, offering the web version where there is one.
