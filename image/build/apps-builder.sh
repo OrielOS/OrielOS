@@ -14,7 +14,7 @@ step() { printf '==> %s\n' "$1"; }
 
 deps() {
     dnf -y install --setopt=install_weak_deps=False \
-        cmake ninja-build gcc-c++ ccache extra-cmake-modules \
+        cmake ninja-build gcc-c++ ccache mold extra-cmake-modules \
         qt6-qtbase-devel qt6-qtdeclarative-devel \
         kf6-kirigami-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
         libplasma-devel kf6-kconfig-devel \
@@ -53,8 +53,9 @@ lint_qml() {
 }
 
 build_apps() {
-    # A compiler cache mounted at /ccache (tools/test-apps.sh with ORIELOS_CCACHE_DIR) is used
-    # for the build; without it, as in the image build, everything compiles from scratch.
+    # A compiler cache mounted at /ccache (ORIELOS_CCACHE_DIR in tools/test-apps.sh and
+    # tools/build-image.sh) is used for the build; without it, everything compiles from scratch.
+    # mold links: links aren't cached, so they are much of a build with a warm cache.
     local launcher=()
     if [[ -d "$ccache_dir" ]]; then
         export CCACHE_DIR="$ccache_dir"
@@ -64,7 +65,8 @@ build_apps() {
     fi
     step "Configuring"
     cmake -S "$src" -B "$build" -G Ninja "${launcher[@]}" \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTING=ON
+        -DCMAKE_LINKER_TYPE=MOLD -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr \
+        -DBUILD_TESTING=ON
     step "Building"
     cmake --build "$build"
     if [[ -d "$ccache_dir" ]]; then ccache --show-stats; fi
