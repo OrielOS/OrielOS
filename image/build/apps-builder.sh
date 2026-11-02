@@ -8,12 +8,13 @@ if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
 src=/src
 build=/src/build
+ccache_dir=/ccache
 
 step() { printf '==> %s\n' "$1"; }
 
 deps() {
     dnf -y install --setopt=install_weak_deps=False \
-        cmake ninja-build gcc-c++ extra-cmake-modules \
+        cmake ninja-build gcc-c++ ccache extra-cmake-modules \
         qt6-qtbase-devel qt6-qtdeclarative-devel \
         kf6-kirigami-devel kf6-ki18n-devel kf6-kcoreaddons-devel \
         libplasma-devel kf6-kconfig-devel \
@@ -52,11 +53,21 @@ lint_qml() {
 }
 
 build_apps() {
+    # A compiler cache mounted at /ccache (tools/test-apps.sh with ORIELOS_CCACHE_DIR) is used
+    # for the build; without it, as in the image build, everything compiles from scratch.
+    local launcher=()
+    if [[ -d "$ccache_dir" ]]; then
+        export CCACHE_DIR="$ccache_dir"
+        ccache --max-size=2G >/dev/null
+        ccache --zero-stats >/dev/null
+        launcher=(-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
+    fi
     step "Configuring"
-    cmake -S "$src" -B "$build" -G Ninja \
+    cmake -S "$src" -B "$build" -G Ninja "${launcher[@]}" \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTING=ON
     step "Building"
     cmake --build "$build"
+    if [[ -d "$ccache_dir" ]]; then ccache --show-stats; fi
     step "Running the tests"
     QT_QPA_PLATFORM=offscreen ctest --test-dir "$build" --output-on-failure --verbose
     lint_qml
