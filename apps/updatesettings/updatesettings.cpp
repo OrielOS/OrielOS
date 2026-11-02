@@ -67,6 +67,7 @@ UpdateSettings::UpdateSettings(QObject *parent)
     m_environment.now = [] { return QDateTime::currentDateTimeUtc(); };
     m_environment.restart = logoutAndReboot;
     m_environment.changelogPath = QStringLiteral("/usr/share/doc/orielos/CHANGELOG.md");
+    m_environment.stagedChangelogPath = QStringLiteral("/var/lib/orielos/update/staged-changelog.md");
     init();
 }
 
@@ -318,6 +319,20 @@ QString UpdateSettings::whatsNew() const
         return { };
     }
     return changelogSection(QString::fromUtf8(file.readAll()), m_state.running().version);
+}
+
+QString UpdateSettings::stagedWhatsNew() const
+{
+    if (!updateWaiting()) {
+        return { };
+    }
+    QFile installed(m_environment.changelogPath);
+    QFile incoming(m_environment.stagedChangelogPath);
+    if (m_environment.changelogPath.isEmpty() || m_environment.stagedChangelogPath.isEmpty() || !installed.open(QIODevice::ReadOnly)
+        || !incoming.open(QIODevice::ReadOnly)) {
+        return { };
+    }
+    return changesSince(QString::fromUtf8(installed.readAll()), QString::fromUtf8(incoming.readAll()), m_state.running().version);
 }
 
 void UpdateSettings::run(const QStringList &arguments)

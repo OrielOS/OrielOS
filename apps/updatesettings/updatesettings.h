@@ -74,6 +74,8 @@ class UpdateSettings : public QObject
     Q_PROPERTY(QVariantList history READ history NOTIFY changed)
     // What's new in the running version, as Markdown from OrielOS's changelog, or empty.
     Q_PROPERTY(QString whatsNew READ whatsNew NOTIFY changed)
+    // What the update waiting for a restart brings, as Markdown from its changelog, or empty.
+    Q_PROPERTY(QString stagedWhatsNew READ stagedWhatsNew NOTIFY changed)
 
 public:
     // Where the page reads from and what it runs. The tests pass their own; the page doesn't own
@@ -88,6 +90,8 @@ public:
         std::function<void()> restart;
         // OrielOS's changelog, which the image carries.
         QString changelogPath;
+        // The changelog of the update waiting for a restart, which orielos-update copies out of it.
+        QString stagedChangelogPath;
         // How long a requested check may take to start before the page stops waiting for it.
         std::chrono::milliseconds checkStartTimeout = std::chrono::seconds(30);
     };
@@ -128,6 +132,7 @@ public:
     bool autoRestart() const { return m_state.autoRestart(); }
     QVariantList history() const;
     QString whatsNew() const;
+    QString stagedWhatsNew() const;
 
     Q_INVOKABLE void checkForUpdates();
     Q_INVOKABLE void pause(int weeks);

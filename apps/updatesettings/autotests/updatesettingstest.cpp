@@ -108,6 +108,8 @@ struct Page
         environment.now = [] { return now; };
         environment.restart = [this] { ++restarts; };
         environment.checkStartTimeout = checkStartTimeout;
+        environment.changelogPath = dir.filePath(QStringLiteral("CHANGELOG.md"));
+        environment.stagedChangelogPath = dir.filePath(QStringLiteral("staged-changelog.md"));
         settings = std::make_unique<UpdateSettings>(environment);
     }
 
@@ -210,6 +212,31 @@ private Q_SLOTS:
         // orielos-update keeps the previous build while another one waits.
         QVERIFY(settings.canGoBack());
         QVERIFY(!settings.canRemovePrevious());
+    }
+
+    void saysWhatAWaitingUpdateBrings()
+    {
+        Page page(upToDate());
+        const auto writeFile = [&page](const QString &name, const QByteArray &text) {
+            QFile file(page.dir.filePath(name));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(text);
+        };
+        writeFile(QStringLiteral("CHANGELOG.md"), "## [Unreleased]\n\n### Added\n\n- A.\n");
+        writeFile(QStringLiteral("staged-changelog.md"), "## [Unreleased]\n\n### Added\n\n- A.\n- B.\n");
+        // Nothing waits, so there's nothing to say.
+        QCOMPARE(page.settings->stagedWhatsNew(), QString());
+
+        QJsonObject state = upToDate();
+        state.insert(QStringLiteral("staged"), build(QStringLiteral("44.2"), newer));
+        state.insert(QStringLiteral("result"), QStringLiteral("staged"));
+        page.write(state);
+        QTRY_VERIFY(page.settings->updateWaiting());
+        QCOMPARE(page.settings->stagedWhatsNew(), QStringLiteral("### Added\n\n- B."));
+
+        // Without the waiting build's changelog, there's nothing to say either.
+        QVERIFY(QFile::remove(page.dir.filePath(QStringLiteral("staged-changelog.md"))));
+        QCOMPARE(page.settings->stagedWhatsNew(), QString());
     }
 
     void readsAPause()

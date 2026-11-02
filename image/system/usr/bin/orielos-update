@@ -88,6 +88,12 @@ HISTORY="$STATE_DIR/history"
 # Restarts for updates: one someone scheduled, the active hours and automatic restarts.
 RESTART="$STATE_DIR/restart"
 RESTART_UNIT="orielos-scheduled-restart"
+# The changelog of the build staged for the next restart, so the desktop can say what's new in it
+# before anyone restarts, and the digest it belongs to.
+STAGED_CHANGELOG="$STATE_DIR/staged-changelog.md"
+STAGED_CHANGELOG_DIGEST="$STATE_DIR/staged-changelog.digest"
+# Where each build carries its changelog.
+CHANGELOG_IN_IMAGE=/usr/share/doc/orielos/CHANGELOG.md
 BOOT_FLAGS="$PREFIX/usr/libexec/orielos/boot-flags"
 KEEP_DAYS=14
 BUILD_INFO="$PREFIX/usr/lib/orielos/build-info"
@@ -373,6 +379,34 @@ boot_flags() {
 #END
 
 #BEGIN The state file for the desktop
+# Copy the staged build's changelog out of its ostree commit, once per staged build, and remove
+# the copy when nothing is staged. A build without one, such as one from before builds carried it,
+# leaves no copy, and the desktop then says nothing about what's new.
+keep_staged_changelog() {
+    local digest checksum tmp
+    if ! has_deployment staged; then
+        rm -f "$STAGED_CHANGELOG" "$STAGED_CHANGELOG_DIGEST"
+        return 0
+    fi
+    digest="$(field staged digest)"
+    if [[ -r "$STAGED_CHANGELOG" && "$(cat "$STAGED_CHANGELOG_DIGEST" 2>/dev/null)" == "$digest" ]]; then
+        return 0
+    fi
+    rm -f "$STAGED_CHANGELOG" "$STAGED_CHANGELOG_DIGEST"
+    checksum="$(jq -r '.status.staged.ostree.checksum // empty' <<<"$STATUS_JSON")"
+    [[ "$checksum" =~ ^[0-9a-f]{64}$ ]] || return 0
+    command -v ostree >/dev/null 2>&1 || return 0
+    mkdir -p "$STATE_DIR"
+    tmp="$(mktemp "$STAGED_CHANGELOG.XXXXXX")"
+    if ostree --repo=/ostree/repo cat "$checksum" "$CHANGELOG_IN_IMAGE" >"$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
+        chmod 0644 "$tmp"
+        mv -f "$tmp" "$STAGED_CHANGELOG"
+        printf '%s\n' "$digest" >"$STAGED_CHANGELOG_DIGEST"
+    else
+        rm -f "$tmp"
+    fi
+}
+
 # Write state.json, the desktop's view of updates, atomically and readable by everyone. It
 # describes this boot only: readers compare its bootId with their own.
 #   write_state <result> <message> <checked at or "">
@@ -395,6 +429,7 @@ write_state() {
               removedAfter: (if $removal == "" then null else $removal end)}')"
     fi
     mkdir -p "$STATE_DIR"
+    keep_staged_changelog
     tmp="$(mktemp "$STATE_FILE.XXXXXX")"
     jq -n \
         --arg bootId "$boot_id" \

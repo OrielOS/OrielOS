@@ -6,11 +6,14 @@
 #include <KLocalizedString>
 
 #include <QFile>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
+#include <QSet>
 #include <QStringList>
+#include <QVersionNumber>
 
 namespace OrielOSUpdates {
 
@@ -233,6 +236,127 @@ QString changelogSection(const QString &changelog, const QString &version)
     }
     const QString own = number.isEmpty() ? QString() : section(number);
     return own.isEmpty() ? section(QStringLiteral("Unreleased")) : own;
+}
+
+QString changesSince(const QString &installedChangelog, const QString &incomingChangelog, const QString &installedVersion)
+{
+    const auto cleanLines = [](const QString &text) {
+        QStringList lines = text.split(QLatin1Char('\n'));
+        for (QString &line : lines) {
+            while (!line.isEmpty() && line.back().isSpace()) {
+                line.chop(1);
+            }
+        }
+        return lines;
+    };
+    QSet<QString> known;
+    for (const QString &line : cleanLines(installedChangelog)) {
+        if (!line.isEmpty()) {
+            known.insert(line);
+        }
+    }
+    const QVersionNumber installed = QVersionNumber::fromString(installedVersion.startsWith(QLatin1Char('v')) ? installedVersion.mid(1) : installedVersion);
+
+    QStringList groups;
+    QHash<QString, QStringList> entries;
+    QString group;
+    QStringList block;
+    bool changed = false;
+    bool inside = false;
+    const auto closeBlock = [&]() {
+        if (!block.isEmpty() && changed) {
+            if (!entries.contains(group)) {
+                groups.append(group);
+            }
+            entries[group].append(block);
+        }
+        block.clear();
+        changed = false;
+    };
+    const auto take = [&](const QString &line) {
+        block.append(line);
+        changed = changed || !known.contains(line);
+    };
+    for (const QString &line : cleanLines(incomingChangelog)) {
+        if (line.startsWith(QLatin1String("## "))) {
+            closeBlock();
+            group.clear();
+            // A version's section counts only if it's newer than the running version.
+            const qsizetype close = line.indexOf(QLatin1Char(']'));
+            const QString name = line.startsWith(QLatin1String("## [")) && close > 4 ? line.mid(4, close - 4) : QString();
+            if (name == QLatin1String("Unreleased")) {
+                inside = true;
+            } else {
+                const QVersionNumber version = QVersionNumber::fromString(name);
+                inside = !installed.isNull() && !version.isNull() && version > installed;
+            }
+            continue;
+        }
+        if (!inside) {
+            continue;
+        }
+        if (line.startsWith(QLatin1String("### "))) {
+            closeBlock();
+            group = line;
+        } else if (line.startsWith(QLatin1String("- "))) {
+            closeBlock();
+            take(line);
+        } else if (!line.isEmpty() && line.front().isSpace() && !block.isEmpty()) {
+            take(line);
+        } else if (!line.isEmpty()) {
+            // Any other text is a block of its own, so nothing is lost.
+            closeBlock();
+            take(line);
+        } else {
+            closeBlock();
+        }
+    }
+    closeBlock();
+
+    QStringList parts;
+    for (const QString &name : std::as_const(groups)) {
+        const QString body = entries.value(name).join(QLatin1Char('\n'));
+        parts.append(name.isEmpty() ? body : name + QLatin1String("\n\n") + body);
+    }
+    return parts.join(QLatin1String("\n\n"));
+}
+
+int changeCount(const QString &changes, const QString &heading)
+{
+    int count = 0;
+    bool inside = false;
+    for (const QString &line : changes.split(QLatin1Char('\n'))) {
+        if (line.startsWith(QLatin1String("### "))) {
+            inside = line.mid(4).trimmed() == heading;
+        } else if (inside && line.startsWith(QLatin1String("- "))) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+QString changeSummary(const QString &changes)
+{
+    QStringList parts;
+    if (const int added = changeCount(changes, QStringLiteral("Added")); added > 0) {
+        parts.append(i18ncp("@info part of a list of changes", "%1 new feature", "%1 new features", added));
+    }
+    if (const int changed = changeCount(changes, QStringLiteral("Changed")); changed > 0) {
+        parts.append(i18ncp("@info part of a list of changes", "%1 change", "%1 changes", changed));
+    }
+    if (const int fixed = changeCount(changes, QStringLiteral("Fixed")); fixed > 0) {
+        parts.append(i18ncp("@info part of a list of changes", "%1 fix", "%1 fixes", fixed));
+    }
+    switch (parts.size()) {
+    case 0:
+        return { };
+    case 1:
+        return parts.constFirst();
+    case 2:
+        return i18nc("@info two parts of a list of changes", "%1 and %2", parts.at(0), parts.at(1));
+    default:
+        return i18nc("@info three parts of a list of changes", "%1, %2 and %3", parts.at(0), parts.at(1), parts.at(2));
+    }
 }
 
 } // namespace OrielOSUpdates
