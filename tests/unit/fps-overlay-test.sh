@@ -52,6 +52,7 @@ check "and writes MangoHud's settings, hidden" grep -qx 'no_display' "$CONF"
 check "status says it's on and hidden" status_is enabled=on
 check "status says hidden" status_is shown=no
 check "it shows the frame rate alone" grep -qx 'fps_only' "$CONF"
+check "processor and graphics card labels are grey, as the graphics API's is" grep -qx 'cpu_color=8A93A6' "$CONF"
 
 run toggle
 check "Windows + G shows it" test "$OUT" == yes
