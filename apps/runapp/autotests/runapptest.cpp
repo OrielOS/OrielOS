@@ -293,6 +293,77 @@ private Q_SLOTS:
         QCOMPARE(writeStartEntry(applications, QStringLiteral("foo"), shortcut), path);
         QCOMPARE(QDir(applications).entryList(QDir::Files).size(), 1);
     }
+
+    void knowsApps_data()
+    {
+        QTest::addColumn<QString>("fileName");
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<QString>("store");
+        QTest::addColumn<bool>("launcher");
+        QTest::addColumn<bool>("package");
+        QTest::newRow("discord") << QStringLiteral("DiscordSetup.exe") << QStringLiteral("Discord") << QStringLiteral("com.discordapp.Discord") << false
+                                 << false;
+        QTest::newRow("spotify") << QStringLiteral("SpotifyFullSetup.exe") << QStringLiteral("Spotify") << QStringLiteral("com.spotify.Client") << false
+                                 << false;
+        QTest::newRow("obs") << QStringLiteral("OBS-Studio-31.0-Windows-Installer.exe") << QStringLiteral("OBS Studio")
+                             << QStringLiteral("com.obsproject.Studio") << false << false;
+        QTest::newRow("epic") << QStringLiteral("EpicInstaller-18.4.0.msi") << QStringLiteral("Epic Games Launcher") << QString() << true << false;
+        QTest::newRow("gog") << QStringLiteral("GOG_Galaxy_2.0.exe") << QStringLiteral("GOG Galaxy") << QString() << true << false;
+        QTest::newRow("battle.net") << QStringLiteral("Battle.net-Setup.exe") << QStringLiteral("Battle.net") << QString() << true << false;
+        QTest::newRow("ea") << QStringLiteral("EAappInstaller.exe") << QStringLiteral("EA app") << QString() << true << false;
+        QTest::newRow("ubisoft") << QStringLiteral("UbisoftConnectInstaller.exe") << QStringLiteral("Ubisoft Connect") << QString() << true << false;
+        QTest::newRow("rockstar") << QStringLiteral("Rockstar-Games-Launcher.exe") << QStringLiteral("Rockstar Games Launcher") << QString() << true << false;
+        QTest::newRow("claude") << QStringLiteral("Claude Setup.exe") << QStringLiteral("Claude") << QString() << false << true;
+        QTest::newRow("any msix") << QStringLiteral("SomeApp_1.2.msixbundle") << QString() << QString() << false << true;
+    }
+
+    void knowsApps()
+    {
+        QFETCH(QString, fileName);
+        QFETCH(QString, name);
+        QFETCH(QString, store);
+        QFETCH(bool, launcher);
+        QFETCH(bool, package);
+        QFile list(QStringLiteral(KNOWN_APPS_JSON));
+        QVERIFY(list.open(QIODevice::ReadOnly));
+        const auto known = knownApp(list.readAll(), fileName);
+        QVERIFY(known);
+        QCOMPARE(known->name, name);
+        QCOMPARE(known->store, store);
+        QCOMPARE(known->launcher, launcher);
+        QCOMPARE(known->package, package);
+    }
+
+    void doesntKnowOthers()
+    {
+        QFile list(QStringLiteral(KNOWN_APPS_JSON));
+        QVERIFY(list.open(QIODevice::ReadOnly));
+        const QByteArray data = list.readAll();
+        QVERIFY(!knownApp(data, QStringLiteral("7z2605-x64.exe")));
+        // A name that only starts like a known one isn't it.
+        QVERIFY(!knownApp(data, QStringLiteral("SteamworksTool.exe")));
+    }
+
+    void choosesTheList()
+    {
+        QTemporaryDir dir;
+        const QString bundled = dir.filePath(QStringLiteral("bundled.json"));
+        const QString fetched = dir.filePath(QStringLiteral("fetched.json"));
+        const auto write = [](const QString &path, const QByteArray &data) {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(data);
+        };
+        write(bundled, R"({"version": 2, "apps": [{"name": "Bundled"}]})");
+        // Nothing fetched yet, or a broken or older copy: the image's.
+        QVERIFY(knownAppsList(fetched, bundled).contains("Bundled"));
+        write(fetched, "not json");
+        QVERIFY(knownAppsList(fetched, bundled).contains("Bundled"));
+        write(fetched, R"({"version": 1, "apps": []})");
+        QVERIFY(knownAppsList(fetched, bundled).contains("Bundled"));
+        write(fetched, R"({"version": 3, "apps": [{"name": "Fetched"}]})");
+        QVERIFY(knownAppsList(fetched, bundled).contains("Fetched"));
+    }
 };
 
 QTEST_GUILESS_MAIN(RunAppTest)

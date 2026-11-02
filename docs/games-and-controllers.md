@@ -39,6 +39,21 @@ You don't need to change anything:
 - **Compressed memory swap (zram)**, as Fedora sets it up, so the computer stays responsive when memory runs low.
 - **umu-launcher**, which OrielOS uses to run Windows programs with Proton.
 
+## Game Settings
+
+**Game Settings**, in Start or under **Settings > Gaming**, lists the games in Steam from the Store. Choose one to set how it runs:
+
+- **Run Windows games with**: Steam's default, GE-Proton, or Proton Experimental or another of Valve's Protons, if a game works better with it.
+- **Upgrade DLSS to the newest version**, on NVIDIA graphics cards.
+- **HDR**, through Wine's Wayland driver, on an HDR screen.
+- **Run in gamescope**, Valve's game window, for scaling and frame limits.
+- **DX12 descriptor heaps**, which can make DirectX 12 games faster on NVIDIA cards but breaks some.
+- **FPS overlay** and **GameMode**.
+
+Each switch adds its part to the game's launch options in Steam, next to anything you typed there yourself, and turning it off takes out only what it added. Steam saves its own settings as it closes, so Game Settings waits until Steam is closed, and offers to close it. The first change keeps a copy of Steam's settings next to them.
+
+**Will it run?**, at the top of Game Settings, says whether a game with anti-cheat runs on OrielOS: it works, the publisher blocks Linux, it doesn't work yet, or support is planned. The answers come from [AreWeAntiCheatYet](https://areweanticheatyet.com/)'s list (MIT licence), updated whenever Game Settings opens online, with the date of the copy it uses, and OrielOS's own tests win over it.
+
 ## The FPS overlay
 
 OrielOS's Game Bar is one thing: a small frame-rate counter over the game you're playing. Turn it on in **Settings > Gaming > FPS overlay**; games you start after you next sign in have it, hidden until you press **Windows + G**, which shows or hides it in the game's top-left corner. The same page can add the frame time, and processor and graphics card use, under the frame rate.

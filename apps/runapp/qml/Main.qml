@@ -132,6 +132,50 @@ Kirigami.ApplicationWindow {
 
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
+                visible: root.confirming && root.runner.package
+                type: Kirigami.MessageType.Error
+                text: root.runner.knownName.length > 0
+                    ? KI18n.i18nc("@info %1 is an app", "%1 installs as a Microsoft Store package, which OrielOS can't run.", root.runner.knownName)
+                    : KI18n.i18nc("@info", "This is a Microsoft Store package, which OrielOS can't run.")
+                actions: [
+                    Kirigami.Action {
+                        visible: root.runner.alternative.length > 0
+                        text: KI18n.i18nc("@action:button", "Open the web version")
+                        icon.name: "internet-web-browser"
+                        onTriggered: {
+                            Qt.openUrlExternally(root.runner.alternative);
+                            root.close();
+                        }
+                    }
+                ]
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: root.confirming && !root.runner.package && root.runner.storeApp.length > 0
+                type: Kirigami.MessageType.Positive
+                text: KI18n.i18nc("@info %1 is an app", "%1 is in the Store, ready for OrielOS, and updates by itself. It's better than the Windows version.", root.runner.knownName)
+                actions: [
+                    Kirigami.Action {
+                        text: KI18n.i18nc("@action:button", "Get it from the Store")
+                        icon.name: "plasmadiscover"
+                        onTriggered: {
+                            Qt.openUrlExternally("appstream://" + root.runner.storeApp);
+                            root.close();
+                        }
+                    }
+                ]
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                visible: root.confirming && root.runner.launcherNote.length > 0
+                type: Kirigami.MessageType.Information
+                text: root.runner.launcherNote
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
                 visible: root.confirming && root.runner.appSource === "suggest"
                 type: Kirigami.MessageType.Information
                 text: KI18n.i18nc("@info", "Look for this app in the Store first: apps from the Store are checked and update by themselves.")
@@ -250,7 +294,7 @@ Kirigami.ApplicationWindow {
                 }
 
                 QQC2.Button {
-                    visible: root.confirming && root.runner.appSource !== "store"
+                    visible: root.confirming && root.runner.appSource !== "store" && !root.runner.package
                     text: root.runner.msi ? KI18n.i18nc("@action:button", "Install") : KI18n.i18nc("@action:button", "Run")
                     icon.name: "system-run"
                     onClicked: root.runner.run()

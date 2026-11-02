@@ -51,9 +51,11 @@ write_conf() {
         printf '# OrielOS FPS overlay. Settings › Gaming › FPS overlay changes it; Windows + G shows or hides it.\n'
         printf 'legacy_layout=false\nhud_compact\nposition=top-left\noffset_x=16\noffset_y=16\n'
         printf 'font_size=18\nround_corners=8\nbackground_alpha=0.55\nbackground_color=111318\n'
-        printf 'text_color=FFFFFF\nfps_color_change\nfps_value=30,60\nfps_color=F05A5A,F7A440,FFFFFF\n'
-        printf 'fps\n'
-        if [[ "$2" == on ]]; then printf 'frame_timing=1\nframetime\n'; else printf 'frame_timing=0\n'; fi
+        printf 'text_color=FFFFFF\nengine_color=8A93A6\nframetime_color=3A66F0\nfps_color_change\nfps_value=30,60\nfps_color=F05A5A,F7A440,FFFFFF\n'
+        # The frame rate alone unless an option adds more: MangoHud's fps line also names the
+        # graphics API and shows the frame time.
+        if [[ "$2" == off && "$3" == off ]]; then printf 'fps_only\n'; else printf 'fps\nengine_short_names\n'; fi
+        if [[ "$2" == on ]]; then printf 'frame_timing=1\nframetime\n'; else printf 'frame_timing=0\nframetime=0\n'; fi
         if [[ "$3" == on ]]; then printf 'cpu_stats\ngpu_stats\n'; else printf 'cpu_stats=0\ngpu_stats=0\n'; fi
         if [[ "$1" != yes ]]; then printf 'no_display\n'; fi
     } >"$tmp"
