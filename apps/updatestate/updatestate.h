@@ -140,5 +140,15 @@ QString displayDate(const QDateTime &time);
 // "## [0.1.9]" section, or, for a build newer than any listed, of "## [Unreleased]", whose changes
 // a build carries until its version is added. Empty when neither has anything.
 QString changelogSection(const QString &changelog, const QString &version);
+// What a waiting update brings, from its changelog and the running version's, in Markdown: the
+// entries of the incoming changelog's Unreleased section, and of any version newer than
+// <installedVersion>, that the installed changelog doesn't have, under their headings (### Added
+// and so on), each heading once. An entry with any line that's new counts whole. Empty when
+// nothing is new.
+QString changesSince(const QString &installedChangelog, const QString &incomingChangelog, const QString &installedVersion);
+// How many entries there are under "### <heading>" in Markdown from changesSince.
+int changeCount(const QString &changes, const QString &heading);
+// The changes in a few words, such as "3 new features and 2 fixes", or empty.
+QString changeSummary(const QString &changes);
 
 } // namespace OrielOSUpdates

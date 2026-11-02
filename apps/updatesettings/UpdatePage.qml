@@ -112,6 +112,12 @@ KCM.SimpleKCM {
                 : root.l10n.i18nc("@info", "OrielOS %1 is ready. Restart to finish updating. Your files and apps stay as they are.", root.settings.stagedVersion)
             actions: [
                 Kirigami.Action {
+                    text: root.l10n.i18nc("@action:button", "What's new")
+                    icon.name: "documentinfo"
+                    visible: root.settings.stagedWhatsNew.length > 0
+                    onTriggered: whatsNewDialog.show(root.settings.stagedVersion, root.settings.stagedWhatsNew)
+                },
+                Kirigami.Action {
                     text: root.l10n.i18nc("@action:button", "Restart &now")
                     icon.name: "system-reboot"
                     onTriggered: root.settings.restart()
@@ -397,7 +403,7 @@ KCM.SimpleKCM {
                 visible: root.settings.whatsNew.length > 0
                 text: root.l10n.i18nc("@action:button", "&What's new in this version")
                 icon.name: "documentinfo"
-                onClicked: whatsNewDialog.open()
+                onClicked: whatsNewDialog.show(root.settings.runningVersion, root.settings.whatsNew)
             }
 
             Item {
@@ -505,14 +511,24 @@ KCM.SimpleKCM {
     Kirigami.Dialog {
         id: whatsNewDialog
 
-        title: root.l10n.i18nc("@title:dialog %1 is a version", "What's new in OrielOS %1", root.settings.runningVersion)
+        // The version running now, or the one waiting for a restart, and what's new in it.
+        property string version
+        property string changes
+
+        function show(version: string, changes: string) {
+            whatsNewDialog.version = version;
+            whatsNewDialog.changes = changes;
+            whatsNewDialog.open();
+        }
+
+        title: root.l10n.i18nc("@title:dialog %1 is a version", "What's new in OrielOS %1", whatsNewDialog.version)
         preferredWidth: Kirigami.Units.gridUnit * 32
         preferredHeight: Kirigami.Units.gridUnit * 28
         standardButtons: QQC2.Dialog.Close
 
         QQC2.Label {
             padding: Kirigami.Units.largeSpacing
-            text: root.settings.whatsNew
+            text: whatsNewDialog.changes
             textFormat: Text.MarkdownText
             wrapMode: Text.Wrap
             onLinkActivated: link => Qt.openUrlExternally(link)

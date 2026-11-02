@@ -36,6 +36,27 @@ QString readBootId(const QString &path)
     return QString::fromLatin1(file.readAll()).trimmed();
 }
 
+QString readText(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return { };
+    }
+    return QString::fromUtf8(file.readAll());
+}
+
+// What the update waiting for a restart brings, from its changelog, which orielos-update copies out
+// of it, and the running version's.
+QString stagedChanges(const QString &runningVersion)
+{
+    const QString installed = readText(QStringLiteral("/usr/share/doc/orielos/CHANGELOG.md"));
+    const QString incoming = readText(QStringLiteral("/var/lib/orielos/update/staged-changelog.md"));
+    if (installed.isEmpty() || incoming.isEmpty()) {
+        return { };
+    }
+    return OrielOSUpdates::changesSince(installed, incoming, runningVersion);
+}
+
 } // namespace
 
 Notifier::Notifier(const QString &statePath, const QString &bootIdPath, QObject *parent)
@@ -181,14 +202,23 @@ void Notifier::showReadyNotification()
     notification->setComponentName(QStringLiteral("orielos-update-notifier"));
     notification->setIconName(QLatin1String(iconName));
     notification->setTitle(i18nc("@title", "Restart to update"));
-    notification->setText(i18nc("@info", "OrielOS %1 is ready. Restart to finish updating. Your files and apps stay as they are.", staged.version));
+    const QString summary = OrielOSUpdates::changeSummary(stagedChanges(m_state.running().version));
+    notification->setText(summary.isEmpty()
+            ? i18nc("@info", "OrielOS %1 is ready. Restart to finish updating. Your files and apps stay as they are.", staged.version)
+            : i18nc("@info %2 is a list of changes, such as 3 new features and 2 fixes",
+                  "OrielOS %1 is ready, with %2. Restart to finish updating. Your files and apps stay as they are.", staged.version, summary));
     KNotificationAction *restart = notification->addAction(i18nc("@action:button", "Restart to update"));
     connect(restart, &KNotificationAction::activated, this, &Notifier::restart);
-    // Settings' Update page schedules the restart.
+    // Settings' Update page schedules the restart, and shows what's new in the update.
     KNotificationAction *pick = notification->addAction(i18nc("@action:button", "Pick a time"));
     connect(pick, &KNotificationAction::activated, this, &Notifier::openSettings);
-    KNotificationAction *later = notification->addAction(i18nc("@action:button", "Later"));
-    connect(later, &KNotificationAction::activated, notification, &KNotification::close);
+    if (summary.isEmpty()) {
+        KNotificationAction *later = notification->addAction(i18nc("@action:button", "Later"));
+        connect(later, &KNotificationAction::activated, notification, &KNotification::close);
+    } else {
+        KNotificationAction *whatsNew = notification->addAction(i18nc("@action:button", "See what's new"));
+        connect(whatsNew, &KNotificationAction::activated, this, &Notifier::openSettings);
+    }
     m_readyNotification = notification;
     notification->sendEvent();
 }

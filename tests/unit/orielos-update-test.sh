@@ -52,7 +52,8 @@ bootc_status() {
         status: {
             booted: {image: {image: {image: "example.test/orielos:stable", transport: "registry"}, version: $bv, imageDigest: $bd},
                 ostree: {checksum: "aaaa", deploySerial: 0, stateroot: "default"}},
-            staged: (if $sd == "" then null else {image: {image: {image: "example.test/orielos", transport: "registry"}, version: $sv, imageDigest: $sd}} end),
+            staged: (if $sd == "" then null else {image: {image: {image: "example.test/orielos", transport: "registry"}, version: $sv, imageDigest: $sd},
+                ostree: {checksum: ("c" * 64), deploySerial: 0, stateroot: "default"}} end),
             rollback: null,
             rollbackQueued: false
         }
@@ -147,6 +148,10 @@ SH
 printf 'ostree %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
 if [[ "$1 $2" == "admin status" ]]; then
     printf '* default aaaa.0\n    origin: <unknown origin type>\n  default bbbb.0 (rollback)\n    origin: <unknown origin type>\n'
+fi
+# "ostree cat" prints the staged build's changelog from the stub's changelog file, if there is one.
+if [[ "$1 $2" == "--repo=/ostree/repo cat" ]]; then
+    cat "$ORIELOS_TEST_STUB/changelog" 2>/dev/null
 fi
 SH
     # The boot menu's flag helper, inside the scratch root: it logs its command, and status prints
@@ -262,6 +267,27 @@ run check
 check "a newer build is staged" test "$RC" -eq 0 -a "$(state .result)" == staged -a "$(state .staged.digest)" == "$NEWER"
 check "a registry build is staged pinned to its digest" called "bootc switch --quiet example.test/orielos@$NEWER"
 check "state.json names the staged version" test "$(state .staged.version)" == 44.2
+check "a build without a changelog leaves no copy of one" test ! -e "$WORK/root/var/lib/orielos/update/staged-changelog.md"
+
+# The staged build's changelog is copied for the desktop, once per staged build, and goes when
+# nothing is staged.
+setup
+printf '# Changelog\n\n## [Unreleased]\n\n- New.\n' >"$WORK/stub/changelog"
+skopeo_info "$NEWER" 44.2 >"$WORK/stub/skopeo.json"
+bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/status-after-switch.json"
+run check
+check "the staged build's changelog is copied for the desktop" \
+    cmp -s "$WORK/stub/changelog" "$WORK/root/var/lib/orielos/update/staged-changelog.md"
+check "the changelog is read from the staged build's commit" \
+    called "ostree --repo=/ostree/repo cat $(printf 'c%.0s' {1..64}) /usr/share/doc/orielos/CHANGELOG.md"
+check "the copy of the changelog is readable by everyone" \
+    test "$(stat -c %a "$WORK/root/var/lib/orielos/update/staged-changelog.md")" == 644
+: >"$WORK/stub/calls"
+run refresh
+check "the changelog isn't copied again for the same build" not_called "ostree --repo=/ostree/repo cat"
+bootc_status "$RUNNING" 44.1 >"$WORK/stub/bootc-status.json"
+run refresh
+check "the copy goes when nothing is staged" test ! -e "$WORK/root/var/lib/orielos/update/staged-changelog.md"
 
 # With OrielOS's signing key in the image, bootc checks the build's signature against the policy.
 setup
