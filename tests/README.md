@@ -338,6 +338,14 @@ tests/smoke-test.sh --image localhost/orielos:dev.2
 
 It uses 4 GiB of memory by default and takes about ten minutes. `probe.txt` in the results holds what the VM reported. `--image`, `--archive`, `--results` and `--keep` work as in the boot test.
 
+## Exit path test
+
+`exit-path-test.sh` checks the way back to stock Fedora that `docs/leaving-orielos.md` describes: it installs and sets up the image as the smoke test does, switches it to Fedora Kinoite with `bootc switch quay.io/fedora-ostree-desktops/kinoite:44` (a download of a few gigabytes from inside the VM), restarts and checks that Kinoite runs with OrielOS kept as the previous version, then goes back with `bootc rollback` and checks OrielOS runs again. It takes about half an hour; `--kinoite` names another image.
+
+## Benchmarks
+
+`benchmark/` holds the benchmark set, `summarise.py`, which turns MangoHud's frame logs into average FPS and 1% lows per run and per game, and `system.sh`, which measures boot time and idle memory; see `benchmark/README.md`. The runs themselves happen on the reference PC, on OrielOS and on Windows 11.
+
 ## Shared VM code
 
 `lib/vm.sh` holds what the VM scripts need: the PASS, FAIL, WARN and INFO lines, installing the image, starting the VM with its firmware, TPM and vsock device, SSH into the VM, pressing keys, clicking and taking screenshots over QMP, finishing setup and cleaning up. They all source it. `.shellcheckrc` lets shellcheck follow it. SSH goes through `systemd-ssh-proxy`, or through `socat`'s `VSOCK-CONNECT` where systemd is older than 256, as on GitHub's Ubuntu 24.04 runners.
@@ -350,7 +358,6 @@ A VM test takes tens of gigabytes while it runs, so the tests keep the disk lean
 
 ## Still to come
 
-- Benchmark scripts.
 - The real-hardware release checklist.
 
 Licence: GPL-3.0-or-later (see `LICENSE` in the repository root).

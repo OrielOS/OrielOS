@@ -6,6 +6,10 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Game Settings, a new app: for each game in Steam from the Store, choose the Proton version and turn on the DLSS upgrade, HDR, gamescope, the FPS overlay, GameMode or DX12 descriptor heaps. Settings → Gaming opens it.
+- Game Settings' Will it run? says whether a game with anti-cheat runs on OrielOS, from AreWeAntiCheatYet's list, kept up to date online.
+- Git and Distrobox are in OrielOS, next to Podman and Toolbx, and a new guide, Writing code on OrielOS, explains setting up containers, an editor and command-line tools.
+- Run this app knows common programs: it offers the Store's version of apps such as Discord and Spotify first, notes what to expect from game stores' launchers, and explains before anything runs that Microsoft Store packages (MSIX) can't run on OrielOS, offering the web version where there is one.
 - Windows + T moves the keyboard focus to the taskbar; the arrow keys then walk along it to your apps. Windows + O locks a tablet's screen rotation, and Windows + Ctrl + Shift + B resets the screens when the picture is stuck or garbled, with a short sound, leaving your apps open.
 - Files can be pinned to an app's jump list in Start: right-click the app, then use the pin button next to a recent file. Pinned files stay at the top of the list and open in that app.
 - The first time an app starts accepting connections from other computers on a port the firewall blocks, a notification asks whether to allow it, and remembers your answer. Settings → Privacy & security → Firewall shows what you allowed.

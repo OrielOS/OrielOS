@@ -18,6 +18,7 @@ on:
     paths:
       - apps/**
       - artwork/**
+      - data/**
       - image/**
       - plasma/**
       - CMakeLists.txt

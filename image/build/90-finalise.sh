@@ -175,6 +175,8 @@ grep -q '/usr/share/kde-settings/kde-profile/default/xdg' /etc/xdg/plasma-worksp
 grep -qxF 'Title=Shutting down' /usr/share/plymouth/themes/orielos/orielos.plymouth || update_errors+=("The splash doesn't say Shutting down")
 # The FPS overlay, OrielOS's Game Bar: MangoHud, and Windows + G showing or hiding it.
 [[ -x /usr/bin/mangohud ]] || update_errors+=("MangoHud, for the FPS overlay, is missing")
+# Game Settings, for each game in Steam from the Store.
+[[ -x /usr/bin/orielos-game-settings ]] || update_errors+=("Game Settings, /usr/bin/orielos-game-settings, is missing")
 for f in rotation-lock reset-displays restart-desktop fps-overlay; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done

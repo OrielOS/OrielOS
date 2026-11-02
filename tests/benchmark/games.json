@@ -1,0 +1,12 @@
+{
+    "about": "OrielOS's benchmark set: games with built-in benchmarks, run three times each at fixed settings on the reference PC, on OrielOS and on Windows 11, comparing average FPS and 1% lows. settings applies to every game unless one says otherwise.",
+    "settings": "1920 x 1080, full screen, the High preset, upscaling (DLSS, FSR, XeSS) off, frame generation off, V-Sync and frame limits off",
+    "games": [
+        { "name": "Cyberpunk 2077", "steamAppId": 1091500, "api": "DX12", "benchmark": "Main menu: Settings, then Run benchmark", "notes": "Ray tracing off (the High preset)" },
+        { "name": "Shadow of the Tomb Raider", "steamAppId": 750920, "api": "DX12", "benchmark": "Main menu: Options, Graphics, Run benchmark" },
+        { "name": "Red Dead Redemption 2", "steamAppId": 1174180, "api": "Vulkan", "benchmark": "Settings, Graphics, Run benchmark tests", "notes": "Graphics API: Vulkan" },
+        { "name": "Strange Brigade", "steamAppId": 312670, "api": "Vulkan", "benchmark": "Options, Display, Benchmark", "notes": "Graphics API: Vulkan" },
+        { "name": "Total War: Warhammer III", "steamAppId": 1142710, "api": "DX11", "benchmark": "Options, Graphics, Benchmark (the battle benchmark)" },
+        { "name": "Metro Exodus", "steamAppId": 412020, "api": "DX11", "benchmark": "Benchmark.exe in the game's folder, or the launcher's Benchmark", "notes": "DirectX 11, Preset High" }
+    ]
+}

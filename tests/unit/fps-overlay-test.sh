@@ -51,7 +51,7 @@ check "on sets MANGOHUD=1 for the session" grep -qx 'MANGOHUD=1' "$ENV_FILE"
 check "and writes MangoHud's settings, hidden" grep -qx 'no_display' "$CONF"
 check "status says it's on and hidden" status_is enabled=on
 check "status says hidden" status_is shown=no
-check "it shows the frame rate" grep -qx 'fps' "$CONF"
+check "it shows the frame rate alone" grep -qx 'fps_only' "$CONF"
 
 run toggle
 check "Windows + G shows it" test "$OUT" == yes

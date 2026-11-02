@@ -51,6 +51,14 @@ private:
     // (the default), suggest (anywhere, with the Store suggested first) or store (the Store only,
     // so Windows programs don't run).
     Q_PROPERTY(QString appSource READ appSource CONSTANT)
+    // What OrielOS's known-apps list says about this program: its name, the Store app to offer
+    // first, a launcher's note, or that it's a Microsoft Store package OrielOS can't run and where
+    // to get the app instead. Empty strings and false when the list doesn't know it.
+    Q_PROPERTY(QString knownName READ knownName CONSTANT)
+    Q_PROPERTY(QString storeApp READ storeApp CONSTANT)
+    Q_PROPERTY(QString launcherNote READ launcherNote CONSTANT)
+    Q_PROPERTY(bool package READ package CONSTANT)
+    Q_PROPERTY(QString alternative READ alternative CONSTANT)
 
 public:
     // dataHome, stateHome and applicationsDir are normally ~/.local/share, ~/.local/state and
@@ -70,6 +78,11 @@ public:
     QString error() const;
     bool canAddItself() const;
     QString appSource() const;
+    QString knownName() const { return m_known ? m_known->name : QString(); }
+    QString storeApp() const { return m_known ? m_known->store : QString(); }
+    QString launcherNote() const { return m_known && m_known->launcher ? m_known->note : QString(); }
+    bool package() const { return m_known && m_known->package; }
+    QString alternative() const { return m_known ? m_known->alternative : QString(); }
 
     Q_INVOKABLE void run();
     Q_INVOKABLE void addItself();
@@ -89,6 +102,7 @@ private:
     const QString m_name;
     const OrielOSRunApp::DownloadSource m_source;
     const bool m_firstDownload;
+    const std::optional<OrielOSRunApp::KnownApp> m_known;
     Stage m_stage = Confirm;
     QStringList m_added;
     QSet<QString> m_targets;
