@@ -16,11 +16,13 @@ OrielOS keeps two versions: the one you are running and the one before it, for 1
 
 A while after you start the computer, and then about every six hours, OrielOS checks for a new version. When there is one, it downloads it in the background, at low priority, and prepares it for the next restart. Your computer keeps running the version it started with until then.
 
-When a new version is ready, a notification says **Restart to update**:
+When a new version is ready, a notification says **Restart to update**, and how much the new version changes, such as "with 3 new features and 2 fixes":
 
 - **Restart to update** signs you out and restarts the computer into the new version. Save your work first.
 - **Pick a time** opens the update settings, where you choose when the computer restarts (see [Choosing when to restart](#choosing-when-to-restart)).
-- **Later** closes the notification. The new version still starts the next time you restart, whenever that is.
+- **See what's new** opens the update settings, where **What's new** lists what the new version changes since the one you're running, before you restart. When the new version brings nothing listed in the changelog, only updates to the software OrielOS is built on, the notification offers **Later** instead, which closes it.
+
+Closing the notification changes nothing: the new version still starts the next time you restart, whenever that is.
 
 While the computer restarts into the new version, the screen says **Installing updates…** for a moment as it finishes. Don't turn it off then. After the restart, a notification says which version is running, with **See what's new**.
 
@@ -33,7 +35,7 @@ OrielOS doesn't download updates over a metered connection, such as a phone hots
 **Update** in Settings holds everything about updates. Open it by clicking the **OrielOS updates** tray icon, or press Windows + I and choose **Update**. It shows the version you are running and when OrielOS last checked for updates, and offers:
 
 - **Check for updates**, to check straight away. The page says what the check found when it's done.
-- **Restart now**, while a new version is ready, or while going back is waiting for a restart, and **Pick a time** to schedule that restart instead.
+- **Restart now**, while a new version is ready, or while going back is waiting for a restart, and **Pick a time** to schedule that restart instead. While a new version is ready, **What's new** lists what it changes since the version you're running, from the testing builds in between too.
 - **Pause updates**, for 1 to 5 weeks. While updates are paused, OrielOS doesn't check for or download new versions, and the page shows the date they resume. **Resume updates** ends the pause early.
 - **Update channel**:
   - **Stable**, the default, gets versions that people have already used on the testing channel and that have passed checks on real hardware.

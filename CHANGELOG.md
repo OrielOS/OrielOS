@@ -30,6 +30,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - Settings → Apps → Restart apps after signing in chooses whether your open apps come back when you sign in again.
 - Settings → Privacy & security → Device security shows the computer's protection at the top: whether the firewall is on and whether updates are working.
 - Holding Shift while choosing Restart in Start shows the boot menu, with its recovery options, at the next start.
+- Before you restart into a new version, OrielOS says what it changes: the notification that it's ready counts the new features, changes and fixes, and What's new in Settings → Update lists them, since the version you're running, testing builds in between included.
 
 ### Changed
 
