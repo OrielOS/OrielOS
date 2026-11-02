@@ -39,6 +39,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 ### Fixed
 
 - An update is no longer undone after only one of its starts went without anyone signing in: when no one had signed in before the computer restarted into the update either, that earlier start counted as the update's first failure.
+- Holding Shift while choosing Restart shows the boot menu on computers installed before that was added: OrielOS now brings its part of the boot menu up to date at each start.
 - The FPS overlay's processor and graphics card labels are grey, like the rest of the overlay, instead of blue and green.
 - Settings → Themes no longer lists the first sign-in's welcome screen as a theme called "OrielOS first sign-in".
 - Pages from Info Center in Settings show all their labels.
