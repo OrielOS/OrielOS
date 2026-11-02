@@ -54,6 +54,8 @@ plasma-disks
 plasma-thunderbolt
 bolt
 kinfocenter
+# Info Center's energy page (Settings › Battery usage) draws its graphs with Qt Graphs.
+qt6-qtgraphs
 plasma-systemmonitor
 ksystemstats
 polkit-kde
