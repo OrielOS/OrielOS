@@ -2,6 +2,7 @@ name: Apps
 
 on:
   pull_request:
+  merge_group:
   push:
     branches: [main]
 
@@ -27,19 +28,26 @@ jobs:
 
       # apps is a required check, so the job always runs and reports, and only the build is
       # skipped when nothing it reads has changed; Markdown files never count. A pull request's
-      # checkout is the pull request merged into its base branch, so HEAD^1 is the base. A push of
-      # more than one commit, or a comparison that fails, counts as a change.
+      # checkout is the pull request merged into its base branch, so HEAD^1 is the base; a merge
+      # queue entry is compared with the queue's base. A push of more than one commit, or a
+      # comparison that fails, counts as a change.
       - name: Check whether the change affects the apps
         id: changes
         env:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
         run: |
           rc=0
-          if [ "${EVENT}" = "push" ] && [ "$(git rev-parse HEAD^1 2>/dev/null)" != "${BEFORE}" ]; then
+          base=HEAD^1
+          if [ "${EVENT}" = "merge_group" ]; then
+              base="${QUEUE_BASE}"
+              git fetch -q --depth=1 origin "${QUEUE_BASE}" || rc=2
+          elif [ "${EVENT}" = "push" ] && [ "$(git rev-parse HEAD^1 2>/dev/null)" != "${BEFORE}" ]; then
               rc=2
-          else
-              git diff --quiet HEAD^1 HEAD -- \
+          fi
+          if [ "${rc}" -eq 0 ]; then
+              git diff --quiet "${base}" HEAD -- \
                   apps plasma artwork data CMakeLists.txt \
                   image/Containerfile image/build/apps-builder.sh image/pins.env \
                   .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh .github/workflows/apps.yml \
