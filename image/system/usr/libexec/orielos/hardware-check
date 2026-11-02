@@ -80,7 +80,7 @@ usb_kind() {
 report() { printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$@"; }
 
 check_pci() {
-    local dev addr kind vendor product name maker model
+    local dev addr kind vendor product name names maker model
     for dev in "$SYSFS"/bus/pci/devices/*; do
         [[ -d "$dev" ]] || continue
         kind="$(pci_kind "$(attr "$dev/class")")"
@@ -88,10 +88,8 @@ check_pci() {
         addr="${dev##*/}"
         vendor="$(attr "$dev/vendor")"
         product="$(attr "$dev/device")"
-        IFS=$'\t' read -r maker model < <(
-            ids_name "$HWDATA/pci.ids" "$vendor" "$product"
-            echo
-        )
+        names="$(ids_name "$HWDATA/pci.ids" "$vendor" "$product")"
+        IFS=$'\t' read -r maker model <<<"$names"
         name="$maker${model:+ $model}"
         name="${name:-PCI device $vendor:$product}"
         if ! has_driver "$dev"; then
@@ -105,7 +103,7 @@ check_pci() {
 }
 
 check_usb() {
-    local dev addr kind vendor product name maker model intf bound
+    local dev addr kind vendor product name names maker model intf bound
     for dev in "$SYSFS"/bus/usb/devices/*; do
         [[ -d "$dev" && -r "$dev/idVendor" ]] || continue
         addr="${dev##*/}"
@@ -113,10 +111,8 @@ check_usb() {
         [[ "$addr" != usb* && "$(attr "$dev/bDeviceClass")" != 09 ]] || continue
         vendor="$(attr "$dev/idVendor")"
         product="$(attr "$dev/idProduct")"
-        IFS=$'\t' read -r maker model < <(
-            ids_name "$HWDATA/usb.ids" "$vendor" "$product"
-            echo
-        )
+        names="$(ids_name "$HWDATA/usb.ids" "$vendor" "$product")"
+        IFS=$'\t' read -r maker model <<<"$names"
         maker="${maker:-$(attr "$dev/manufacturer")}"
         model="${model:-$(attr "$dev/product")}"
         name="$maker${model:+ $model}"
