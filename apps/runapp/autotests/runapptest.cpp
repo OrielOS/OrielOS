@@ -358,8 +358,9 @@ private Q_SLOTS:
         QCOMPARE(all.environment.value(QStringLiteral("PROTON_DLSS_UPGRADE")), QStringLiteral("1"));
         QCOMPARE(all.environment.value(QStringLiteral("WINEPREFIX")), QStringLiteral("/p"));
         QCOMPARE(all.program, QStringLiteral("gamemoderun"));
-        QCOMPARE(all.arguments, (QStringList { QStringLiteral("gamescope"), QStringLiteral("-f"), QStringLiteral("--"), QStringLiteral("umu-run"),
-                                    QStringLiteral("/p/game.exe"), QStringLiteral("-x"), QStringLiteral("-novid") }));
+        QCOMPARE(all.arguments,
+            (QStringList { QStringLiteral("gamescope"), QStringLiteral("-f"), QStringLiteral("--"), QStringLiteral("umu-run"), QStringLiteral("/p/game.exe"),
+                QStringLiteral("-x"), QStringLiteral("-novid") }));
 
         // Without %command%, everything is the program's arguments.
         QCOMPARE(withLaunchOptions(base, QStringLiteral("-novid")).arguments.last(), QStringLiteral("-novid"));
