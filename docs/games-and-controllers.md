@@ -50,6 +50,8 @@ You don't need to change anything:
 - **DX12 descriptor heaps**, which can make DirectX 12 games faster on NVIDIA cards but breaks some.
 - **FPS overlay** and **GameMode**.
 
+Game Settings also lists the Windows programs you installed with Run this app, such as a game store's launcher, with the same switches except the Proton version and gamescope; they apply whenever that program, or a game it installed, starts from Start.
+
 Each switch adds its part to the game's launch options in Steam, next to anything you typed there yourself, and turning it off takes out only what it added. Steam saves its own settings as it closes, so Game Settings waits until Steam is closed, and offers to close it. The first change keeps a copy of Steam's settings next to them.
 
 **Will it run?**, at the top of Game Settings, says whether a game with anti-cheat runs on OrielOS: it works, the publisher blocks Linux, it doesn't work yet, or support is planned. The answers come from [AreWeAntiCheatYet](https://areweanticheatyet.com/)'s list (MIT licence), updated whenever Game Settings opens online, with the date of the copy it uses, and OrielOS's own tests win over it.

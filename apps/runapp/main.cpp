@@ -80,7 +80,12 @@ int launch(int argc, char **argv)
     const QString name = arguments.takeFirst();
     const QString program = arguments.takeFirst();
     const QString dataHome = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-    const OrielOSRunApp::Command cmd = OrielOSRunApp::command(OrielOSRunApp::prefixDir(dataHome, name), program, arguments);
+    OrielOSRunApp::Command cmd = OrielOSRunApp::command(OrielOSRunApp::prefixDir(dataHome, name), program, arguments);
+    // The program's switches in Game Settings, when it has any.
+    QFile options(OrielOSRunApp::launchOptionsFile(dataHome, name));
+    if (options.open(QIODevice::ReadOnly)) {
+        cmd = OrielOSRunApp::withLaunchOptions(cmd, QString::fromUtf8(options.readAll()).trimmed());
+    }
     for (auto it = cmd.environment.cbegin(); it != cmd.environment.cend(); ++it) {
         qputenv(it.key().toUtf8().constData(), it.value().toUtf8());
     }

@@ -8,7 +8,8 @@
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Network)
 
 # Reading and writing Steam's files, unit-tested.
-add_library(OrielOSGames STATIC vdf.cpp vdf.h steamlibrary.cpp steamlibrary.h launchoptions.cpp launchoptions.h willitrun.cpp willitrun.h)
+add_library(OrielOSGames STATIC vdf.cpp vdf.h steamlibrary.cpp steamlibrary.h launchoptions.cpp launchoptions.h willitrun.cpp willitrun.h
+    windowsprograms.cpp windowsprograms.h)
 target_include_directories(OrielOSGames PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(OrielOSGames PRIVATE TRANSLATION_DOMAIN="orielos-game-settings")
 target_link_libraries(OrielOSGames PUBLIC Qt6::Core KF6::I18n)

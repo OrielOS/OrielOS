@@ -5,6 +5,7 @@
 
 #include "steamlibrary.h"
 #include "willitrun.h"
+#include "windowsprograms.h"
 
 #include <QObject>
 #include <QTimer>
@@ -24,7 +25,8 @@ class GameSettings : public QObject
 
     Q_PROPERTY(bool steamInstalled READ steamInstalled NOTIFY changed)
     Q_PROPERTY(bool steamRunning READ steamRunning NOTIFY changed)
-    // { appId, name, art } for each game, by name.
+    // { appId, name, art, icon, windows } for each game, by name: Steam's games, then the Windows programs
+    // installed with Run this app, whose appId is "windows:" and their prefix.
     Q_PROPERTY(QVariantList games READ games NOTIFY changed)
     // { id, name } for each compatibility tool, Steam's default (an empty id) first.
     Q_PROPERTY(QVariantList tools READ tools NOTIFY changed)
@@ -75,6 +77,7 @@ private:
 
     SteamLibrary m_library;
     QList<SteamGame> m_games;
+    QList<WindowsProgram> m_programs;
     QList<CompatTool> m_tools;
     bool m_steamRunning = false;
     bool m_busy = false;

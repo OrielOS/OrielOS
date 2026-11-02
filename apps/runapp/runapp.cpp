@@ -311,6 +311,37 @@ Command command(const QString &prefix, const QString &filePath, const QStringLis
     return result;
 }
 
+QString launchOptionsFile(const QString &dataHome, const QString &name)
+{
+    return dataHome + QStringLiteral("/orielos/windows-apps/") + name + QStringLiteral("/launch-options");
+}
+
+Command withLaunchOptions(Command command, const QString &options)
+{
+    const QStringList words = options.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    const qsizetype at = words.indexOf(QStringLiteral("%command%"));
+    if (at < 0) {
+        command.arguments += words;
+        return command;
+    }
+    QStringList wrappers;
+    for (const QString &word : words.mid(0, at)) {
+        const qsizetype equals = word.indexOf(QLatin1Char('='));
+        if (wrappers.isEmpty() && equals > 0) {
+            command.environment.insert(word.left(equals), word.mid(equals + 1));
+        } else {
+            wrappers.append(word);
+        }
+    }
+    command.arguments += words.mid(at + 1);
+    if (!wrappers.isEmpty()) {
+        command.arguments.prepend(command.program);
+        command.arguments = wrappers.mid(1) + command.arguments;
+        command.program = wrappers.first();
+    }
+    return command;
+}
+
 bool needsFirstDownload(const QString &dataHome)
 {
     const QDir tools(QDir(dataHome).filePath(QStringLiteral("Steam/compatibilitytools.d")));

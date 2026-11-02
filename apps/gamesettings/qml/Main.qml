@@ -30,7 +30,8 @@ Kirigami.ApplicationWindow {
     pageStack.globalToolBar.style: Kirigami.ApplicationHeaderStyle.ToolBar
 
     function toggle(appId: string, name: string, on: bool): void {
-        const addon = on ? root.settings.missingAddon(name) : "";
+        // Programs installed with Run this app use the system's MangoHud, not a Store add-on.
+        const addon = on && !appId.startsWith("windows:") ? root.settings.missingAddon(name) : "";
         if (addon.length > 0) {
             root.pendingAddon = addon;
             root.pendingGame = appId;
@@ -118,7 +119,7 @@ Kirigami.ApplicationWindow {
                     width: grid.cellWidth
                     height: grid.cellHeight
                     Accessible.name: tile.modelData.name
-                    onClicked: root.pageStack.push(gamePage, { appId: tile.modelData.appId, gameName: tile.modelData.name })
+                    onClicked: root.pageStack.push(gamePage, { appId: tile.modelData.appId, gameName: tile.modelData.name, windows: tile.modelData.windows })
 
                     contentItem: ColumnLayout {
                         spacing: Kirigami.Units.smallSpacing
@@ -140,7 +141,8 @@ Kirigami.ApplicationWindow {
                                 anchors.centerIn: parent
                                 width: Kirigami.Units.iconSizes.huge
                                 height: width
-                                source: "input-gaming"
+                                source: tile.modelData.icon.length > 0 ? tile.modelData.icon : "input-gaming"
+                                fallback: "input-gaming"
                                 visible: tile.modelData.art.length === 0
                             }
                         }
@@ -165,9 +167,11 @@ Kirigami.ApplicationWindow {
 
             required property string appId
             required property string gameName
+            // A Windows program installed with Run this app, rather than a Steam game.
+            required property bool windows
             // Read again after every change, which raises the revision.
             readonly property var current: root.settings.revision >= 0 ? root.settings.settingsFor(page.appId) : ({})
-            readonly property bool locked: root.settings.steamRunning
+            readonly property bool locked: root.settings.steamRunning && !page.windows
 
             title: page.gameName
 
@@ -200,6 +204,7 @@ Kirigami.ApplicationWindow {
                     enabled: !page.locked && !root.settings.busy
 
                     QQC2.ComboBox {
+                        visible: !page.windows
                         Kirigami.FormData.label: KI18n.i18nc("@label:listbox", "Run Windows games with:")
                         model: root.settings.tools
                         textRole: "name"
@@ -226,6 +231,7 @@ Kirigami.ApplicationWindow {
                     }
 
                     QQC2.Switch {
+                        visible: !page.windows
                         text: KI18n.i18nc("@option:check", "Run in gamescope, for scaling and frame limits")
                         checked: page.current.gamescope
                         onToggled: root.toggle(page.appId, "gamescope", checked)
@@ -259,7 +265,9 @@ Kirigami.ApplicationWindow {
                     Layout.fillWidth: true
                     wrapMode: Text.Wrap
                     color: Kirigami.Theme.disabledTextColor
-                    text: KI18n.i18nc("@info", "These go into the game's launch options in Steam, next to anything you typed there yourself. Turning one off takes out only what it added.")
+                    text: page.windows
+                        ? KI18n.i18nc("@info", "These apply whenever this program, or a game it installed, starts from Start.")
+                        : KI18n.i18nc("@info", "These go into the game's launch options in Steam, next to anything you typed there yourself. Turning one off takes out only what it added.")
                 }
             }
         }

@@ -346,6 +346,10 @@ It uses 4 GiB of memory by default and takes about ten minutes. `probe.txt` in t
 
 `benchmark/` holds the benchmark set, `summarise.py`, which turns MangoHud's frame logs into average FPS and 1% lows per run and per game, and `system.sh`, which measures boot time and idle memory; see `benchmark/README.md`. The runs themselves happen on the reference PC, on OrielOS and on Windows 11.
 
+## Real-hardware checklist
+
+`hardware-checklist.md` lists what a build must pass on a real PC before it's promoted to `stable`, beyond the automated tests: the driver, Secure Boot state, HDR, VRR, sleep, screens, sound, controllers, games, Discord and OBS, and an update and going back.
+
 ## Shared VM code
 
 `lib/vm.sh` holds what the VM scripts need: the PASS, FAIL, WARN and INFO lines, installing the image, starting the VM with its firmware, TPM and vsock device, SSH into the VM, pressing keys, clicking and taking screenshots over QMP, finishing setup and cleaning up. They all source it. `.shellcheckrc` lets shellcheck follow it. SSH goes through `systemd-ssh-proxy`, or through `socat`'s `VSOCK-CONNECT` where systemd is older than 256, as on GitHub's Ubuntu 24.04 runners.
@@ -355,9 +359,5 @@ A VM test takes tens of gigabytes while it runs, so the tests keep the disk lean
 - **One at a time.** Each test takes the lock in `tools/lib/lock.sh` (`/run/lock/orielos.lock`) before it creates anything, and holds it until it ends. A second test, or an image build, stops at once with an error naming the process that holds it.
 - **They delete what they make.** When a test ends, passed, failed or interrupted, it removes its work folder and disk, and any image it loaded from an archive. With `--keep` the disk stays, and its folder is marked with a `kept` file.
 - **Leftovers go.** A run that is killed, by `wsl --shutdown` for example, never cleans up, so the next test removes the folders such runs left in `/var/lib/orielos/vm`. It leaves kept disks and folders whose VM still runs, and lists them. `tools/clean.sh` removes everything, kept disks too.
-
-## Still to come
-
-- The real-hardware release checklist.
 
 Licence: GPL-3.0-or-later (see `LICENSE` in the repository root).
