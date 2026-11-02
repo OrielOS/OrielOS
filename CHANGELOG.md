@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- Older Broadcom Wi-Fi cards that Linux has no working driver for (BCM4311, BCM4312, BCM4321, BCM4322, BCM43142, BCM43227, BCM43228, BCM4331, BCM4352 and BCM4360, found in many older laptops and Macs) now work, with Broadcom's own driver. It loads only on PCs with one of those cards, so other Broadcom Wi-Fi cards and network ports keep the drivers they use now.
 - When a Wi-Fi, Bluetooth, network, sound or camera device has no driver, or its driver can't find a file it needs, OrielOS says so in a notification, naming the device, instead of the device silently doing nothing. Settings → Privacy & security → Device security shows it too.
 - Game Settings, a new app: for each game in Steam from the Store, choose the Proton version and turn on the DLSS upgrade, HDR, gamescope, the FPS overlay, GameMode or DX12 descriptor heaps. Settings → Gaming opens it. Programs installed with Run this app, such as game stores' launchers, are listed too.
 - Game Settings' Will it run? says whether a game with anti-cheat runs on OrielOS, from AreWeAntiCheatYet's list, kept up to date online.

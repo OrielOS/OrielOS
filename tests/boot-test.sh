@@ -177,6 +177,7 @@ KEY_TEST=""
 KEY_STATE=""
 KEY_NEW=""
 V4L2_LOADED=""
+WL_STATE=""
 MODULES_LOAD=""
 # The anti-cheat boot mode, read over SSH on the second boot.
 ANTICHEAT_OUT=""
@@ -315,6 +316,8 @@ collect_over_ssh() {
     KEY_NEW="$(vm_ssh mokutil --list-new 2>&1)" || true
     V4L2_LOADED="$(vm_ssh "lsmod | awk '\$1 == \"v4l2loopback\" {print \"loaded\"}'" 2>&1)" || true
     MODULES_LOAD="$(vm_ssh systemctl is-active systemd-modules-load.service 2>&1)" || true
+    # Broadcom's wl is there and signed, but loads only for the cards that need it, which a VM hasn't.
+    WL_STATE="$(vm_ssh "printf '%s|%s' \"\$(modinfo -F signer wl 2>/dev/null)\" \"\$(lsmod | awk '\$1 == \"wl\" {print \"loaded\"}')\"" 2>&1)" || true
     ANTICHEAT_OUT="$(vm_ssh "$(anticheat_probe)" 2>&1)" || true
 }
 
@@ -1248,8 +1251,10 @@ run_checks() {
         fail "v4l2loopback, signed by Universal Blue, is not loaded (lsmod)"
     elif [[ "$MODULES_LOAD" != "active" ]]; then
         fail "systemd-modules-load.service is not active (${MODULES_LOAD:-no output})"
+    elif [[ "$WL_STATE" != "ublue kernel|" ]]; then
+        fail "Broadcom's wl should be signed by Universal Blue and not loaded without its cards (signer|loaded: ${WL_STATE:-no output})"
     else
-        pass "Universal Blue's key is trusted (mokutil --test-key: enrolled; state: key=enrolled; v4l2loopback loaded; systemd-modules-load.service active)"
+        pass "Universal Blue's key is trusted (mokutil --test-key: enrolled; state: key=enrolled; v4l2loopback loaded; systemd-modules-load.service active; wl signed and not loaded)"
     fi
 
     if [[ "$SSH_OK" -ne 1 ]]; then

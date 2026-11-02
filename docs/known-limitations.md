@@ -20,6 +20,8 @@ OrielOS is in early development. This page lists what it can't do yet, and what 
 - **OrielOS's own parts are in English only.** The words OrielOS adds, such as in Start, the update notifications and its own settings pages, aren't translated yet. Plasma and the apps that come with it follow the language you choose.
 - **The first-start wizard still says "Welcome to Plasma Desktop"**, the name of the desktop OrielOS is built on.
 - **The taskbar's menu says "Pin to Task Manager" if you choose languages in Settings → Region & Language.** OrielOS changes it to "Pin to taskbar" for English, but a language list chosen there replaces OrielOS's wording.
+- **Some USB Wi-Fi adapters don't work.** Adapters whose chip has no driver in Linux, such as some Realtek ones, show no Wi-Fi, and OrielOS can't add drivers by itself. Use a cable, the PC's own Wi-Fi, or an adapter sold as working on Linux.
+- **Older Broadcom Wi-Fi cards use Broadcom's own driver.** Cards such as the BCM4331 and BCM4360, found in many older laptops and Macs, work, but can't be used for monitor mode, and don't hide the PC's network address while looking for networks as other cards do.
 - **There are no high-contrast colour themes.** Zoom, the magnifier and colour filters are there, but not Windows-style contrast themes.
 - **Microsoft's fonts, apps and services aren't included**, and never will be: OrielOS doesn't ship anything Microsoft owns. Apps such as Microsoft 365 work in the browser.
 
