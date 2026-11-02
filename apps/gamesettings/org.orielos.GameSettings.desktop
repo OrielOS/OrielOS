@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Game Settings
+GenericName=Settings for each game
+Comment=Choose how each game in Steam runs: Proton version, DLSS, HDR, the FPS overlay and more
+Exec=orielos-game-settings
+Icon=input-gaming
+Categories=Game;Settings;Qt;KDE;
+Keywords=games;steam;proton;ge-proton;dlss;hdr;gamescope;gamemode;fps;launch options;
