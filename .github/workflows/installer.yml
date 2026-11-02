@@ -40,7 +40,8 @@ concurrency:
 jobs:
   build:
     name: build
-    runs-on: ubuntu-24.04
+    # Builds and tests run on Blacksmith's runners (see .github/workflows/README.md).
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-24.04' || vars.BUILD_RUNNER || 'blacksmith-2vcpu-ubuntu-2404' }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -50,7 +51,8 @@ jobs:
         with:
           persist-credentials: false
 
-      # lorax needs a few gigabytes of working space; it goes on the larger /mnt disk.
+      # lorax needs a few gigabytes of working space; it goes under /mnt (the larger disk, on
+      # runners that have one).
       - name: Make room for the build
         run: |
           sudo mkdir -p /mnt/installer /var/lib/orielos

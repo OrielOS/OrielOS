@@ -14,7 +14,8 @@ concurrency:
 jobs:
   apps:
     name: apps
-    runs-on: ubuntu-24.04
+    # Builds and tests run on Blacksmith's runners (see .github/workflows/README.md).
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-24.04' || vars.BUILD_RUNNER || 'blacksmith-2vcpu-ubuntu-2404' }}
     timeout-minutes: 20
     permissions:
       contents: read
