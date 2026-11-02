@@ -23,10 +23,12 @@ qt_add_qml_module(orielos-run-app
 target_compile_definitions(orielos-run-app PRIVATE
     TRANSLATION_DOMAIN="orielos-run-app"
 )
+find_package(Qt6 6.8 REQUIRED COMPONENTS Network)
 target_link_libraries(orielos-run-app PRIVATE
     OrielOS::Common
     OrielOS::RunApp
     Qt6::Gui
+    Qt6::Network
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2
@@ -39,6 +41,8 @@ install(TARGETS orielos-run-app ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 # The image makes it the default for Windows programs (image/build/40-apps.sh); NoDisplay keeps it
 # out of Start.
 install(FILES org.orielos.RunApp.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+# The known-apps list; a newer copy is fetched from OrielOS's repository when online.
+install(FILES ${PROJECT_SOURCE_DIR}/data/known-apps.json DESTINATION ${KDE_INSTALL_DATADIR}/orielos)
 
 if(BUILD_TESTING)
     add_subdirectory(autotests)

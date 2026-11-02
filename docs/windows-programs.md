@@ -14,6 +14,14 @@ Before you reach for a Windows program, check the Store: many apps, such as Disc
 
 The first time you run a Windows program, OrielOS downloads GE-Proton and what it needs to run, about 1 GB. That takes a few minutes; after that, programs start straight away.
 
+## Programs Run this app knows
+
+Run this app knows some programs by their download's name, from a list OrielOS keeps up to date online (with a copy on the computer for when it's offline):
+
+- **Apps the Store has**, such as Discord, Spotify, Steam, OBS Studio, VLC, Chrome, Zoom and Visual Studio Code: the dialog offers **Get it from the Store** first. The Store's version is made for OrielOS and updates by itself. You can still run the Windows version.
+- **Game stores' launchers**: the Epic Games Launcher, GOG Galaxy, Battle.net, the EA app, Ubisoft Connect and the Rockstar Games Launcher install as usual, with a note on what to expect. Their games appear in Start as you install them.
+- **Microsoft Store packages** (`.msix` and `.appx` files, and setup programs that only fetch one, such as Claude's): these need Windows' own app-package service, which OrielOS doesn't have, so the dialog says so before anything runs and offers the app's web version where there is one.
+
 ## Start entries
 
 When a program's installer creates Start menu or desktop shortcuts, Run this app adds them to Start, under the names the installer gave them, while the installer runs and when it closes. Open the program from Start after that.

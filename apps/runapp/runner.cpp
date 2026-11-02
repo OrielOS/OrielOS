@@ -10,6 +10,13 @@
 
 #include <QDesktopServices>
 #include <QDir>
+#include <QCoreApplication>
+#include <QSaveFile>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QNetworkAccessManager>
 #include <QFileInfo>
 #include <QProcessEnvironment>
 #include <QSettings>
@@ -28,6 +35,39 @@ constexpr std::chrono::seconds scanInterval { 5 };
 
 } // namespace
 
+namespace {
+
+// Where the copy of the known-apps list fetched from OrielOS's repository is kept.
+QString knownAppsCache()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + QStringLiteral("/orielos/known-apps.json");
+}
+
+// Fetches the newest known-apps list in the background for next time; the image's copy covers
+// the time until then, and being offline.
+void refreshKnownApps()
+{
+    static QNetworkAccessManager *network = new QNetworkAccessManager(QCoreApplication::instance());
+    QNetworkRequest request(QUrl(QStringLiteral("https://raw.githubusercontent.com/OrielOS/OrielOS/main/data/known-apps.json")));
+    request.setTransferTimeout(10000);
+    QNetworkReply *reply = network->get(request);
+    QObject::connect(reply, &QNetworkReply::finished, reply, [reply] {
+        reply->deleteLater();
+        const QByteArray data = reply->readAll();
+        if (reply->error() != QNetworkReply::NoError || !QJsonDocument::fromJson(data).object().value(QLatin1String("apps")).isArray()) {
+            return;
+        }
+        QDir().mkpath(QFileInfo(knownAppsCache()).absolutePath());
+        QSaveFile file(knownAppsCache());
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(data);
+            file.commit();
+        }
+    });
+}
+
+} // namespace
+
 Runner::Runner(const QString &filePath, const QString &dataHome, const QString &stateHome, const QString &applicationsDir, QObject *parent)
     : QObject(parent)
     , m_filePath(QFileInfo(filePath).absoluteFilePath())
@@ -37,7 +77,9 @@ Runner::Runner(const QString &filePath, const QString &dataHome, const QString &
     , m_name(prefixName(filePath))
     , m_source(downloadSource(filePath))
     , m_firstDownload(needsFirstDownload(dataHome))
+    , m_known(knownApp(knownAppsList(knownAppsCache(), QStringLiteral("/usr/share/orielos/known-apps.json")), filePath))
 {
+    refreshKnownApps();
     m_scan.setInterval(scanInterval);
     connect(&m_scan, &QTimer::timeout, this, &Runner::addShortcuts);
     connect(&m_process, &QProcess::finished, this, &Runner::finish);
@@ -122,7 +164,7 @@ QString Runner::appSource() const
 
 void Runner::run()
 {
-    if (m_stage != Confirm || appSource() == QLatin1String("store")) {
+    if (m_stage != Confirm || appSource() == QLatin1String("store") || package()) {
         return;
     }
     const QString prefix = prefixDir(m_dataHome, m_name);

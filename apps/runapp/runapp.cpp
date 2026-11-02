@@ -9,6 +9,9 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSet>
@@ -16,6 +19,9 @@
 #include <QtEndian>
 
 #include <sys/xattr.h>
+
+#include <algorithm>
+#include <utility>
 
 namespace OrielOSRunApp {
 
@@ -591,6 +597,58 @@ QString writeStartEntry(const QString &applicationsDir, const QString &name, con
         return { };
     }
     return path;
+}
+
+std::optional<KnownApp> knownApp(const QByteArray &list, const QString &fileName)
+{
+    const QString suffix = QFileInfo(fileName).suffix().toLower();
+    const bool packageFile = suffix == QLatin1String("msix") || suffix == QLatin1String("msixbundle") || suffix == QLatin1String("appx")
+        || suffix == QLatin1String("appxbundle");
+    const QString name = prefixName(fileName);
+    const QJsonArray apps = QJsonDocument::fromJson(list).object().value(QLatin1String("apps")).toArray();
+    for (const QJsonValue &value : apps) {
+        const QJsonObject app = value.toObject();
+        const QJsonArray names = app.value(QLatin1String("names")).toArray();
+        const bool matches = std::any_of(names.begin(), names.end(), [&name](const QJsonValue &known) {
+            const QString key = known.toString();
+            return !key.isEmpty() && (name == key || name.startsWith(key + QLatin1Char('-')));
+        });
+        if (matches) {
+            KnownApp known;
+            known.name = app.value(QLatin1String("name")).toString();
+            known.store = app.value(QLatin1String("store")).toString();
+            known.launcher = app.value(QLatin1String("launcher")).toBool();
+            known.note = app.value(QLatin1String("note")).toString();
+            known.package = packageFile || app.value(QLatin1String("package")).toBool();
+            known.alternative = app.value(QLatin1String("alternative")).toString();
+            return known;
+        }
+    }
+    if (packageFile) {
+        KnownApp known;
+        known.package = true;
+        return known;
+    }
+    return std::nullopt;
+}
+
+QByteArray knownAppsList(const QString &fetchedPath, const QString &bundledPath)
+{
+    const auto read = [](const QString &path) -> std::pair<QByteArray, int> {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            return { { }, -1 };
+        }
+        const QByteArray data = file.readAll();
+        const QJsonObject object = QJsonDocument::fromJson(data).object();
+        if (!object.value(QLatin1String("apps")).isArray()) {
+            return { { }, -1 };
+        }
+        return { data, object.value(QLatin1String("version")).toInt(0) };
+    };
+    const auto bundled = read(bundledPath);
+    const auto fetched = read(fetchedPath);
+    return fetched.second >= 0 && fetched.second >= bundled.second ? fetched.first : bundled.first;
 }
 
 } // namespace OrielOSRunApp

@@ -21,6 +21,7 @@ COPY CMakeLists.txt /src/
 COPY apps/ /src/apps/
 COPY plasma/ /src/plasma/
 COPY artwork/ /src/artwork/
+COPY data/ /src/data/
 
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/apps-builder.sh build

@@ -93,4 +93,27 @@ QString execArgument(const QString &argument);
 // program again replaces its entry.
 QString writeStartEntry(const QString &applicationsDir, const QString &name, const Shortcut &shortcut);
 
+// A Windows program Run this app knows, from OrielOS's known-apps list (data/known-apps.json).
+struct KnownApp
+{
+    QString name;
+    // The Flathub app to offer first, or empty.
+    QString store;
+    // A store's own launcher, installed as usual, with a note on what to expect.
+    bool launcher = false;
+    QString note;
+    // A Microsoft Store package, or a setup program that only fetches one: OrielOS can't run it.
+    bool package = false;
+    // Where to get the app instead, such as its web version, or empty.
+    QString alternative;
+};
+
+// The known app a download is, from the list's JSON: an entry whose names include the file's
+// prefix name, or the start of it ("obs-studio" for "obs-studio-windows"). MSIX and AppX files are
+// packages whatever their name. Nothing for a file the list doesn't know.
+std::optional<KnownApp> knownApp(const QByteArray &list, const QString &fileName);
+// The list to use: the copy fetched from OrielOS's repository when it's valid and not older than
+// the one in the image, else the image's.
+QByteArray knownAppsList(const QString &fetchedPath, const QString &bundledPath);
+
 } // namespace OrielOSRunApp
