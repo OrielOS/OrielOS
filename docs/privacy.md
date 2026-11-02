@@ -8,7 +8,7 @@ It does connect to the internet to keep itself and your apps up to date. This pa
 
 | Where | What for | When |
 |---|---|---|
-| `ghcr.io` (GitHub's container registry), `ghcr.io/orielos/orielos` | Checking for and downloading OrielOS updates, with their signatures | About 10 minutes after starting, then every 6 hours; not on a metered connection or while updates are paused |
+| `ghcr.io` (GitHub's container registry), `ghcr.io/orielos/orielos`, with the downloads themselves from `pkg-containers.githubusercontent.com` | Checking for and downloading OrielOS updates, with their signatures | About 10 minutes after starting, then every 6 hours; not on a metered connection or while updates are paused |
 | `dl.flathub.org` and Flathub's mirrors | Installing and updating apps from the Store, including Firefox on the first start and the NVIDIA driver's add-ons for apps | When you install an app, and in the background for app updates unless you turn them off; not on a metered connection |
 | `raw.githubusercontent.com/OrielOS/OrielOS` | The newest list of Windows programs Run this app knows (which ones the Store has, and Microsoft Store packages) | When you open a Windows program with Run this app |
 | `raw.githubusercontent.com/AreWeAntiCheatYet` | The newest list of games with anti-cheat, for Game Settings' Will it run? | When you open Game Settings |
@@ -36,5 +36,7 @@ Apps you install from the Store are made by others, and their own privacy polici
 [orielos.org](https://orielos.org) has no analytics, no cookies and no requests to anyone else's servers. GitHub Pages hosts it and Cloudflare sits in front of it, so both handle your requests as any host does. Search engines' webmaster tools report to OrielOS only on OrielOS's place in their own search results.
 
 ## Checking for yourself
+
+OrielOS's own test of a fresh install, left at the sign-in screen for its first hour, saw it look up only Fedora's connectivity check, Flathub (installing Firefox and checking for app updates), GitHub's container registry and its download host (checking for updates), and Fedora's time servers.
 
 OrielOS is open source: everything above can be read in [its code](https://github.com/OrielOS/OrielOS). Tools such as Wireshark, from the Store, show every connection a computer makes.
