@@ -56,6 +56,14 @@ Each switch adds its part to the game's launch options in Steam, next to anythin
 
 **Will it run?**, at the top of Game Settings, says whether a game with anti-cheat runs on OrielOS: it works, the publisher blocks Linux, it doesn't work yet, or support is planned. The answers come from [AreWeAntiCheatYet](https://areweanticheatyet.com/)'s list (MIT licence), updated whenever Game Settings opens online, with the date of the copy it uses, and OrielOS's own tests win over it.
 
+### Fix it
+
+When a game from Steam won't start or misbehaves, open it in Game Settings and choose **Fix it**, under Will it run?. Fix it closes Steam, starts the game once with Proton's log turned on, and asks you to play until the problem happens and then close the game. It reads the log, puts the game's settings back as they were, and says in plain words what most likely went wrong, with the fixes for it, best first. Nothing changes until you choose one.
+
+A fix is always for that game only: running it with another version of Proton, a setting in its launch options, turning off one of Game Settings' switches, or clearing the shaders it saved. After you choose **Apply**, Fix it starts the game again, and counts the fix as working if the game keeps running for 2 minutes. **Undo the last fix** puts back exactly what was there before. Some problems, such as an anti-cheat runtime missing in Steam, come with steps to follow instead of a button.
+
+Fix it remembers which fixes worked on this PC, with its graphics card and driver, and suggests those first next time. Nothing leaves your PC. It can't help with games whose publisher blocks Linux: Will it run? says so.
+
 ## The FPS overlay
 
 OrielOS's Game Bar is one thing: a small frame-rate counter over the game you're playing. Turn it on in **Settings > Gaming > FPS overlay**; games you start after you next sign in have it, hidden until you press **Windows + G**, which shows or hides it in the game's top-left corner. The same page can add the frame time, and processor and graphics card use, under the frame rate.

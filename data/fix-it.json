@@ -1,0 +1,103 @@
+{
+  "about": "Fix it's failure signatures: what a Proton log shows when a game fails in a common way, and the fixes for each, best first. Written for OrielOS from Proton's, DXVK's and VKD3D-Proton's own log messages. A signature with 'when' applies only while that Game Settings switch is on. Fix kinds: tool (run the game with that compatibility tool; an empty value is Steam's default), variable (add NAME=value to the launch options), turn-off (turn a Game Settings switch off), clear-shader-cache (move the game's shader cache aside), advice (something only the user can do).",
+  "signatures": [
+    {
+      "id": "wayland-driver",
+      "when": "waylandHdr",
+      "cause": "Wine's Wayland driver, which the HDR switch turns on, failed in this game.",
+      "patterns": ["winewayland", "err:waylanddrv"],
+      "fixes": [
+        { "id": "turn-off-hdr", "kind": "turn-off", "value": "waylandHdr", "explanation": "Turn off HDR for this game, so it uses the usual driver." }
+      ]
+    },
+    {
+      "id": "gamescope",
+      "when": "gamescope",
+      "cause": "gamescope, which runs the game in its own window, couldn't start.",
+      "patterns": ["gamescope: command not found", "\\(EE\\) gamescope", "gamescope: .*[Ff]ailed"],
+      "fixes": [
+        { "id": "turn-off-gamescope", "kind": "turn-off", "value": "gamescope", "explanation": "Turn off gamescope for this game." }
+      ]
+    },
+    {
+      "id": "dlss-upgrade",
+      "when": "dlssUpgrade",
+      "cause": "The newer DLSS files the DLSS upgrade adds don't work with this game.",
+      "patterns": ["nvngx.*(err|[Ff]ail)", "DLSS.*(error|[Ff]ailed)"],
+      "fixes": [
+        { "id": "turn-off-dlss-upgrade", "kind": "turn-off", "value": "dlssUpgrade", "explanation": "Turn off the DLSS upgrade, so the game uses the DLSS files it came with." }
+      ]
+    },
+    {
+      "id": "dx12",
+      "cause": "The game's DirectX 12 graphics couldn't start.",
+      "patterns": ["vkd3d.*err:", "D3D12CreateDevice.*(fail|E_)", "err:d3d12"],
+      "fixes": [
+        { "id": "turn-off-descriptor-heaps", "kind": "turn-off", "value": "descriptorHeap", "explanation": "Turn off DX12 descriptor heaps for this game." },
+        { "id": "proton-experimental", "kind": "tool", "value": "proton_experimental", "explanation": "Run the game with Proton Experimental, which has the newest DirectX 12 fixes." },
+        { "id": "ge-proton", "kind": "tool", "value": "GE-Proton", "explanation": "Run the game with GE-Proton." }
+      ]
+    },
+    {
+      "id": "vulkan",
+      "cause": "The game's DirectX 9, 10 or 11 graphics couldn't start, because Vulkan didn't.",
+      "patterns": ["DxvkInstance: Failed", "No adapters found", "vkCreateInstance failed", "DXVK: .*VK_ERROR"],
+      "fixes": [
+        { "id": "wined3d", "kind": "variable", "value": "PROTON_USE_WINED3D=1", "explanation": "Use Wine's own DirectX instead of DXVK for this game. It's slower, but doesn't need Vulkan." },
+        { "id": "proton-experimental", "kind": "tool", "value": "proton_experimental", "explanation": "Run the game with Proton Experimental." }
+      ]
+    },
+    {
+      "id": "shader-cache",
+      "cause": "The game's saved shaders are damaged.",
+      "patterns": ["[Ss]tate cache.*(invalid|corrupt)", "[Pp]ipeline cache.*(invalid|corrupt)", "Failed to (load|read) pipeline cache"],
+      "fixes": [
+        { "id": "clear-shader-cache", "kind": "clear-shader-cache", "value": "", "explanation": "Move the game's saved shaders aside, so Steam builds them again. The first few minutes may stutter." }
+      ]
+    },
+    {
+      "id": "video",
+      "cause": "The game's videos, such as its intro or cutscenes, use a format Proton couldn't play.",
+      "patterns": ["err:mfplat", "winegstreamer.*([Ff]ailed|err)", "err:quartz", "err:wmvcore"],
+      "fixes": [
+        { "id": "ge-proton", "kind": "tool", "value": "GE-Proton", "explanation": "Run the game with GE-Proton, which plays more video formats." },
+        { "id": "proton-experimental", "kind": "tool", "value": "proton_experimental", "explanation": "Run the game with Proton Experimental." }
+      ]
+    },
+    {
+      "id": "easy-anti-cheat",
+      "cause": "The game's anti-cheat, Easy Anti-Cheat, stopped it.",
+      "patterns": ["EasyAntiCheat.*([Ee]rror|[Ff]ailed|not installed)", "eac_server.*([Ee]rror|[Ff]ailed)"],
+      "fixes": [
+        { "id": "eac-runtime", "kind": "advice", "value": "", "explanation": "In Steam, check that Proton EasyAntiCheat Runtime is installed: search for it in your library, under Tools. If the game's publisher hasn't allowed Linux, nothing on this PC can change that." }
+      ]
+    },
+    {
+      "id": "battleye",
+      "cause": "The game's anti-cheat, BattlEye, stopped it.",
+      "patterns": ["BattlEye.*([Ee]rror|[Ff]ailed|not)", "BEService.*([Ee]rror|[Ff]ailed)"],
+      "fixes": [
+        { "id": "battleye-runtime", "kind": "advice", "value": "", "explanation": "In Steam, check that Proton BattlEye Runtime is installed: search for it in your library, under Tools. If the game's publisher hasn't allowed Linux, nothing on this PC can change that." }
+      ]
+    },
+    {
+      "id": "missing-files",
+      "cause": "A file the game needs is missing.",
+      "patterns": ["err:module:import_dll Library \\S+ \\(which is needed by .*\\) not found", "err:module:LdrInitializeThunk"],
+      "fixes": [
+        { "id": "verify-files", "kind": "advice", "value": "", "explanation": "In Steam, right-click the game, choose Properties, then Installed Files, then Verify integrity of game files." },
+        { "id": "ge-proton", "kind": "tool", "value": "GE-Proton", "explanation": "Run the game with GE-Proton, which includes more of Windows' own files." }
+      ]
+    },
+    {
+      "id": "crash",
+      "cause": "The game crashed as it started.",
+      "patterns": ["wine: Unhandled page fault", "wine: Unhandled exception", "Unhandled exception: page fault"],
+      "fixes": [
+        { "id": "proton-experimental", "kind": "tool", "value": "proton_experimental", "explanation": "Run the game with Proton Experimental, which has the newest fixes." },
+        { "id": "ge-proton", "kind": "tool", "value": "GE-Proton", "explanation": "Run the game with GE-Proton, which has fixes for many games." },
+        { "id": "steam-default", "kind": "tool", "value": "", "explanation": "Run the game with Steam's own choice of Proton." }
+      ]
+    }
+  ]
+}
