@@ -440,6 +440,27 @@ fi
     exit 1
 }
 
+# The hardware check: says, once per device, when a Wi-Fi, Bluetooth, network, sound or camera
+# device has no driver or is missing its firmware. The system service copies the firmware failures
+# from the kernel log, which users can't read; the user service tells them at sign-in.
+systemctl enable orielos-firmware-log.service
+systemctl --global enable orielos-hardware-check.service
+if [[ "$(systemctl is-enabled orielos-firmware-log.service 2>/dev/null)" != "enabled" ||
+"$(systemctl --global is-enabled orielos-hardware-check.service 2>/dev/null)" != "enabled" ]]; then
+    printf 'error: orielos-firmware-log.service or orielos-hardware-check.service is not enabled\n' >&2
+    exit 1
+fi
+for tool in hardware-check hardware-check-notify firmware-log; do
+    [[ -x "/usr/libexec/orielos/$tool" ]] || {
+        printf 'error: /usr/libexec/orielos/%s is not executable\n' "$tool" >&2
+        exit 1
+    }
+done
+[[ -r /usr/share/hwdata/pci.ids && -r /usr/share/hwdata/usb.ids ]] || {
+    printf 'error: hwdata is missing, so the hardware check could not name devices\n' >&2
+    exit 1
+}
+
 # Storage Sense: frees space once a day for users who turned it on in Settings › System › Storage.
 systemctl --global enable orielos-storage-sense.timer
 if [[ "$(systemctl --global is-enabled orielos-storage-sense.timer 2>/dev/null)" != "enabled" ]]; then

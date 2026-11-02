@@ -13,6 +13,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QStringList>
 
 #include <optional>
 
@@ -34,6 +35,22 @@ std::optional<QByteArray> readFile(const SecuritySources &sources, const QString
         return std::nullopt;
     }
     return file.readAll();
+}
+
+// What hardware-check prints; nothing when it's missing, fails or hangs.
+std::optional<QString> defaultHardwareProblems()
+{
+    QProcess process;
+    process.start(QStringLiteral("/usr/libexec/orielos/hardware-check"), { });
+    if (!process.waitForFinished(3000)) {
+        process.kill();
+        process.waitForFinished();
+        return std::nullopt;
+    }
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+        return std::nullopt;
+    }
+    return QString::fromUtf8(process.readAllStandardOutput());
 }
 
 // Empty only when modinfo ran and found no signer; nothing when modinfo is missing, fails or hangs.
@@ -281,6 +298,33 @@ QList<SecurityCheck> runProtectionChecks(const SecuritySources &sources)
         updates.explanation = i18nc("@info", "OrielOS hasn't been able to update for over a week. Check for updates under Update.");
     }
     checks.append(updates);
+
+    SecurityCheck devices { QStringLiteral("devices"), i18nc("@title Part of the computer's protection", "Devices") };
+    const std::optional<QString> problems = sources.hardwareProblems ? sources.hardwareProblems() : defaultHardwareProblems();
+    if (!problems) {
+        devices.result = SecurityCheck::Result::Unknown;
+        devices.explanation = i18nc("@info", "OrielOS couldn't check whether every device has a driver.");
+    } else {
+        QStringList sentences;
+        for (const QString &line : problems->split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
+            const QStringList fields = line.split(QLatin1Char('\t'));
+            if (fields.size() < 6) {
+                continue;
+            }
+            sentences.append(fields.at(5) == QLatin1String("no-firmware")
+                    ? i18nc("@info %1 is a device's maker and model", "The %1 can't start, because a file its driver needs isn't in OrielOS.", fields.at(4))
+                    : i18nc("@info %1 is a device's maker and model", "The %1 has no driver, so it doesn't work.", fields.at(4)));
+        }
+        if (sentences.isEmpty()) {
+            devices.result = SecurityCheck::Result::Met;
+            devices.explanation = i18nc("@info", "Every Wi-Fi, Bluetooth, network, sound and camera device has a driver.");
+        } else {
+            devices.result = SecurityCheck::Result::NotMet;
+            sentences.append(i18nc("@info", "See what works instead at orielos.org/guides/known-limitations."));
+            devices.explanation = sentences.join(QLatin1Char(' '));
+        }
+    }
+    checks.append(devices);
     return checks;
 }
 
