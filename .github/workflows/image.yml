@@ -117,8 +117,9 @@ jobs:
           ls -l /dev/kvm /dev/vhost-vsock
           # Ubuntu's AppArmor profile for swtpm lets it write only in libvirt's folders, so the VM's
           # TPM socket and state, in /var/lib/orielos/vm (a bind mount of /mnt/vm), were refused.
-          # The profile's local include allows those two folders as well.
-          if [[ -f /etc/apparmor.d/usr.bin.swtpm ]]; then
+          # The profile's local include allows those two folders as well. Runners whose kernel
+          # doesn't run AppArmor need nothing.
+          if [[ -f /etc/apparmor.d/usr.bin.swtpm && -d /sys/kernel/security/apparmor ]]; then
               sudo mkdir -p /etc/apparmor.d/local
               printf 'owner /var/lib/orielos/vm/** rwk,\nowner /mnt/vm/** rwk,\n' |
                   sudo tee -a /etc/apparmor.d/local/usr.bin.swtpm >/dev/null
