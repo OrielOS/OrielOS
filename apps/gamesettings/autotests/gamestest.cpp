@@ -4,6 +4,7 @@
 #include "launchoptions.h"
 #include "steamlibrary.h"
 #include "vdf.h"
+#include "willitrun.h"
 
 #include <QDir>
 #include <QFile>
@@ -163,6 +164,41 @@ private Q_SLOTS:
         QCOMPARE(steam.launchOptions(QStringLiteral("730")), QStringLiteral("MANGOHUD=1 %command%"));
         QVERIFY(steam.setLaunchOptions(QStringLiteral("730"), QString()));
         QVERIFY(steam.launchOptions(QStringLiteral("730")).isEmpty());
+    }
+
+    void willItRun()
+    {
+        QFile list(QStringLiteral(ANTICHEAT_JSON));
+        QVERIFY(list.open(QIODevice::ReadOnly));
+        const QByteArray data = list.readAll();
+        const WillItRun answers = WillItRun::fromJson(data);
+        QVERIFY(!answers.isEmpty());
+        QVERIFY(!answers.fetched().isEmpty());
+        const QList<Verdict> valorant = answers.search(QStringLiteral("valorant"));
+        QVERIFY(!valorant.isEmpty());
+        QCOMPARE(valorant.first().status, Verdict::Status::Blocked);
+        QVERIFY(!valorant.first().reason.isEmpty());
+        const QList<Verdict> cs2 = answers.search(QStringLiteral("Counter-Strike 2"));
+        QVERIFY(!cs2.isEmpty());
+        QCOMPARE(cs2.first().name, QStringLiteral("Counter-Strike 2"));
+        QCOMPARE(cs2.first().status, Verdict::Status::Works);
+        QVERIFY(answers.search(QStringLiteral("  ")).isEmpty());
+
+        // OrielOS's own verdict wins, and adds games the list doesn't have.
+        const WillItRun ours = WillItRun::fromJson(data,
+            R"({"games": [{"name": "Valorant", "status": "Running", "reason": "Tested."}, {"name": "Our Game", "status": "Supported"}]})");
+        QCOMPARE(ours.search(QStringLiteral("valorant")).first().status, Verdict::Status::Works);
+        QCOMPARE(ours.search(QStringLiteral("valorant")).first().reason, QStringLiteral("Tested."));
+        QCOMPARE(ours.search(QStringLiteral("our game")).first().status, Verdict::Status::Works);
+
+        // The cache keeps only what's shown, and reads back the same.
+        const QByteArray upstream = R"([{"name": "A Game", "status": "Denied", "anticheats": ["BattlEye"], "notes": [["x", "https://www.protondb.com/"]]}])";
+        const QByteArray copy = WillItRun::trimmed(upstream, QStringLiteral("2026-11-02"));
+        QVERIFY(!copy.contains("protondb"));
+        const WillItRun cached = WillItRun::fromJson(copy);
+        QCOMPARE(cached.fetched(), QStringLiteral("2026-11-02"));
+        QCOMPARE(cached.search(QStringLiteral("a game")).first().antiCheats, QStringList { QStringLiteral("BattlEye") });
+        QVERIFY(WillItRun::trimmed("not json", QStringLiteral("x")).isEmpty());
     }
 
     void withoutSteam()

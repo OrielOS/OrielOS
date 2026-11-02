@@ -46,6 +46,13 @@ Kirigami.ApplicationWindow {
 
         Kirigami.ScrollablePage {
             title: KI18n.i18nc("@title", "Games")
+            actions: [
+                Kirigami.Action {
+                    text: KI18n.i18nc("@action:button", "Will it run?")
+                    icon.name: "help-about"
+                    onTriggered: root.pageStack.push(willItRunPage)
+                }
+            ]
 
             header: ColumnLayout {
                 spacing: 0
@@ -253,6 +260,91 @@ Kirigami.ApplicationWindow {
                     wrapMode: Text.Wrap
                     color: Kirigami.Theme.disabledTextColor
                     text: KI18n.i18nc("@info", "These go into the game's launch options in Steam, next to anything you typed there yourself. Turning one off takes out only what it added.")
+                }
+            }
+        }
+    }
+
+    Component {
+        id: willItRunPage
+
+        Kirigami.ScrollablePage {
+            id: willPage
+
+            readonly property var results: root.settings.revision >= 0 ? root.settings.willItRun(question.text) : []
+
+            title: KI18n.i18nc("@title", "Will it run?")
+
+            header: Kirigami.SearchField {
+                id: question
+
+                focus: true
+                placeholderText: KI18n.i18nc("@info:placeholder", "A game with anti-cheat, such as Fortnite")
+            }
+
+            ColumnLayout {
+                spacing: Kirigami.Units.largeSpacing
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    visible: question.text.trim().length === 0
+                    text: KI18n.i18nc("@info", "Search for a game with anti-cheat to see whether it runs on OrielOS. Most games without anti-cheat run.")
+                }
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    visible: question.text.trim().length > 0 && willPage.results.length === 0
+                    text: KI18n.i18nc("@info", "Not in the list: if the game has no anti-cheat, it most likely runs.")
+                }
+
+                Repeater {
+                    model: willPage.results
+
+                    delegate: RowLayout {
+                        id: answer
+
+                        required property var modelData
+
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.largeSpacing
+
+                        Kirigami.Icon {
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.medium
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                            Layout.alignment: Qt.AlignTop
+                            source: answer.modelData.status === "works" ? "data-success" : answer.modelData.status === "planned" ? "data-information" : "data-error"
+                            Accessible.ignored: true
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            Kirigami.Heading {
+                                Layout.fillWidth: true
+                                level: 4
+                                textFormat: Text.PlainText
+                                text: answer.modelData.name
+                            }
+
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                wrapMode: Text.Wrap
+                                textFormat: Text.PlainText
+                                text: answer.modelData.reason
+                            }
+                        }
+                    }
+                }
+
+                QQC2.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    color: Kirigami.Theme.disabledTextColor
+                    font: Kirigami.Theme.smallFont
+                    text: KI18n.i18nc("@info %1 is a date", "From AreWeAntiCheatYet's list (MIT licence), as of %1, with OrielOS's own tests.", root.settings.willItRunDate)
                 }
             }
         }

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "steamlibrary.h"
+#include "willitrun.h"
 
 #include <QObject>
 #include <QTimer>
@@ -32,6 +33,8 @@ class GameSettings : public QObject
     Q_PROPERTY(bool busy READ isBusy NOTIFY changed)
     // Goes up with every change, so the page reads a game's settings again.
     Q_PROPERTY(int revision READ revision NOTIFY changed)
+    // When Will it run?'s list was fetched, as written in it.
+    Q_PROPERTY(QString willItRunDate READ willItRunDate NOTIFY changed)
 
 public:
     explicit GameSettings(QObject *parent = nullptr);
@@ -43,6 +46,11 @@ public:
     QString error() const { return m_error; }
     bool isBusy() const { return m_busy; }
     int revision() const { return m_revision; }
+    QString willItRunDate() const { return m_willItRun.fetched(); }
+
+    // { name, status (works, blocked, broken or planned), reason, antiCheats } for the games whose
+    // name contains the words.
+    Q_INVOKABLE QVariantList willItRun(const QString &words) const;
 
     // { tool, dlssUpgrade, waylandHdr, gamescope, fpsOverlay, gameMode, descriptorHeap } for a game.
     Q_INVOKABLE QVariantMap settingsFor(const QString &appId) const;
@@ -61,6 +69,8 @@ Q_SIGNALS:
 
 private:
     void checkSteam();
+    void loadWillItRun();
+    void fetchWillItRun();
     void runDetached(const QString &program, const QStringList &arguments);
 
     SteamLibrary m_library;
@@ -71,6 +81,7 @@ private:
     QString m_error;
     QTimer m_watch;
     int m_revision = 0;
+    WillItRun m_willItRun;
 };
 
 } // namespace OrielOSGames

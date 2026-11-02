@@ -5,12 +5,13 @@
 # (DLSS upgrade, HDR, gamescope, the FPS overlay, GameMode, DX12 descriptor heaps), written into
 # the game's launch options.
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Network)
 
 # Reading and writing Steam's files, unit-tested.
-add_library(OrielOSGames STATIC vdf.cpp vdf.h steamlibrary.cpp steamlibrary.h launchoptions.cpp launchoptions.h)
+add_library(OrielOSGames STATIC vdf.cpp vdf.h steamlibrary.cpp steamlibrary.h launchoptions.cpp launchoptions.h willitrun.cpp willitrun.h)
 target_include_directories(OrielOSGames PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(OrielOSGames PUBLIC Qt6::Core)
+target_compile_definitions(OrielOSGames PRIVATE TRANSLATION_DOMAIN="orielos-game-settings")
+target_link_libraries(OrielOSGames PUBLIC Qt6::Core KF6::I18n)
 
 add_executable(orielos-game-settings main.cpp)
 qt_add_qml_module(orielos-game-settings
@@ -23,6 +24,7 @@ target_compile_definitions(orielos-game-settings PRIVATE TRANSLATION_DOMAIN="ori
 target_link_libraries(orielos-game-settings PRIVATE
     OrielOSGames
     Qt6::Widgets
+    Qt6::Network
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2
@@ -33,6 +35,9 @@ target_link_libraries(orielos-game-settings PRIVATE
 
 install(TARGETS orielos-game-settings ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 install(FILES org.orielos.GameSettings.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+# Will it run?: AreWeAntiCheatYet's list (MIT), with its licence, and OrielOS's own verdicts.
+install(FILES ${PROJECT_SOURCE_DIR}/data/anticheat-games.json ${PROJECT_SOURCE_DIR}/data/will-it-run-overrides.json
+    ${PROJECT_SOURCE_DIR}/data/LICENSE-AreWeAntiCheatYet DESTINATION ${KDE_INSTALL_DATADIR}/orielos)
 
 if(BUILD_TESTING)
     add_subdirectory(autotests)

@@ -7,7 +7,15 @@
 
 #include <KLocalizedString>
 
+#include <QDate>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QProcess>
+#include <QSaveFile>
+#include <QStandardPaths>
 
 namespace OrielOSGames {
 
@@ -17,6 +25,19 @@ const QString steamApp = QStringLiteral("com.valvesoftware.Steam");
 // Flathub's GE-Proton for Steam, where its compatibilitytool.vdf is.
 const QStringList extensionFolders = { QStringLiteral("/var/lib/flatpak/runtime/com.valvesoftware.Steam.CompatibilityTool.Proton-GE") };
 const QString gamescopeExtension = QStringLiteral("com.valvesoftware.Steam.Utility.gamescope");
+const QString bundledAntiCheat = QStringLiteral("/usr/share/orielos/anticheat-games.json");
+const QString overrides = QStringLiteral("/usr/share/orielos/will-it-run-overrides.json");
+
+QString antiCheatCache()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + QStringLiteral("/orielos/anticheat-games.json");
+}
+
+QByteArray readFile(const QString &path)
+{
+    QFile file(path);
+    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+}
 
 QString runQuietly(const QString &program, const QStringList &arguments, int *exitCode = nullptr)
 {
@@ -39,7 +60,57 @@ GameSettings::GameSettings(QObject *parent)
     m_watch.setInterval(3000);
     connect(&m_watch, &QTimer::timeout, this, &GameSettings::checkSteam);
     m_watch.start();
+    loadWillItRun();
+    fetchWillItRun();
     reload();
+}
+
+void GameSettings::loadWillItRun()
+{
+    // The copy fetched last, else the one in the image, which says when it was taken.
+    m_willItRun = WillItRun::fromJson(readFile(antiCheatCache()), readFile(overrides));
+    if (m_willItRun.isEmpty()) {
+        m_willItRun = WillItRun::fromJson(readFile(bundledAntiCheat), readFile(overrides));
+    }
+}
+
+void GameSettings::fetchWillItRun()
+{
+    auto *network = new QNetworkAccessManager(this);
+    QNetworkRequest request(QUrl(QStringLiteral("https://raw.githubusercontent.com/AreWeAntiCheatYet/AreWeAntiCheatYet/HEAD/games.json")));
+    request.setTransferTimeout(15000);
+    QNetworkReply *reply = network->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        reply->deleteLater();
+        const QByteArray copy = reply->error() == QNetworkReply::NoError ? WillItRun::trimmed(reply->readAll(), QDate::currentDate().toString(Qt::ISODate)) : QByteArray();
+        if (copy.isEmpty()) {
+            return;
+        }
+        QDir().mkpath(QFileInfo(antiCheatCache()).absolutePath());
+        QSaveFile file(antiCheatCache());
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(copy);
+            file.commit();
+        }
+        loadWillItRun();
+        ++m_revision;
+        Q_EMIT changed();
+    });
+}
+
+QVariantList GameSettings::willItRun(const QString &words) const
+{
+    QVariantList out;
+    for (const Verdict &verdict : m_willItRun.search(words)) {
+        static const QStringList statuses = { QStringLiteral("works"), QStringLiteral("blocked"), QStringLiteral("broken"), QStringLiteral("planned") };
+        out.append(QVariantMap {
+            { QStringLiteral("name"), verdict.name },
+            { QStringLiteral("status"), statuses.at(static_cast<int>(verdict.status)) },
+            { QStringLiteral("reason"), verdict.reason },
+            { QStringLiteral("antiCheats"), verdict.antiCheats.join(QStringLiteral(", ")) },
+        });
+    }
+    return out;
 }
 
 void GameSettings::reload()
