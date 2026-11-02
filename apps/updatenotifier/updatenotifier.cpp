@@ -204,11 +204,9 @@ void Notifier::showReadyNotification()
     notification->setTitle(i18nc("@title", "Restart to update"));
     const QString summary = OrielOSUpdates::changeSummary(stagedChanges(m_state.running().version));
     notification->setText(summary.isEmpty()
-                              ? i18nc("@info", "OrielOS %1 is ready. Restart to finish updating. Your files and apps stay as they are.", staged.version)
-                              : i18nc("@info %2 is a list of changes, such as 3 new features and 2 fixes",
-                                      "OrielOS %1 is ready, with %2. Restart to finish updating. Your files and apps stay as they are.",
-                                      staged.version,
-                                      summary));
+            ? i18nc("@info", "OrielOS %1 is ready. Restart to finish updating. Your files and apps stay as they are.", staged.version)
+            : i18nc("@info %2 is a list of changes, such as 3 new features and 2 fixes",
+                  "OrielOS %1 is ready, with %2. Restart to finish updating. Your files and apps stay as they are.", staged.version, summary));
     KNotificationAction *restart = notification->addAction(i18nc("@action:button", "Restart to update"));
     connect(restart, &KNotificationAction::activated, this, &Notifier::restart);
     // Settings' Update page schedules the restart, and shows what's new in the update.

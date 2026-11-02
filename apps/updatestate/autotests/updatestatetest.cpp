@@ -132,9 +132,10 @@ private Q_SLOTS:
     void findsWhatAnUpdateBrings()
     {
         // A testing build to the next: only what the newer build gained.
-        const QString installed = QStringLiteral("# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A.\n- B.\n\n## [0.1.9] - 2026-11-01\n\n### Added\n\n- Old.\n");
-        const QString incoming
-            = QStringLiteral("# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A.\n- B.\n- C.\n\n### Fixed\n\n- D.\n\n## [0.1.9] - 2026-11-01\n\n### Added\n\n- Old.\n");
+        const QString installed
+            = QStringLiteral("# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A.\n- B.\n\n## [0.1.9] - 2026-11-01\n\n### Added\n\n- Old.\n");
+        const QString incoming = QStringLiteral(
+            "# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A.\n- B.\n- C.\n\n### Fixed\n\n- D.\n\n## [0.1.9] - 2026-11-01\n\n### Added\n\n- Old.\n");
         QCOMPARE(changesSince(installed, incoming, QStringLiteral("v0.2.3")), QStringLiteral("### Added\n\n- C.\n\n### Fixed\n\n- D."));
         QCOMPARE(changesSince(incoming, incoming, QStringLiteral("v0.2.4")), QString());
 
@@ -147,8 +148,9 @@ private Q_SLOTS:
         // A testing build that missed the stable version in between gets that version's entries
         // it didn't have too, each heading once.
         const QString older = QStringLiteral("## [Unreleased]\n\n### Added\n\n- A.\n");
-        const QString newer = QStringLiteral("## [Unreleased]\n\n### Added\n\n- C.\n\n## [0.2.3] - 2026-11-05\n\n### Added\n\n- A.\n- B.\n\n### Fixed\n\n- E.\n\n"
-                                             "## [0.2.0] - 2026-11-01\n\n### Fixed\n\n- Long ago.\n");
+        const QString newer
+            = QStringLiteral("## [Unreleased]\n\n### Added\n\n- C.\n\n## [0.2.3] - 2026-11-05\n\n### Added\n\n- A.\n- B.\n\n### Fixed\n\n- E.\n\n"
+                             "## [0.2.0] - 2026-11-01\n\n### Fixed\n\n- Long ago.\n");
         QCOMPARE(changesSince(older, newer, QStringLiteral("v0.2.2")), QStringLiteral("### Added\n\n- C.\n- B.\n\n### Fixed\n\n- E."));
         // Without the running version, only Unreleased counts.
         QCOMPARE(changesSince(older, newer, QStringLiteral("unknown")), QStringLiteral("### Added\n\n- C."));
@@ -167,7 +169,7 @@ private Q_SLOTS:
         QCOMPARE(changeSummary(changes), QStringLiteral("3 new features and 2 fixes"));
         QCOMPARE(changeSummary(QStringLiteral("### Changed\n\n- A.")), QStringLiteral("1 change"));
         QCOMPARE(changeSummary(QStringLiteral("### Added\n\n- A.\n\n### Changed\n\n- B.\n\n### Fixed\n\n- C.")),
-                 QStringLiteral("1 new feature, 1 change and 1 fix"));
+            QStringLiteral("1 new feature, 1 change and 1 fix"));
         QCOMPARE(changeSummary(QString()), QString());
     }
 
