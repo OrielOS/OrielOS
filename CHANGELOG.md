@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- When a Wi-Fi, Bluetooth, network, sound or camera device has no driver, or its driver can't find a file it needs, OrielOS says so in a notification, naming the device, instead of the device silently doing nothing. Settings → Privacy & security → Device security shows it too.
 - Game Settings, a new app: for each game in Steam from the Store, choose the Proton version and turn on the DLSS upgrade, HDR, gamescope, the FPS overlay, GameMode or DX12 descriptor heaps. Settings → Gaming opens it. Programs installed with Run this app, such as game stores' launchers, are listed too.
 - Game Settings' Will it run? says whether a game with anti-cheat runs on OrielOS, from AreWeAntiCheatYet's list, kept up to date online.
 - Git and Distrobox are in OrielOS, next to Podman and Toolbx, and a new guide, Writing code on OrielOS, explains setting up containers, an editor and command-line tools.

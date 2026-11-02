@@ -44,6 +44,9 @@ struct SecuritySources
     std::function<bool()> firewallActive;
     // The current time, for how long ago updates were checked. By default, the clock.
     std::function<QDateTime()> now;
+    // The devices without a driver or firmware, as hardware-check prints them: one tab-separated
+    // line each, empty when every device works, nothing when it couldn't run. By default, runs it.
+    std::function<std::optional<QString>()> hardwareProblems;
 };
 
 // Every requirement, in order: Secure Boot, the TPM and its measured-boot log, kernel lockdown, the
@@ -51,8 +54,9 @@ struct SecuritySources
 // modinfo for each loaded module, so it takes a second or so: run it off the GUI thread.
 QList<SecurityCheck> runSecurityChecks(const SecuritySources &sources = { });
 
-// The computer's protection at a glance, as Windows' security app shows it: the firewall, and
-// updates, from the state orielos-update writes. Quick enough for the GUI thread.
+// The computer's protection at a glance, as Windows' security app shows it: the firewall, updates,
+// from the state orielos-update writes, and devices without a driver or firmware, from
+// hardware-check. Quick enough for the GUI thread.
 QList<SecurityCheck> runProtectionChecks(const SecuritySources &sources = { });
 
 } // namespace OrielOSSettingsPages

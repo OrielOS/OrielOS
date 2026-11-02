@@ -81,6 +81,7 @@ AGAIN_USERS=""
 AGAIN_PROCS=""
 SSH_SDDM=""
 SSH_NM=""
+HARDWARE_CHECK=""
 SELFTEST_OUT=""
 SELFTEST_RC=""
 SESSION_FILE="plasma.desktop"
@@ -290,6 +291,8 @@ collect_over_ssh() {
     AGAIN_PROCS="$(sed -n 's/^running=//p' <<<"$out" | paste -sd ' ' -)"
     SSH_SDDM="$(vm_ssh systemctl is-active sddm 2>&1)" || true
     SSH_NM="$(vm_ssh systemctl is-active NetworkManager 2>&1)" || true
+    # The hardware check finds every virtual device's driver; the firmware log was written at boot.
+    HARDWARE_CHECK="$(vm_ssh "test -r /run/orielos/firmware-failures && echo noted; /usr/libexec/orielos/hardware-check" 2>&1)" || true
     SELFTEST_RC=0
     SELFTEST_OUT="$(vm_ssh orielos-buildcheck --self-test 2>&1)" || SELFTEST_RC=$?
     state="$(vm_ssh systemctl is-system-running 2>&1)" || true
@@ -1101,8 +1104,10 @@ run_checks() {
         hint "$ssh_hint"
     elif [[ "$SSH_NM" != "active" ]]; then
         fail "NetworkManager is not active inside the VM (systemctl is-active NetworkManager: ${SSH_NM:-no output})"
+    elif [[ "$HARDWARE_CHECK" != "noted" ]]; then
+        fail "The hardware check should find a driver for every device, with the firmware log written (got: ${HARDWARE_CHECK:-no output})"
     else
-        pass "NetworkManager is running (systemctl is-active NetworkManager: active)"
+        pass "NetworkManager is running (systemctl is-active NetworkManager: active; every device has a driver; firmware log written)"
     fi
 
     line="$(grep -m1 'orielos-buildcheck: self-test passed' <<<"$SELFTEST_OUT" || true)"

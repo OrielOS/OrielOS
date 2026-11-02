@@ -1,0 +1,13 @@
+[Unit]
+Description=Note the firmware this start's drivers couldn't load
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/known-limitations.md
+# Drivers load their firmware as the devices are set up; by the time NetworkManager has started,
+# Wi-Fi and network drivers have tried theirs.
+After=systemd-udev-trigger.service NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/orielos/firmware-log
+
+[Install]
+WantedBy=multi-user.target
