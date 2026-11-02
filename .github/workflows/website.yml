@@ -21,6 +21,12 @@ on:
 
 permissions: {}
 
+# A newer push to a pull request cancels its older run. Every other run has a group of its own,
+# so pushes, schedules and releases are never cancelled or dropped.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     name: build
