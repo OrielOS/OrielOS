@@ -69,6 +69,17 @@ if [[ "${#offenders[@]}" -gt 0 ]]; then
 fi
 if [[ "${total:-0}" -eq 0 ]]; then fail "no kernel modules found in /usr/lib/modules/$kver"; fi
 
+# Broadcom's wl driver is there (its signer is checked above), only for the cards that need it.
+if [[ -z "$(find "/usr/lib/modules/$kver" -type f -name 'wl.ko*' -print -quit)" ]]; then
+    fail "Broadcom's wl module is missing from /usr/lib/modules/$kver"
+fi
+if [[ -e /usr/lib/modprobe.d/broadcom-wl-blacklist.conf ]]; then
+    fail "broadcom-wl's blacklist is installed; it would stop other Broadcom cards on every PC"
+fi
+if [[ ! -r /usr/lib/udev/rules.d/70-orielos-broadcom-wl.rules || ! -x /usr/libexec/orielos/broadcom-wl-bind ]]; then
+    fail "the rule or helper that gives wl its cards is missing"
+fi
+
 # Every NVIDIA driver component has kmod-nvidia's version-release.
 driver="$(rpm -q --qf '%{VERSION}-%{RELEASE}' kmod-nvidia)"
 mapfile -t pkgs < <(rpm -qa --qf '%{NAME} %{VERSION}-%{RELEASE} %{ARCH}\n' | sort)

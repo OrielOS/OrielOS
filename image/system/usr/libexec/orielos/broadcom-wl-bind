@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Gives a Broadcom Wi-Fi card to Broadcom's wl driver. 70-orielos-broadcom-wl.rules runs it for the
+# cards that only work with wl, after setting the card's driver_override. The initramfs carries
+# ssb (for b44 network ports), so ssb may already hold an older card: it is unbound first, wl is
+# loaded by name (the alias is blacklisted), and the card is probed again so wl takes it.
+#
+# Usage: broadcom-wl-bind PCI-ADDRESS     (for example 0000:03:00.0)
+# Tests set ORIELOS_SYSFS and ORIELOS_MODPROBE to use another tree and a stand-in. Runs as root.
+set -Eeuo pipefail
+
+SYSFS="${ORIELOS_SYSFS:-/sys}"
+MODPROBE="${ORIELOS_MODPROBE:-/usr/sbin/modprobe}"
+
+log() { printf 'broadcom-wl-bind: %s\n' "$1" >&2; }
+die() {
+    log "$1"
+    exit 1
+}
+
+# Prints the name of the driver bound to the device, or nothing.
+bound_driver() {
+    local link="$1/driver"
+    if [[ -L "$link" ]]; then basename "$(readlink "$link")"; fi
+}
+
+main() {
+    if [[ $# -ne 1 ]]; then die "usage: broadcom-wl-bind PCI-ADDRESS"; fi
+    local dev="$1"
+    if [[ ! "$dev" =~ ^[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7]$ ]]; then
+        die "not a PCI address: $dev"
+    fi
+    local path="$SYSFS/bus/pci/devices/$dev"
+    if [[ ! -e "$path" ]]; then die "no such PCI device: $dev"; fi
+
+    local driver
+    driver="$(bound_driver "$path")"
+    if [[ "$driver" == "wl" ]]; then
+        log "$dev already uses wl"
+        return 0
+    fi
+
+    printf 'wl' >"$path/driver_override" || die "couldn't set $dev's driver_override"
+    if [[ -n "$driver" ]]; then
+        printf '%s' "$dev" >"$SYSFS/bus/pci/drivers/$driver/unbind" || die "couldn't take $dev from $driver"
+        log "took $dev from $driver"
+    fi
+    "$MODPROBE" wl || die "couldn't load wl"
+    if [[ "$(bound_driver "$path")" != "wl" ]]; then
+        printf '%s' "$dev" >"$SYSFS/bus/pci/drivers_probe" || die "couldn't probe $dev again"
+    fi
+    log "gave $dev to wl"
+}
+
+main "$@"
