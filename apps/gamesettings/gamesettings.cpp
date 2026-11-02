@@ -121,6 +121,15 @@ QVariantList GameSettings::willItRun(const QString &words) const
     return out;
 }
 
+std::optional<Verdict> GameSettings::verdictFor(const QString &name) const
+{
+    const QList<Verdict> found = m_willItRun.search(name, 1);
+    if (found.isEmpty() || found.first().name.compare(name, Qt::CaseInsensitive) != 0) {
+        return std::nullopt;
+    }
+    return found.first();
+}
+
 void GameSettings::reload()
 {
     m_games = m_library.games();
