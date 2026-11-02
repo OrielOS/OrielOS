@@ -175,6 +175,11 @@ spectacle
 tesseract-langpack-eng
 ark
 
+# Development: Git for the command-line tools that expect it, and Distrobox for containers of
+# other Linux distributions next to Toolbx and Podman, which the base image has.
+git
+distrobox
+
 # Look: Breeze icons, cursors and GTK theme, so GTK apps match Plasma.
 plasma-breeze
 breeze-icon-theme
