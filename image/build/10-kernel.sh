@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replaces the base image's kernel with the Fedora CoreOS stable kernel, locks it, and
-# installs the signed common kernel modules (xone, xpadneo, OpenRazer, v4l2loopback).
+# installs the signed common kernel modules (xone, xpadneo, OpenRazer, v4l2loopback, Broadcom's wl).
 set -Eeuo pipefail
 if [[ -n "${ORIELOS_BUILD_TRACE:-}" ]]; then set -x; fi
 
@@ -46,6 +46,13 @@ dnf -y install \
     "$akmods"/common/xone-kmod-common-*.rpm \
     "$akmods"/common/xpadneo-kmod-common-*.rpm \
     "$akmods"/common/openrazer-*.rpm \
-    "$akmods"/common/v4l2loopback-*.rpm
+    "$akmods"/common/v4l2loopback-*.rpm \
+    "$akmods"/kmods/kmod-wl-*.rpm \
+    "$akmods"/common/broadcom-wl-*.rpm
+
+# broadcom-wl blacklists ssb, bcma, b43, brcmsmac and brcmfmac on every PC, which would stop the
+# Broadcom cards and network ports those drivers handle. OrielOS gives wl only the cards that need
+# it instead (70-orielos-broadcom-wl.rules).
+rm -f /usr/lib/modprobe.d/broadcom-wl-blacklist.conf
 
 dnf clean all

@@ -1,0 +1,14 @@
+# Older Broadcom Wi-Fi cards that Linux has no working driver for get Broadcom's own driver, wl,
+# and only those cards: wl matches every Wi-Fi card by its class, so it is blacklisted by alias
+# (/usr/lib/modprobe.d/orielos-broadcom-wl.conf) and bound here device by device. The kernel's
+# drivers for these cards (ssb and bcma with b43) need firmware that can't be shipped, and BCM43142,
+# BCM4352 and BCM4360 have no Linux driver at all. BCM4313, BCM43224 and BCM43225 (0x4727, 0x0576,
+# 0x4353, 0x4357) aren't listed: the kernel's brcmsmac drives them with firmware OrielOS ships.
+#
+# driver_override is written as this rule runs, before 80-drivers.rules loads ssb or bcma for the
+# card, so neither can take it; broadcom-wl-bind also takes it from ssb if the initramfs already
+# gave it to ssb, and loads wl. Other Broadcom devices, such as b44 network ports, keep ssb.
+# IDs: Debian's list of the cards wl supports (wiki.debian.org/wl, 2026-11-02), less brcmsmac's.
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x14e4", \
+    ATTR{device}=="0x4311|0x4312|0x4315|0x4328|0x4329|0x432a|0x432b|0x432c|0x432d|0x4331|0x4358|0x4359|0x4360|0x4365|0x43a0|0x43b1", \
+    ATTR{driver_override}="wl", RUN+="/usr/libexec/orielos/broadcom-wl-bind %k"
