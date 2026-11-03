@@ -396,11 +396,21 @@ finish_setup() {
 }
 
 install_image() {
-    local start=$SECONDS karg kargs=()
+    local start=$SECONDS karg kargs=() lib nosync=()
     info "Installing $IMAGE to a 30 GiB disk (this takes a few minutes)"
     truncate -s 30G "$WORK/disk.raw"
     for karg in "${INSTALL_KARGS[@]}"; do kargs+=(--karg "$karg"); done
-    podman run --rm --privileged --pid=host --security-opt label=disable \
+    # The installer flushes every file it writes to the disk file, which only the VM on this same
+    # machine reads afterwards. With the host's libeatmydata loaded those flushes do nothing, and
+    # the install takes about 12% less time; without it, it runs as it is. The bootloader step
+    # runs inside the new system, where the library isn't, and says it couldn't load it.
+    for lib in /usr/lib/x86_64-linux-gnu/libeatmydata.so.1 /usr/lib64/libeatmydata.so.1; do
+        if [[ -e "$lib" ]]; then
+            nosync=(-v "$(readlink -f "$lib"):/run/libeatmydata.so:ro" -e LD_PRELOAD=/run/libeatmydata.so)
+            break
+        fi
+    done
+    podman run --rm --privileged --pid=host --security-opt label=disable "${nosync[@]}" \
         -v /var/lib/containers:/var/lib/containers -v /dev:/dev -v "$WORK:/output" \
         "$IMAGE" bootc install to-disk --via-loopback --generic-image --wipe \
         "${kargs[@]}" /output/disk.raw >"$RESULTS/install.log" 2>&1 ||

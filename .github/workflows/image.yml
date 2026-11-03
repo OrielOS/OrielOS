@@ -117,7 +117,7 @@ jobs:
           apt=(-o "Dir::Cache::Archives=${archives}" -o APT::Keep-Downloaded-Packages=true
               -o Acquire::Retries=5 -o Acquire::http::Timeout=30)
           sudo apt-get "${apt[@]}" update -q
-          sudo apt-get "${apt[@]}" install -y -q qemu-system-x86 qemu-utils ovmf swtpm swtpm-tools socat flatpak skopeo python3-virt-firmware
+          sudo apt-get "${apt[@]}" install -y -q qemu-system-x86 qemu-utils ovmf swtpm swtpm-tools socat flatpak skopeo python3-virt-firmware eatmydata
           # Packages Ubuntu no longer offers leave the cache.
           sudo apt-get "${apt[@]}" autoclean -q
           sudo chmod -R a+rX "${archives}"
