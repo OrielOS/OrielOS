@@ -5,6 +5,11 @@ on:
   merge_group:
   push:
     branches: [main]
+  # Every night, after Prebuilt stages has rebuilt the build tools with Fedora's latest packages,
+  # main's apps are built and tested in full, so a Fedora update that breaks them shows up here
+  # rather than in the next pull request.
+  schedule:
+    - cron: "43 4 * * *"
 
 permissions: {}
 
@@ -29,8 +34,8 @@ jobs:
       # apps is a required check, so the job always runs and reports, and only the build is
       # skipped when nothing it reads has changed; Markdown files never count. A pull request's
       # checkout is the pull request merged into its base branch, so HEAD^1 is the base; a merge
-      # queue entry is compared with the queue's base. A push of more than one commit, or a
-      # comparison that fails, counts as a change.
+      # queue entry is compared with the queue's base. A push of more than one commit, a
+      # comparison that fails, and the nightly run count as a change.
       - name: Check whether the change affects the apps
         id: changes
         env:
@@ -40,7 +45,9 @@ jobs:
         run: |
           rc=0
           base=HEAD^1
-          if [ "${EVENT}" = "merge_group" ]; then
+          if [ "${EVENT}" = "schedule" ]; then
+              rc=1
+          elif [ "${EVENT}" = "merge_group" ]; then
               base="${QUEUE_BASE}"
               git fetch -q --depth=1 origin "${QUEUE_BASE}" || rc=2
           elif [ "${EVENT}" = "push" ] && [ "$(git rev-parse HEAD^1 2>/dev/null)" != "${BEFORE}" ]; then
