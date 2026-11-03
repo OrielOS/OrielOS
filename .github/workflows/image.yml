@@ -92,6 +92,7 @@ jobs:
           echo N | sudo tee /sys/module/overlay/parameters/redirect_dir /sys/module/overlay/parameters/metacopy >/dev/null
           grep -h '^mountopt' /etc/containers/storage.conf /usr/share/containers/storage.conf 2>/dev/null || true
           echo "Native overlay diff: $(sudo podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}')"
+          sudo podman --log-level=debug info 2>&1 | grep -iE 'native diff|redirect|metacopy' || true
 
       # The apps compile with the compiler cache the apps workflow keeps on main (or, for a pull
       # request, its own), so this build only reads it.
