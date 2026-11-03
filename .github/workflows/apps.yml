@@ -75,8 +75,9 @@ jobs:
           echo "changed=${changed}" >>"${GITHUB_OUTPUT}"
 
       # Compiled objects are kept between runs, so an app change recompiles only what it touches.
-      # The cache is keyed on the pinned images (the compiler comes from the builder image). A pull
-      # request's cache is its own: it can read main's but never replace it.
+      # The cache is keyed on the pinned images (the compiler comes from the builder image). Only
+      # main's runs save it; pull requests and merge queue entries read main's, as their own copy
+      # would be read by nothing else and saving it took up to 20 s.
       - name: Restore the compiler cache
         if: steps.changes.outputs.changed == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -100,7 +101,7 @@ jobs:
         run: tools/test-apps.sh --use-published
 
       - name: Keep the compiler cache
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.changed == 'true' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/ccache
