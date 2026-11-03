@@ -7,6 +7,7 @@
 
 #include <QDBusConnection>
 #include <QDBusMessage>
+#include <QDBusPendingCall>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -107,8 +108,8 @@ ResetState ResetState::parse(const QByteArray &json)
 }
 
 ResetPC::ResetPC(QObject *parent)
-    : ResetPC(Environment { QStringLiteral("/var/lib/orielos/reset/state.json"), QStringLiteral("/proc/sys/kernel/random/boot_id"), runPkexec,
-                  logoutAndReboot },
+    : ResetPC(
+          Environment { QStringLiteral("/var/lib/orielos/reset/state.json"), QStringLiteral("/proc/sys/kernel/random/boot_id"), runPkexec, logoutAndReboot },
           parent)
 {
 }
@@ -189,12 +190,11 @@ QString ResetPC::status() const
     case Phase::Preparing:
         return i18nc("@info %1 is a version, such as v0.3.0", "Getting OrielOS %1 ready. This takes a few minutes.", version);
     case Phase::Ready:
-        return keepsFiles() ? i18nc("@info %1 is a version, such as v0.3.0",
-                                  "OrielOS %1 is ready. Restart to reset this PC. Accounts and their files stay; the restart takes a few minutes longer than usual.",
-                                  version)
-                            : i18nc("@info %1 is a version, such as v0.3.0",
-                                  "OrielOS %1 is ready. Restart to reset this PC and remove every account and file on it. It then starts with first-run setup.",
-                                  version);
+        return keepsFiles()
+            ? i18nc("@info %1 is a version, such as v0.3.0",
+                  "OrielOS %1 is ready. Restart to reset this PC. Accounts and their files stay; the restart takes a few minutes longer than usual.", version)
+            : i18nc("@info %1 is a version, such as v0.3.0",
+                  "OrielOS %1 is ready. Restart to reset this PC and remove every account and file on it. It then starts with first-run setup.", version);
     default:
         return { };
     }

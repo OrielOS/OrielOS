@@ -270,7 +270,10 @@ kargs_in() {
 # which the deployment adds by itself: machine_kargs <new kargs.d>
 machine_kargs() {
     local arg builds
-    builds="$(kargs_in "$PREFIX$KARGS_DIR"; kargs_in "$1")"
+    builds="$(
+        kargs_in "$PREFIX$KARGS_DIR"
+        kargs_in "$1"
+    )"
     while read -r arg; do
         case "$arg" in
             BOOT_IMAGE=* | initrd=* | ostree=*) continue ;;
@@ -546,7 +549,7 @@ cmd_apply() {
         move_home "$SYSROOT/ostree/deploy/$old/var/home" "$SYSROOT/ostree/deploy/$(booted_stateroot)/var/home"
     elif [[ "$mode" == erase && "$separate" == 1 ]]; then
         # Out of first-run setup's way at once; finish deletes them in the background.
-        mkdir -p -m 0700 "$PREFIX/var/home/$ERASED"
+        install -d -m 0700 "$PREFIX/var/home/$ERASED"
         move_contents "$PREFIX/var/home" "$PREFIX/var/home/$ERASED"
     fi
     rm -f "$mark"
@@ -570,7 +573,7 @@ cmd_finish() {
     if [[ -x "$BOOT_FLAGS" ]]; then "$BOOT_FLAGS" clear || true; fi
     rm -rf "${PREFIX}/var/home/$ERASED"
     rm -f "$mark"
-    write_state done "This PC was reset to OrielOS $version." "$mode" "$version"
+    write_state "done" "This PC was reset to OrielOS $version." "$mode" "$version"
 }
 #END
 

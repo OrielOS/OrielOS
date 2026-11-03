@@ -58,6 +58,7 @@ setup() {
     printf 'kargs = ["orielos.build=v0.2.0"]\n' >"$R/usr/lib/bootc/kargs.d/90-build.toml"
     printf 'root:x:0:0:root:/root:/bin/bash\nalice:x:1000:1000:Alice:/var/home/alice:/bin/bash\n' >"$R/etc/passwd"
     printf 'root:x:0:\nwheel:x:10:alice\nalice:x:1000:\n' >"$R/etc/group"
+    # shellcheck disable=SC2016 # a password hash, with literal $ signs
     printf 'root:!::0:99999:7:::\nalice:$y$secret:20000:0:99999:7:::\n' >"$R/etc/shadow"
     printf 'root:!::\nwheel:!::alice\nalice:!::\n' >"$R/etc/gshadow"
     printf 'UUID=1234 /boot ext4 defaults 1 2\n' >"$R/etc/fstab"
@@ -246,6 +247,8 @@ check "the new system tracks the build by its digest" called "--target-imgref os
 check "the new system keeps this computer's own kernel arguments" \
     called "--karg root=UUID=1234 --karg rw --karg rootflags=subvol=root,compress=zstd:1"
 check "it leaves the builds' arguments to the deployment, and drops the start's own" no_build_kargs
+# A password hash starts with a literal $.
+# shellcheck disable=SC2016
 check "accounts and passwords stay" grep -q '^alice:\$y\$secret:' "$(new_etc)/shadow"
 check "the new build's system accounts are added" grep -q '^newsvc:' "$(new_etc)/passwd"
 check "the old system's accounts come first" test "$(sed -n 2p "$(new_etc)/passwd")" == "alice:x:1000:1000:Alice:/var/home/alice:/bin/bash"
@@ -368,7 +371,7 @@ check "apply moves the home folders into the new system" \
 check "apply runs once" test ! -e "$R/etc/orielos/reset-apply"
 run finish
 check "finish removes the old system" test ! -e "$R/sysroot/ostree/deploy/default" -a "$(cat "$WORK/stub/deployments")" == "$new $COMMIT"
-check "finish says the PC was reset" test "$(state .phase)" == done -a "$(state .version)" == v0.3.1
+check "finish says the PC was reset" test "$(state .phase)" == "done" -a "$(state .version)" == v0.3.1
 check "finish runs once" test ! -e "$R/var/lib/orielos/reset/finish"
 
 setup

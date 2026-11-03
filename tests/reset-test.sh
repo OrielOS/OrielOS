@@ -280,7 +280,7 @@ step_cancel() {
 wait_for_finish() {
     local start=$SECONDS
     while ((SECONDS - start < 300)); do
-        [[ "$(reset_state .phase)" == done ]] && return 0
+        [[ "$(reset_state .phase)" == "done" ]] && return 0
         sleep 2
     done
     return 1
