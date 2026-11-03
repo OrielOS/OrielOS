@@ -4,7 +4,7 @@
 #
 # Usage: tools/build-image.sh [--pins FILE] [--version VERSION] [--output DIR]
 #                             [--no-archive] [--keep N] [--clean-only] [--use-published]
-#                             [--stages-only] [--help]
+#                             [--stages-only] [--single-layer] [--help]
 #   --pins FILE        pins file (default image/pins.env)
 #   --version VERSION  the build's version: vMAJOR.MINOR.PATCH for a build that is published, as
 #                      CI gives it (tools/next-version.sh), or dev.<n> (the default: one more than
@@ -17,6 +17,8 @@
 #                      from this checkout's inputs (tools/lib/stage-inputs.sh)
 #   --stages-only      build only the app-deps and os-base stages, labelled with their inputs, as
 #                      localhost/orielos-builder and localhost/orielos-base, and export them
+#   --single-layer     commit the OS base and the image once each instead of at every step, as
+#                      CI does, where no layer is reused; a local rebuild then reuses none of them
 # The image is tagged localhost/orielos:<version> and localhost/orielos:latest.
 # Runs as root; re-executes itself through sudo otherwise. Stops at once if another build or a VM
 # test is running. Set ORIELOS_CCACHE_DIR to a folder to compile the apps with a compiler cache
@@ -38,6 +40,8 @@ KEEP=1
 CLEAN_ONLY=0
 USE_PUBLISHED=0
 STAGES_ONLY=0
+# Extra options for the OS base and image builds: --layers=false with --single-layer.
+LAYERS=()
 REPO="localhost/orielos"
 # The kernel the akmods images carry, set by preflight. It replaces the ostree.linux label the
 # image would otherwise inherit from the base image, whose kernel is swapped out.
@@ -51,7 +55,7 @@ die() {
 step() { printf '==> %s\n' "$1"; }
 
 usage() {
-    sed -n '2,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 check_pin() {
@@ -160,17 +164,17 @@ cleanup() {
 # each labelled with the hash of its inputs, and exports both to OUTPUT for publishing:
 # build_stages <pinned build arguments>
 build_stages() {
-    local stage name inputs
+    local stage name inputs layers
     for stage in app-deps os-base; do
         case "$stage" in
-            app-deps) name="$REPO-builder" ;;
-            os-base) name="$REPO-base" ;;
+            app-deps) name="$REPO-builder" layers=() ;;
+            os-base) name="$REPO-base" layers=("${LAYERS[@]}") ;;
         esac
         inputs="$(stage_inputs "$ROOT" "$stage")"
         [[ "$inputs" != uncommitted ]] || die "the $stage stage's inputs have uncommitted changes"
         step "Building the $stage stage ($name, inputs $inputs)"
         podman build --pull=missing -f "$ROOT/image/Containerfile" --target "$stage" "$@" \
-            --label "$STAGE_LABEL=$inputs" -t "$name" "$ROOT"
+            "${layers[@]}" --label "$STAGE_LABEL=$inputs" -t "$name" "$ROOT"
         if [[ "$ARCHIVE" -eq 1 ]]; then
             step "Exporting $OUTPUT/${name##*/}.ociarchive"
             mkdir -p "$OUTPUT"
@@ -209,6 +213,10 @@ main() {
                 ;;
             --stages-only)
                 STAGES_ONLY=1
+                shift
+                ;;
+            --single-layer)
+                LAYERS=(--layers=false)
                 shift
                 ;;
             --help | -h)
@@ -299,7 +307,7 @@ main() {
     else
         step "Building the OS base ($REPO-base)"
         if ! podman build --pull=missing -f "$ROOT/image/Containerfile" --target os-base \
-            "${pinned[@]}" -t "$REPO-base" "$ROOT"; then
+            "${pinned[@]}" "${LAYERS[@]}" -t "$REPO-base" "$ROOT"; then
             wait "$apps_pid" || true
             die "the OS base failed to build"
         fi
@@ -309,7 +317,7 @@ main() {
 
     step "Building $REPO:$tag"
     podman build --pull=missing -f "$ROOT/image/Containerfile" \
-        "${pinned[@]}" \
+        "${pinned[@]}" "${LAYERS[@]}" \
         --build-arg "OS_BASE_FROM=$os_base" \
         --build-arg "APPS_FROM=$REPO-app-builder" \
         --build-arg "IMAGE_VERSION=$tag" \

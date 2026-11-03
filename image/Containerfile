@@ -92,7 +92,8 @@ ARG UMU_LAUNCHER_RPM=must-be-set
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/45-gaming.sh "${UMU_LAUNCHER_RPM}"
 
-# Each feature script is its own layer on purpose, so a failure shows which step broke.
+# Each feature script is its own step on purpose, so a failure shows which step broke. Locally
+# each step is its own layer too; CI commits each stage once (tools/build-image.sh --single-layer).
 # hadolint ignore=DL3059
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/80-repos.sh

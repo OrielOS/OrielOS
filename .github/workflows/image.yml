@@ -80,19 +80,6 @@ jobs:
           sudo mount --bind /mnt/vm /var/lib/orielos/vm
           sudo chmod 1777 /mnt/tmp
 
-      # Podman commits every build step as a layer. Ubuntu's kernel turns on overlayfs's
-      # redirect_dir, which stops Podman using the kernel's own diff for that, so it compared the
-      # whole image at each of the 28 steps, about 13 s each. Overlay mounts made without it
-      # can use the fast diff; the layers' contents are the same either way.
-      - name: Let Podman use overlayfs's own diff
-        run: |
-          sudo modprobe overlay
-          # Ubuntu's storage.conf mounts with metacopy=on, which turns redirect_dir back on.
-          sudo sed -i 's/metacopy=on/metacopy=off/g' /etc/containers/storage.conf /usr/share/containers/storage.conf 2>/dev/null || true
-          echo N | sudo tee /sys/module/overlay/parameters/redirect_dir /sys/module/overlay/parameters/metacopy >/dev/null
-          grep -h '^mountopt' /etc/containers/storage.conf /usr/share/containers/storage.conf 2>/dev/null || true
-          echo "Native overlay diff: $(sudo podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}')"
-          sudo podman --log-level=debug info 2>&1 | grep -iE 'native diff|redirect|metacopy' || true
 
       # The apps compile with the compiler cache the apps workflow keeps on main (or, for a pull
       # request, its own), so this build only reads it.
@@ -176,12 +163,14 @@ jobs:
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
       # The build starts from the prebuilt OS base and build tools (.github/workflows/stages.yml)
-      # where they were built from this commit's inputs, and builds them itself otherwise.
+      # where they were built from this commit's inputs, and builds them itself otherwise. Each
+      # stage is committed once: on this kernel Podman can't use overlayfs's own diff, so a commit
+      # at every step compared the whole image each time, about 14 s a step.
       - name: Build the image
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           CCACHE: ${{ runner.temp }}/ccache
-        run: sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" PATH="${PATH}" tools/build-image.sh --use-published --no-archive --version "${TAG}" --output /mnt/builds --keep 1
+        run: sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" PATH="${PATH}" tools/build-image.sh --use-published --single-layer --no-archive --version "${TAG}" --output /mnt/builds --keep 1
 
       # The archive for publishing is written while the image is smoke-tested, instead of before:
       # both only read the image. Pull requests never publish, so they don't write one.

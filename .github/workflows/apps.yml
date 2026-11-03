@@ -78,17 +78,6 @@ jobs:
           key: apps-ccache-${{ hashFiles('image/pins.env') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: apps-ccache-${{ hashFiles('image/pins.env') }}-
 
-      # Without overlayfs's redirect_dir, which Ubuntu's kernel turns on, Podman commits each
-      # build step with the kernel's own diff instead of comparing the whole image.
-      - name: Let Podman use overlayfs's own diff
-        if: steps.changes.outputs.changed == 'true'
-        run: |
-          sudo modprobe overlay
-          # Ubuntu's storage.conf mounts with metacopy=on, which turns redirect_dir back on.
-          sudo sed -i 's/metacopy=on/metacopy=off/g' /etc/containers/storage.conf /usr/share/containers/storage.conf 2>/dev/null || true
-          echo N | sudo tee /sys/module/overlay/parameters/redirect_dir /sys/module/overlay/parameters/metacopy >/dev/null
-          grep -h '^mountopt' /etc/containers/storage.conf /usr/share/containers/storage.conf 2>/dev/null || true
-          echo "Native overlay diff: $(podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}')"
 
       # cosign checks the signature of the prebuilt build tools before the build starts from them.
       - name: Install cosign

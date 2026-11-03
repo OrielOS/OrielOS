@@ -61,20 +61,9 @@ jobs:
           sudo mount --bind /mnt/containers /var/lib/containers/storage
           sudo chmod 1777 /mnt/tmp
 
-      # As in the image build: without overlayfs's redirect_dir, Podman commits each build step
-      # with the kernel's own diff instead of comparing the whole image.
-      - name: Let Podman use overlayfs's own diff
-        run: |
-          sudo modprobe overlay
-          # Ubuntu's storage.conf mounts with metacopy=on, which turns redirect_dir back on.
-          sudo sed -i 's/metacopy=on/metacopy=off/g' /etc/containers/storage.conf /usr/share/containers/storage.conf 2>/dev/null || true
-          echo N | sudo tee /sys/module/overlay/parameters/redirect_dir /sys/module/overlay/parameters/metacopy >/dev/null
-          grep -h '^mountopt' /etc/containers/storage.conf /usr/share/containers/storage.conf 2>/dev/null || true
-          echo "Native overlay diff: $(sudo podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}')"
-          sudo podman --log-level=debug info 2>&1 | grep -iE 'native diff|redirect|metacopy' || true
 
       - name: Build the stages
-        run: sudo env TMPDIR=/mnt/tmp tools/build-image.sh --stages-only --output /mnt/builds
+        run: sudo env TMPDIR=/mnt/tmp tools/build-image.sh --stages-only --single-layer --output /mnt/builds
 
       - name: Make the archives readable
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
