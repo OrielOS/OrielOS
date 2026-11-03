@@ -11,22 +11,24 @@
 #   reads, as in CI.
 # Prints PASS/FAIL/SKIP per check and exits 1 on any failure.
 #
-# Usage: tools/preflight.sh [--base REF] [--apps | --skip-apps] [--help]
+# Usage: tools/preflight.sh [--base REF] [--apps | --skip-apps | --quick] [--help]
 #   --base REF    branch the pull request will go into (default origin/main); fetch it first
 #   --apps        build and test the apps even if nothing they read has changed
 #   --skip-apps   don't build the apps
+#   --quick       only the commits and lint, in seconds (tools/hooks/pre-push runs this)
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE="origin/main"
 APPS=auto
+QUICK=0
 PASSED=0
 FAILED=0
 SKIPPED=0
 # The files the app build reads, as in .github/workflows/apps.yml. Markdown files never count.
-APP_PATHS=(apps plasma artwork CMakeLists.txt image/Containerfile image/build/apps-builder.sh
+APP_PATHS=(apps plasma artwork data CMakeLists.txt image/Containerfile image/build/apps-builder.sh
     image/pins.env .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh
-    .github/workflows/apps.yml ':(exclude)*.md')
+    tools/lib/stage-inputs.sh .github/workflows/apps.yml ':(exclude)*.md')
 CONVENTIONAL='^(feat|fix|docs|chore|test|build|ci|refactor|perf|style|revert)(\([a-z0-9._/-]+\))?!?: [^ ]'
 
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -77,6 +79,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-apps)
             APPS=no
+            shift
+            ;;
+        --quick)
+            APPS=no
+            QUICK=1
             shift
             ;;
         -h | --help)
@@ -167,10 +174,12 @@ run_script() {
     fi
 }
 
-check_pins
+if [[ "$QUICK" -eq 1 ]]; then skip pins "(--quick)"; else check_pins; fi
 check_commits
 run_script lint tools/lint.sh
-if [[ "$APPS" == no ]]; then
+if [[ "$QUICK" -eq 1 ]]; then
+    skip apps "(--quick)"
+elif [[ "$APPS" == no ]]; then
     skip apps "(--skip-apps)"
 elif [[ "$APPS" == yes ]] || ! git diff --quiet "$MERGE_BASE" HEAD -- "${APP_PATHS[@]}"; then
     run_script apps tools/test-apps.sh

@@ -10,3 +10,5 @@ ecm_add_test(appearancetest.cpp
     TEST_NAME appearancetest
     LINK_LIBRARIES OrielOSTourAppearance Qt6::Test
 )
+# Shares kdeglobals in Qt's test-mode folder with accentcolourtest, so the two never run at once.
+set_tests_properties(appearancetest PROPERTIES RESOURCE_LOCK qttest-config)

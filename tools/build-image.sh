@@ -3,7 +3,8 @@
 # and exports a compressed OCI archive for test VMs.
 #
 # Usage: tools/build-image.sh [--pins FILE] [--version VERSION] [--output DIR]
-#                             [--no-archive] [--keep N] [--clean-only] [--help]
+#                             [--no-archive] [--keep N] [--clean-only] [--use-published]
+#                             [--stages-only] [--single-layer] [--help]
 #   --pins FILE        pins file (default image/pins.env)
 #   --version VERSION  the build's version: vMAJOR.MINOR.PATCH for a build that is published, as
 #                      CI gives it (tools/next-version.sh), or dev.<n> (the default: one more than
@@ -12,9 +13,16 @@
 #   --no-archive       do not export an OCI archive
 #   --keep N           keep the newest N builds and remove older ones (default 1)
 #   --clean-only       only remove old builds, then exit
+#   --use-published    start from CI's prebuilt app-deps and os-base images where they were built
+#                      from this checkout's inputs (tools/lib/stage-inputs.sh)
+#   --stages-only      build only the app-deps and os-base stages, labelled with their inputs, as
+#                      localhost/orielos-builder and localhost/orielos-base, and export them
+#   --single-layer     commit the OS base and the image once each instead of at every step, as
+#                      CI does, where no layer is reused; a local rebuild then reuses none of them
 # The image is tagged localhost/orielos:<version> and localhost/orielos:latest.
 # Runs as root; re-executes itself through sudo otherwise. Stops at once if another build or a VM
-# test is running.
+# test is running. Set ORIELOS_CCACHE_DIR to a folder to compile the apps with a compiler cache
+# kept there.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,11 +31,17 @@ PINS="$ROOT/image/pins.env"
 source "$ROOT/tools/lib/pins.sh"
 # shellcheck source=lib/lock.sh
 source "$ROOT/tools/lib/lock.sh"
+# shellcheck source=lib/stage-inputs.sh
+source "$ROOT/tools/lib/stage-inputs.sh"
 VERSION=""
 OUTPUT="/var/lib/orielos/builds"
 ARCHIVE=1
 KEEP=1
 CLEAN_ONLY=0
+USE_PUBLISHED=0
+STAGES_ONLY=0
+# Extra options for the OS base and image builds: --layers=false with --single-layer.
+LAYERS=()
 REPO="localhost/orielos"
 # The kernel the akmods images carry, set by preflight. It replaces the ostree.linux label the
 # image would otherwise inherit from the base image, whose kernel is swapped out.
@@ -41,7 +55,7 @@ die() {
 step() { printf '==> %s\n' "$1"; }
 
 usage() {
-    sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 check_pin() {
@@ -50,16 +64,29 @@ check_pin() {
     [[ "$ref" =~ @sha256:[0-9a-f]{64}$ ]] || die "$name in $PINS is not pinned by digest (expected <name:tag or URL>@sha256:<64 hex digits>)"
 }
 
+# The kernel an image was built for, from the local copy or else the registry.
 kernel_of() {
-    podman image inspect --format '{{index .Labels "ostree.linux"}}' "$1"
+    podman image inspect --format '{{index .Labels "ostree.linux"}}' "$1" 2>/dev/null ||
+        skopeo inspect --format '{{index .Labels "ostree.linux"}}' "docker://$1"
 }
 
+# Pulls the pinned images the stages built here start from: preflight <app-deps> <os-base>, each
+# the stage's name when it is built here or the prebuilt image used instead. An image that isn't
+# needed is only looked up, for the kernel check.
 preflight() {
-    local akmods_kernel nvidia_kernel var ref
+    local app_deps="$1" os_base="$2" akmods_kernel nvidia_kernel var ref
     # From OrielOS's copies where it has them (tools/lib/pins.sh): upstream registries drop old
     # digests. Each pin then names the image that was pulled, with the same digest.
     step "Pulling the pinned images"
     for var in "${PINNED_IMAGES[@]}"; do
+        if [[ ("$var" == BUILDER_IMAGE && "$app_deps" != app-deps) ||
+            ("$var" != BUILDER_IMAGE && "$os_base" != os-base) ]]; then
+            ref="$(mirror_ref "${!var}")"
+            skopeo inspect --raw "docker://$ref" >/dev/null 2>&1 || ref="${!var}"
+            printf -v "$var" '%s' "$ref"
+            step "$var: $ref (not needed here)"
+            continue
+        fi
         ref="$(pull_pin "${!var}")" || die "can't pull $var (${!var}) from OrielOS's copy or upstream"
         printf -v "$var" '%s' "$ref"
         step "$var: $ref"
@@ -133,6 +160,31 @@ cleanup() {
     podman image prune -f >/dev/null
 }
 
+# Builds the app-deps and os-base stages as localhost/orielos-builder and localhost/orielos-base,
+# each labelled with the hash of its inputs, and exports both to OUTPUT for publishing:
+# build_stages <pinned build arguments>
+build_stages() {
+    local stage name inputs layers
+    for stage in app-deps os-base; do
+        case "$stage" in
+            app-deps) name="$REPO-builder" layers=() ;;
+            os-base) name="$REPO-base" layers=("${LAYERS[@]}") ;;
+        esac
+        inputs="$(stage_inputs "$ROOT" "$stage")"
+        [[ "$inputs" != uncommitted ]] || die "the $stage stage's inputs have uncommitted changes"
+        step "Building the $stage stage ($name, inputs $inputs)"
+        podman build --pull=missing -f "$ROOT/image/Containerfile" --target "$stage" "$@" \
+            "${layers[@]}" --label "$STAGE_LABEL=$inputs" -t "$name" "$ROOT"
+        if [[ "$ARCHIVE" -eq 1 ]]; then
+            step "Exporting $OUTPUT/${name##*/}.ociarchive"
+            mkdir -p "$OUTPUT"
+            rm -f "$OUTPUT/${name##*/}.ociarchive"
+            podman push --compression-format zstd "$name" "oci-archive:$OUTPUT/${name##*/}.ociarchive:latest"
+        fi
+    done
+    step "Done: $REPO-builder and $REPO-base"
+}
+
 main() {
     local original=("$@")
     while [[ $# -gt 0 ]]; do
@@ -153,6 +205,18 @@ main() {
                 ;;
             --clean-only)
                 CLEAN_ONLY=1
+                shift
+                ;;
+            --use-published)
+                USE_PUBLISHED=1
+                shift
+                ;;
+            --stages-only)
+                STAGES_ONLY=1
+                shift
+                ;;
+            --single-layer)
+                LAYERS=(--layers=false)
                 shift
                 ;;
             --help | -h)
@@ -196,23 +260,68 @@ main() {
     # from the build points at it. The checkout may belong to a user other than root.
     revision="$(git -c safe.directory="$ROOT" -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
     if [[ -n "$revision" ]]; then labels+=(--label "org.opencontainers.image.revision=$revision"); fi
-    preflight
+    # CI's prebuilt stages, where they were built from this checkout's inputs.
+    local app_deps=app-deps os_base=os-base found
+    if [[ "$USE_PUBLISHED" -eq 1 && "$STAGES_ONLY" -eq 0 ]]; then
+        found="$(published_stage "$ROOT" app-deps)"
+        app_deps="${found:-app-deps}"
+        found="$(published_stage "$ROOT" os-base)"
+        os_base="${found:-os-base}"
+    fi
+    preflight "$app_deps" "$os_base"
 
-    # The app-builder stage is built and tagged first, as tools/test-apps.sh does. Untagged, its
-    # layers would be removed by the image prune in cleanup, so every build would rebuild the
-    # apps and every layer after them.
-    step "Building the apps ($REPO-app-builder)"
-    podman build --pull=missing -f "$ROOT/image/Containerfile" --target app-builder \
-        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" -t "$REPO-app-builder" "$ROOT"
+    local pinned=(--build-arg "BASE_IMAGE=$BASE_IMAGE"
+        --build-arg "AKMODS_IMAGE=$AKMODS_IMAGE"
+        --build-arg "AKMODS_NVIDIA_IMAGE=$AKMODS_NVIDIA_IMAGE"
+        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE"
+        --build-arg "UMU_LAUNCHER_RPM=$UMU_LAUNCHER_RPM")
+    if [[ "$STAGES_ONLY" -eq 1 ]]; then
+        build_stages "${pinned[@]}"
+        return 0
+    fi
+
+    # The apps compile while the OS base is pulled or built; the two share nothing. The app
+    # build is tagged, so the image build below copies from it instead of building it again, and
+    # the cleanup's image prune keeps it, so the next build reuses its layers.
+    # The compiler cache is mounted for the app build only, so it never reaches the image.
+    local cache=() apps_pid
+    if [[ -n "${ORIELOS_CCACHE_DIR:-}" ]]; then
+        mkdir -p "$ORIELOS_CCACHE_DIR" || die "cannot create $ORIELOS_CCACHE_DIR"
+        cache=(--volume "$(cd "$ORIELOS_CCACHE_DIR" && pwd):/ccache:z")
+    fi
+    step "Building the apps ($REPO-app-builder) from $app_deps"
+    (
+        set -o pipefail
+        podman build --pull=missing -f "$ROOT/image/Containerfile" --target app-builder \
+            --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" --build-arg "APP_DEPS_FROM=$app_deps" \
+            "${cache[@]}" -t "$REPO-app-builder" "$ROOT" 2>&1 | sed -u 's/^/apps: /'
+    ) &
+    apps_pid=$!
+    if [[ "$os_base" != os-base ]]; then
+        step "Pulling the OS base $os_base"
+        podman pull --quiet "$os_base" >/dev/null || {
+            wait "$apps_pid" || true
+            die "can't pull $os_base"
+        }
+        labels+=(--label "org.orielos.os-base=$os_base")
+    else
+        step "Building the OS base ($REPO-base)"
+        if ! podman build --pull=missing -f "$ROOT/image/Containerfile" --target os-base \
+            "${pinned[@]}" "${LAYERS[@]}" -t "$REPO-base" "$ROOT"; then
+            wait "$apps_pid" || true
+            die "the OS base failed to build"
+        fi
+        os_base="$REPO-base"
+    fi
+    wait "$apps_pid" || die "the apps failed to build, a test failed or qmllint reported a problem"
 
     step "Building $REPO:$tag"
     podman build --pull=missing -f "$ROOT/image/Containerfile" \
-        --build-arg "BASE_IMAGE=$BASE_IMAGE" \
-        --build-arg "AKMODS_IMAGE=$AKMODS_IMAGE" \
-        --build-arg "AKMODS_NVIDIA_IMAGE=$AKMODS_NVIDIA_IMAGE" \
-        --build-arg "BUILDER_IMAGE=$BUILDER_IMAGE" \
-        --build-arg "UMU_LAUNCHER_RPM=$UMU_LAUNCHER_RPM" \
+        "${pinned[@]}" "${LAYERS[@]}" \
+        --build-arg "OS_BASE_FROM=$os_base" \
+        --build-arg "APPS_FROM=$REPO-app-builder" \
         --build-arg "IMAGE_VERSION=$tag" \
+        --unsetlabel "$STAGE_LABEL" \
         --label "ostree.linux=$KERNEL" \
         "${labels[@]}" \
         -t "$REPO:$tag" "$ROOT"

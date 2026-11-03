@@ -6,16 +6,26 @@ ARG BASE_IMAGE=scratch-must-be-set
 ARG AKMODS_IMAGE=scratch-must-be-set
 ARG AKMODS_NVIDIA_IMAGE=scratch-must-be-set
 ARG BUILDER_IMAGE=scratch-must-be-set
+# Each of these names the stage to build from. tools/build-image.sh and tools/test-apps.sh can
+# give an image instead: the app-deps or os-base image CI publishes, when it was built from the
+# same inputs (tools/lib/stage-inputs.sh), or the app build they have just made. The stage is
+# then not built here at all.
+ARG APP_DEPS_FROM=app-deps
+ARG OS_BASE_FROM=os-base
+ARG APPS_FROM=app-builder
 
 FROM ${AKMODS_IMAGE} AS akmods
 FROM ${AKMODS_NVIDIA_IMAGE} AS akmods-nvidia
 
-# Builds and tests OrielOS's own apps, and installs them to /out. tools/test-apps.sh builds
-# only this stage. None of the build tools reach the final image.
-FROM ${BUILDER_IMAGE} AS app-builder
+# The app build's tools and libraries, published as ghcr.io/orielos/orielos-builder.
+FROM ${BUILDER_IMAGE} AS app-deps
 
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/apps-builder.sh deps
+
+# Builds and tests OrielOS's own apps, and installs them to /out. tools/test-apps.sh builds
+# only this stage. None of the build tools reach the final image.
+FROM ${APP_DEPS_FROM} AS app-builder
 
 COPY CMakeLists.txt /src/
 COPY apps/ /src/apps/
@@ -26,7 +36,10 @@ COPY data/ /src/data/
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/apps-builder.sh build
 
-FROM ${BASE_IMAGE}
+FROM ${APPS_FROM} AS apps
+
+# The kernel, desktop, drivers and packages, published as ghcr.io/orielos/orielos-base.
+FROM ${BASE_IMAGE} AS os-base
 
 RUN --mount=type=bind,source=image/build,target=/ctx \
     --mount=type=bind,from=akmods,source=/kernel-rpms,target=/akmods/kernel-rpms \
@@ -79,18 +92,21 @@ ARG UMU_LAUNCHER_RPM=must-be-set
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/45-gaming.sh "${UMU_LAUNCHER_RPM}"
 
-# Each feature script is its own layer on purpose, so a failure shows which step broke.
+# Each feature script is its own step on purpose, so a failure shows which step broke. Locally
+# each step is its own layer too; CI commits each stage once (tools/build-image.sh --single-layer).
 # hadolint ignore=DL3059
 RUN --mount=type=bind,source=image/build,target=/ctx \
     /ctx/80-repos.sh
 
-# Static configuration and the apps go in after the package layers, so changing them does
-# not rebuild those layers.
+# Static configuration and the apps go in on top of the OS base, so changing them does not
+# rebuild its package layers.
+FROM ${OS_BASE_FROM}
+
 COPY image/system/usr/ /usr/
 COPY image/system/etc/ /etc/
-COPY --from=app-builder /out/usr/ /usr/
+COPY --from=apps /out/usr/ /usr/
 # Apps install their XDG autostart entries to /etc/xdg/autostart, which Plasma reads at login.
-COPY --from=app-builder /out/etc/ /etc/
+COPY --from=apps /out/etc/ /etc/
 # Settings' Update page shows what's new in the running version from OrielOS's changelog.
 COPY CHANGELOG.md /usr/share/doc/orielos/CHANGELOG.md
 

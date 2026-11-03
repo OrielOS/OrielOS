@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Git's pre-push hook: runs tools/preflight.sh --quick (every commit signed off with a
+# Conventional Commit subject, and tools/lint.sh) on what is being pushed, and stops the push if
+# it fails. CI runs the same checks, so a push that would turn them red never leaves the machine.
+# Turn it on in a clone with: git config core.hooksPath tools/hooks
+# Skip it for one push with git push --no-verify.
+#
+# On Linux the checks run on the checkout itself. On Git for Windows they run in WSL, on a clean
+# clone of the commit being pushed, with the linters kept in ~/.cache/orielos-lint-tools there.
+set -Eeuo pipefail
+
+ZERO=0000000000000000000000000000000000000000
+sha=""
+# Each line names a ref being pushed; a deleted branch needs no check.
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+    if [[ "$local_sha" != "$ZERO" ]]; then sha="$local_sha"; fi
+done
+[[ -n "$sha" ]] || exit 0
+
+root="$(git rev-parse --show-toplevel)"
+base="$(git rev-parse --verify --quiet 'origin/main^{commit}')" || {
+    printf 'pre-push: origin/main is not here; fetch it first (git fetch origin main)\n' >&2
+    exit 1
+}
+
+case "$(uname -s)" in
+    MINGW* | MSYS* | CYGWIN*)
+        common="$(cygpath -m "$(git rev-parse --path-format=absolute --git-common-dir)")"
+        # The script is expanded by bash in WSL, not here.
+        # shellcheck disable=SC2016
+        MSYS_NO_PATHCONV=1 exec wsl.exe -e bash -c '
+            set -Eeuo pipefail
+            dir="$(mktemp -d)"
+            trap "rm -rf \"$dir\"" EXIT
+            git -c safe.directory="*" clone -q --no-checkout "$(wslpath -u "$1")" "$dir"
+            cd "$dir"
+            git checkout -q "$2"
+            export ORIELOS_TOOLS_DIR="$HOME/.cache/orielos-lint-tools"
+            tools/install-lint-tools.sh >/dev/null
+            tools/preflight.sh --quick --base "$3"
+        ' _ "$common" "$sha" "$base"
+        ;;
+esac
+cd "$root"
+exec tools/preflight.sh --quick --base "$base"

@@ -2,6 +2,7 @@ name: Lint
 
 on:
   pull_request:
+  merge_group:
   push:
     branches: [main]
 
@@ -25,8 +26,24 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # The pinned linters are kept between runs, keyed on their pins, so they're downloaded once
+      # per change to the pins. Only main saves them; pull requests read main's.
+      - name: Restore the linters
+        id: tools
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/tools
+          key: lint-tools-${{ runner.os }}-${{ hashFiles('tools/lint-tools.env', 'tools/lint-requirements.txt') }}
+
       - name: Install the linters
         run: tools/install-lint-tools.sh
+
+      - name: Keep the linters
+        if: github.event_name == 'push' && steps.tools.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/tools
+          key: lint-tools-${{ runner.os }}-${{ hashFiles('tools/lint-tools.env', 'tools/lint-requirements.txt') }}
 
       - name: Lint
         run: tools/lint.sh

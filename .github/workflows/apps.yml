@@ -2,8 +2,14 @@ name: Apps
 
 on:
   pull_request:
+  merge_group:
   push:
     branches: [main]
+  # Every night, after Prebuilt stages has rebuilt the build tools with Fedora's latest packages,
+  # main's apps are built and tested in full, so a Fedora update that breaks them shows up here
+  # rather than in the next pull request.
+  schedule:
+    - cron: "43 4 * * *"
 
 permissions: {}
 
@@ -27,22 +33,32 @@ jobs:
 
       # apps is a required check, so the job always runs and reports, and only the build is
       # skipped when nothing it reads has changed; Markdown files never count. A pull request's
-      # checkout is the pull request merged into its base branch, so HEAD^1 is the base. A push of
-      # more than one commit, or a comparison that fails, counts as a change.
+      # checkout is the pull request merged into its base branch, so HEAD^1 is the base; a merge
+      # queue entry is compared with the queue's base. A push of more than one commit, a
+      # comparison that fails, and the nightly run count as a change.
       - name: Check whether the change affects the apps
         id: changes
         env:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
         run: |
           rc=0
-          if [ "${EVENT}" = "push" ] && [ "$(git rev-parse HEAD^1 2>/dev/null)" != "${BEFORE}" ]; then
+          base=HEAD^1
+          if [ "${EVENT}" = "schedule" ]; then
+              rc=1
+          elif [ "${EVENT}" = "merge_group" ]; then
+              base="${QUEUE_BASE}"
+              git fetch -q --depth=1 origin "${QUEUE_BASE}" || rc=2
+          elif [ "${EVENT}" = "push" ] && [ "$(git rev-parse HEAD^1 2>/dev/null)" != "${BEFORE}" ]; then
               rc=2
-          else
-              git diff --quiet HEAD^1 HEAD -- \
-                  apps plasma artwork CMakeLists.txt \
+          fi
+          if [ "${rc}" -eq 0 ]; then
+              git diff --quiet "${base}" HEAD -- \
+                  apps plasma artwork data CMakeLists.txt \
                   image/Containerfile image/build/apps-builder.sh image/pins.env \
-                  .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh .github/workflows/apps.yml \
+                  .containerignore .gitattributes tools/test-apps.sh tools/lib/pins.sh tools/lib/stage-inputs.sh \
+                  .github/workflows/apps.yml \
                   ':(exclude)*.md' || rc=$?
           fi
           case "${rc}" in
@@ -58,6 +74,34 @@ jobs:
           esac
           echo "changed=${changed}" >>"${GITHUB_OUTPUT}"
 
+      # Compiled objects are kept between runs, so an app change recompiles only what it touches.
+      # The cache is keyed on the pinned images (the compiler comes from the builder image). A pull
+      # request's cache is its own: it can read main's but never replace it.
+      - name: Restore the compiler cache
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: apps-ccache-${{ hashFiles('image/pins.env') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: apps-ccache-${{ hashFiles('image/pins.env') }}-
+
+
+      # cosign checks the signature of the prebuilt build tools before the build starts from them.
+      - name: Install cosign
+        if: steps.changes.outputs.changed == 'true'
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      # The build starts from the prebuilt build tools (.github/workflows/stages.yml) where they
+      # were built from this commit's inputs, and installs them itself otherwise.
       - name: Build and test the apps
         if: steps.changes.outputs.changed == 'true'
-        run: tools/test-apps.sh
+        env:
+          ORIELOS_CCACHE_DIR: ${{ runner.temp }}/ccache
+        run: tools/test-apps.sh --use-published
+
+      - name: Keep the compiler cache
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: apps-ccache-${{ hashFiles('image/pins.env') }}-${{ github.run_id }}-${{ github.run_attempt }}

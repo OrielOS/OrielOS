@@ -2,6 +2,7 @@ name: DCO
 
 on:
   pull_request:
+  merge_group:
 
 permissions: {}
 
@@ -12,6 +13,7 @@ concurrency:
 jobs:
   dco:
     name: dco
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -37,3 +39,15 @@ jobs:
               fi
           done
           exit "${failed}"
+
+  # dco is a required check, so the merge queue needs it too. Every commit was checked on the pull
+  # request; the commit the queue makes is GitHub's own squash of them.
+  dco-queue:
+    name: dco
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Pass for the merge queue
+        run: echo "Every commit in this pull request was checked for a sign-off on the pull request."

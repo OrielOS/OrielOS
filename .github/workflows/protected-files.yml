@@ -11,16 +11,30 @@ name: Protected files
 on:
   pull_request_target:
     types: [opened, reopened, synchronize, edited]
+  merge_group:
 
 permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: false
 
 jobs:
+  # protected-files is a required check, so the merge queue needs it too. The pull request was
+  # judged on its own files before it could join the queue.
+  protected-files-queue:
+    name: protected-files
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Pass for the merge queue
+        run: echo "This pull request's files were checked on the pull request."
+
   protected-files:
     name: protected-files
+    if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
