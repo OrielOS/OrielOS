@@ -274,9 +274,16 @@ kargs_in() {
     done
 }
 
-# The kernel arguments this computer adds to the new build's own, one per line: this start's,
-# without the ones only one start has and without those of the old and the new build's kargs.d,
-# which the deployment adds by itself: machine_kargs <new kargs.d>
+# The new system's kernel arguments, one per line: this computer's own (from machine_kargs), then
+# the new build's kargs.d: new_kargs <new kargs.d>
+new_kargs() {
+    machine_kargs "$1"
+    kargs_in "$1"
+}
+
+# The kernel arguments this computer adds to a build's own, one per line: this start's, without
+# the ones only one start has and without those of the old and the new build's kargs.d:
+# machine_kargs <new kargs.d>
 machine_kargs() {
     local arg builds
     builds="$(
@@ -426,7 +433,8 @@ cmd_prepare() {
     while read -r path; do
         ostree --repo="$REPO" cat "$commit" "$path" >"$STATE_DIR/kargs.d/${path##*/}"
     done < <(ostree --repo="$REPO" ls "$commit" "$KARGS_DIR" 2>/dev/null | awk '$NF ~ /\.toml$/ {print $NF}')
-    while read -r arg; do kargs+=(--karg "$arg"); done < <(machine_kargs "$STATE_DIR/kargs.d")
+    # Each appended, so arguments given more than once, such as console=, all stay.
+    while read -r arg; do kargs+=("--karg-append=$arg"); done < <(new_kargs "$STATE_DIR/kargs.d")
     rm -rf "$STATE_DIR/kargs.d"
 
     old="$(booted_stateroot)"
@@ -436,11 +444,18 @@ cmd_prepare() {
     printf 'mode=%s\nnew=%s\nold=%s\nversion=%s\ndigest=%s\nboot_id=%s\nhome_separate=%s\n' \
         "$MODE" "$new" "$old" "$VERSION" "$digest" "$(boot_id)" "$separate" >"$PREPARED"
     ostree admin os-init "$new" >>"$LOG" 2>&1 || prepare_failed "Couldn't set up the new system: $(tail -n1 "$LOG")"
-    # A new stateroot gets the build's own /etc and an empty /var. Deployed first in the list, it
-    # starts by default; the old system stays second, for the boot loader to fall back on.
-    ostree container image deploy --sysroot "$OSTREE_SYSROOT" --stateroot "$new" --imgref "$IMPORT_REF" \
-        --target-imgref "$target" "${kargs[@]}" >>"$LOG" 2>&1 ||
+    # A new stateroot gets the build's own /etc (--no-merge, and there's nothing in it to merge
+    # from) and an empty /var. ostree admin deploy writes the boot entries at once, so they can be
+    # checked before the restart; ostree container image deploy stages a deployment on a running
+    # system, whose entries appear only as it shuts down. The origin tracks the build by its
+    # digest, as an update staged by orielos-update does, so bootc and the next check know it.
+    # Deployed first in the list, the new system starts by default; the old one stays second, for
+    # the boot loader to fall back on.
+    printf '[origin]\ncontainer-image-reference=%s\n' "$target" >"$STATE_DIR/origin"
+    ostree admin deploy --sysroot="$OSTREE_SYSROOT" --stateroot="$new" --no-merge --origin-file="$STATE_DIR/origin" \
+        "${kargs[@]}" "$commit" >>"$LOG" 2>&1 ||
         prepare_failed "Couldn't set up the new system: $(tail -n1 "$LOG")"
+    rm -f "$STATE_DIR/origin"
     deployment="$(find "$SYSROOT/ostree/deploy/$new/deploy" -mindepth 1 -maxdepth 1 -type d | head -n1)"
     [[ -d "$deployment/etc" ]] || prepare_failed "Couldn't find the new system after setting it up."
     check_boot_entries "$new" "$old" ||
@@ -451,6 +466,7 @@ cmd_prepare() {
     mkdir -p "$(dirname "$SYSROOT/ostree/deploy/$new/$FINISH_MARK")"
     printf 'mode=%s\nold=%s\nversion=%s\n' "$MODE" "$old" "$VERSION" >"$SYSROOT/ostree/deploy/$new/$FINISH_MARK"
 
+    # The deployment keeps the build's commit; the imported image's own reference isn't needed.
     ostree container image remove --repo "$REPO" "$IMPORT_REF" >>"$LOG" 2>&1 || true
     rm -rf "$DOWNLOAD"
     # On trial until it reaches the desktop: if it can't, the boot loader starts the old system.

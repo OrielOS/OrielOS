@@ -125,6 +125,30 @@ case "$1 $2" in
     "admin os-init")
         mkdir -p "$sysroot/ostree/deploy/$3/var" "$sysroot/ostree/deploy/$3/deploy"
         ;;
+    "admin deploy")
+        stateroot=""
+        for arg in "$@"; do
+            case "$arg" in
+                --stateroot=*) stateroot="${arg#--stateroot=}" ;;
+                --origin-file=*) cp "${arg#--origin-file=}" "$ORIELOS_TEST_STUB/origin" ;;
+            esac
+        done
+        commit="${*: -1}"
+        mkdir -p "$sysroot/ostree/deploy/$stateroot/deploy/$commit.0/etc"
+        # The new build's own account files, with a system account the old one lacks.
+        printf 'root:x:0:0:root:/root:/bin/bash\nnewsvc:x:990:990::/:/sbin/nologin\n' \
+            >"$sysroot/ostree/deploy/$stateroot/deploy/$commit.0/etc/passwd"
+        printf '%s %s\n%s' "$stateroot" "$commit" "$(cat "$deployments")" >"$deployments.new"
+        printf '\n' >>"$deployments.new"
+        grep -v '^$' "$deployments.new" >"$deployments"
+        rm -f "$deployments.new"
+        # The new system's boot entry and link. With break-boot, the old system's link goes, as it
+        # did when ostree was pointed at /sysroot on a computer with a /boot partition of its own.
+        mkdir -p "$sysroot/ostree/boot.0/$stateroot/abcd/0"
+        printf 'title OrielOS\noptions root=UUID=1234 rw ostree=/ostree/boot.0/%s/abcd/0\n' "$stateroot" \
+            >"$ORIELOS_RESET_ROOT/boot/loader/entries/ostree-$stateroot.conf"
+        if [[ -e "$ORIELOS_TEST_STUB/break-boot" ]]; then rm -rf "$sysroot/ostree/boot.0/default"; fi
+        ;;
     "container image")
         case "$3" in
             pull)
@@ -136,27 +160,6 @@ case "$1 $2" in
                     if [[ "$1" == --ostree-digestfile ]]; then printf '%s\n' "$ORIELOS_TEST_COMMIT" >"$2"; fi
                     shift
                 done
-                ;;
-            deploy)
-                stateroot=""
-                while [[ $# -gt 0 ]]; do
-                    if [[ "$1" == --stateroot ]]; then stateroot="$2"; fi
-                    shift
-                done
-                mkdir -p "$sysroot/ostree/deploy/$stateroot/deploy/$ORIELOS_TEST_COMMIT.0/etc"
-                # The new build's own account files, with a system account the old one lacks.
-                printf 'root:x:0:0:root:/root:/bin/bash\nnewsvc:x:990:990::/:/sbin/nologin\n' \
-                    >"$sysroot/ostree/deploy/$stateroot/deploy/$ORIELOS_TEST_COMMIT.0/etc/passwd"
-                printf '%s %s\n%s' "$stateroot" "$ORIELOS_TEST_COMMIT" "$(cat "$deployments")" >"$deployments.new"
-                printf '\n' >>"$deployments.new"
-                grep -v '^$' "$deployments.new" >"$deployments"
-                rm -f "$deployments.new"
-                # The new system's boot entry and link. With break-boot, the old system's link goes,
-                # as it did when ostree was pointed at /sysroot on a computer with its own /boot.
-                mkdir -p "$sysroot/ostree/boot.0/$stateroot/abcd/0"
-                printf 'title OrielOS\noptions root=UUID=1234 rw ostree=/ostree/boot.0/%s/abcd/0\n' "$stateroot" \
-                    >"$ORIELOS_RESET_ROOT/boot/loader/entries/ostree-$stateroot.conf"
-                if [[ -e "$ORIELOS_TEST_STUB/break-boot" ]]; then rm -rf "$sysroot/ostree/boot.0/default"; fi
                 ;;
         esac
         ;;
@@ -228,10 +231,12 @@ not_called() {
     ! grep -qF -- "$1" "$WORK/stub/calls"
 }
 
-# Whether the new system was deployed without any argument the builds' kargs.d give, or only one
-# start has.
-no_build_kargs() {
-    not_called "--karg quiet" && not_called "--karg orielos.build" && not_called "--karg ostree=" && not_called "--karg BOOT_IMAGE"
+# Whether the new system was deployed with the new build's kargs.d arguments once each, and without
+# the old build's or those only one start has.
+new_build_kargs() {
+    [[ "$(grep -o -- '--karg-append=quiet' "$WORK/stub/calls" | wc -l)" -eq 1 ]] &&
+        called "--karg-append=orielos.build=v0.3.1" && not_called "orielos.build=v0.2.0" &&
+        not_called "--karg-append=ostree=" && not_called "--karg-append=BOOT_IMAGE"
 }
 
 # The new stateroot's folder, and its deployment's /etc.
@@ -253,10 +258,13 @@ check "it downloads the channel's build by its digest, without its signature" \
     called "skopeo copy --retry-times 3 --remove-signatures docker://example.test/orielos@$DIGEST oci:"
 check "it reads the computer's channel" called "skopeo inspect docker://example.test/orielos:testing"
 check "the new system is a new stateroot" test -n "$(prepared new)" -a "$(prepared new)" != default -a "$(prepared old)" == default
-check "the new system tracks the build by its digest" called "--target-imgref ostree-image-signed:docker://example.test/orielos@$DIGEST"
+check "the new system tracks the build by its digest" \
+    grep -qx "container-image-reference=ostree-image-signed:docker://example.test/orielos@$DIGEST" "$WORK/stub/origin"
+check "the new system is deployed at once, from the imported commit, with fresh settings" \
+    called "ostree admin deploy --sysroot=$R --stateroot=$(prepared new) --no-merge --origin-file="
 check "the new system keeps this computer's own kernel arguments" \
-    called "--karg root=UUID=1234 --karg rw --karg rootflags=subvol=root,compress=zstd:1"
-check "it leaves the builds' arguments to the deployment, and drops the start's own" no_build_kargs
+    called "--karg-append=root=UUID=1234 --karg-append=rw --karg-append=rootflags=subvol=root,compress=zstd:1"
+check "the new system gets the new build's arguments, not the old build's or the start's own" new_build_kargs
 # A password hash starts with a literal $.
 # shellcheck disable=SC2016
 check "accounts and passwords stay" grep -q '^alice:\$y\$secret:' "$(new_etc)/shadow"
