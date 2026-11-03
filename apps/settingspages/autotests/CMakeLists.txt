@@ -10,6 +10,9 @@ ecm_add_test(accentcolourtest.cpp
     TEST_NAME accentcolourtest
     LINK_LIBRARIES OrielOSAccent Qt6::Test
 )
+# The tests run in parallel. This one and the tour's appearancetest write the same kdeglobals in
+# Qt's test-mode folder, so they never run at once.
+set_tests_properties(accentcolourtest PROPERTIES RESOURCE_LOCK qttest-config)
 
 # Runs the desktop script against a fake of Plasma's desktop scripting, and the models against a
 # fake desktop.

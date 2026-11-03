@@ -33,23 +33,35 @@ deps() {
 # Runs qmllint over every QML module with the import paths and resources CMake generated for
 # it. The generated all_qmllint target cannot fail on warnings, so this calls qmllint itself. A
 # module with only C++ types has no QML or JavaScript files to lint, and qmllint given none prints
-# its usage and fails, so such a module is skipped.
+# its usage and fails, so such a module is skipped. The modules are linted in parallel, one per
+# core, and each one's output is printed whole when it finishes.
 lint_qml() {
-    local qmllint=/usr/lib64/qt6/bin/qmllint rsp modules=0
+    local rsp modules=()
     while IFS= read -r -d '' rsp; do
         if ! grep -q -E '\.(qml|js|mjs)$' "$rsp"; then
             step "Skipping ${rsp##*/}: no QML or JavaScript files"
             continue
         fi
-        step "Running qmllint on ${rsp##*/}"
-        "$qmllint" --max-warnings 0 "@$rsp"
-        modules=$((modules + 1))
+        modules+=("$rsp")
     done < <(find "$build" -path '*/.rcc/qmllint/*.rsp' ! -name '*_json.rsp' ! -name '*_module.rsp' -print0 | sort -z)
-    if [[ "$modules" -eq 0 ]]; then
+    if [[ "${#modules[@]}" -eq 0 ]]; then
         printf 'error: no QML modules found to lint\n' >&2
         exit 1
     fi
-    printf 'qmllint: no warnings in %d QML module(s)\n' "$modules"
+    if ! printf '%s\0' "${modules[@]}" | xargs -0 -n 1 -P "$(nproc)" "${BASH_SOURCE[0]}" lint-module; then
+        printf 'error: qmllint reported a problem; see the output above\n' >&2
+        exit 1
+    fi
+    printf 'qmllint: no warnings in %d QML module(s)\n' "${#modules[@]}"
+}
+
+# Lints one QML module, given its response file, and prints qmllint's output in one piece.
+lint_module() {
+    local out rc=0
+    out="$(/usr/lib64/qt6/bin/qmllint --max-warnings 0 "@$1" 2>&1)" || rc=$?
+    step "Running qmllint on ${1##*/}"
+    if [[ -n "$out" ]]; then printf '%s\n' "$out"; fi
+    return "$rc"
 }
 
 build_apps() {
@@ -70,16 +82,21 @@ build_apps() {
     step "Building"
     cmake --build "$build"
     if [[ -d "$ccache_dir" ]]; then ccache --show-stats; fi
+    # The tests run in parallel, one per core; tests that share a file take a RESOURCE_LOCK.
     step "Running the tests"
-    QT_QPA_PLATFORM=offscreen ctest --test-dir "$build" --output-on-failure --verbose
+    QT_QPA_PLATFORM=offscreen ctest --test-dir "$build" --output-on-failure --verbose --parallel "$(nproc)"
     lint_qml
     step "Installing to /out"
     DESTDIR=/out cmake --install "$build"
+    # Only /out goes into the image. Leaving the build tree in the stage made committing it slow,
+    # as Podman compares every file.
+    rm -rf "$build"
 }
 
 case "${1:-}" in
     deps) deps ;;
     build) build_apps ;;
+    lint-module) lint_module "$2" ;;
     *)
         printf 'usage: %s deps|build\n' "${0##*/}" >&2
         exit 2
