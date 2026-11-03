@@ -105,7 +105,7 @@ Gaming mice, keyboards and RGB lighting are set up with apps from the Store: Sol
 
 **Privacy & security > Device security** checks that this PC meets what games with anti-cheat require: Secure Boot, a TPM 2.0 that recorded the start-up, a locked-down kernel, the kernel's BPF security module, no switching to another kernel while running, the IOMMU, and drivers signed only by Fedora or Universal Blue. Each one shows as met or not met, and anything not met says what to change, usually in the PC's firmware settings. **Check again** runs the checks once more. See [Games with anti-cheat](anti-cheat.md) for what each one means.
 
-At the top, **Protection** shows whether the firewall is on and whether OrielOS has been able to check for updates in the last week, with what to do if not.
+At the top, **Protection** shows whether the firewall is on, whether OrielOS has been able to check for updates in the last week, and whether every Wi-Fi, Bluetooth, network, sound and camera device has a driver, with what to do if not. When a device has no driver, or its driver can't find a file it needs, OrielOS also tells you once in a notification, naming the device, with a link to [Known limitations](known-limitations.md).
 
 ## From the update icon
 

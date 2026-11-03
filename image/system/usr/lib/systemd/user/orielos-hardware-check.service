@@ -1,0 +1,11 @@
+[Unit]
+Description=Say when a device has no driver
+Documentation=https://orielos.org/guides/known-limitations/
+After=plasma-workspace.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/orielos/hardware-check-notify
+
+[Install]
+WantedBy=plasma-workspace.target

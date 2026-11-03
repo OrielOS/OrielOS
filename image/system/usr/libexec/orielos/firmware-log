@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Copies this boot's firmware failures from the kernel log to /run/orielos/firmware-failures, so
+# hardware-check can see them without root: the kernel log is readable only by administrators.
+# Writes one tab-separated line per failure: the driver, the device, and the firmware file, from
+# the kernel's "<driver> <device>: Direct firmware load for <file> failed with error <n>" lines.
+#
+# Usage: firmware-log
+# Tests set ORIELOS_KERNEL_LOG to a file to read instead of journalctl, and ORIELOS_RUN_DIR.
+set -Eeuo pipefail
+
+RUN_DIR="${ORIELOS_RUN_DIR:-/run/orielos}"
+OUT="$RUN_DIR/firmware-failures"
+
+kernel_log() {
+    if [[ -n "${ORIELOS_KERNEL_LOG:-}" ]]; then
+        cat "$ORIELOS_KERNEL_LOG"
+    else
+        journalctl -k -b -o cat --no-pager
+    fi
+}
+
+main() {
+    local tmp
+    mkdir -p "$RUN_DIR"
+    tmp="$(mktemp "$RUN_DIR/.firmware-failures.XXXXXX")"
+    kernel_log |
+        sed -n 's/^\([^ ]*\) \([^ ]*\): Direct firmware load for \([^ ]*\) failed with error .*/\1\t\2\t\3/p' |
+        awk '!seen[$0]++' >"$tmp" || true
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$OUT"
+}
+
+main "$@"

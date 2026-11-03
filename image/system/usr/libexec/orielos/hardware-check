@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# Lists the Wi-Fi, Bluetooth, network, sound and camera devices that don't work because OrielOS has
+# no driver for them, or because their driver couldn't load its firmware. A device without a driver
+# otherwise just does nothing, with no sign why. Needs no root: it reads sysfs, the hardware names
+# in hwdata, and the firmware failures orielos-firmware-log.service copies from this boot's kernel
+# log to /run/orielos/firmware-failures. The sign-in notification (hardware-check-notify) and
+# Settings' Device security page both use it.
+#
+# Prints one tab-separated line per device: kind (wifi, bluetooth, network, sound or camera), bus
+# (pci or usb), address, vendor:product, name, problem (no-driver or no-firmware), and the missing
+# firmware file (empty for no-driver). Prints nothing when every such device works.
+#
+# A firmware failure counts only for a network device that has no network interface: drivers
+# such as iwlwifi try several firmware versions and log each one missing before one loads.
+#
+# Usage: hardware-check
+# Tests set ORIELOS_SYSFS, ORIELOS_HWDATA and ORIELOS_FIRMWARE_FAILURES to use other files.
+set -Eeuo pipefail
+
+SYSFS="${ORIELOS_SYSFS:-/sys}"
+HWDATA="${ORIELOS_HWDATA:-/usr/share/hwdata}"
+FAILURES="${ORIELOS_FIRMWARE_FAILURES:-/run/orielos/firmware-failures}"
+
+# Prints the contents of a sysfs file without its 0x and newline, or nothing.
+attr() {
+    local value=""
+    if [[ -r "$1" ]]; then value="$(<"$1")"; fi
+    printf '%s' "${value#0x}"
+}
+
+# Prints a device's maker and model from an ids file (pci.ids or usb.ids), separated by a tab;
+# either may be empty: ids_name <file> <vendor> <product>.
+ids_name() {
+    if [[ ! -r "$1" ]]; then return 0; fi
+    awk -v v="$2" -v p="$3" '
+        /^#/ { next }
+        /^[0-9a-f][0-9a-f][0-9a-f][0-9a-f]  / { if (vendor != "") exit; if ($1 == v) { vendor = substr($0, 7) }; next }
+        vendor != "" && /^\t[0-9a-f][0-9a-f][0-9a-f][0-9a-f]  / { if ($1 == p) { product = substr($0, 8); exit } }
+        END { if (vendor != "") print vendor "\t" product }' "$1"
+}
+
+has_driver() { [[ -L "$1/driver" ]]; }
+
+# The kind of a PCI device from its class, or nothing for the classes this doesn't look at.
+pci_kind() {
+    case "$1" in
+        0280*) echo wifi ;;
+        02*) echo network ;;
+        0d11*) echo bluetooth ;;
+        0d*) echo wifi ;;
+        0401* | 0403*) echo sound ;;
+        *) ;;
+    esac
+}
+
+# The kind of a USB device from its interfaces' classes, or from its name for vendor-specific
+# devices (most USB Wi-Fi adapters), or nothing.
+usb_kind() {
+    local dev="$1" name="$2" intf class sub proto
+    for intf in "$dev"/*:*; do
+        [[ -d "$intf" ]] || continue
+        class="$(attr "$intf/bInterfaceClass")"
+        sub="$(attr "$intf/bInterfaceSubClass")"
+        proto="$(attr "$intf/bInterfaceProtocol")"
+        case "$class$sub$proto" in
+            e00101) echo bluetooth && return ;;
+            01*) echo sound && return ;;
+            0e*) echo camera && return ;;
+            *) ;;
+        esac
+    done
+    case "${name,,}" in
+        *802.11* | *wireless\ lan* | *wlan* | *wi-fi* | *wifi*) echo wifi ;;
+        *bluetooth*) echo bluetooth ;;
+        *ethernet* | *network\ adapter* | *gigabit*) echo network ;;
+        *) ;;
+    esac
+}
+
+report() { printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$@"; }
+
+check_pci() {
+    local dev addr kind vendor product name names maker model
+    for dev in "$SYSFS"/bus/pci/devices/*; do
+        [[ -d "$dev" ]] || continue
+        kind="$(pci_kind "$(attr "$dev/class")")"
+        [[ -n "$kind" ]] || continue
+        addr="${dev##*/}"
+        vendor="$(attr "$dev/vendor")"
+        product="$(attr "$dev/device")"
+        names="$(ids_name "$HWDATA/pci.ids" "$vendor" "$product")"
+        IFS=$'\t' read -r maker model <<<"$names"
+        name="$maker${model:+ $model}"
+        name="${name:-PCI device $vendor:$product}"
+        if ! has_driver "$dev"; then
+            report "$kind" pci "$addr" "$vendor:$product" "$name" no-driver ""
+        elif [[ "$kind" == wifi || "$kind" == network ]] && [[ ! -d "$dev/net" ]]; then
+            local file
+            file="$(firmware_for "$addr")"
+            if [[ -n "$file" ]]; then report "$kind" pci "$addr" "$vendor:$product" "$name" no-firmware "$file"; fi
+        fi
+    done
+}
+
+check_usb() {
+    local dev addr kind vendor product name names maker model intf bound
+    for dev in "$SYSFS"/bus/usb/devices/*; do
+        [[ -d "$dev" && -r "$dev/idVendor" ]] || continue
+        addr="${dev##*/}"
+        # Root hubs and hubs have nothing to report.
+        [[ "$addr" != usb* && "$(attr "$dev/bDeviceClass")" != 09 ]] || continue
+        vendor="$(attr "$dev/idVendor")"
+        product="$(attr "$dev/idProduct")"
+        names="$(ids_name "$HWDATA/usb.ids" "$vendor" "$product")"
+        IFS=$'\t' read -r maker model <<<"$names"
+        maker="${maker:-$(attr "$dev/manufacturer")}"
+        model="${model:-$(attr "$dev/product")}"
+        name="$maker${model:+ $model}"
+        name="${name# }"
+        kind="$(usb_kind "$dev" "$name")"
+        [[ -n "$kind" ]] || continue
+        name="${name:-USB device $vendor:$product}"
+        bound=0
+        for intf in "$dev"/*:*; do
+            if [[ -d "$intf" ]] && has_driver "$intf"; then bound=1; fi
+        done
+        if [[ "$bound" -eq 0 ]]; then
+            report "$kind" usb "$addr" "$vendor:$product" "$name" no-driver ""
+        fi
+    done
+}
+
+# Prints the first firmware file the kernel couldn't load for a device this boot, or nothing.
+firmware_for() {
+    if [[ -r "$FAILURES" ]]; then awk -F '\t' -v d="$1" '$2 == d { print $3; exit }' "$FAILURES"; fi
+}
+
+main() {
+    if [[ $# -ne 0 ]]; then
+        printf 'usage: hardware-check\n' >&2
+        exit 2
+    fi
+    check_pci
+    check_usb
+}
+
+main "$@"

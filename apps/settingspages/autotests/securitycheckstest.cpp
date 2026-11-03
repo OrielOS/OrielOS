@@ -303,10 +303,12 @@ private Q_SLOTS:
         sources.now = [now] { return now; };
         bool firewall = true;
         sources.firewallActive = [&firewall] { return firewall; };
+        std::optional<QString> hardware = QString();
+        sources.hardwareProblems = [&hardware] { return hardware; };
 
         // No state yet: updates couldn't be checked.
         QList<SecurityCheck> checks = runProtectionChecks(sources);
-        QCOMPARE(checks.size(), 2);
+        QCOMPARE(checks.size(), 3);
         QCOMPARE(checks.at(0).id, QStringLiteral("firewall"));
         QCOMPARE(checks.at(0).result, SecurityCheck::Result::Met);
         QCOMPARE(checks.at(1).result, SecurityCheck::Result::Unknown);
@@ -320,6 +322,19 @@ private Q_SLOTS:
 
         firewall = false;
         QCOMPARE(runProtectionChecks(sources).at(0).result, SecurityCheck::Result::NotMet);
+
+        // Devices: every one has a driver, one hasn't and one lacks firmware, or the check failed.
+        QCOMPARE(checks.at(2).id, QStringLiteral("devices"));
+        QCOMPARE(checks.at(2).result, SecurityCheck::Result::Met);
+        hardware = QStringLiteral("wifi\tpci\t0000:04:00.0\t14e4:43a0\tBroadcom BCM4360\tno-driver\t\n"
+                                  "bluetooth\tusb\t1-10\t8087:0033\tIntel AX211 Bluetooth\tno-firmware\tintel/ibt-0040-0041.sfi\n");
+        const SecurityCheck devices = runProtectionChecks(sources).at(2);
+        QCOMPARE(devices.result, SecurityCheck::Result::NotMet);
+        QVERIFY(devices.explanation.contains(QStringLiteral("The Broadcom BCM4360 has no driver")));
+        QVERIFY(devices.explanation.contains(QStringLiteral("The Intel AX211 Bluetooth can't start")));
+        QVERIFY(devices.explanation.contains(QStringLiteral("orielos.org/guides/known-limitations")));
+        hardware = std::nullopt;
+        QCOMPARE(runProtectionChecks(sources).at(2).result, SecurityCheck::Result::Unknown);
     }
 };
 

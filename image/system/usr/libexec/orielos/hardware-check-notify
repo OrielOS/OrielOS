@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Tells the user, once per device, when a Wi-Fi, Bluetooth, network, sound or camera device has no
+# driver or is missing its firmware, as hardware-check finds, with a link to the page that says
+# what works instead. What was shown is remembered in ~/.local/state/orielos/hardware-notified, so
+# each device is mentioned once, not at every sign-in. Started by orielos-hardware-check.service
+# in each desktop session. Runs as the logged-in user.
+#
+# Usage: hardware-check-notify
+# Tests set ORIELOS_HARDWARE_CHECK, ORIELOS_NOTIFY_SEND, ORIELOS_FIRMWARE_FAILURES,
+# ORIELOS_WAIT_SECONDS and ORIELOS_UID to use stand-ins.
+set -Eeuo pipefail
+
+CHECK="${ORIELOS_HARDWARE_CHECK:-/usr/libexec/orielos/hardware-check}"
+NOTIFY_SEND="${ORIELOS_NOTIFY_SEND:-notify-send}"
+FAILURES="${ORIELOS_FIRMWARE_FAILURES:-/run/orielos/firmware-failures}"
+WAIT_SECONDS="${ORIELOS_WAIT_SECONDS:-60}"
+SEEN_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/orielos"
+SEEN="$SEEN_DIR/hardware-notified"
+URL="https://orielos.org/guides/known-limitations/"
+APP_NAME="OrielOS"
+
+# What to call a device of a kind on a bus: thing <kind> <bus>.
+thing() {
+    case "$1:$2" in
+        wifi:usb) echo "Wi-Fi adapter" ;;
+        wifi:*) echo "Wi-Fi card" ;;
+        bluetooth:*) echo "Bluetooth adapter" ;;
+        network:usb) echo "network adapter" ;;
+        network:*) echo "network port" ;;
+        sound:*) echo "sound device" ;;
+        camera:*) echo "camera" ;;
+        *) echo "device" ;;
+    esac
+}
+
+notify() {
+    local kind="$1" bus="$2" name="$3" problem="$4" what title body action
+    what="$(thing "$kind" "$bus")"
+    if [[ "$problem" == no-firmware ]]; then
+        title="Your $what is missing its firmware"
+        body="The $name can't start, because a file its driver needs isn't in OrielOS. See what to do."
+    else
+        title="Your $what has no driver"
+        body="OrielOS has no driver for the $name, so it doesn't work. See what works instead."
+    fi
+    # --wait keeps the button working until it's clicked or the notification is closed.
+    action="$("$NOTIFY_SEND" --app-name="$APP_NAME" --icon=dialog-warning \
+        --action=learn="Learn more" --wait "$title" "$body" || true)"
+    if [[ "$action" == learn ]]; then
+        xdg-open "$URL" >/dev/null 2>&1 || true
+    fi
+}
+
+main() {
+    local waited=0 lines kind bus id name problem key
+    # Plasma Setup's own session and other system accounts are not told anything.
+    if [[ "${ORIELOS_UID:-$(id -u)}" -lt 1000 ]]; then return 0; fi
+    # Firmware failures are noted once the network has started; wait for them for a while.
+    while [[ ! -e "$FAILURES" && "$waited" -lt "$WAIT_SECONDS" ]]; do
+        sleep 5
+        waited=$((waited + 5))
+    done
+    lines="$("$CHECK")" || return 0
+    [[ -n "$lines" ]] || return 0
+    mkdir -p "$SEEN_DIR"
+    touch "$SEEN"
+    while IFS=$'\t' read -r kind bus _ id name problem _; do
+        key="$id:$problem"
+        if grep -qxF "$key" "$SEEN"; then continue; fi
+        printf '%s\n' "$key" >>"$SEEN"
+        # Each notification waits for its button, so they're shown side by side.
+        notify "$kind" "$bus" "$name" "$problem" &
+    done <<<"$lines"
+    wait
+}
+
+main "$@"
