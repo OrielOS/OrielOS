@@ -170,7 +170,10 @@ jobs:
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           CCACHE: ${{ runner.temp }}/ccache
-        run: sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" PATH="${PATH}" tools/build-image.sh --use-published --single-layer --no-archive --version "${TAG}" --output /mnt/builds --keep 1
+        run: |
+          # Root gets the system's own folders and cosign's, not the runner user's whole PATH.
+          root_path="$(dirname "$(command -v cosign)"):/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+          sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" PATH="${root_path}" tools/build-image.sh --use-published --single-layer --no-archive --version "${TAG}" --output /mnt/builds --keep 1
 
       # The archive for publishing is written while the image is smoke-tested, instead of before:
       # both only read the image. Pull requests never publish, so they don't write one.
