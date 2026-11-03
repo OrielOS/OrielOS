@@ -10,7 +10,7 @@ Settings opens on **Home**: the settings you used most recently, then recommende
 
 The categories on the left come in the order you know from Windows (in a narrow window they hide behind the menu button beside the page's title):
 
-- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Battery usage, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app) and About.
+- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Battery usage, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app), Recovery (resetting this PC; see [Resetting this PC](recovery.md)) and About.
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Camera, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
 - **Personalisation**: Background, Themes (including dark mode), Accent colour (with Show accent colour on Start and taskbar, and Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.

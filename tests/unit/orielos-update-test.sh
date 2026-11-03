@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Unit tests for orielos-update's check, pause, channel and going-back logic, undoing an update that
-# didn't start, removing the previous build, automatic app updates, and the state file it writes for
-# the desktop. Runs the real script against a scratch directory (ORIELOS_UPDATE_ROOT) with stand-ins
+# didn't start, removing the previous build, automatic app updates, waiting while a reset of the PC
+# is pending, and the state file it writes for the desktop. Runs the real script against a scratch directory (ORIELOS_UPDATE_ROOT) with stand-ins
 # for bootc, skopeo, busctl, systemctl, ostree, flatpak and the boot menu's flag helper, so it needs
 # no root, VM or network.
 # Prints PASS/FAIL per case and exits 1 if any case fails.
@@ -693,6 +693,22 @@ check "restart-if-waiting doesn't restart when nothing waits" not_called "system
 bootc_status "$RUNNING" 44.1 "$NEWER" 44.2 >"$WORK/stub/bootc-status.json"
 run restart-if-waiting
 check "restart-if-waiting restarts for a waiting update" called "systemctl reboot"
+#END
+
+#BEGIN A reset of this PC waiting
+setup
+skopeo_info "$NEWER" 44.2 >"$WORK/stub/skopeo.json"
+mkdir -p "$WORK/root/var/lib/orielos/reset"
+touch "$WORK/root/var/lib/orielos/reset/pending"
+run check
+check "a check while a reset is pending reports it" test "$RC" -eq 0 -a "$(state .result)" == reset-pending
+check "a check while a reset is pending reads no channel and stages nothing" not_called "skopeo inspect"
+with_previous "$WORK/stub/bootc-status.json" "$OTHER" 44.0
+for cmd in rollback remove-previous; do
+    run "$cmd"
+    check "$cmd is refused while a reset is pending" test "$RC" -eq 1 -a -z "$(grep -F 'bootc rollback' "$WORK/stub/calls")"
+done
+check "nothing was removed while a reset is pending" not_called "ostree admin undeploy"
 #END
 
 printf '%d passed, %d failed\n' "$PASSED" "$FAILED"

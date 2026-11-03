@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "Reset this PC: put the newest version of OrielOS back, keeping files or removing everything",
+        "Icon": "edit-reset",
+        "Name": "Recovery"
+    },
+    "X-KDE-Keywords": "recovery,reset,reset this pc,reinstall,factory reset,fresh start,restore,remove everything,wipe,erase",
+    "X-KDE-System-Settings-Parent-Category": "system-administration",
+    "X-KDE-Weight": 30
+}

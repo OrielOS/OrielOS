@@ -14,6 +14,7 @@ Contains:
 - [Try OrielOS in a virtual machine](install-vm.md): build OrielOS, make a virtual machine disk and start it in QEMU or VMware Workstation.
 - [Known limitations](known-limitations.md): what OrielOS can't do yet, and what it won't do by design.
 - [Updates and going back](updates.md): how OrielOS prepares an update for the next restart, and how to go back to the previous version.
+- [Resetting this PC](recovery.md): putting the newest version of OrielOS back, keeping your accounts and files or removing everything, without touching Windows or other drives.
 - [Installing apps](apps.md): the Store, Flathub, and how Firefox arrives on first boot.
 - [Keyboard shortcuts](keyboard-shortcuts.md): the Windows shortcuts for Start, Files, Run, System Monitor, Screenshot and more.
 - [Secure Boot and your drivers](secure-boot.md): the one-time blue screen that lets the NVIDIA driver and other drivers load, and the firmware update warning.

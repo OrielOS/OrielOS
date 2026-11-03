@@ -280,6 +280,26 @@ tests/rollback-test.sh --old localhost/orielos:dev.1 --new /var/lib/orielos/buil
 
 `--old` and `--new` take the same as in the update test. It prints PASS or FAIL for eight checks and stops at the first step that fails. Results go to `tests/results/rollback-<B's tag>-<UTC time>/`, or to the folder given with `--results`: `summary.txt`, `install.log`, `serial.log`, `stage.txt`, and `bootc-status-<step>.json` and `status-<step>.txt` after each start (`a`, `staged`, `b-first`, `b-second`, `undone` and `after`). The work folder and `--keep` work as in the boot test.
 
+## Reset test
+
+`reset-test.sh` tests Reset this PC with `orielos-reset` (see `image/README.md`). It installs a build the way the boot test does, in the same VM with SSH over vsock, and gives the VM two more disks: a 64 MiB one filled with random bytes, standing in for another operating system's drive, and one for the update source. It then:
+
+1. **Installs** the build, finishes setup (see [Finishing setup](#finishing-setup)), gives `orielostest` a password and a file in its home folder, changes a system setting (a file in `/etc`) and leaves a file in `/var`, and writes a stand-in for Windows' boot files, `EFI/Microsoft/Boot/bootmgfw.efi`, to the EFI system partition.
+2. **Lays out the home folders as the installer does** (unless `--layout bootc`): a Btrfs subvolume, `home`, mounted at `/home` from `/etc/fstab`, and restarts.
+3. **Sets up the update source**: the build, copied from its archive into an OCI directory on the third disk as the `stable` channel, named in `/etc/orielos/update.conf`. The disk survives the resets, so both find it.
+4. **Cancels a reset**: `orielos-reset start keep` must get the reset ready, with a second stateroot beside the running one, while an update check reports `reset-pending`; `orielos-reset cancel` must leave only the running system and let updates go on.
+5. **Resets keeping files**: after the restart, the new stateroot must be running, the user's file must be there with its owner, the account must keep its password and the `wheel` group, the changed setting and the file in `/var` must be gone, first-run setup must not come back, the old stateroot must be removed once the sign-in screen is up (the state says `done`), the kernel arguments must be the same apart from the build's own, bootc must know the new build, and Windows' boot files must be unchanged.
+6. **Resets removing everything**: after the restart, first-run setup must start with no account left, the old stateroot must be removed, no home folder may be left, and Windows' boot files must be unchanged.
+
+Once the VM is off, the other drive must match its checksum byte for byte.
+
+```sh
+tests/reset-test.sh --archive /var/lib/orielos/builds/orielos-dev.2.ociarchive
+tests/reset-test.sh --archive BUILD.ociarchive --layout bootc --keep
+```
+
+Results go to `tests/results/reset-<tag>-<UTC time>/`, or to the folder given with `--results`: `summary.txt`, `install.log`, `serial.log`, and for each reset `start-<mode>.txt` and `prepare-<mode>.txt` (the state file and orielos-reset's log). The work folder and `--keep` work as in the boot test.
+
 ## Unit tests
 
 `unit/` holds quick tests for the shell tools that need no root, VM or network. `tools/lint.sh` runs every `unit/*-test.sh`, so CI runs them on every pull request.
@@ -294,7 +314,14 @@ tests/rollback-test.sh --old localhost/orielos:dev.1 --new /var/lib/orielos/buil
   - putting a staged build on trial, and taking it off when going back;
   - undoing an update after the boot loader fell back, at boot and through `undo-update`, and only then;
   - automatic app updates: on by default, turning them off and on, keeping the setting when pausing or changing channel, updating apps with `flatpak` and recording when, doing nothing while they're off or the connection is metered, a failed update, and wrong usage;
-  - when the previous build is removed: after 14 days, by the check only and even while paused, not while an update is staged or going back is queued, and through `remove-previous`.
+  - when the previous build is removed: after 14 days, by the check only and even while paused, not while an update is staged or going back is queued, and through `remove-previous`;
+  - waiting while a reset of the PC is pending: no check, going back or removal.
+- `unit/orielos-reset-test.sh` runs the real `orielos-reset` against a scratch directory (`ORIELOS_RESET_ROOT`) holding a stand-in system: a `default` stateroot with one account, its home folder and settings. Stand-ins for `skopeo`, `ostree` (which keeps a list of deployments and makes their folders), `bootc`, `rpm-ostree`, `systemctl`, `findmnt`, `df` and the boot menu's flag helper sit first on `PATH`. It covers:
+  - getting a reset ready: the channel's build by its digest, the state file's progress and size, a new stateroot that tracks the build's digest, this computer's own kernel arguments without the builds' or the start's own, and setting aside an update waiting for a restart;
+  - what keeping files carries across (accounts merged with the new build's system accounts, group members, the computer's name, saved networks, the mount table, first-run setup's mark, account pictures, the channel and the app updates setting) and what removing everything carries (the mount table and the channel only);
+  - failures: no connection, too little free space, a failed unpack, and a download that isn't the build asked for, each leaving nothing behind;
+  - cancelling, `refresh` in the same start and after the old system started (putting the home folders back), and after preparing was interrupted;
+  - the reset start: moving home folders in `/var` across, moving a separate home file system's folders out of the way and deleting them, removing the old stateroot, and doing nothing on an ordinary start.
 - `unit/first-run-power-test.sh` runs the first-run setup's power helper in a scratch root folder (`ORIELOS_FIRST_RUN_ROOT`), with a stand-in for `kwriteconfig6`. It covers the settings written for sleep and the screen with a time or never, a second choice replacing the first, the longest wait, refusing once the setup has finished, and wrong arguments.
 - `unit/boot-flags-test.sh` runs the boot menu's flag helper on a plain file (`ORIELOS_BOOT_FLAGS_FILE`), with stand-ins for `grub2-editenv` and `orielos-update`. It covers each command's effect on the flags, keeping the previous build after a fallback (and what's left when that fails), `status`, and wrong usage.
 

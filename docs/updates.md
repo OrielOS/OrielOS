@@ -85,6 +85,8 @@ Going back is offered for 14 days after an update, until the previous version is
 
 OrielOS remembers the version you went back from and won't prepare it again until a newer version is published. While going back is waiting for a restart, OrielOS doesn't prepare any update.
 
+If going back doesn't help, or there's no previous version left, [resetting this PC](recovery.md) puts the newest version back with its own system settings, keeping your accounts and files or removing everything.
+
 In a terminal, `sudo orielos-update rollback` does the same. If you are testing and want to try the version you went back from again anyway, `orielos-update status` lists it under "Rejected builds", and
 
 ```sh

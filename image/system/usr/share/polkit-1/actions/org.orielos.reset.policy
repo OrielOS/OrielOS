@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+SPDX-FileCopyrightText: 2026 OrielOS contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+What the Recovery settings page may ask orielos-reset to do through pkexec. Resetting the PC needs
+an administrator's password every time, because it can remove every account and file; cancelling
+a reset changes nothing, but needs an administrator too, so no one else can stop one. pkexec picks
+the action by the program and its first argument.
+-->
+<policyconfig>
+  <vendor>OrielOS</vendor>
+  <vendor_url>https://github.com/OrielOS/OrielOS</vendor_url>
+  <icon_name>edit-reset</icon_name>
+
+  <action id="org.orielos.reset.start">
+    <description>Reset this PC</description>
+    <message>Authentication is needed to reset this PC</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-reset</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">start</annotate>
+  </action>
+
+  <action id="org.orielos.reset.cancel">
+    <description>Cancel a reset of this PC</description>
+    <message>Authentication is needed to cancel the reset of this PC</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/orielos-reset</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">cancel</annotate>
+  </action>
+</policyconfig>

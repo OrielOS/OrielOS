@@ -132,7 +132,8 @@ done
 # OrielOS's own Settings pages besides Update.
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
     kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb \
-    kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps; do
+    kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps \
+    kcm_orielos_recovery; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -266,6 +267,30 @@ for cmd in grub2-editenv grub2-script-check lsblk findmnt mountpoint unshare flo
 done
 if [[ "${#boot_menu_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${boot_menu_errors[@]}" >&2
+    exit 1
+fi
+
+# Reset this PC (Settings › Recovery): the reset start's units run only when their marks exist, so
+# they're enabled for every computer. No reset state may be in the image.
+systemctl enable orielos-reset-apply.service orielos-reset-finish.service orielos-reset-state.service
+reset_errors=()
+for unit in orielos-reset-apply.service orielos-reset-finish.service orielos-reset-state.service; do
+    if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
+        reset_errors+=("$unit is not enabled")
+    fi
+done
+for f in /usr/lib/systemd/system/orielos-reset@.service /usr/share/polkit-1/actions/org.orielos.reset.policy; do
+    [[ -r "$f" ]] || reset_errors+=("$f is missing")
+done
+[[ -x /usr/bin/orielos-reset ]] || reset_errors+=("/usr/bin/orielos-reset is not executable")
+for cmd in skopeo rpm-ostree du df cp; do
+    command -v "$cmd" >/dev/null || reset_errors+=("$cmd, which orielos-reset needs, is not installed")
+done
+if [[ -e /var/lib/orielos/reset || -e /etc/orielos/reset-apply ]]; then
+    reset_errors+=("reset state is in the image")
+fi
+if [[ "${#reset_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${reset_errors[@]}" >&2
     exit 1
 fi
 
