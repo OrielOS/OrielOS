@@ -213,10 +213,10 @@ step_install() {
 
 # Lay the VM out as the installer does: /boot on an ext4 partition of its own (the fourth disk),
 # which GRUB finds by the UUID in bootuuid.cfg, and the home folders on a Btrfs subvolume, both
-# mounted from /etc/fstab. systemd.gpt_auto=0 goes on the kernel command line first: on a bootc
-# install, systemd-gpt-auto-generator makes a boot.mount of its own, which a /boot line in fstab
-# would clash with. A reset once broke exactly this layout: ostree, told the system's root was
-# /sysroot, looked for boot entries in the empty /sysroot/boot.
+# mounted from /etc/fstab. The root file system's own /boot folder is then emptied, as on an
+# installed computer: while it holds boot files, ostree-system-generator mounts it as /boot, which
+# clashes with the fstab line. A reset once broke exactly this layout: ostree, told the system's
+# root was /sysroot, looked for boot entries in the empty /sysroot/boot.
 step_layout() {
     local out
     if [[ "$LAYOUT" != installer ]]; then
@@ -227,7 +227,6 @@ step_layout() {
     if ! out="$(vm_ssh "set -e
         command -v btrfs >/dev/null
         uuid=\$(findmnt -no UUID /sysroot)
-        unshare --mount --propagation private sh -c 'mount -o remount,rw /sysroot && mount -o remount,rw /boot && ostree admin instutil set-kargs --merge --append=systemd.gpt_auto=0'
         mkfs.ext4 -q -L boot /dev/vdd
         boot_uuid=\$(blkid -s UUID -o value /dev/vdd)
         mkdir -p /run/new-boot
@@ -241,7 +240,7 @@ step_layout() {
         mount \"\$esp\" /run/esp
         printf 'set BOOT_UUID=\"%s\"\n' \"\$boot_uuid\" >/run/esp/EFI/fedora/bootuuid.cfg
         umount /run/esp
-        unshare --mount --propagation private sh -c 'mount -o remount,rw /sysroot && btrfs subvolume create /sysroot/home >/dev/null && chcon --reference=/var/home /sysroot/home && cp -a /var/home/. /sysroot/home/'
+        unshare --mount --propagation private sh -c 'mount -o remount,rw /sysroot && btrfs subvolume create /sysroot/home >/dev/null && chcon --reference=/var/home /sysroot/home && cp -a /var/home/. /sysroot/home/ && find /sysroot/boot -mindepth 1 -maxdepth 1 -exec rm -rf {} +'
         printf 'UUID=%s /boot ext4 defaults 1 2\nUUID=%s /home btrfs subvol=home,compress=zstd:1 0 0\n' \"\$boot_uuid\" \"\$uuid\" >>/etc/fstab" 2>&1)"; then
         fail "The VM was laid out as the installer does: ${out:-no output}"
         return 1
