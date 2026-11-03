@@ -213,8 +213,10 @@ step_install() {
 
 # Lay the VM out as the installer does: /boot on an ext4 partition of its own (the fourth disk),
 # which GRUB finds by the UUID in bootuuid.cfg, and the home folders on a Btrfs subvolume, both
-# mounted from /etc/fstab. A reset once broke exactly this layout: ostree, told the system's root
-# was /sysroot, looked for boot entries in the empty /sysroot/boot.
+# mounted from /etc/fstab. systemd.gpt_auto=0 goes on the kernel command line first: on a bootc
+# install, systemd-gpt-auto-generator makes a boot.mount of its own, which a /boot line in fstab
+# would clash with. A reset once broke exactly this layout: ostree, told the system's root was
+# /sysroot, looked for boot entries in the empty /sysroot/boot.
 step_layout() {
     local out
     if [[ "$LAYOUT" != installer ]]; then
@@ -225,6 +227,7 @@ step_layout() {
     if ! out="$(vm_ssh "set -e
         command -v btrfs >/dev/null
         uuid=\$(findmnt -no UUID /sysroot)
+        unshare --mount --propagation private sh -c 'mount -o remount,rw /sysroot && mount -o remount,rw /boot && ostree admin instutil set-kargs --merge --append=systemd.gpt_auto=0'
         mkfs.ext4 -q -L boot /dev/vdd
         boot_uuid=\$(blkid -s UUID -o value /dev/vdd)
         mkdir -p /run/new-boot
