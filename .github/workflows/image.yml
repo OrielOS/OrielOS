@@ -180,7 +180,17 @@ jobs:
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           CCACHE: ${{ runner.temp }}/ccache
-        run: sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" PATH="${PATH}" tools/build-image.sh --use-published --version "${TAG}" --output /mnt/builds --keep 1
+        run: sudo env TMPDIR=/mnt/tmp ORIELOS_CCACHE_DIR="${CCACHE}" PATH="${PATH}" tools/build-image.sh --use-published --no-archive --version "${TAG}" --output /mnt/builds --keep 1
+
+      # The archive for publishing is written while the image is smoke-tested, instead of before:
+      # both only read the image. Pull requests never publish, so they don't write one.
+      - name: Start exporting the image
+        if: github.event_name != 'pull_request'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          sudo mkdir -p /mnt/builds
+          sudo env TAG="${TAG}" nohup bash -c 'podman push --compression-format zstd "localhost/orielos:${TAG}" "oci-archive:/mnt/builds/orielos-${TAG}.ociarchive:${TAG}"; echo $? >/mnt/builds/export.status' >/tmp/export.log 2>&1 &
 
       # Flatpak apps need Flathub's GL extension for the image's NVIDIA driver version, or they
       # lose GPU acceleration after the update.
@@ -217,6 +227,15 @@ jobs:
           path: /mnt/smoke-results
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Finish exporting the image
+        if: github.event_name != 'pull_request'
+        timeout-minutes: 20
+        run: |
+          until [ -f /mnt/builds/export.status ]; do sleep 2; done
+          cat /tmp/export.log
+          [ "$(cat /mnt/builds/export.status)" = 0 ] || { echo "::error::Exporting the image failed"; exit 1; }
+          ls -lh /mnt/builds/*.ociarchive
 
       - name: Make the archive readable
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
