@@ -81,8 +81,8 @@ jobs:
           sudo chmod 1777 /mnt/tmp
 
 
-      # The apps compile with the compiler cache the apps workflow keeps on main (or, for a pull
-      # request, its own), so this build only reads it.
+      # The apps compile with the compiler cache the apps workflow keeps on main, and this build
+      # only reads it.
       - name: Restore the compiler cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
