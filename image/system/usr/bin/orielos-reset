@@ -60,6 +60,13 @@ BOOT_FLAGS="$PREFIX/usr/libexec/orielos/boot-flags"
 KARGS_DIR=/usr/lib/bootc/kargs.d
 SYSROOT="$PREFIX/sysroot"
 REPO="$SYSROOT/ostree/repo"
+# What ostree's deploying and pruning commands are told the system's root is: the running system,
+# "/". Told /sysroot, ostree treats it as a system that isn't running and looks for boot entries
+# in /sysroot/boot, which on a computer with a /boot partition of its own (as the installer lays
+# it out) is an empty folder: it then sees no deployments, and replaces the boot links the real
+# boot entries use with ones for the new system only, so nothing can start.
+OSTREE_SYSROOT="${PREFIX:-/}"
+BOOT_ENTRIES="$PREFIX/boot/loader/entries"
 CMDLINE="$PREFIX/proc/cmdline"
 BOOT_ID_FILE="$PREFIX/proc/sys/kernel/random/boot_id"
 # In the new system: the mark that makes apply run, and the one that makes finish run.
@@ -186,12 +193,14 @@ writable_sysroot() {
     if [[ -n "$PREFIX" || -n "${ORIELOS_RESET_UNSHARED:-}" ]]; then
         return 0
     fi
-    ORIELOS_RESET_UNSHARED=1 exec unshare --mount --propagation private "${BASH_SOURCE[0]}" "$@"
+    ORIELOS_RESET_UNSHARED=1 exec unshare --mount --propagation private bash "${BASH_SOURCE[0]}" "$@"
 }
 
 remount_sysroot() {
     if [[ -n "$PREFIX" ]]; then return 0; fi
     mount -o remount,rw "$SYSROOT"
+    # A /boot partition of its own is read-only too, and deploying writes the boot entries there.
+    if mountpoint -q /boot; then mount -o remount,rw /boot; fi
 }
 
 # One command at a time.
@@ -429,11 +438,13 @@ cmd_prepare() {
     ostree admin os-init "$new" >>"$LOG" 2>&1 || prepare_failed "Couldn't set up the new system: $(tail -n1 "$LOG")"
     # A new stateroot gets the build's own /etc and an empty /var. Deployed first in the list, it
     # starts by default; the old system stays second, for the boot loader to fall back on.
-    ostree container image deploy --sysroot "$SYSROOT" --stateroot "$new" --imgref "$IMPORT_REF" \
+    ostree container image deploy --sysroot "$OSTREE_SYSROOT" --stateroot "$new" --imgref "$IMPORT_REF" \
         --target-imgref "$target" "${kargs[@]}" >>"$LOG" 2>&1 ||
         prepare_failed "Couldn't set up the new system: $(tail -n1 "$LOG")"
     deployment="$(find "$SYSROOT/ostree/deploy/$new/deploy" -mindepth 1 -maxdepth 1 -type d | head -n1)"
     [[ -d "$deployment/etc" ]] || prepare_failed "Couldn't find the new system after setting it up."
+    check_boot_entries "$new" "$old" ||
+        prepare_failed "The boot menu wasn't set up as it should be, so the reset was undone. Nothing was changed."
     carry_settings "$deployment/etc" "$SYSROOT/ostree/deploy/$new/var"
     mkdir -p "$(dirname "$deployment/$APPLY_MARK")"
     printf 'mode=%s\nold=%s\nhome_separate=%s\n' "$MODE" "$old" "$separate" >"$deployment/$APPLY_MARK"
@@ -447,6 +458,30 @@ cmd_prepare() {
     trap - ERR
     write_state ready "OrielOS $VERSION is ready. Restart to reset this PC." "$MODE" "$VERSION" "$total" "$total"
     printf 'The reset is ready: OrielOS %s starts at the next restart.\n' "$VERSION"
+}
+
+# Check the boot entries the boot loader reads, before the reset counts as ready: every entry's
+# ostree= path must lead to a deployment, the new system must have an entry, and so must the old
+# one, which the boot loader falls back on: check_boot_entries <new stateroot> <old stateroot>
+check_boot_entries() {
+    local entry path new=0 old=0
+    for entry in "$BOOT_ENTRIES"/*.conf; do
+        [[ -f "$entry" ]] || continue
+        path="$(sed -n 's/^options .*ostree=\([^ ]*\).*/\1/p' "$entry")"
+        [[ -n "$path" ]] || continue
+        if [[ ! -d "$SYSROOT$path" ]]; then
+            printf 'orielos-reset: %s points at %s, which leads nowhere\n' "${entry##*/}" "$path" >>"$LOG"
+            return 1
+        fi
+        case "$path" in
+            /ostree/boot.[01]/"$1"/*) new=1 ;;
+            /ostree/boot.[01]/"$2"/*) old=1 ;;
+        esac
+    done
+    if ((!new || !old)); then
+        printf 'orielos-reset: no boot entry for %s\n' "$( ((new)) && echo "$2" || echo "$1")" >>"$LOG"
+        return 1
+    fi
 }
 
 # Put the old system's settings that a reset keeps into the new system:
@@ -568,7 +603,7 @@ cmd_finish() {
     if [[ -n "$old" && "$old" != "$(booted_stateroot)" && -d "$SYSROOT/ostree/deploy/$old" ]]; then
         remove_stateroot "$old"
     fi
-    ostree container image prune-images --sysroot "$SYSROOT" --full >/dev/null 2>&1 || true
+    ostree container image prune-images --sysroot "$OSTREE_SYSROOT" --full >/dev/null 2>&1 || true
     # Nothing to go back to any more.
     if [[ -x "$BOOT_FLAGS" ]]; then "$BOOT_FLAGS" clear || true; fi
     rm -rf "${PREFIX}/var/home/$ERASED"

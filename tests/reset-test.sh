@@ -3,10 +3,12 @@
 # Secure Boot and a software TPM, with two more disks: one standing in for another operating
 # system's drive, filled with random bytes, and one holding the update source, an OCI directory
 # with the same build as the stable channel. The VM also gets a stand-in for Windows' boot files on
-# the EFI system partition. By default the home folders are then moved to a Btrfs subvolume of
-# their own, mounted from /etc/fstab, as the installer lays them out; --layout bootc keeps them in
-# /var, as "bootc install" does. Over SSH through a vsock device, the test:
-#   1. gets a reset ready and cancels it, and checks that nothing changed;
+# the EFI system partition. By default the VM is then laid out as the installer lays a computer
+# out: /boot moves to an ext4 partition of its own on a fourth disk, which GRUB finds by its UUID,
+# and the home folders to a Btrfs subvolume, both mounted from /etc/fstab; --layout bootc keeps
+# both on the root file system, as "bootc install" does. Over SSH through a vsock device, the test:
+#   1. gets a reset ready and checks that every boot entry, the old system's included, leads to a
+#      deployment, then cancels it and checks that nothing changed;
 #   2. resets keeping files: the account, its password and its file stay, a system setting and a
 #      file in /var don't, first-run setup doesn't come back, the old system is removed once the
 #      sign-in screen is up, and the kernel arguments are the same as before;
@@ -18,8 +20,8 @@
 # Usage: tests/reset-test.sh --archive FILE [--layout installer|bootc] [--timeout SECONDS]
 #                            [--memory MIB] [--cpus N] [--results DIR] [--keep] [--help]
 #   --archive FILE      the build to install and reset to: an OCI archive from tools/build-image.sh
-#   --layout NAME       installer (default): home folders on a Btrfs subvolume of their own;
-#                       bootc: home folders in /var
+#   --layout NAME       installer (default): /boot on a partition of its own and home folders on a
+#                       Btrfs subvolume; bootc: both on the root file system
 #   --timeout SECONDS   time to wait for SSH after power-on and after each restart (default 600)
 #   --memory MIB        VM memory (default 6144)
 #   --cpus N            VM CPUs (default 4)
@@ -53,6 +55,8 @@ OTHER_SUM=""
 # The disk with the update source, mounted at SOURCE_MOUNT in the VM.
 SOURCE_DISK=""
 SOURCE_MOUNT="/mnt/orielos-test-source"
+# The disk /boot moves to in the installer layout.
+BOOT_DISK=""
 # The stand-in for Windows' boot files on the EFI system partition, and its checksum.
 WINDOWS_FILE="EFI/Microsoft/Boot/bootmgfw.efi"
 WINDOWS_SUM=""
@@ -151,6 +155,8 @@ prepare_reset() {
         return 1
     fi
     pass "The reset ($mode) got ready in $((SECONDS - start)) s"
+    # The new system first, then the old one, for the boot loader to fall back on.
+    check_boot_entries 2 "with the reset ($mode) ready" || return 1
     if [[ "$saw_progress" -eq 1 ]]; then
         pass "The download's progress was shown while getting the reset ($mode) ready"
     else
@@ -168,7 +174,10 @@ step_install() {
     OTHER_SUM="$(sha256sum "$OTHER_DISK" | cut -d' ' -f1)"
     SOURCE_DISK="$WORK/source.raw"
     truncate -s 16G "$SOURCE_DISK"
-    VM_EXTRA_ARGS=(-drive "file=$OTHER_DISK,format=raw,if=virtio" -drive "file=$SOURCE_DISK,format=raw,if=virtio")
+    BOOT_DISK="$WORK/boot.raw"
+    truncate -s 2G "$BOOT_DISK"
+    VM_EXTRA_ARGS=(-drive "file=$OTHER_DISK,format=raw,if=virtio" -drive "file=$SOURCE_DISK,format=raw,if=virtio"
+        -drive "file=$BOOT_DISK,format=raw,if=virtio")
     start_vm
     if ! wait_for_ssh; then
         fail "The build boots: SSH over vsock did not answer"
@@ -202,31 +211,59 @@ step_install() {
     pass "User data, a system setting and Windows' boot files were created"
 }
 
-# Move the home folders to a Btrfs subvolume of their own, mounted at /home from /etc/fstab, as the
-# installer lays them out.
+# Lay the VM out as the installer does: /boot on an ext4 partition of its own (the fourth disk),
+# which GRUB finds by the UUID in bootuuid.cfg, and the home folders on a Btrfs subvolume, both
+# mounted from /etc/fstab. A reset once broke exactly this layout: ostree, told the system's root
+# was /sysroot, looked for boot entries in the empty /sysroot/boot.
 step_layout() {
     local out
     if [[ "$LAYOUT" != installer ]]; then
-        info "Step 2: the home folders stay in /var (--layout bootc)"
+        info "Step 2: /boot and the home folders stay on the root file system (--layout bootc)"
         return 0
     fi
-    info "Step 2: move the home folders to a Btrfs subvolume of their own, as the installer does"
+    info "Step 2: move /boot to a partition of its own and the home folders to a subvolume, as the installer does"
     if ! out="$(vm_ssh "set -e
         command -v btrfs >/dev/null
         uuid=\$(findmnt -no UUID /sysroot)
+        mkfs.ext4 -q -L boot /dev/vdd
+        boot_uuid=\$(blkid -s UUID -o value /dev/vdd)
+        mkdir -p /run/new-boot
+        mount /dev/vdd /run/new-boot
+        chcon --reference=/boot /run/new-boot
+        cp -a /boot/. /run/new-boot/
+        printf 'set BOOT_UUID=\"%s\"\n' \"\$boot_uuid\" >/run/new-boot/grub2/bootuuid.cfg
+        umount /run/new-boot
+        esp=\$(lsblk -lnpo NAME,PARTTYPE /dev/vda | awk 'tolower(\$2) == \"$ESP_TYPE\" {print \$1; exit}')
+        mkdir -p /run/esp
+        mount \"\$esp\" /run/esp
+        printf 'set BOOT_UUID=\"%s\"\n' \"\$boot_uuid\" >/run/esp/EFI/fedora/bootuuid.cfg
+        umount /run/esp
         unshare --mount --propagation private sh -c 'mount -o remount,rw /sysroot && btrfs subvolume create /sysroot/home >/dev/null && chcon --reference=/var/home /sysroot/home && cp -a /var/home/. /sysroot/home/'
-        printf 'UUID=%s /home btrfs subvol=home,compress=zstd:1 0 0\n' \"\$uuid\" >>/etc/fstab" 2>&1)"; then
-        fail "The home folders were moved to a subvolume: ${out:-no output}"
+        printf 'UUID=%s /boot ext4 defaults 1 2\nUUID=%s /home btrfs subvol=home,compress=zstd:1 0 0\n' \"\$boot_uuid\" \"\$uuid\" >>/etc/fstab" 2>&1)"; then
+        fail "The VM was laid out as the installer does: ${out:-no output}"
         return 1
     fi
     restart_vm || {
-        fail "The VM came back after moving the home folders"
+        fail "The VM came back after moving /boot and the home folders"
         return 1
     }
-    if vm_ssh "findmnt -no FSROOT /var/home | grep -qx /home && test -f $KEEP_FILE" >/dev/null 2>&1; then
-        pass "The home folders are on a subvolume of their own, mounted at /var/home"
+    if vm_ssh "findmnt -no SOURCE /boot | grep -qx /dev/vdd && findmnt -no FSROOT /var/home | grep -qx /home && test -f $KEEP_FILE" >/dev/null 2>&1; then
+        pass "/boot is on a partition of its own and the home folders on a subvolume, as the installer lays them out"
     else
-        fail "The home folders aren't on their own subvolume after restarting"
+        fail "/boot or the home folders aren't where the installer puts them after restarting"
+        return 1
+    fi
+}
+
+# Check from inside the VM that every boot entry the boot loader reads leads to a deployment, and
+# that there are as many entries as expected: check_boot_entries <count> <when>
+check_boot_entries() {
+    local out
+    out="$(vm_ssh 'n=0; for f in /boot/loader/entries/*.conf; do p=$(sed -n "s/^options .*ostree=\([^ ]*\).*/\1/p" "$f"); n=$((n + 1)); test -d "/sysroot$p" || echo "broken: ${f##*/} -> $p"; done; echo "entries=$n"' 2>&1)" || true
+    if [[ "$out" == "entries=$1" ]]; then
+        pass "Every boot entry leads to a deployment $2 ($1 entries)"
+    else
+        fail "The boot entries $2 aren't right: $(tr '\n' ' ' <<<"$out")"
         return 1
     fi
 }
@@ -270,6 +307,7 @@ step_cancel() {
     roots="$(stateroots)"
     if [[ "$roots" == default && "$(reset_state .phase)" == cancelled ]] && ! vm_ssh 'test -e /var/lib/orielos/reset/pending' 2>/dev/null; then
         pass "Cancelling removes the second system and lets updates go on"
+        check_boot_entries 1 "after cancelling" || return 1
     else
         fail "After cancelling, the stateroots are $roots and the state is $(reset_state .phase)"
         return 1
@@ -320,6 +358,7 @@ step_reset_keep() {
     fi
     if wait_for_finish && [[ "$(stateroots)" == "$new" ]]; then
         pass "The old system is removed once the sign-in screen is up"
+        check_boot_entries 1 "after the reset (keep)" || true
     else
         fail "The old system wasn't removed (stateroots: $(stateroots); state $(reset_state .phase))"
     fi
@@ -362,6 +401,7 @@ step_reset_erase() {
     fi
     if wait_for_finish && [[ "$(stateroots)" == "$new" ]]; then
         pass "The old system is removed once first-run setup is up"
+        check_boot_entries 1 "after the reset (erase)" || true
     else
         fail "The old system wasn't removed (stateroots: $(stateroots); state $(reset_state .phase))"
     fi

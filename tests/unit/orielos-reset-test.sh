@@ -70,6 +70,9 @@ setup() {
     printf 'my file\n' >"$R/var/home/alice/notes.txt"
     printf 'my file\n' >"$R/sysroot/ostree/deploy/default/var/home/alice/notes.txt"
     printf 'default aaaa\n' >"$WORK/stub/deployments"
+    # The boot loader's entry for the running system, and the boot link it points at.
+    mkdir -p "$R/boot/loader/entries" "$R/sysroot/ostree/boot.0/default/abcd/0"
+    printf 'title OrielOS\noptions root=UUID=1234 rw ostree=/ostree/boot.0/default/abcd/0\n' >"$R/boot/loader/entries/ostree-default.conf"
     : >"$WORK/stub/calls"
 
     cat >"$WORK/bin/skopeo" <<'SH'
@@ -116,7 +119,8 @@ case "$1 $2" in
         line="$(sed -n "$((index + 1))p" "$deployments")"
         sed -i "$((index + 1))d" "$deployments"
         read -r stateroot checksum <<<"$line"
-        rm -rf "$sysroot/ostree/deploy/$stateroot/deploy/$checksum.0"
+        rm -rf "$sysroot/ostree/deploy/$stateroot/deploy/$checksum.0" "$sysroot/ostree/boot.0/$stateroot"
+        rm -f "$ORIELOS_RESET_ROOT/boot/loader/entries/ostree-$stateroot.conf"
         ;;
     "admin os-init")
         mkdir -p "$sysroot/ostree/deploy/$3/var" "$sysroot/ostree/deploy/$3/deploy"
@@ -147,6 +151,12 @@ case "$1 $2" in
                 printf '\n' >>"$deployments.new"
                 grep -v '^$' "$deployments.new" >"$deployments"
                 rm -f "$deployments.new"
+                # The new system's boot entry and link. With break-boot, the old system's link goes,
+                # as it did when ostree was pointed at /sysroot on a computer with its own /boot.
+                mkdir -p "$sysroot/ostree/boot.0/$stateroot/abcd/0"
+                printf 'title OrielOS\noptions root=UUID=1234 rw ostree=/ostree/boot.0/%s/abcd/0\n' "$stateroot" \
+                    >"$ORIELOS_RESET_ROOT/boot/loader/entries/ostree-$stateroot.conf"
+                if [[ -e "$ORIELOS_TEST_STUB/break-boot" ]]; then rm -rf "$sysroot/ostree/boot.0/default"; fi
                 ;;
         esac
         ;;
@@ -305,6 +315,19 @@ run prepare keep
 check "a failed unpack fails the reset" test "$RC" -eq 1 -a "$(state .phase)" == failed
 check "a failed unpack removes the download" test ! -e "$R/var/lib/orielos/reset/download"
 check "nothing new was deployed" test "$(cat "$WORK/stub/deployments")" == "default aaaa"
+
+setup
+touch "$WORK/stub/break-boot"
+run prepare keep
+check "a boot entry that leads nowhere fails the reset" test "$RC" -eq 1 -a "$(state .phase)" == failed
+check "the message says nothing was changed" grep -q "Nothing was changed" <<<"$(state .message)"
+check "a failed boot check removes the new system" test "$(cat "$WORK/stub/deployments")" == "default aaaa"
+check "a failed boot check names the broken entry in the log" grep -q "leads nowhere" "$R/var/lib/orielos/reset/prepare.log"
+
+setup
+rm -f "$R/boot/loader/entries/ostree-default.conf"
+run prepare keep
+check "no boot entry for the old system fails the reset" test "$RC" -eq 1 -a "$(state .phase)" == failed
 
 setup
 RC=0
