@@ -16,7 +16,7 @@ Thank you for helping with OrielOS. This page explains how to report problems, s
 3. Make one logical change per pull request. Small, focused pull requests are reviewed faster.
 4. Write commit messages and the pull request title in [Conventional Commits](https://www.conventionalcommits.org/) form, for example `feat: add the Win+V clipboard history`. Pull requests are squash-merged, so the title becomes the commit message on `main`.
 5. Sign off every commit with `git commit -s`. This adds a `Signed-off-by:` line with your name and email, and certifies the [Developer Certificate of Origin](https://developercertificate.org/). CI checks it. There is no contributor licence agreement.
-6. Before you push, run `tools/preflight.sh`. It runs the checks CI runs on a pull request: that the pinned images and downloads in `image/pins.env` still exist, that every commit is signed off with a Conventional Commit subject, `tools/lint.sh`, and `tools/test-apps.sh` when the change touches anything the app build reads.
+6. Before you push, run `tools/preflight.sh`. It runs the checks CI runs on a pull request: that the pinned images and downloads in `image/pins.env` still exist, that every commit is signed off with a Conventional Commit subject, `tools/lint.sh`, and `tools/test-apps.sh` when the change touches anything the app build reads. To have Git run the quick part of it (sign-offs, commit subjects and `tools/lint.sh`) before every push, turn on the project's hook once with `git config core.hooksPath tools/hooks`.
 7. Open the pull request against `main` and complete the template. The maintainer reviews and merges every pull request.
 
 ### Files only the maintainer changes
