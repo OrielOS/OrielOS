@@ -67,6 +67,14 @@ emojipanel/           orielos-emoji, the emoji panel on Windows + .: emoji, kaom
   qml/CharacterGrid.qml  a grid of characters to pick from
   qml/characters.js   the kaomoji and symbols, in groups
   org.orielos.EmojiPanel.desktop  Windows + . and Windows + ;, hidden from Start
+tour/                 orielos-tour, Set up this PC: the tour after an account's first sign-in
+  main.cpp            start-up, one window, and --self-test
+  appearance.h/.cpp   Appearance: light or dark, through plasma-apply-lookandfeel
+  graphicscard.h/.cpp  GraphicsCard: the screen's graphics card, its driver and the driver key, from sysfs
+  launcher.h/.cpp     Launcher: starts Settings and the Store
+  qml/Main.qml        the window: the step rail and six steps, with Settings' taskbar, update and Store models
+  org.orielos.Tour.desktop  Start › All apps › Set up this PC
+  autotests/          Qt Test unit tests for GraphicsCard and Appearance
 updatesettings/       kcm_orielos_update, the Update settings page (a Plasma settings module)
   updatesettings.h/.cpp  UpdateSettings, the page's model (QML module org.orielos.updatesettings)
   updatecommands.h/.cpp  running orielos-update through pkexec, and following the check unit

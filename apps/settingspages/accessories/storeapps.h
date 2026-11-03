@@ -11,9 +11,10 @@
 
 namespace OrielOSSettingsPages {
 
-// The apps for mice, keyboards and lighting that OrielOS points to in the Store: Solaar, Piper and
-// OpenRGB. Each entry says whether it's installed; an installed one opens, the others open their
-// Store page, where the user chooses whether to install them.
+// Apps that OrielOS points to in the Store, in two collections: "accessories", for mice, keyboards
+// and lighting (Solaar, Piper and OpenRGB), and "games", the game stores (Steam, Heroic Games
+// Launcher and Lutris). Each entry says whether it's installed; an installed one opens, the others
+// open their Store page, where the user chooses whether to install them.
 class StoreApps : public QObject
 {
     Q_OBJECT
@@ -21,6 +22,8 @@ class StoreApps : public QObject
 
     // { id, name, description, icon, installed } for each app, in order.
     Q_PROPERTY(QVariantList apps READ apps NOTIFY changed)
+    // Which apps: "accessories", the default, or "games". Anything else is ignored.
+    Q_PROPERTY(QString collection READ collection WRITE setCollection NOTIFY changed)
 
 public:
     // How the page finds and starts apps. The tests pass their own.
@@ -37,6 +40,8 @@ public:
     explicit StoreApps(Environment environment, QObject *parent = nullptr);
 
     QVariantList apps() const;
+    QString collection() const { return m_collection; }
+    void setCollection(const QString &collection);
 
     // Look again for installed apps. The page does when an applications folder changes, as when an
     // app is installed from the Store.
@@ -56,7 +61,10 @@ private:
         bool installed = false;
     };
 
+    static QList<App> collectionApps(const QString &collection);
+
     Environment m_environment;
+    QString m_collection = QStringLiteral("accessories");
     QList<App> m_apps;
 };
 
