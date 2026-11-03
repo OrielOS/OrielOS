@@ -212,8 +212,11 @@ take_lock() {
 
 # Whether the home folders are a file system of their own, as on computers installed with the
 # installer (a Btrfs subvolume), rather than a folder in the stateroot's /var.
+# mountpoint, not findmnt --mountpoint: Fedora's findmnt also succeeds for a folder inside another
+# mount, which made home folders in /var count as separate, so they weren't moved and were deleted
+# with the old system.
 home_is_separate() {
-    findmnt -rno TARGET --mountpoint "$PREFIX/var/home" >/dev/null 2>&1
+    mountpoint -q "$PREFIX/var/home"
 }
 
 # Copy a file or folder from one root to another, replacing what's there, keeping its owner,
@@ -624,6 +627,15 @@ cmd_finish() {
     mode="$(value_of "$mark" mode)"
     version="$(value_of "$mark" version)"
     remount_sysroot
+    # Keeping files: home folders still in the old system's /var weren't moved across, and deleting
+    # the old system would delete them. Keep it and say so.
+    if [[ "$mode" == keep && -n "$(ls -A "$SYSROOT/ostree/deploy/$old/var/home" 2>/dev/null)" ]]; then
+        printf 'orielos-reset: the old system still holds home folders (%s), so it was kept\n' \
+            "$(ls -A "$SYSROOT/ostree/deploy/$old/var/home" | tr '\n' ' ')" >&2
+        rm -f "$mark"
+        write_state failed "This PC was reset, but the home folders stayed with the old system, so it wasn't removed. Your files are in $SYSROOT/ostree/deploy/$old/var/home." "$mode" "$version"
+        return 1
+    fi
     if [[ -n "$old" && "$old" != "$(booted_stateroot)" && -d "$SYSROOT/ostree/deploy/$old" ]]; then
         remove_stateroot "$old"
     fi

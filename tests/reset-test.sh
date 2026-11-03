@@ -240,7 +240,7 @@ step_layout() {
         mount \"\$esp\" /run/esp
         printf 'set BOOT_UUID=\"%s\"\n' \"\$boot_uuid\" >/run/esp/EFI/fedora/bootuuid.cfg
         umount /run/esp
-        unshare --mount --propagation private sh -c 'mount -o remount,rw /sysroot && btrfs subvolume create /sysroot/home >/dev/null && chcon --reference=/var/home /sysroot/home && cp -a /var/home/. /sysroot/home/ && find /sysroot/boot -mindepth 1 -maxdepth 1 -exec rm -rf {} +'
+        unshare --mount --propagation private sh -c 'mount -o remount,rw /sysroot && btrfs subvolume create /sysroot/home >/dev/null && chcon --reference=/var/home /sysroot/home && cp -a /var/home/. /sysroot/home/ && find /sysroot/ostree/deploy/default/var/home /sysroot/boot -mindepth 1 -maxdepth 1 -exec rm -rf {} +'
         printf 'UUID=%s /boot ext4 defaults 1 2\nUUID=%s /home btrfs subvol=home,compress=zstd:1 0 0\n' \"\$boot_uuid\" \"\$uuid\" >>/etc/fstab" 2>&1)"; then
         fail "The VM was laid out as the installer does: ${out:-no output}"
         return 1

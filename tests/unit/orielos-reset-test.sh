@@ -190,10 +190,15 @@ printf 'systemctl %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
 # is-active: nothing runs, unless the stub says so.
 if [[ "$1" == is-active ]]; then [[ -e "$ORIELOS_TEST_STUB/unit-active" ]]; fi
 SH
-    # findmnt: /var/home is a mount of its own only when the stub says so; nothing else is mounted.
+    # mountpoint: /var/home is a mount of its own only when the stub says so. findmnt: nothing is
+    # mounted under a stateroot.
+    cat >"$WORK/bin/mountpoint" <<'SH'
+#!/usr/bin/env bash
+[[ "${*: -1}" == */var/home && -e "$ORIELOS_TEST_STUB/home-separate" ]]
+SH
     cat >"$WORK/bin/findmnt" <<'SH'
 #!/usr/bin/env bash
-if [[ "$*" == *--mountpoint* ]]; then [[ -e "$ORIELOS_TEST_STUB/home-separate" ]]; fi
+exit 0
 SH
     # df: plenty of room unless the stub says otherwise.
     cat >"$WORK/bin/df" <<'SH'
@@ -404,6 +409,14 @@ run finish
 check "finish removes the old system" test ! -e "$R/sysroot/ostree/deploy/default" -a "$(cat "$WORK/stub/deployments")" == "$new $COMMIT"
 check "finish says the PC was reset" test "$(state .phase)" == "done" -a "$(state .version)" == v0.3.1
 check "finish runs once" test ! -e "$R/var/lib/orielos/reset/finish"
+
+setup
+start_new_system keep
+rm -f "$R/etc/orielos/reset-apply"
+run finish
+check "finish keeps the old system when its home folders weren't moved" \
+    test "$RC" -eq 1 -a -f "$R/sysroot/ostree/deploy/default/var/home/alice/notes.txt"
+check "finish says where the files are" grep -q "home folders stayed with the old system" <<<"$(state .message)"
 
 setup
 touch "$WORK/stub/home-separate"
