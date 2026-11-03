@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Set up this PC
+GenericName=A few choices for a new PC
+Comment=Light or dark, the taskbar, updates, your games and the graphics card, then where things are
+Exec=orielos-tour
+Icon=preferences-desktop
+Categories=Settings;Qt;KDE;
+Keywords=tour;welcome;setup;get started;first run;dark mode;light mode;taskbar;update channel;steam;

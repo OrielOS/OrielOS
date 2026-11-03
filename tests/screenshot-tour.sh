@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs the OrielOS image to a disk file, boots it under QEMU/KVM with Secure Boot, a software
 # TPM and a 1920x1080 screen, and saves a numbered set of screenshots that show what OrielOS looks
-# like: the boot splash, Plasma Setup's pages, the sign-in screen, the desktop, Start, a setting
+# like: the boot splash, Plasma Setup's pages, the sign-in screen, Set up this PC, the desktop, Start, a setting
 # found from Start, Files, the Store, System Monitor, the taskbar's menu for an app that isn't
 # pinned and one that is, Settings and some of its pages, Firefox,
 # Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock
@@ -42,7 +42,7 @@ TASKBAR_Y=1056
 PINNED_X=981
 UNPINNED_X=1064
 # The apps the tour opens; closed between screenshots.
-APPS="dolphin plasma-discover plasma-systemmonitor orielos-settings systemsettings firefox spectacle"
+APPS="dolphin plasma-discover plasma-systemmonitor orielos-settings systemsettings firefox spectacle orielos-tour"
 
 usage() {
     sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -273,6 +273,14 @@ open_app() {
 
 # The desktop, one screenshot each, closing windows in between.
 desktop_tour() {
+    # Set up this PC opens by itself at the first sign-in.
+    if wait_until 60 "pgrep -u $TOUR_USER -x orielos-tour"; then
+        sleep 5
+        shot 05-set-up-this-pc
+    else
+        warn "Set up this PC did not open after the first sign-in"
+    fi
+    close_apps
     shot 05-desktop
     press_and_shot 06-start-menu 3 keys:meta_l
     press_and_shot 07-start-search 3 type:store
