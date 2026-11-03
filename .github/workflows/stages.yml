@@ -62,8 +62,10 @@ jobs:
           sudo chmod 1777 /mnt/tmp
 
 
+      # Each step keeps its own layer here: with --layers=false and the stage label, Podman 4.9
+      # fails after building ("identifier is not an image"), and this workflow holds nothing up.
       - name: Build the stages
-        run: sudo env TMPDIR=/mnt/tmp tools/build-image.sh --stages-only --single-layer --output /mnt/builds
+        run: sudo env TMPDIR=/mnt/tmp tools/build-image.sh --stages-only --output /mnt/builds
 
       - name: Make the archives readable
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
