@@ -177,6 +177,9 @@ grep -qxF 'Title=Shutting down' /usr/share/plymouth/themes/orielos/orielos.plymo
 [[ -x /usr/bin/mangohud ]] || update_errors+=("MangoHud, for the FPS overlay, is missing")
 # Game Settings, for each game in Steam from the Store.
 [[ -x /usr/bin/orielos-game-settings ]] || update_errors+=("Game Settings, /usr/bin/orielos-game-settings, is missing")
+# Set up this PC, the tour that first-sign-in opens once after an account's first sign-in.
+[[ -x /usr/bin/orielos-tour ]] || update_errors+=("Set up this PC, /usr/bin/orielos-tour, is missing")
+[[ -r /usr/share/applications/org.orielos.Tour.desktop ]] || update_errors+=("Set up this PC isn't in Start: org.orielos.Tour.desktop is missing")
 for f in rotation-lock reset-displays restart-desktop fps-overlay; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done

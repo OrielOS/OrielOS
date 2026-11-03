@@ -91,6 +91,10 @@ SESSION_PROCS=""
 SESSION_SECONDS=""
 DESKTOP_COLOURS=""
 SOUND_STATE=""
+# Set up this PC: whether it opened by itself at the first sign-in, and after the restart whether it
+# opened again ("open") and whether the account is marked as having seen it ("marked").
+TOUR_OPENED=""
+TOUR_AGAIN=""
 # The new user's taskbar, read from their Plasma layout after the desktop login.
 TASKBAR_READ=0
 PLASMA_DESKTOP_FILE=""
@@ -459,9 +463,26 @@ desktop_login() {
         DESKTOP_COLOURS="$(count_colours "$WORK/desktop.ppm")" || true
     fi
     SOUND_STATE="$(vm_ssh systemctl --user -M "$TEST_USER@" is-active pipewire wireplumber 2>&1 | paste -sd ' ' -)" || true
+    read_tour
     read_taskbar
     read_shortcuts
     press_win_e
+}
+
+# Set up this PC opens by itself at the first sign-in, a few seconds after the desktop. Waits up to
+# 30 s for it, then closes it, so the checks that follow see the desktop alone.
+read_tour() {
+    local start=$SECONDS
+    TOUR_OPENED="no"
+    while ((SECONDS - start < 30)); do
+        if vm_ssh "pgrep -u $TEST_USER -x orielos-tour >/dev/null" 2>/dev/null; then
+            TOUR_OPENED="yes"
+            break
+        fi
+        vm_running || return 0
+        sleep 2
+    done
+    vm_ssh "pkill -u $TEST_USER -x orielos-tour; true" >/dev/null 2>&1 || true
 }
 
 # Ask the test user's kglobalaccel which action each Windows shortcut runs, over the session's
@@ -773,6 +794,9 @@ start_menu_restart() {
     done
     info "The Plasma session is back $((SECONDS - BOOT_START)) s after the restart; waiting 15 s for the desktop to draw"
     sleep 15
+    TOUR_AGAIN="$(vm_ssh "pgrep -u $TEST_USER -x orielos-tour >/dev/null && echo open
+        test -e /home/$TEST_USER/.local/state/orielos/tour-shown && echo marked; true" 2>/dev/null | paste -sd ' ' -)" || true
+    TOUR_AGAIN="checked ${TOUR_AGAIN:-}"
     if ! START_KEPT_FAVORITES="$(read_start_favorites start-appletsrc-restart)"; then
         START_WHY="could not read the Start menu's settings after the restart"
         return 0
@@ -1137,6 +1161,23 @@ run_checks() {
         fail "The Plasma session started but the desktop is blank (${DESKTOP_COLOURS:-no screenshot} distinct colours)"
     else
         pass "Plasma Wayland session starts (type wayland, plasmashell and kwin_wayland running after $SESSION_SECONDS s; $DESKTOP_COLOURS distinct colours on screen)"
+    fi
+
+    if [[ "$SSH_OK" -ne 1 ]]; then
+        fail "Set up this PC opens once: $no_ssh"
+        hint "$ssh_hint"
+    elif [[ -z "$SESSION_SECONDS" ]]; then
+        fail "Set up this PC opens once: $TEST_USER's Plasma session did not start"
+    elif [[ "$TOUR_OPENED" != "yes" ]]; then
+        fail "Set up this PC (orielos-tour) did not open within 30 s of $TEST_USER's first sign-in"
+    elif [[ -z "$TOUR_AGAIN" ]]; then
+        fail "Set up this PC opened at the first sign-in, but the restart that checks it doesn't open again didn't happen (${START_WHY:-no reason recorded})"
+    elif [[ "$TOUR_AGAIN" == *open* ]]; then
+        fail "Set up this PC opened again at the sign-in after a restart"
+    elif [[ "$TOUR_AGAIN" != *marked* ]]; then
+        fail "Set up this PC didn't open again, but $TEST_USER isn't marked as having seen it (~/.local/state/orielos/tour-shown)"
+    else
+        pass "Set up this PC opens at the first sign-in and not at the next one"
     fi
 
     if [[ "$SSH_OK" -ne 1 ]]; then

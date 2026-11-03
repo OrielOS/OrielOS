@@ -103,6 +103,49 @@ private Q_SLOTS:
         page.apps->open(piper);
         QCOMPARE(page.launched, QStringList { piper });
     }
+
+    void gamesListTheGameStores()
+    {
+        Page page({ QStringLiteral("net.lutris.Lutris") });
+        QSignalSpy changed(page.apps.get(), &StoreApps::changed);
+        page.apps->setCollection(QStringLiteral("games"));
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(page.apps->collection(), QStringLiteral("games"));
+        const QVariantList apps = page.apps->apps();
+        QCOMPARE(apps.size(), 3);
+        QCOMPARE(entry(*page.apps, 0).value(QStringLiteral("id")).toString(), QStringLiteral("com.valvesoftware.Steam"));
+        QCOMPARE(entry(*page.apps, 1).value(QStringLiteral("name")).toString(), QStringLiteral("Heroic Games Launcher"));
+        QCOMPARE(entry(*page.apps, 2).value(QStringLiteral("id")).toString(), QStringLiteral("net.lutris.Lutris"));
+        QVERIFY(!entry(*page.apps, 0).value(QStringLiteral("installed")).toBool());
+        QVERIFY(entry(*page.apps, 2).value(QStringLiteral("installed")).toBool());
+        for (const QVariant &app : apps) {
+            QVERIFY(!app.toMap().value(QStringLiteral("description")).toString().isEmpty());
+        }
+
+        page.apps->setCollection(QStringLiteral("games"));
+        QCOMPARE(changed.count(), 1);
+    }
+
+    void gamesOpenTheStoreOrTheApp()
+    {
+        Page page({ QStringLiteral("net.lutris.Lutris") });
+        page.apps->setCollection(QStringLiteral("games"));
+        page.apps->open(QStringLiteral("com.valvesoftware.Steam"));
+        page.apps->open(QStringLiteral("net.lutris.Lutris"));
+        page.apps->open(solaar);
+        QCOMPARE(page.opened, QStringList { QStringLiteral("appstream://com.valvesoftware.Steam") });
+        QCOMPARE(page.launched, QStringList { QStringLiteral("net.lutris.Lutris") });
+    }
+
+    void unknownCollectionIsIgnored()
+    {
+        Page page;
+        QSignalSpy changed(page.apps.get(), &StoreApps::changed);
+        page.apps->setCollection(QStringLiteral("office"));
+        QCOMPARE(changed.count(), 0);
+        QCOMPARE(page.apps->collection(), QStringLiteral("accessories"));
+        QCOMPARE(entry(*page.apps, 0).value(QStringLiteral("id")).toString(), solaar);
+    }
 };
 
 QTEST_GUILESS_MAIN(StoreAppsTest)
