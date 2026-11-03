@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs every linter over the repository: shellcheck, shfmt, hadolint,
 # actionlint, clang-format and gitleaks (qmllint runs in tools/test-apps.sh),
-# then the shell unit tests in tests/unit/.
+# and the shell unit tests in tests/unit/, which run alongside the linters.
 # Prints PASS/FAIL/SKIP per check with the linter's own output on failure, and
 # exits 1 on any failure.
 # Tracked files and new files that are not ignored are both linted.
@@ -118,6 +118,18 @@ run_check() {
     fi
 }
 
+# in_parallel <command...> -- <files...>
+# Runs the command over the files in batches of eight, one batch per core. Fails if any batch fails.
+in_parallel() {
+    local cmd=()
+    while [[ $# -gt 0 && "$1" != -- ]]; do
+        cmd+=("$1")
+        shift
+    done
+    shift
+    printf '%s\0' "$@" | xargs -0 -n 8 -P "$(nproc)" "${cmd[@]}"
+}
+
 # qmllint needs the import paths and Qt and KDE Frameworks versions of the app build to give
 # meaningful results, so it runs there (tools/test-apps.sh) rather than here.
 check_qmllint() {
@@ -147,22 +159,44 @@ check_gitleaks() {
 
 # The shell unit tests in tests/unit/ run here too: they are quick, need no root, VM or network,
 # and keep the shell tools' logic checked on every pull request. Each script prints its own cases.
+# They start before the linters and all run at once, each in its own temporary folder;
+# check_unit_tests waits for them and reports them in order.
+UNIT_TESTS=()
+UNIT_RESULTS=""
+
+start_unit_tests() {
+    local test
+    for test in tests/unit/*-test.sh; do
+        if [[ -e "$test" ]]; then UNIT_TESTS+=("$test"); fi
+    done
+    if [[ "${#UNIT_TESTS[@]}" -eq 0 ]] || ! command -v jq >/dev/null 2>&1; then return 0; fi
+    UNIT_RESULTS="$(mktemp -d)"
+    for test in "${UNIT_TESTS[@]}"; do
+        (
+            rc=0
+            bash "$test" >"$UNIT_RESULTS/${test##*/}.out" 2>&1 || rc=$?
+            printf '%s\n' "$rc" >"$UNIT_RESULTS/${test##*/}.rc"
+        ) &
+    done
+}
+
 check_unit_tests() {
     local test out rc
-    for test in tests/unit/*-test.sh; do
-        [[ -e "$test" ]] || continue
-        rc=0
-        if ! command -v jq >/dev/null 2>&1; then
-            fail "${test##*/}" "(jq is missing)" "" "install jq"
-            continue
-        fi
-        out="$(bash "$test" 2>&1)" || rc=$?
+    if [[ "${#UNIT_TESTS[@]}" -gt 0 && -z "$UNIT_RESULTS" ]]; then
+        for test in "${UNIT_TESTS[@]}"; do fail "${test##*/}" "(jq is missing)" "" "install jq"; done
+        return 0
+    fi
+    wait
+    for test in "${UNIT_TESTS[@]}"; do
+        out="$(cat "$UNIT_RESULTS/${test##*/}.out")"
+        rc="$(cat "$UNIT_RESULTS/${test##*/}.rc")"
         if [[ "$rc" -eq 0 ]]; then
             pass "${test##*/}" "($(tail -n1 <<<"$out"))"
         else
             fail "${test##*/}" "" "$(grep -A3 '^FAIL' <<<"$out" || tail -n20 <<<"$out")" "run $test to see every case"
         fi
     done
+    if [[ -n "$UNIT_RESULTS" ]]; then rm -rf "$UNIT_RESULTS"; fi
 }
 
 main() {
@@ -193,8 +227,10 @@ main() {
         if [[ -f "$f" && "$f" != .cache/* ]]; then FILES+=("$f"); fi
     done < <(git ls-files -z --cached --others --exclude-standard)
 
+    start_unit_tests
     select_shell_files
-    run_check shellcheck shell shellcheck "$install" "fix the findings above" shellcheck --severity=style
+    run_check shellcheck shell shellcheck "$install" "fix the findings above" \
+        in_parallel shellcheck --severity=style --
     run_check shfmt shell shfmt "$install" "run shfmt -w -i 4 -ci <file> to apply the formatting" shfmt -d -i 4 -ci
     select_by_name Containerfile 'Containerfile.*' '*.Containerfile' Dockerfile 'Dockerfile.*'
     run_check hadolint Containerfile hadolint "$install" "fix the findings above" hadolint
