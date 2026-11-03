@@ -229,8 +229,10 @@ main() {
 
     start_unit_tests
     select_shell_files
+    # A sourced file is followed only when it's among the inputs, and each batch holds a few
+    # files, so --external-sources lets every batch follow the rest, as one run over all did.
     run_check shellcheck shell shellcheck "$install" "fix the findings above" \
-        in_parallel shellcheck --severity=style --
+        in_parallel shellcheck --severity=style --external-sources --
     run_check shfmt shell shfmt "$install" "run shfmt -w -i 4 -ci <file> to apply the formatting" shfmt -d -i 4 -ci
     select_by_name Containerfile 'Containerfile.*' '*.Containerfile' Dockerfile 'Dockerfile.*'
     run_check hadolint Containerfile hadolint "$install" "fix the findings above" hadolint
