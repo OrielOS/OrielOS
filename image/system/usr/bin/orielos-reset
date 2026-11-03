@@ -212,11 +212,12 @@ take_lock() {
 
 # Whether the home folders are a file system of their own, as on computers installed with the
 # installer (a Btrfs subvolume), rather than a folder in the stateroot's /var.
-# mountpoint, not findmnt --mountpoint: Fedora's findmnt also succeeds for a folder inside another
-# mount, which made home folders in /var count as separate, so they weren't moved and were deleted
-# with the old system.
+# Only a mount listed in the mount table counts: on a computer installed with bootc, /var/home is a
+# Btrfs subvolume inside the stateroot's /var, which mountpoint and findmnt --mountpoint also take
+# for a mount point (it has a device number of its own). Counted as separate, home folders in
+# /var weren't moved across.
 home_is_separate() {
-    mountpoint -q "$PREFIX/var/home"
+    findmnt -rno TARGET | grep -qxF -- "$PREFIX/var/home"
 }
 
 # Copy a file or folder from one root to another, replacing what's there, keeping its owner,

@@ -190,15 +190,11 @@ printf 'systemctl %s\n' "$*" >>"$ORIELOS_TEST_STUB/calls"
 # is-active: nothing runs, unless the stub says so.
 if [[ "$1" == is-active ]]; then [[ -e "$ORIELOS_TEST_STUB/unit-active" ]]; fi
 SH
-    # mountpoint: /var/home is a mount of its own only when the stub says so. findmnt: nothing is
-    # mounted under a stateroot.
-    cat >"$WORK/bin/mountpoint" <<'SH'
-#!/usr/bin/env bash
-[[ "${*: -1}" == */var/home && -e "$ORIELOS_TEST_STUB/home-separate" ]]
-SH
+    # findmnt lists the mounts: /var/home only when the stub says so, and nothing under a stateroot.
     cat >"$WORK/bin/findmnt" <<'SH'
 #!/usr/bin/env bash
-exit 0
+printf '%s\n' "$ORIELOS_RESET_ROOT/"
+if [[ -e "$ORIELOS_TEST_STUB/home-separate" ]]; then printf '%s\n' "$ORIELOS_RESET_ROOT/var/home"; fi
 SH
     # df: plenty of room unless the stub says otherwise.
     cat >"$WORK/bin/df" <<'SH'
