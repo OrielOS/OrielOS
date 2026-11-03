@@ -316,6 +316,12 @@ step_cancel() {
     fi
 }
 
+# Keep the reset start's journal for its units, and what apply and finish left, in the results:
+#   save_reset_journal <mode>
+save_reset_journal() {
+    vm_ssh 'journalctl -b --no-pager -u orielos-reset-apply.service -u orielos-reset-finish.service -u orielos-reset-state.service; ls -la /var/home; cat /var/lib/orielos/reset/state.json'         >"$RESULTS/reset-start-$1.txt" 2>&1 || true
+}
+
 # Wait up to five minutes for the reset start to remove the old system.
 wait_for_finish() {
     local start=$SECONDS
@@ -377,6 +383,7 @@ step_reset_keep() {
     else
         fail "bootc doesn't know the new system's build"
     fi
+    save_reset_journal keep
     check_windows_files "after resetting and keeping files"
 }
 
@@ -412,6 +419,7 @@ step_reset_erase() {
     else
         fail "Home folders are left: $(vm_ssh 'ls -A /var/home' 2>/dev/null)"
     fi
+    save_reset_journal erase
     check_windows_files "after resetting and removing everything"
 }
 
