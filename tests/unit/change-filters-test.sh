@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PASSED=0
 FAILED=0
 
-# shellcheck source=../../tools/lib/stage-inputs.sh
+# shellcheck source=tools/lib/stage-inputs.sh
 source "$ROOT/tools/lib/stage-inputs.sh"
 
 # What each stage of image/Containerfile reads from the build context, one "<stage> <path>" per
@@ -41,8 +41,9 @@ stage_reads() {
 
 # The paths the apps check compares, from the git diff in .github/workflows/apps.yml.
 apps_workflow_paths() {
+    # shellcheck disable=SC2016 # ${base} is the workflow's text, not a variable here.
     tr -d '\r' <"$ROOT/.github/workflows/apps.yml" | sed -n '/git diff --quiet "${base}" HEAD -- \\/,/:(exclude)/p' |
-        tail -n +2 | tr -s ' \\' '\n' | grep -v -e '^$' -e '^.:(exclude)' -e '|| rc'
+        tail -n +2 | tr -s ' \134' '\n' | grep -v -e '^$' -e '^.:(exclude)' -e '|| rc'
 }
 
 # The paths tools/preflight.sh compares, from its APP_PATHS.

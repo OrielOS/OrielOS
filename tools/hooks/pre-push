@@ -18,7 +18,7 @@ done
 [[ -n "$sha" ]] || exit 0
 
 root="$(git rev-parse --show-toplevel)"
-base="$(git rev-parse --verify --quiet origin/main^{commit})" || {
+base="$(git rev-parse --verify --quiet 'origin/main^{commit}')" || {
     printf 'pre-push: origin/main is not here; fetch it first (git fetch origin main)\n' >&2
     exit 1
 }
@@ -26,6 +26,8 @@ base="$(git rev-parse --verify --quiet origin/main^{commit})" || {
 case "$(uname -s)" in
     MINGW* | MSYS* | CYGWIN*)
         common="$(cygpath -m "$(git rev-parse --path-format=absolute --git-common-dir)")"
+        # The script is expanded by bash in WSL, not here.
+        # shellcheck disable=SC2016
         MSYS_NO_PATHCONV=1 exec wsl.exe -e bash -c '
             set -Eeuo pipefail
             dir="$(mktemp -d)"
