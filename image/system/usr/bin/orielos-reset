@@ -594,12 +594,20 @@ cmd_apply() {
     old="$(value_of "$mark" old)"
     separate="$(value_of "$mark" home_separate)"
     remount_sysroot
+    printf 'Reset start: %s, from the system %s; home folders on a file system of their own: %s\n' \
+        "$mode" "$old" "$([[ "$separate" == 1 ]] && echo yes || echo no)"
     if [[ "$mode" == keep && "$separate" != 1 && -n "$old" ]]; then
         # The home folders are in the old stateroot's /var: move them across. Both are on the same
         # file system, so this takes no time whatever they hold.
+        if [[ -d "$SYSROOT/ostree/deploy/$old/var/home" ]]; then
+            printf 'Moving the home folders (%s) to the new system\n' "$(ls -A "$SYSROOT/ostree/deploy/$old/var/home" | tr '\n' ' ')"
+        else
+            printf 'orielos-reset: the old system has no home folders at %s\n' "$SYSROOT/ostree/deploy/$old/var/home" >&2
+        fi
         move_home "$SYSROOT/ostree/deploy/$old/var/home" "$SYSROOT/ostree/deploy/$(booted_stateroot)/var/home"
     elif [[ "$mode" == erase && "$separate" == 1 ]]; then
         # Out of first-run setup's way at once; finish deletes them in the background.
+        printf 'Moving the home folders out of the way, for removal\n'
         install -d -m 0700 "$PREFIX/var/home/$ERASED"
         move_contents "$PREFIX/var/home" "$PREFIX/var/home/$ERASED"
     fi

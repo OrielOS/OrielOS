@@ -149,7 +149,7 @@ prepare_reset() {
         [[ "$phase" == ready || "$phase" == failed ]] && break
         sleep 1
     done
-    vm_ssh 'cat /var/lib/orielos/reset/state.json /var/lib/orielos/reset/prepare.log' >"$RESULTS/prepare-$mode.txt" 2>&1 || true
+    vm_ssh 'cat /var/lib/orielos/reset/state.json /var/lib/orielos/reset/prepared /var/lib/orielos/reset/prepare.log; findmnt /var/home; ls -la /var/home' >"$RESULTS/prepare-$mode.txt" 2>&1 || true
     if [[ "$phase" != ready ]]; then
         fail "The reset ($mode) got ready: it ended as ${phase:-nothing} ($(reset_state .message))"
         return 1
