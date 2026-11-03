@@ -191,7 +191,7 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           sudo mkdir -p /mnt/builds
-          sudo env TAG="${TAG}" nohup bash -c 'podman push --compression-format zstd "localhost/orielos:${TAG}" "oci-archive:/mnt/builds/orielos-${TAG}.ociarchive:${TAG}"; echo $? >/mnt/builds/export.status' >/tmp/export.log 2>&1 &
+          sudo env TAG="${TAG}" bash -c 'nohup podman push --compression-format zstd "localhost/orielos:${TAG}" "oci-archive:/mnt/builds/orielos-${TAG}.ociarchive:${TAG}" >/mnt/builds/export.log 2>&1; echo $? >/mnt/builds/export.status' &
 
       # Flatpak apps need Flathub's GL extension for the image's NVIDIA driver version, or they
       # lose GPU acceleration after the update.
@@ -234,7 +234,7 @@ jobs:
         timeout-minutes: 20
         run: |
           until [ -f /mnt/builds/export.status ]; do sleep 2; done
-          cat /tmp/export.log
+          cat /mnt/builds/export.log
           [ "$(cat /mnt/builds/export.status)" = 0 ] || { echo "::error::Exporting the image failed"; exit 1; }
           ls -lh /mnt/builds/*.ociarchive
 
