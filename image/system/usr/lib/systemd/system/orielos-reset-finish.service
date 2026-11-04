@@ -1,0 +1,17 @@
+[Unit]
+Description=Remove the system this PC was reset from
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/recovery.md
+# Only at the reset start: the mark is in the new system's /var.
+ConditionPathExists=/var/lib/orielos/reset/finish
+# Once the sign-in screen or first-run setup is up, the reset has worked.
+After=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/orielos-reset finish
+# Deleting the old system and any erased home folders mustn't slow down whoever is signing in.
+Nice=19
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=graphical.target

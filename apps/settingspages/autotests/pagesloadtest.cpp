@@ -68,6 +68,7 @@ private Q_SLOTS:
         QTest::newRow("camera") << QStringLiteral("kcm_orielos_camera") << QStringLiteral("Camera") << QStringLiteral("hardware");
         QTest::newRow("fps overlay") << QStringLiteral("kcm_orielos_fpsoverlay") << QStringLiteral("FPS Overlay") << QStringLiteral("hardware");
         QTest::newRow("installed apps") << QStringLiteral("kcm_orielos_installedapps") << QStringLiteral("Installed Apps") << QStringLiteral("applications");
+        QTest::newRow("recovery") << QStringLiteral("kcm_orielos_recovery") << QStringLiteral("Recovery") << QStringLiteral("system-administration");
     }
 
     void loadsThePage()

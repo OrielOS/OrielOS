@@ -113,6 +113,8 @@ private Q_SLOTS:
         QTest::newRow("password") << QStringLiteral("password") << QStringLiteral("your-info");
         QTest::newRow("sleep") << QStringLiteral("sleep") << QStringLiteral("power");
         QTest::newRow("specs") << QStringLiteral("specs") << QStringLiteral("about");
+        QTest::newRow("reset this pc") << QStringLiteral("reset this pc") << QStringLiteral("recovery");
+        QTest::newRow("factory reset") << QStringLiteral("factory reset") << QStringLiteral("recovery");
         QTest::newRow("secure boot") << QStringLiteral("secure boot") << QStringLiteral("device-security");
         QTest::newRow("anti-cheat") << QStringLiteral("anti-cheat") << QStringLiteral("device-security");
         QTest::newRow("sticky keys") << QStringLiteral("sticky keys") << QStringLiteral("accessibility");

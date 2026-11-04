@@ -1,0 +1,708 @@
+#!/usr/bin/env bash
+# Resets this computer's OrielOS: puts the newest build of the computer's channel back in the
+# partitions OrielOS already has, with the build's own system settings. Keeping files keeps every
+# account and home folder; removing everything leaves a computer that starts with first-run setup,
+# as after a new installation. Nothing is partitioned or formatted, and nothing outside OrielOS's
+# own partitions and its boot files is touched, so Windows or anything else on the disk stays as
+# it is.
+#
+# The reset is a new ostree stateroot on the same file system: the build's own /etc and an empty
+# /var, deployed next to the running system, which stays as it is until the restart. At the reset
+# start, apply moves the home folders across (or out of the way, when removing everything) before
+# anything uses them; once the sign-in screen or first-run setup is up, finish removes the old
+# system. If the reset start fails to reach the desktop twice, the boot loader starts the old
+# system, and refresh puts everything back as it was.
+#
+# Usage: orielos-reset status
+#        orielos-reset start keep|erase
+#        orielos-reset prepare keep|erase
+#        orielos-reset cancel
+#        orielos-reset refresh
+#        orielos-reset apply
+#        orielos-reset finish
+#        orielos-reset --help
+#   status   print the reset's state for the desktop, as JSON
+#   start    start orielos-reset@keep.service or orielos-reset@erase.service, which runs prepare,
+#            without waiting for it; the Recovery settings page follows the state file
+#   prepare  download the channel's newest build, showing progress in the state file, and set up
+#            the reset for the next restart: keep keeps accounts and home folders, erase removes
+#            everything
+#   cancel   stop a reset being prepared, or undo one that is ready, so the next restart starts
+#            OrielOS as it is
+#   refresh  at each start, before the desktop (orielos-reset-state.service): if the old system
+#            started although a reset was ready (the reset start failed, or someone chose the old
+#            system in the boot menu), undo the reset and say so
+#   apply    at the reset start, before anything uses /var/home (orielos-reset-apply.service)
+#   finish   at the reset start, once the sign-in screen or first-run setup is up: remove the old
+#            system (orielos-reset-finish.service)
+# The build comes from the update source and channel orielos-update uses. The state for the desktop
+# is in /var/lib/orielos/reset/state.json.
+# Exit status: 0 on success, 1 on errors, 2 on wrong usage.
+# Runs as root.
+set -Eeuo pipefail
+
+# Tests set ORIELOS_RESET_ROOT to run against a scratch directory without root. pkexec and systemd
+# never pass it, so it can't redirect a real run.
+PREFIX="${ORIELOS_RESET_ROOT:-}"
+STATE_DIR="$PREFIX/var/lib/orielos/reset"
+STATE_FILE="$STATE_DIR/state.json"
+# While a reset is being prepared or is ready, orielos-update stages and removes nothing.
+PENDING="$STATE_DIR/pending"
+# What prepare set up, for cancel and refresh: key=value lines.
+PREPARED="$STATE_DIR/prepared"
+DOWNLOAD="$STATE_DIR/download"
+LOG="$STATE_DIR/prepare.log"
+UPDATE_DIR="$PREFIX/var/lib/orielos/update"
+UPDATE_TOOL="$PREFIX/usr/bin/orielos-update"
+VENDOR_CONF="$PREFIX/usr/lib/orielos/update.conf"
+ADMIN_CONF="$PREFIX/etc/orielos/update.conf"
+BOOT_FLAGS="$PREFIX/usr/libexec/orielos/boot-flags"
+KARGS_DIR=/usr/lib/bootc/kargs.d
+SYSROOT="$PREFIX/sysroot"
+REPO="$SYSROOT/ostree/repo"
+# What ostree's deploying and pruning commands are told the system's root is: the running system,
+# "/". Told /sysroot, ostree treats it as a system that isn't running and looks for boot entries
+# in /sysroot/boot, which on a computer with a /boot partition of its own (as the installer lays
+# it out) is an empty folder: it then sees no deployments, and replaces the boot links the real
+# boot entries use with ones for the new system only, so nothing can start.
+OSTREE_SYSROOT="${PREFIX:-/}"
+BOOT_ENTRIES="$PREFIX/boot/loader/entries"
+CMDLINE="$PREFIX/proc/cmdline"
+BOOT_ID_FILE="$PREFIX/proc/sys/kernel/random/boot_id"
+# In the new system: the mark that makes apply run, and the one that makes finish run.
+APPLY_MARK=etc/orielos/reset-apply
+FINISH_MARK=var/lib/orielos/reset/finish
+# When removing everything on a computer whose home folders are a file system of their own, apply
+# moves them here at once, and finish deletes them in the background.
+ERASED=.orielos-erased
+# The image the downloaded build is imported as: pulling takes it with how to check it
+# (IMPORT_REF), removing takes the bare image name (IMPORT_IMAGE) and refuses the other form.
+IMPORT_IMAGE="oci:$DOWNLOAD:reset"
+IMPORT_REF="ostree-unverified-image:$IMPORT_IMAGE"
+PREPARE_UNITS=(orielos-reset@keep.service orielos-reset@erase.service)
+LOCK=/run/orielos-reset.lock
+
+# What a reset that keeps files carries into the new system, besides the mount table and the update
+# source. From /etc: accounts and passwords (merged with the new build's own system accounts), the
+# computer's name, language, keyboard and time zone, saved networks, and that first-run setup is
+# done. From /var: account pictures, sign-in PINs and paired Bluetooth devices.
+ACCOUNT_DBS=(passwd shadow group gshadow)
+KEEP_ETC=(subuid subgid machine-id hostname locale.conf vconsole.conf localtime
+    X11/xorg.conf.d/00-keyboard.conf NetworkManager/system-connections plasma-setup-done)
+KEEP_VAR=(lib/AccountsService lib/orielos/pin lib/orielos/pin-info lib/bluetooth)
+ALWAYS_ETC=(fstab crypttab orielos/update.conf)
+
+die() {
+    printf 'orielos-reset: %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+usage() {
+    sed -n '2,41p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+need() {
+    local cmd
+    for cmd in "$@"; do
+        command -v "$cmd" >/dev/null 2>&1 || die "$cmd is not installed"
+    done
+}
+
+# The value of a key in a key=value file, or nothing: value_of <file> <key>
+value_of() {
+    if [[ -r "$1" ]]; then sed -n "s/^$2=//p" "$1" | tail -n1; fi
+}
+
+# The update source and channel, as orielos-update reads them.
+update_source() {
+    local value
+    value="$(value_of "$ADMIN_CONF" source)"
+    if [[ -z "$value" ]]; then value="$(value_of "$VENDOR_CONF" source)"; fi
+    printf '%s\n' "$value"
+}
+
+update_channel() {
+    case "$(value_of "$UPDATE_DIR/settings" channel)" in
+        testing) printf 'testing\n' ;;
+        *) printf 'stable\n' ;;
+    esac
+}
+
+boot_id() {
+    if [[ -r "$BOOT_ID_FILE" ]]; then tr -d '\n' <"$BOOT_ID_FILE"; fi
+}
+
+# Write the state file for the desktop, whole and atomically:
+#   write_state <phase> <message> [mode version downloaded total]
+# Phases: checking, downloading, preparing, ready, failed, cancelled, done.
+write_state() {
+    local tmp
+    mkdir -p "$STATE_DIR"
+    tmp="$(mktemp "$STATE_FILE.XXXXXX")"
+    jq -n --arg phase "$1" --arg message "$2" --arg mode "${3:-}" --arg version "${4:-}" \
+        --argjson downloaded "${5:-0}" --argjson total "${6:-0}" --arg bootId "$(boot_id)" \
+        --arg updatedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        '{phase: $phase, message: $message, mode: (if $mode == "" then null else $mode end),
+          version: (if $version == "" then null else $version end),
+          downloaded: $downloaded, total: $total, bootId: $bootId, updatedAt: $updatedAt}' >"$tmp"
+    chmod 0644 "$tmp"
+    mv -f "$tmp" "$STATE_FILE"
+}
+
+# This start's kernel arguments, one per line.
+cmdline_args() {
+    local args=()
+    read -ra args <"$CMDLINE"
+    if ((${#args[@]})); then printf '%s\n' "${args[@]}"; fi
+}
+
+# The stateroot the running system started from, from ostree= on the kernel command line.
+booted_stateroot() {
+    cmdline_args | sed -n 's|^ostree=/ostree/boot\.[01]/\([^/]*\)/.*|\1|p' | head -n1
+}
+
+# The index in ostree admin status of the first deployment of a stateroot, or nothing:
+#   deployment_index <stateroot>
+# ostree admin status lists the deployments in order, the booted one marked with "*".
+deployment_index() {
+    ostree admin status | awk -v s="$1" '
+        /^[* ] +[^ ]+ [0-9a-f]+\.[0-9]+/ {
+            name = ($1 == "*") ? $2 : $1
+            if (name == s) { print n + 0; exit }
+            n++
+        }'
+}
+
+# Remove every deployment of a stateroot and then the stateroot itself: remove_stateroot <name>
+# ostree removes each deployment's own files, which it keeps immutable; what's left is the
+# stateroot's /var, which may hold Btrfs subvolumes (rm removes those as folders).
+remove_stateroot() {
+    local index dir="$SYSROOT/ostree/deploy/$1"
+    [[ "$1" =~ ^[A-Za-z0-9._-]+$ ]] || die "not a stateroot name: $1"
+    [[ "$1" != "$(booted_stateroot)" ]] || die "won't remove the running system, $1"
+    while index="$(deployment_index "$1")" && [[ -n "$index" ]]; do
+        ostree admin undeploy "$index" >/dev/null || die "ostree couldn't remove a deployment of $1"
+    done
+    if findmnt -rno TARGET | grep -q "^$dir/"; then
+        die "something is mounted under $dir, so it was left in place"
+    fi
+    rm -rf "${dir:?}"
+}
+
+# Run the rest of this command with /sysroot writable, in a mount namespace of its own, so the
+# rest of the system keeps it read-only. Tests use a scratch directory, which is writable already.
+writable_sysroot() {
+    if [[ -n "$PREFIX" || -n "${ORIELOS_RESET_UNSHARED:-}" ]]; then
+        return 0
+    fi
+    ORIELOS_RESET_UNSHARED=1 exec unshare --mount --propagation private bash "${BASH_SOURCE[0]}" "$@"
+}
+
+remount_sysroot() {
+    if [[ -n "$PREFIX" ]]; then return 0; fi
+    mount -o remount,rw "$SYSROOT"
+    # A /boot partition of its own is read-only too, and deploying writes the boot entries there.
+    if mountpoint -q /boot; then mount -o remount,rw /boot; fi
+}
+
+# One command at a time.
+take_lock() {
+    if [[ -n "$PREFIX" ]]; then return 0; fi
+    exec 8>"$LOCK"
+    flock -n 8 || die "another reset command is running"
+}
+
+# Whether the home folders are a file system of their own, as on computers installed with the
+# installer (a Btrfs subvolume), rather than a folder in the stateroot's /var.
+# Only a mount listed in the mount table counts: on a computer installed with bootc, /var/home is a
+# Btrfs subvolume inside the stateroot's /var, which mountpoint and findmnt --mountpoint also take
+# for a mount point (it has a device number of its own). Counted as separate, home folders in
+# /var weren't moved across.
+home_is_separate() {
+    findmnt -rno TARGET | grep -qxF -- "$PREFIX/var/home"
+}
+
+# Copy a file or folder from one root to another, replacing what's there, keeping its owner,
+# permissions and SELinux label: carry <from root> <to root> <path>
+carry() {
+    local from="$1/$3" to="$2/$3"
+    if [[ ! -e "$from" && ! -L "$from" ]]; then return 0; fi
+    mkdir -p "$(dirname "$to")"
+    rm -rf "$to"
+    cp -a "$from" "$to"
+}
+
+# Merge an account database (passwd, shadow, group or gshadow): every entry of the old system, so
+# accounts, passwords, IDs and group members stay, then the new build's entries for names the old
+# system doesn't have. The new file keeps its permissions and label: merge_accounts <name> <new etc>
+merge_accounts() {
+    local old="$PREFIX/etc/$1" new="$2/$1" merged
+    [[ -e "$old" ]] || return 0
+    if [[ ! -e "$new" ]]; then
+        carry "$PREFIX/etc" "$2" "$1"
+        return 0
+    fi
+    merged="$(awk -F: 'NR == FNR { seen[$1] = 1; print; next } !($1 in seen)' "$old" "$new")"
+    printf '%s\n' "$merged" >"$new"
+}
+
+# The names in a folder, space-separated, or nothing when it's empty or missing: entries_in <folder>
+entries_in() {
+    find "$1" -mindepth 1 -maxdepth 1 -printf '%f ' 2>/dev/null || true
+}
+
+# Move everything in a folder into another, except the erased home folders' own folder:
+#   move_contents <from> <to>
+move_contents() {
+    local entry
+    mkdir -p "$2"
+    for entry in "$1"/* "$1"/.[!.]*; do
+        [[ -e "$entry" || -L "$entry" ]] || continue
+        [[ "${entry##*/}" == "$ERASED" ]] && continue
+        mv "$entry" "$2/"
+    done
+}
+
+# Move a home folder to another place on the same file system: the folder itself when nothing is
+# there yet (keeping its SELinux label), or else what it holds: move_home <from> <to>
+move_home() {
+    [[ -d "$1" ]] || return 0
+    rmdir "$2" 2>/dev/null || true
+    if [[ -e "$2" ]]; then
+        move_contents "$1" "$2"
+    else
+        mkdir -p "$(dirname "$2")"
+        mv "$1" "$2"
+    fi
+}
+
+# The kernel arguments in a folder of bootc kargs.d files, one per line: kargs_in <folder>
+kargs_in() {
+    local file
+    for file in "$1"/*.toml; do
+        [[ -f "$file" ]] || continue
+        sed -n 's/^kargs *= *\[\(.*\)\].*/\1/p' "$file" | grep -o '"[^"]*"' | tr -d '"' || true
+    done
+}
+
+# The new system's kernel arguments, one per line: this computer's own (from machine_kargs), then
+# the new build's kargs.d: new_kargs <new kargs.d>
+new_kargs() {
+    machine_kargs "$1"
+    kargs_in "$1"
+}
+
+# The kernel arguments this computer adds to a build's own, one per line: this start's, without
+# the ones only one start has and without those of the old and the new build's kargs.d:
+# machine_kargs <new kargs.d>
+machine_kargs() {
+    local arg builds
+    builds="$(
+        kargs_in "$PREFIX$KARGS_DIR"
+        kargs_in "$1"
+    )"
+    while read -r arg; do
+        case "$arg" in
+            BOOT_IMAGE=* | initrd=* | ostree=*) continue ;;
+        esac
+        if grep -qxF -- "$arg" <<<"$builds"; then continue; fi
+        printf '%s\n' "$arg"
+    done < <(cmdline_args)
+}
+
+#BEGIN Preparing
+# Read the update source: sets TRANSPORT (docker or oci), LOCATION (the image or directory) and
+# SOURCE_REF (the channel's tag, to inspect and copy).
+resolve_source() {
+    local source channel
+    source="$(update_source)"
+    channel="$(update_channel)"
+    case "$source" in
+        docker://*)
+            LOCATION="${source#docker://}"
+            [[ "$LOCATION" =~ ^[A-Za-z0-9][A-Za-z0-9._/:-]*$ ]] || prepare_failed "The update source $source is not a valid image name."
+            SOURCE_REF="docker://$LOCATION:$channel"
+            TRANSPORT=docker
+            ;;
+        oci:/*)
+            LOCATION="${source#oci:}"
+            [[ "$LOCATION" =~ ^/[A-Za-z0-9._/-]+$ ]] || prepare_failed "The update source $source is not a valid directory."
+            SOURCE_REF="oci:$LOCATION:$channel"
+            TRANSPORT=oci
+            ;;
+        "") prepare_failed "No update source is set in $VENDOR_CONF or $ADMIN_CONF." ;;
+        *) prepare_failed "Unsupported update source: $source." ;;
+    esac
+}
+
+# Say why preparing stopped, undo what it did, and exit 1: prepare_failed <message>
+prepare_failed() {
+    trap - ERR
+    printf 'orielos-reset: %s\n' "$1" >&2
+    undo_prepared
+    write_state failed "$1" "$MODE" "${VERSION:-}"
+    exit 1
+}
+
+# Download into $DOWNLOAD, writing the progress to the state file once a second:
+#   download <copy from> <total bytes>
+download() {
+    local pid done_bytes
+    rm -rf "$DOWNLOAD"
+    mkdir -p "$DOWNLOAD"
+    # The signature is checked against the policy before anything is copied; an OCI folder can't
+    # hold it, and nothing reads it there.
+    skopeo copy --retry-times 3 --remove-signatures "$1" "oci:$DOWNLOAD:reset" >>"$LOG" 2>&1 &
+    pid=$!
+    while kill -0 "$pid" 2>/dev/null; do
+        done_bytes="$(du -sb "$DOWNLOAD" 2>/dev/null | cut -f1)" || done_bytes=0
+        [[ "$done_bytes" =~ ^[0-9]+$ ]] || done_bytes=0
+        if ((done_bytes > $2)); then done_bytes=$2; fi
+        write_state downloading "Downloading OrielOS $VERSION" "$MODE" "$VERSION" "$done_bytes" "$2"
+        sleep 1
+    done
+    wait "$pid"
+}
+
+# A build staged by an update would start at the restart in place of the reset: drop it.
+drop_staged_update() {
+    local status
+    status="$(bootc status --format=json 2>/dev/null)" || return 0
+    [[ "$(jq -r '.status.staged != null' <<<"$status")" == true ]] || return 0
+    rpm-ostree cleanup --pending >>"$LOG" 2>&1 ||
+        prepare_failed "An update is waiting for a restart and couldn't be set aside. Restart to finish the update, then reset."
+    if [[ -x "$UPDATE_TOOL" ]]; then "$UPDATE_TOOL" refresh >/dev/null 2>&1 || true; fi
+}
+
+cmd_prepare() {
+    local info manifest total digest free commit new old deployment target kargs=() arg separate=0 path
+    MODE="$1"
+    need skopeo jq ostree bootc
+    writable_sysroot prepare "$@"
+    take_lock
+    # Whatever stops it, a reset half set up is undone.
+    trap 'prepare_failed "Something went wrong while getting the reset ready (line $LINENO)."' ERR
+    mkdir -p "$STATE_DIR"
+    : >"$LOG"
+    touch "$PENDING"
+    write_state checking "Finding the newest version of OrielOS" "$MODE"
+    # An update check staging a build now would start instead of the reset; from here on,
+    # orielos-update sees the pending reset and waits.
+    systemctl stop orielos-update-check.service >/dev/null 2>&1 || true
+    if [[ -r "$PREPARED" ]]; then
+        undo_prepared
+        touch "$PENDING"
+    fi
+    drop_staged_update
+
+    resolve_source
+    if ! info="$(skopeo inspect "$SOURCE_REF" 2>&1)"; then
+        if [[ "$TRANSPORT" == docker ]]; then
+            prepare_failed "Couldn't reach OrielOS's downloads. Check the internet connection and try again."
+        fi
+        prepare_failed "Couldn't read the update source: $(head -n1 <<<"$info")"
+    fi
+    digest="$(jq -r '.Digest // empty' <<<"$info")"
+    VERSION="$(jq -r '.Labels["org.opencontainers.image.version"] // "unknown"' <<<"$info")"
+    [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || prepare_failed "The $(update_channel) channel gave no image digest."
+    manifest="$(skopeo inspect --raw "$SOURCE_REF" 2>&1)" ||
+        prepare_failed "Couldn't read OrielOS $VERSION's manifest: $(head -n1 <<<"$manifest")"
+    total="$(jq '[.layers[].size, .config.size] | add' <<<"$manifest" 2>/dev/null)" || total=0
+    [[ "$total" =~ ^[0-9]+$ ]] || total=0
+
+    # The download, and room for the new system's files beside it.
+    free="$(df --output=avail -B1 "$STATE_DIR" | tail -n1 | tr -d ' ')"
+    if [[ "$free" =~ ^[0-9]+$ ]] && ((free < 2 * total + 2 * 1024 * 1024 * 1024)); then
+        prepare_failed "There isn't enough free space. The reset needs about $(((2 * total) / 1024 / 1024 / 1024 + 2)) GB free."
+    fi
+
+    # From a registry, pinned to the digest just read, so a tag that moves meanwhile can't swap in
+    # another build; the copy checks OrielOS's signature under /etc/containers/policy.json. The new
+    # system then tracks the build by that digest, as an update staged by orielos-update does.
+    if [[ "$TRANSPORT" == docker ]]; then
+        download "docker://$LOCATION@$digest" "$total" ||
+            prepare_failed "Couldn't download OrielOS $VERSION. Check the internet connection and try again."
+        target="ostree-image-signed:docker://$LOCATION@$digest"
+    else
+        download "$SOURCE_REF" "$total" || prepare_failed "Couldn't copy OrielOS $VERSION: $(tail -n1 "$LOG")"
+        target="ostree-unverified-image:oci:$LOCATION:$(update_channel)"
+    fi
+    if [[ "$(jq -r '.manifests[0].digest' "$DOWNLOAD/index.json")" != "$digest" ]]; then
+        prepare_failed "The download of OrielOS $VERSION doesn't match the build that was asked for."
+    fi
+
+    write_state preparing "Getting OrielOS $VERSION ready" "$MODE" "$VERSION" "$total" "$total"
+    remount_sysroot
+    rm -f "$STATE_DIR/commit"
+    ostree container image pull --quiet --ostree-digestfile "$STATE_DIR/commit" "$REPO" "$IMPORT_REF" >>"$LOG" 2>&1 ||
+        prepare_failed "Couldn't unpack OrielOS $VERSION: $(tail -n1 "$LOG")"
+    commit="$(cat "$STATE_DIR/commit" 2>/dev/null)" || true
+    rm -f "$STATE_DIR/commit"
+    [[ "$commit" =~ ^[0-9a-f]{64}$ ]] || prepare_failed "Couldn't find OrielOS $VERSION after unpacking it."
+    rm -rf "$STATE_DIR/kargs.d"
+    mkdir -p "$STATE_DIR/kargs.d"
+    while read -r path; do
+        ostree --repo="$REPO" cat "$commit" "$path" >"$STATE_DIR/kargs.d/${path##*/}"
+    done < <(ostree --repo="$REPO" ls "$commit" "$KARGS_DIR" 2>/dev/null | awk '$NF ~ /\.toml$/ {print $NF}')
+    # Each appended, so arguments given more than once, such as console=, all stay.
+    while read -r arg; do kargs+=("--karg-append=$arg"); done < <(new_kargs "$STATE_DIR/kargs.d")
+    rm -rf "$STATE_DIR/kargs.d"
+
+    old="$(booted_stateroot)"
+    [[ -n "$old" ]] || prepare_failed "Couldn't tell which system is running."
+    new="orielos-$(date -u +%Y%m%d%H%M%S)"
+    if home_is_separate; then separate=1; fi
+    printf 'mode=%s\nnew=%s\nold=%s\nversion=%s\ndigest=%s\nboot_id=%s\nhome_separate=%s\n' \
+        "$MODE" "$new" "$old" "$VERSION" "$digest" "$(boot_id)" "$separate" >"$PREPARED"
+    ostree admin os-init "$new" >>"$LOG" 2>&1 || prepare_failed "Couldn't set up the new system: $(tail -n1 "$LOG")"
+    # A new stateroot gets the build's own /etc (--no-merge, and there's nothing in it to merge
+    # from) and an empty /var. ostree admin deploy writes the boot entries at once, so they can be
+    # checked before the restart; ostree container image deploy stages a deployment on a running
+    # system, whose entries appear only as it shuts down. The origin tracks the build by its
+    # digest, as an update staged by orielos-update does, so bootc and the next check know it.
+    # Deployed first in the list, the new system starts by default; the old one stays second, for
+    # the boot loader to fall back on.
+    printf '[origin]\ncontainer-image-reference=%s\n' "$target" >"$STATE_DIR/origin"
+    ostree admin deploy --sysroot="$OSTREE_SYSROOT" --stateroot="$new" --no-merge --origin-file="$STATE_DIR/origin" \
+        "${kargs[@]}" "$commit" >>"$LOG" 2>&1 ||
+        prepare_failed "Couldn't set up the new system: $(tail -n1 "$LOG")"
+    rm -f "$STATE_DIR/origin"
+    deployment="$(find "$SYSROOT/ostree/deploy/$new/deploy" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+    [[ -d "$deployment/etc" ]] || prepare_failed "Couldn't find the new system after setting it up."
+    check_boot_entries "$new" "$old" ||
+        prepare_failed "The boot menu wasn't set up as it should be, so the reset was undone. Nothing was changed."
+    carry_settings "$deployment/etc" "$SYSROOT/ostree/deploy/$new/var"
+    mkdir -p "$(dirname "$deployment/$APPLY_MARK")"
+    printf 'mode=%s\nold=%s\nhome_separate=%s\n' "$MODE" "$old" "$separate" >"$deployment/$APPLY_MARK"
+    mkdir -p "$(dirname "$SYSROOT/ostree/deploy/$new/$FINISH_MARK")"
+    printf 'mode=%s\nold=%s\nversion=%s\n' "$MODE" "$old" "$VERSION" >"$SYSROOT/ostree/deploy/$new/$FINISH_MARK"
+
+    # The deployment keeps the build's commit; the imported image's own reference isn't needed.
+    ostree container image remove --repo "$REPO" "$IMPORT_IMAGE" >>"$LOG" 2>&1 || true
+    rm -rf "$DOWNLOAD"
+    # On trial until it reaches the desktop: if it can't, the boot loader starts the old system.
+    if [[ -x "$BOOT_FLAGS" ]]; then "$BOOT_FLAGS" trial || true; fi
+    trap - ERR
+    write_state ready "OrielOS $VERSION is ready. Restart to reset this PC." "$MODE" "$VERSION" "$total" "$total"
+    printf 'The reset is ready: OrielOS %s starts at the next restart.\n' "$VERSION"
+}
+
+# Check the boot entries the boot loader reads, before the reset counts as ready: every entry's
+# ostree= path must lead to a deployment, the new system must have an entry, and so must the old
+# one, which the boot loader falls back on: check_boot_entries <new stateroot> <old stateroot>
+check_boot_entries() {
+    local entry path new=0 old=0
+    for entry in "$BOOT_ENTRIES"/*.conf; do
+        [[ -f "$entry" ]] || continue
+        path="$(sed -n 's/^options .*ostree=\([^ ]*\).*/\1/p' "$entry")"
+        [[ -n "$path" ]] || continue
+        if [[ ! -d "$SYSROOT$path" ]]; then
+            printf 'orielos-reset: %s points at %s, which leads nowhere\n' "${entry##*/}" "$path" >>"$LOG"
+            return 1
+        fi
+        case "$path" in
+            /ostree/boot.[01]/"$1"/*) new=1 ;;
+            /ostree/boot.[01]/"$2"/*) old=1 ;;
+        esac
+    done
+    if ((! new || ! old)); then
+        printf 'orielos-reset: no boot entry for %s\n' "$( ((new)) && echo "$2" || echo "$1")" >>"$LOG"
+        return 1
+    fi
+}
+
+# Put the old system's settings that a reset keeps into the new system:
+#   carry_settings <new etc> <new var>
+carry_settings() {
+    local etc="$1" var="$2" path apps=on
+    for path in "${ALWAYS_ETC[@]}"; do carry "$PREFIX/etc" "$etc" "$path"; done
+    if [[ "$MODE" == keep ]]; then
+        for path in "${ACCOUNT_DBS[@]}"; do merge_accounts "$path" "$etc"; done
+        for path in "${KEEP_ETC[@]}"; do carry "$PREFIX/etc" "$etc" "$path"; done
+        for path in "${KEEP_VAR[@]}"; do carry "$PREFIX/var" "$var" "$path"; done
+        if [[ "$(value_of "$UPDATE_DIR/settings" app_updates)" == off ]]; then apps=off; fi
+    fi
+    # The channel stays, so the next update check doesn't offer an older build; a pause doesn't.
+    mkdir -p "$var/lib/orielos/update"
+    printf 'channel=%s\npaused_until=\napp_updates=%s\n' "$(update_channel)" "$apps" >"$var/lib/orielos/update/settings"
+    chmod 0644 "$var/lib/orielos/update/settings"
+}
+#END
+
+#BEGIN Cancelling and undoing
+# Undo what prepare set up, from its record. Runs in the old system.
+undo_prepared() {
+    local new
+    new="$(value_of "$PREPARED" new)"
+    if [[ -n "$new" && -d "$SYSROOT/ostree/deploy/$new" ]]; then
+        remount_sysroot
+        restore_homes "$new"
+        remove_stateroot "$new"
+        if [[ -x "$BOOT_FLAGS" ]]; then "$BOOT_FLAGS" clear || true; fi
+    fi
+    if [[ -d "$DOWNLOAD" ]]; then
+        ostree container image remove --repo "$REPO" "$IMPORT_IMAGE" >/dev/null 2>&1 || true
+        rm -rf "$DOWNLOAD"
+    fi
+    rm -f "$PREPARED" "$PENDING"
+}
+
+# If the reset start already moved the home folders, put them back: restore_homes <new stateroot>
+# Both moves stay on one mount, /sysroot or /var/home, so they're renames, not copies.
+restore_homes() {
+    local old
+    old="$(value_of "$PREPARED" old)"
+    if [[ "$(value_of "$PREPARED" mode)" == keep && "$(value_of "$PREPARED" home_separate)" != 1 && -n "$old" ]]; then
+        move_home "$SYSROOT/ostree/deploy/$1/var/home" "$SYSROOT/ostree/deploy/$old/var/home"
+    fi
+    if [[ -d "$PREFIX/var/home/$ERASED" ]]; then
+        move_contents "$PREFIX/var/home/$ERASED" "$PREFIX/var/home"
+        rmdir "$PREFIX/var/home/$ERASED"
+    fi
+}
+
+cmd_cancel() {
+    need jq ostree
+    # Stopped first: preparing holds the lock until it ends.
+    systemctl stop "${PREPARE_UNITS[@]}" >/dev/null 2>&1 || true
+    writable_sysroot cancel
+    take_lock
+    undo_prepared
+    write_state cancelled "The reset was cancelled. Nothing was changed."
+    printf 'The reset is cancelled; the next restart starts OrielOS as it is.\n'
+}
+
+cmd_refresh() {
+    local new
+    if [[ ! -r "$PREPARED" ]]; then
+        # Preparing was stopped before it recorded anything (the computer went off, say): updates
+        # mustn't wait for a reset that will never come.
+        if [[ -e "$PENDING" ]] && ! systemctl is-active --quiet "${PREPARE_UNITS[@]}"; then
+            rm -f "$PENDING"
+            rm -rf "$DOWNLOAD"
+            write_state failed "The reset was interrupted before it was ready. Nothing was changed."
+        fi
+        return 0
+    fi
+    new="$(value_of "$PREPARED" new)"
+    # Still the start the reset was prepared in, or the reset start itself: nothing to undo.
+    if [[ "$(value_of "$PREPARED" boot_id)" == "$(boot_id)" || "$(booted_stateroot)" == "$new" ]]; then return 0; fi
+    need jq ostree
+    writable_sysroot refresh
+    take_lock
+    undo_prepared
+    write_state failed "The reset didn't finish, so OrielOS started as it was before. Your files and apps are as they were."
+}
+#END
+
+#BEGIN The reset start
+cmd_apply() {
+    local mark="$PREFIX/$APPLY_MARK" mode old separate
+    [[ -r "$mark" ]] || return 0
+    writable_sysroot apply
+    take_lock
+    mode="$(value_of "$mark" mode)"
+    old="$(value_of "$mark" old)"
+    separate="$(value_of "$mark" home_separate)"
+    remount_sysroot
+    printf 'Reset start: %s, from the system %s; home folders on a file system of their own: %s\n' \
+        "$mode" "$old" "$([[ "$separate" == 1 ]] && echo yes || echo no)"
+    if [[ "$mode" == keep && "$separate" != 1 && -n "$old" ]]; then
+        # The home folders are in the old stateroot's /var: move them across. Both are on the same
+        # file system, so this takes no time whatever they hold.
+        if [[ -d "$SYSROOT/ostree/deploy/$old/var/home" ]]; then
+            printf 'Moving the home folders (%s) to the new system\n' "$(entries_in "$SYSROOT/ostree/deploy/$old/var/home")"
+        else
+            printf 'orielos-reset: the old system has no home folders at %s\n' "$SYSROOT/ostree/deploy/$old/var/home" >&2
+        fi
+        move_home "$SYSROOT/ostree/deploy/$old/var/home" "$SYSROOT/ostree/deploy/$(booted_stateroot)/var/home"
+    elif [[ "$mode" == erase && "$separate" == 1 ]]; then
+        # Out of first-run setup's way at once; finish deletes them in the background.
+        printf 'Moving the home folders out of the way, for removal\n'
+        install -d -m 0700 "$PREFIX/var/home/$ERASED"
+        move_contents "$PREFIX/var/home" "$PREFIX/var/home/$ERASED"
+    fi
+    rm -f "$mark"
+}
+
+cmd_finish() {
+    local mark="$PREFIX/$FINISH_MARK" old mode version
+    [[ -r "$mark" ]] || return 0
+    need jq ostree
+    writable_sysroot finish
+    take_lock
+    old="$(value_of "$mark" old)"
+    mode="$(value_of "$mark" mode)"
+    version="$(value_of "$mark" version)"
+    remount_sysroot
+    # Keeping files: home folders still in the old system's /var weren't moved across, and deleting
+    # the old system would delete them. Keep it and say so.
+    if [[ "$mode" == keep && -n "$(entries_in "$SYSROOT/ostree/deploy/$old/var/home")" ]]; then
+        printf 'orielos-reset: the old system still holds home folders (%s), so it was kept\n' \
+            "$(entries_in "$SYSROOT/ostree/deploy/$old/var/home")" >&2
+        rm -f "$mark"
+        write_state failed "This PC was reset, but the home folders stayed with the old system, so it wasn't removed. Your files are in $SYSROOT/ostree/deploy/$old/var/home." "$mode" "$version"
+        return 1
+    fi
+    if [[ -n "$old" && "$old" != "$(booted_stateroot)" && -d "$SYSROOT/ostree/deploy/$old" ]]; then
+        remove_stateroot "$old"
+    fi
+    ostree container image prune-images --sysroot "$OSTREE_SYSROOT" --full >/dev/null 2>&1 || true
+    # Nothing to go back to any more.
+    if [[ -x "$BOOT_FLAGS" ]]; then "$BOOT_FLAGS" clear || true; fi
+    rm -rf "${PREFIX}/var/home/$ERASED"
+    rm -f "$mark"
+    write_state "done" "This PC was reset to OrielOS $version." "$mode" "$version"
+}
+#END
+
+cmd_status() {
+    if [[ -r "$STATE_FILE" ]]; then cat "$STATE_FILE"; else printf '{"phase": "idle"}\n'; fi
+}
+
+cmd_start() {
+    local mode="$1"
+    need jq
+    if systemctl is-active --quiet "${PREPARE_UNITS[@]}"; then
+        die "a reset is already being prepared"
+    fi
+    write_state checking "Finding the newest version of OrielOS" "$mode"
+    systemctl start --no-block "orielos-reset@$mode.service"
+}
+
+main() {
+    local cmd="${1:-}"
+    case "$cmd" in
+        --help | -h)
+            usage
+            return 0
+            ;;
+        status | cancel | refresh | apply | finish) [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2 ;;
+        start | prepare)
+            [[ $# -eq 2 ]] || die "$cmd needs keep or erase" 2
+            [[ "$2" == keep || "$2" == erase ]] || die "$cmd needs keep or erase, not $2" 2
+            ;;
+        "")
+            usage >&2
+            exit 2
+            ;;
+        *)
+            usage >&2
+            die "unknown command: $cmd" 2
+            ;;
+    esac
+    if [[ -z "$PREFIX" ]]; then
+        [[ "$EUID" -eq 0 ]] || die "run orielos-reset as root, for example with sudo"
+    fi
+    case "$cmd" in
+        status) cmd_status ;;
+        start) cmd_start "$2" ;;
+        prepare) cmd_prepare "$2" ;;
+        cancel) cmd_cancel ;;
+        refresh) cmd_refresh ;;
+        apply) cmd_apply ;;
+        finish) cmd_finish ;;
+    esac
+}
+
+main "$@"

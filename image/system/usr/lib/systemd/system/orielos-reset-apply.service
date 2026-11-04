@@ -1,0 +1,17 @@
+[Unit]
+Description=Move the home folders for this PC's reset
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/recovery.md
+# Only at the start a reset was prepared for: the mark is in that system's own /etc.
+ConditionPathExists=/etc/orielos/reset-apply
+DefaultDependencies=no
+# Once /var and /var/home are mounted, and before anything creates or uses a home folder.
+After=local-fs.target
+Before=sysinit.target systemd-tmpfiles-setup.service systemd-user-sessions.service accounts-daemon.service display-manager.service plasma-setup.service shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/orielos-reset apply
+
+[Install]
+WantedBy=sysinit.target

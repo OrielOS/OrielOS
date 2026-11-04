@@ -1,0 +1,17 @@
+[Unit]
+Description=Get a reset of this PC ready (%i)
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/recovery.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Started by "orielos-reset start keep|erase" from Settings › Recovery, which follows its progress
+# in /var/lib/orielos/reset/state.json. Someone is waiting for it, so it runs at normal priority.
+# It never restarts the computer: the page asks the user to.
+Type=oneshot
+ExecStart=/usr/bin/orielos-reset prepare %i
+# A slow connection can take a long time to download a whole build.
+TimeoutStartSec=6h
+PrivateTmp=true
+# No ProtectHome: it puts a mount over /var/home, and preparing reads from the mount table whether
+# the home folders are a file system of their own.

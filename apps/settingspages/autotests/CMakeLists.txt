@@ -62,6 +62,12 @@ ecm_add_test(installedappstest.cpp
     LINK_LIBRARIES OrielOSInstalledApps Qt6::Test
 )
 
+ecm_add_test(resetpctest.cpp
+    TEST_NAME resetpctest
+    LINK_LIBRARIES OrielOSRecovery Qt6::Test
+)
+set_tests_properties(resetpctest PROPERTIES ENVIRONMENT "LANGUAGE=en_GB;LC_ALL=en_GB.UTF-8")
+
 ecm_add_test(desktopbackgroundtest.cpp
     TEST_NAME desktopbackgroundtest
     LINK_LIBRARIES OrielOSBackground Qt6::Qml Qt6::Test
@@ -93,7 +99,7 @@ ecm_add_test(pagesloadtest.cpp
     LINK_LIBRARIES KF6::KCMUtilsQuick KF6::CoreAddons Qt6::Quick Qt6::Test
 )
 add_dependencies(pagesloadtest kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb kcm_orielos_background kcm_orielos_recentactivity
-    kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps)
+    kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps kcm_orielos_recovery)
 set_tests_properties(pagesloadtest PROPERTIES
     ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:kcm_orielos_accent>/../../..;QT_QPA_PLATFORM=offscreen"
 )

@@ -3,7 +3,7 @@
 # under QEMU/KVM with Secure Boot firmware and a software TPM, SSH into the VM through a vsock
 # device, pressing keys, clicking and taking screenshots over QMP, finishing Plasma Setup and
 # cleaning up. The VM's firmware has Universal Blue's driver-signing key in shim's MokList unless
-# MOK_ENROL is 0. Sourced by tests/boot-test.sh, tests/update-test.sh,
+# MOK_ENROL is 0. Sourced by tests/boot-test.sh, tests/update-test.sh, tests/reset-test.sh,
 # tests/secure-boot-key-test.sh and tests/screenshot-tour.sh.
 #
 # The caller sets VM_ROOT, IMAGE, MEMORY, CPUS, KEEP, WORK, RESULTS and SUMMARY (and ARCHIVE for
@@ -38,6 +38,8 @@
     # The VM's screen size as <width>x<height>, or empty for the graphics card's default. With a
     # size, the VM also gets a USB tablet, so vm_qmp can click at a point on the screen.
     VM_SCREEN=""
+    # More QEMU arguments for the VM, such as extra disks.
+    VM_EXTRA_ARGS=()
     # Images load_archive added to Podman, which cleanup removes again.
     LOADED_IMAGES=()
     PASSED=0
@@ -458,6 +460,7 @@ start_vm() {
         -smbios "type=11,value=io.systemd.credential.binary:ssh.authorized_keys.root=$(base64 -w0 "$WORK/ssh_key.pub")"
     )
     if [[ -n "$VM_SCREEN" ]]; then BASE_ARGS+=(-device qemu-xhci -device usb-tablet); fi
+    if [[ "${#VM_EXTRA_ARGS[@]}" -gt 0 ]]; then BASE_ARGS+=("${VM_EXTRA_ARGS[@]}"); fi
     qemu-system-x86_64 "${BASE_ARGS[@]}" -display none \
         -serial "file:$WORK/serial.log" -qmp "unix:$WORK/qmp.sock,server=on,wait=off" \
         -daemonize -pidfile "$WORK/qemu.pid"

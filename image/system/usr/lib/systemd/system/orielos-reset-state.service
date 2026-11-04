@@ -1,0 +1,16 @@
+[Unit]
+Description=Undo a reset of this PC that didn't start
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/recovery.md
+# Only while a reset was being prepared or was ready.
+ConditionPathExists=/var/lib/orielos/reset/pending
+# The old system started although a reset was ready: put things back before anyone signs in, after
+# orielos-update has kept the old system as the one that starts by default.
+After=orielos-update-state.service
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/orielos-reset refresh
+
+[Install]
+WantedBy=multi-user.target

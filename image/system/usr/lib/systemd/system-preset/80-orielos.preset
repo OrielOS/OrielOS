@@ -6,6 +6,11 @@ disable bootc-fetch-apply-updates.timer
 enable orielos-update-check.timer
 # Records each boot's update state before login, for the desktop's update notifier.
 enable orielos-update-state.service
+# Reset this PC: moves the home folders at the reset start, removes the old system once the sign-in
+# screen is up, and undoes a reset whose start failed. Each runs only when its mark exists.
+enable orielos-reset-apply.service
+enable orielos-reset-finish.service
+enable orielos-reset-state.service
 # Brings OrielOS's part of the boot menu's configuration up to date with each version.
 enable orielos-boot-menu-config.service
 # Notes the firmware drivers couldn't load this start, for the hardware check.
