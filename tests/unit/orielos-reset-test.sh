@@ -161,6 +161,13 @@ case "$1 $2" in
                     shift
                 done
                 ;;
+            remove)
+                # Like ostree-ext, removing takes the bare image name, not how to check it.
+                if [[ "${!#}" == ostree-* ]]; then
+                    echo "error: invalid value '${!#}' for '[IMGREFS]...': Invalid transport" >&2
+                    exit 2
+                fi
+                ;;
         esac
         ;;
     *)
@@ -258,6 +265,8 @@ check "the state says the reset is ready, with the version and the download's si
 check "it downloads the channel's build by its digest, without its signature" \
     called "skopeo copy --retry-times 3 --remove-signatures docker://example.test/orielos@$DIGEST oci:"
 check "it reads the computer's channel" called "skopeo inspect docker://example.test/orielos:testing"
+check "it removes the imported download by its image name, leaving no copy behind" \
+    called "ostree container image remove --repo $R/sysroot/ostree/repo oci:$R/var/lib/orielos/reset/download:reset"
 check "the new system is a new stateroot" test -n "$(prepared new)" -a "$(prepared new)" != default -a "$(prepared old)" == default
 check "the new system tracks the build by its digest" \
     grep -qx "container-image-reference=ostree-image-signed:docker://example.test/orielos@$DIGEST" "$WORK/stub/origin"

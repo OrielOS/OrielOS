@@ -75,8 +75,10 @@ FINISH_MARK=var/lib/orielos/reset/finish
 # When removing everything on a computer whose home folders are a file system of their own, apply
 # moves them here at once, and finish deletes them in the background.
 ERASED=.orielos-erased
-# The image reference the downloaded build is imported under.
-IMPORT_REF="ostree-unverified-image:oci:$DOWNLOAD:reset"
+# The image the downloaded build is imported as: pulling takes it with how to check it
+# (IMPORT_REF), removing takes the bare image name (IMPORT_IMAGE) and refuses the other form.
+IMPORT_IMAGE="oci:$DOWNLOAD:reset"
+IMPORT_REF="ostree-unverified-image:$IMPORT_IMAGE"
 PREPARE_UNITS=(orielos-reset@keep.service orielos-reset@erase.service)
 LOCK=/run/orielos-reset.lock
 
@@ -476,7 +478,7 @@ cmd_prepare() {
     printf 'mode=%s\nold=%s\nversion=%s\n' "$MODE" "$old" "$VERSION" >"$SYSROOT/ostree/deploy/$new/$FINISH_MARK"
 
     # The deployment keeps the build's commit; the imported image's own reference isn't needed.
-    ostree container image remove --repo "$REPO" "$IMPORT_REF" >>"$LOG" 2>&1 || true
+    ostree container image remove --repo "$REPO" "$IMPORT_IMAGE" >>"$LOG" 2>&1 || true
     rm -rf "$DOWNLOAD"
     # On trial until it reaches the desktop: if it can't, the boot loader starts the old system.
     if [[ -x "$BOOT_FLAGS" ]]; then "$BOOT_FLAGS" trial || true; fi
@@ -539,7 +541,7 @@ undo_prepared() {
         if [[ -x "$BOOT_FLAGS" ]]; then "$BOOT_FLAGS" clear || true; fi
     fi
     if [[ -d "$DOWNLOAD" ]]; then
-        ostree container image remove --repo "$REPO" "$IMPORT_REF" >/dev/null 2>&1 || true
+        ostree container image remove --repo "$REPO" "$IMPORT_IMAGE" >/dev/null 2>&1 || true
         rm -rf "$DOWNLOAD"
     fi
     rm -f "$PREPARED" "$PENDING"
