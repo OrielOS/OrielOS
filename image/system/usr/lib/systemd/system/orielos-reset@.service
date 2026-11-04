@@ -13,4 +13,5 @@ ExecStart=/usr/bin/orielos-reset prepare %i
 # A slow connection can take a long time to download a whole build.
 TimeoutStartSec=6h
 PrivateTmp=true
-ProtectHome=true
+# No ProtectHome: it puts a mount over /var/home, and preparing reads from the mount table whether
+# the home folders are a file system of their own.

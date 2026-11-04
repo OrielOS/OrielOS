@@ -298,7 +298,7 @@ tests/reset-test.sh --archive /var/lib/orielos/builds/orielos-dev.2.ociarchive
 tests/reset-test.sh --archive BUILD.ociarchive --layout bootc --keep
 ```
 
-Results go to `tests/results/reset-<tag>-<UTC time>/`, or to the folder given with `--results`: `summary.txt`, `install.log`, `serial.log`, and for each reset `start-<mode>.txt` and `prepare-<mode>.txt` (the state file and orielos-reset's log). The work folder and `--keep` work as in the boot test.
+Results go to `tests/results/reset-<tag>-<UTC time>/`, or to the folder given with `--results`: `summary.txt`, `install.log`, `serial.log`, and for each reset `start-<mode>.txt`, `prepare-<mode>.txt` (the state file, what `prepare` recorded, its log and the home folders' mount) and `reset-start-<mode>.txt` (the reset start's journal for the reset units, and what `/var/home` holds). The work folder and `--keep` work as in the boot test.
 
 ## Unit tests
 
