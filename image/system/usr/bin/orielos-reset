@@ -244,6 +244,11 @@ merge_accounts() {
     printf '%s\n' "$merged" >"$new"
 }
 
+# The names in a folder, space-separated, or nothing when it's empty or missing: entries_in <folder>
+entries_in() {
+    find "$1" -mindepth 1 -maxdepth 1 -printf '%f ' 2>/dev/null || true
+}
+
 # Move everything in a folder into another, except the erased home folders' own folder:
 #   move_contents <from> <to>
 move_contents() {
@@ -498,7 +503,7 @@ check_boot_entries() {
             /ostree/boot.[01]/"$2"/*) old=1 ;;
         esac
     done
-    if ((!new || !old)); then
+    if ((! new || ! old)); then
         printf 'orielos-reset: no boot entry for %s\n' "$( ((new)) && echo "$2" || echo "$1")" >>"$LOG"
         return 1
     fi
@@ -604,7 +609,7 @@ cmd_apply() {
         # The home folders are in the old stateroot's /var: move them across. Both are on the same
         # file system, so this takes no time whatever they hold.
         if [[ -d "$SYSROOT/ostree/deploy/$old/var/home" ]]; then
-            printf 'Moving the home folders (%s) to the new system\n' "$(ls -A "$SYSROOT/ostree/deploy/$old/var/home" | tr '\n' ' ')"
+            printf 'Moving the home folders (%s) to the new system\n' "$(entries_in "$SYSROOT/ostree/deploy/$old/var/home")"
         else
             printf 'orielos-reset: the old system has no home folders at %s\n' "$SYSROOT/ostree/deploy/$old/var/home" >&2
         fi
@@ -630,9 +635,9 @@ cmd_finish() {
     remount_sysroot
     # Keeping files: home folders still in the old system's /var weren't moved across, and deleting
     # the old system would delete them. Keep it and say so.
-    if [[ "$mode" == keep && -n "$(ls -A "$SYSROOT/ostree/deploy/$old/var/home" 2>/dev/null)" ]]; then
+    if [[ "$mode" == keep && -n "$(entries_in "$SYSROOT/ostree/deploy/$old/var/home")" ]]; then
         printf 'orielos-reset: the old system still holds home folders (%s), so it was kept\n' \
-            "$(ls -A "$SYSROOT/ostree/deploy/$old/var/home" | tr '\n' ' ')" >&2
+            "$(entries_in "$SYSROOT/ostree/deploy/$old/var/home")" >&2
         rm -f "$mark"
         write_state failed "This PC was reset, but the home folders stayed with the old system, so it wasn't removed. Your files are in $SYSROOT/ostree/deploy/$old/var/home." "$mode" "$version"
         return 1

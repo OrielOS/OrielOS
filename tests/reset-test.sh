@@ -261,6 +261,8 @@ step_layout() {
 # that there are as many entries as expected: check_boot_entries <count> <when>
 check_boot_entries() {
     local out
+    # Runs in the VM, so its $ expressions are meant for the VM's shell.
+    # shellcheck disable=SC2016
     out="$(vm_ssh 'n=0; for f in /boot/loader/entries/*.conf; do p=$(sed -n "s/^options .*ostree=\([^ ]*\).*/\1/p" "$f"); n=$((n + 1)); test -d "/sysroot$p" || echo "broken: ${f##*/} -> $p"; done; echo "entries=$n"' 2>&1)" || true
     if [[ "$out" == "entries=$1" ]]; then
         pass "Every boot entry leads to a deployment $2 ($1 entries)"
@@ -319,7 +321,7 @@ step_cancel() {
 # Keep the reset start's journal for its units, and what apply and finish left, in the results:
 #   save_reset_journal <mode>
 save_reset_journal() {
-    vm_ssh 'journalctl -b --no-pager -u orielos-reset-apply.service -u orielos-reset-finish.service -u orielos-reset-state.service; ls -la /var/home; cat /var/lib/orielos/reset/state.json'         >"$RESULTS/reset-start-$1.txt" 2>&1 || true
+    vm_ssh 'journalctl -b --no-pager -u orielos-reset-apply.service -u orielos-reset-finish.service -u orielos-reset-state.service; ls -la /var/home; cat /var/lib/orielos/reset/state.json' >"$RESULTS/reset-start-$1.txt" 2>&1 || true
 }
 
 # Wait up to five minutes for the reset start to remove the old system.
