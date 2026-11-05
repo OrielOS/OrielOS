@@ -1,0 +1,22 @@
+[Unit]
+Description=Give the account made in the first-run setup the PIN chosen there
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/install.md
+# Also at start-up, in case the setup ended while the watcher couldn't run, before the sign-in
+# screen reads which accounts have a PIN.
+ConditionPathExists=/etc/plasma-setup-done
+ConditionPathExists=/var/lib/orielos/pin/staged.cred
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/orielos/pin-service --apply-staged
+StateDirectory=orielos
+TimeoutSec=60
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

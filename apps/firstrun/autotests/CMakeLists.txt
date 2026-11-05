@@ -21,3 +21,10 @@ ecm_add_test(timezonelookuptest.cpp ../timezonelookup.cpp
     LINK_LIBRARIES Qt6::Network Qt6::Qml Qt6::Test
 )
 target_include_directories(timezonelookuptest PRIVATE ..)
+
+ecm_add_test(pinsetuptest.cpp ../pinsetup.cpp
+    TEST_NAME pinsetuptest
+    LINK_LIBRARIES Qt6::Network Qt6::Qml Qt6::Test KF6::I18n
+)
+target_include_directories(pinsetuptest PRIVATE ..)
+target_compile_definitions(pinsetuptest PRIVATE TRANSLATION_DOMAIN="orielos-first-run")

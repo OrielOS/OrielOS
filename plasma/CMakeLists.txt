@@ -31,9 +31,9 @@ install(DIRECTORY kwin/switcher/ DESTINATION ${KDE_INSTALL_DATADIR}/kwin/tabbox/
 
 # The first-run setup's own pages, as Plasma Setup packages: network, for computers without Wi-Fi
 # (weight 11), updates (12), the time zone, asked only when the network can't tell (15, in place of
-# Plasma Setup's own), power (18) and privacy (21, after the account).
+# Plasma Setup's own), power (18), a PIN (21, after the account) and privacy (22).
 # image/build/41-first-run.sh puts Plasma Setup's pages around them and shows this logo on the last.
-foreach(page network updates time power privacy)
+foreach(page network updates time power pin privacy)
     install(DIRECTORY firstrun/${page}/
         DESTINATION ${KDE_INSTALL_DATADIR}/plasma/packages/org.orielos.plasmasetup.${page})
 endforeach()

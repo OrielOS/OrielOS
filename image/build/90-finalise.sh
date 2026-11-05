@@ -384,12 +384,15 @@ fi
 
 # Quick sign-in: the PIN service, started for each request by its socket, which the sign-in screen,
 # the lock screen and administrator prompts ask through pin-auth (29-quick-sign-in.sh) and Settings
-# asks to set or remove a PIN.
-systemctl enable orielos-pin.socket
-if [[ "$(systemctl is-enabled orielos-pin.socket 2>/dev/null)" != "enabled" ]]; then
-    printf 'error: orielos-pin.socket is not enabled\n' >&2
-    exit 1
-fi
+# asks to set or remove a PIN. The first-run setup's PIN page stages a PIN for the account it's about
+# to create, and orielos-pin-staged gives it to that account once the setup has finished.
+systemctl enable orielos-pin.socket orielos-pin-staged.path orielos-pin-staged.service
+for unit in orielos-pin.socket orielos-pin-staged.path orielos-pin-staged.service; do
+    if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
+        printf 'error: %s is not enabled\n' "$unit" >&2
+        exit 1
+    fi
+done
 for f in /usr/libexec/orielos/pin-service /usr/libexec/orielos/pin-auth; do
     [[ -x "$f" ]] || {
         printf 'error: %s is not executable\n' "$f" >&2
