@@ -198,7 +198,7 @@ check_connected() {
             if device_where ethernet disconnected >/dev/null; then
                 found problem disconnected "This PC isn't connected to a network." reconnect
             elif device_where wifi disconnected >/dev/null; then
-                if nmcli -t -f TYPE connection show 2>/dev/null | grep -qx '802-11-wireless'; then
+                if grep -qx '802-11-wireless' <<<"$(nmcli -t -f TYPE connection show 2>/dev/null)"; then
                     found problem disconnected "This PC isn't connected to a network." reconnect
                 else
                     found problem no-saved-network "This PC isn't connected to a network. Choose a Wi-Fi network in Quick Settings, or plug in a network cable."

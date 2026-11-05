@@ -58,7 +58,7 @@ cmd_set() {
     fi
     zone="$(jq -r '.time_zone // empty | strings' <<<"$answer" 2>/dev/null)" || zone=""
     # Only a zone name, such as Europe/London, is passed on; the full check is the system's list.
-    if [[ ! "$zone" =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ ]] || ! timedatectl list-timezones | grep -qxF -- "$zone"; then
+    if [[ ! "$zone" =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ ]] || ! grep -qxF -- "$zone" <<<"$(timedatectl list-timezones)"; then
         log "the location service named no time zone this system knows, so the time zone stays as it is"
         return 0
     fi

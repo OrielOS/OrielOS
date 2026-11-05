@@ -183,7 +183,9 @@ remove_stateroot() {
     while index="$(deployment_index "$1")" && [[ -n "$index" ]]; do
         ostree admin undeploy "$index" >/dev/null || die "ostree couldn't remove a deployment of $1"
     done
-    if findmnt -rno TARGET | grep -q "^$dir/"; then
+    # The mount table is read first: grep -q stops at a match, and the pipe failing then would read
+    # as no match.
+    if grep -q "^$dir/" <<<"$(findmnt -rno TARGET)"; then
         die "something is mounted under $dir, so it was left in place"
     fi
     rm -rf "${dir:?}"
@@ -219,7 +221,7 @@ take_lock() {
 # for a mount point (it has a device number of its own). Counted as separate, home folders in
 # /var weren't moved across.
 home_is_separate() {
-    findmnt -rno TARGET | grep -qxF -- "$PREFIX/var/home"
+    grep -qxF -- "$PREFIX/var/home" <<<"$(findmnt -rno TARGET)"
 }
 
 # Copy a file or folder from one root to another, replacing what's there, keeping its owner,
