@@ -42,6 +42,8 @@ settingspages/       OrielOS's own Settings pages, each a Plasma settings module
   background/         kcm_orielos_background, Background: DesktopBackground (QML module org.orielos.background) and its page
   recentactivity/     kcm_orielos_recentactivity, Recent activity: RecentActivity (QML module org.orielos.recentactivity) and its page
   recovery/           kcm_orielos_recovery, Recovery: ResetPC, Reset this PC (QML module org.orielos.recovery) and its page
+  about/              kcm_orielos_about, About: AboutInfo, the computer's name, Rename this PC and the specifications (org.orielos.about)
+  datetime/           kcm_orielos_datetime, Date & time: DateTimeSettings, automatic time and time zone, Sync now (org.orielos.datetime)
   autotests/          Qt Test unit tests for both models, and a test that loads both modules
 updatenotifier/       orielos-update-notifier, the update tray icon
   main.cpp            start-up, translations, --state and --boot-id-file
@@ -69,6 +71,7 @@ emojipanel/           orielos-emoji, the emoji panel on Windows + .: emoji, kaom
   qml/characters.js   the kaomoji and symbols, in groups
   org.orielos.EmojiPanel.desktop  Windows + . and Windows + ;, hidden from Start
 tour/                 orielos-tour, Set up this PC: the tour after an account's first sign-in
+networktroubleshooter/ orielos-network-troubleshooter: finds and fixes network problems, with network-check
   main.cpp            start-up, one window, and --self-test
   appearance.h/.cpp   Appearance: light or dark, through plasma-apply-lookandfeel
   graphicscard.h/.cpp  GraphicsCard: the screen's graphics card, its driver and the driver key, from sysfs

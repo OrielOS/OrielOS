@@ -142,7 +142,8 @@ PageCatalogue PageCatalogue::standard()
             keywords(i18nc("@info:keywords Search words for the Recovery page, separated by ;",
                 "recovery;reset;reset this pc;reinstall;factory reset;fresh start;start fresh;restore;remove everything;wipe;erase;refresh")),
             QStringLiteral("kcm_orielos_recovery"), { } },
-        { QStringLiteral("about"), system, i18nc("@title Settings page", "About"), i18nc("@info", "This computer's name, its specifications and OrielOS's version"),
+        { QStringLiteral("about"), system, i18nc("@title Settings page", "About"),
+            i18nc("@info", "This computer's name, its specifications and OrielOS's version"),
             keywords(i18nc("@info:keywords Search words for the About page, separated by ;",
                 "about;system information;specifications;specs;version;processor;memory;ram;graphics card;pc info;"
                 "rename this pc;rename;computer name;pc name;device name;hostname")),

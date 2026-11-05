@@ -10,13 +10,13 @@ Settings opens on **Home**: the settings you used most recently, then recommende
 
 The categories on the left come in the order you know from Windows (in a narrow window they hide behind the menu button beside the page's title):
 
-- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Battery usage, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app), Recovery (resetting this PC; see [Resetting this PC](recovery.md)) and About.
+- **System**: Display, Night light, Sound, Notifications, Power & sleep, Power mode, Battery usage, Multitasking (snapping windows and Alt + Tab), NVIDIA settings (on computers with an NVIDIA graphics card; it opens NVIDIA's own app), Recovery (resetting this PC; see [Resetting this PC](recovery.md)) and About (the computer's name, with **Rename this PC**, and its specifications, with **Copy**).
 - **Bluetooth & devices**: Bluetooth, Mouse, Touchpad, Keyboard, Printers, Camera, Game controllers and Accessory apps.
 - **Network & internet**: Wi-Fi, Ethernet, VPN and hotspot, and Proxy.
 - **Personalisation**: Background, Themes (including dark mode), Accent colour (with Show accent colour on Start and taskbar, and Transparency effects, which makes the taskbar and pop-ups solid when off), Lock screen, Start and Taskbar.
 - **Apps**: Default apps, Installed apps, Startup, and Restart apps after signing in.
 - **Accounts**: Your info, with your password and other accounts, and Sign-in options: a PIN, fingerprints, dynamic lock, and the sign-in screen's settings.
-- **Time & language**: Date & time, and Language & region.
+- **Time & language**: Date & time (set the time and the time zone automatically, **Sync now**, and when the clock last synchronised), and Language & region.
 - **Gaming**: FPS overlay (see [Games and controllers](games-and-controllers.md#the-fps-overlay)).
 - **Accessibility**: Screen reader and keyboard (sticky keys, slow keys, mouse keys, a tone for Caps Lock and Num Lock under Modifier keys, and the visual bell), Zoom and colour filters, Mouse pointer (a white or black pointer, from 24 to 96 pixels) and On-screen keyboard.
 - **Privacy & security**: Device security, Firewall, App permissions, Activity history, and Diagnostics & feedback.
