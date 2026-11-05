@@ -121,6 +121,9 @@ private Q_SLOTS:
         QCOMPARE(CheckResult::parse(line("dns", "skipped"))->result, CheckResult::Result::Skipped);
         QVERIFY(!CheckResult::parse("not json").has_value());
         QVERIFY(!CheckResult::parse(R"({"result": "ok"})").has_value());
+        // A result the app doesn't know, or none, isn't taken for a skipped check.
+        QVERIFY(!CheckResult::parse(line("dns", "bogus")).has_value());
+        QVERIFY(!CheckResult::parse(R"({"check": "dns", "reason": "dns-ok"})").has_value());
     }
 
     void takesOnlyCompleteLines()

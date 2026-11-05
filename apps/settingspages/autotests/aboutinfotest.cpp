@@ -69,20 +69,20 @@ class AboutInfoTest : public QObject
 private:
     QTemporaryDir m_dir;
     QVariantMap m_names;
-    // Each SetStaticHostname and SetPrettyHostname, as "method name", and how to answer the last.
-    QStringList m_calls;
-    std::function<void(const QString &, const QString &)> m_done;
+    // The arguments of each run of rename-pc, and how to answer the last.
+    QList<QStringList> m_runs;
+    std::function<void(int, const QString &)> m_done;
     QString m_copied;
 
     QString file(const QString &relative) const { return m_dir.filePath(relative); }
 
-    // Answers the last call; answering may make the next one.
-    void answer(const QString &errorName = { }, const QString &errorMessage = { })
+    // Answers the last run with rename-pc's exit code and last line.
+    void answer(int exitCode, const QString &detail = { })
     {
         auto done = std::move(m_done);
         m_done = nullptr;
         QVERIFY(done);
-        done(errorName, errorMessage);
+        done(exitCode, detail);
     }
 
     void addCard(const QString &address, const char *pciClass, const char *vendor, const char *device)
@@ -110,8 +110,8 @@ private:
             file(QStringLiteral("os-release")),
             file(QStringLiteral("pci.ids")),
             [this](std::function<void(const QVariantMap &)> done) { done(m_names); },
-            [this](const QString &method, const QString &name, std::function<void(const QString &, const QString &)> done) {
-                m_calls.append(method + QLatin1Char(' ') + name);
+            [this](const QStringList &arguments, std::function<void(int, const QString &)> done) {
+                m_runs.append(arguments);
                 m_done = std::move(done);
             },
             [this](const QString &text) { m_copied = text; },
@@ -142,7 +142,7 @@ private Q_SLOTS:
         setDmi("LENOVO", "82XV", "Legion Slim 5 16APH8");
         m_names = { { QStringLiteral("PrettyHostname"), QString() }, { QStringLiteral("StaticHostname"), QStringLiteral("orielos") },
             { QStringLiteral("Hostname"), QStringLiteral("orielos") } };
-        m_calls.clear();
+        m_runs.clear();
         m_done = nullptr;
         m_copied.clear();
     }
@@ -243,21 +243,18 @@ private Q_SLOTS:
         QCOMPARE(info.validate(QStringLiteral("games-")), QStringLiteral("The name can't start or end with a hyphen."));
     }
 
-    void renamesThroughHostnamed()
+    void renamesThroughRenamePC()
     {
         AboutInfo info(environment(), nullptr);
         QSignalSpy renamed(&info, &AboutInfo::renamed);
         info.rename(QStringLiteral("games-pc"));
         QVERIFY(info.isRenaming());
-        QCOMPARE(m_calls, QStringList { QStringLiteral("SetStaticHostname games-pc") });
+        QCOMPARE(m_runs, QList<QStringList> { QStringList { QStringLiteral("games-pc") } });
         // Another rename meanwhile does nothing.
         info.rename(QStringLiteral("other"));
-        QCOMPARE(m_calls.size(), 1);
+        QCOMPARE(m_runs.size(), 1);
 
-        answer();
-        QCOMPARE(m_calls, (QStringList { QStringLiteral("SetStaticHostname games-pc"), QStringLiteral("SetPrettyHostname games-pc") }));
-        QVERIFY(info.isRenaming());
-        answer();
+        answer(0);
         QVERIFY(!info.isRenaming());
         QCOMPARE(info.name(), QStringLiteral("games-pc"));
         QCOMPARE(info.message(), QStringLiteral("This PC is now called games-pc."));
@@ -266,14 +263,21 @@ private Q_SLOTS:
         QCOMPARE(values(info.deviceSpecs(), QStringLiteral("Device name")), QStringList { QStringLiteral("games-pc") });
     }
 
+    void aDismissedPromptKeepsTheName_data()
+    {
+        QTest::addColumn<int>("exitCode");
+        QTest::newRow("dismissed") << 126;
+        QTest::newRow("not allowed") << 127;
+    }
+
     void aDismissedPromptKeepsTheName()
     {
+        QFETCH(int, exitCode);
         AboutInfo info(environment(), nullptr);
         QSignalSpy renamed(&info, &AboutInfo::renamed);
         info.rename(QStringLiteral("games-pc"));
-        answer(QStringLiteral("org.freedesktop.DBus.Error.AccessDenied"), QStringLiteral("Access denied"));
+        answer(exitCode, QStringLiteral("Error executing command as another user: Not authorized"));
         QVERIFY(!info.isRenaming());
-        QCOMPARE(m_calls.size(), 1);
         QCOMPARE(info.name(), QStringLiteral("orielos"));
         QCOMPARE(info.message(), QStringLiteral("This PC's name wasn't changed: permission wasn't given."));
         QVERIFY(info.messageIsError());
@@ -283,22 +287,34 @@ private Q_SLOTS:
     void aFailedRenameSaysWhy()
     {
         AboutInfo info(environment(), nullptr);
+        QSignalSpy renamed(&info, &AboutInfo::renamed);
         info.rename(QStringLiteral("games-pc"));
-        answer();
-        // The static name changed; hostnamed is read again for the name shown.
-        m_names.insert(QStringLiteral("StaticHostname"), QStringLiteral("games-pc"));
-        answer(QStringLiteral("org.freedesktop.DBus.Error.Failed"), QStringLiteral("Failed to set pretty hostname"));
+        answer(1, QStringLiteral("rename-pc: Could not set hostname: Connection timed out"));
         QVERIFY(!info.isRenaming());
-        QCOMPARE(info.message(), QStringLiteral("This PC's name couldn't be changed: Failed to set pretty hostname"));
+        QCOMPARE(info.message(), QStringLiteral("This PC's name couldn't be changed: Could not set hostname: Connection timed out"));
         QVERIFY(info.messageIsError());
-        QCOMPARE(info.name(), QStringLiteral("games-pc"));
+        QCOMPARE(info.name(), QStringLiteral("orielos"));
+        QCOMPARE(renamed.size(), 0);
+
+        info.rename(QStringLiteral("games-pc"));
+        answer(1);
+        QCOMPARE(info.message(), QStringLiteral("This PC's name couldn't be changed: the rename stopped with an error."));
+    }
+
+    void closingThePageWhileRenamingIsSafe()
+    {
+        auto *info = new AboutInfo(environment(), nullptr);
+        info->rename(QStringLiteral("games-pc"));
+        delete info;
+        // rename-pc finishes after the page has gone.
+        answer(0);
     }
 
     void anInvalidNameIsntSent()
     {
         AboutInfo info(environment(), nullptr);
         info.rename(QStringLiteral("games pc"));
-        QVERIFY(m_calls.isEmpty());
+        QVERIFY(m_runs.isEmpty());
         QVERIFY(!info.isRenaming());
         QCOMPARE(info.message(), QStringLiteral("Spaces can't be used. Try a hyphen instead."));
         QVERIFY(info.messageIsError());

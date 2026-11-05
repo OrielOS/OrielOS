@@ -56,32 +56,32 @@ class DateTimeSettings : public QObject
     QML_ELEMENT
 
     // The time and date now, in the user's formats and the PC's time zone; they change every second.
-    Q_PROPERTY(QString time READ time NOTIFY clockTicked)
-    Q_PROPERTY(QString date READ date NOTIFY clockTicked)
+    Q_PROPERTY(QString time READ time NOTIFY clockTicked FINAL)
+    Q_PROPERTY(QString date READ date NOTIFY clockTicked FINAL)
     // The time zone, such as "Europe/London (UTC+01:00)".
-    Q_PROPERTY(QString timeZone READ timeZone NOTIFY clockTicked)
+    Q_PROPERTY(QString timeZone READ timeZone NOTIFY clockTicked FINAL)
 
     // Network time keeps the clock right. While it's being changed, this is the state asked for.
-    Q_PROPERTY(bool autoTime READ autoTime NOTIFY changed)
+    Q_PROPERTY(bool autoTime READ autoTime NOTIFY changed FINAL)
     // Whether the switch can change it: a network time service is installed and no change is
     // running.
-    Q_PROPERTY(bool canChangeAutoTime READ canChangeAutoTime NOTIFY changed)
+    Q_PROPERTY(bool canChangeAutoTime READ canChangeAutoTime NOTIFY changed FINAL)
     // The time zone follows the PC's location. While it's being changed, this is the state asked for.
-    Q_PROPERTY(bool autoTimeZone READ autoTimeZone NOTIFY changed)
-    Q_PROPERTY(bool canChangeAutoTimeZone READ canChangeAutoTimeZone NOTIFY changed)
+    Q_PROPERTY(bool autoTimeZone READ autoTimeZone NOTIFY changed FINAL)
+    Q_PROPERTY(bool canChangeAutoTimeZone READ canChangeAutoTimeZone NOTIFY changed FINAL)
 
     // Sync now is running.
-    Q_PROPERTY(bool syncing READ isSyncing NOTIFY changed)
+    Q_PROPERTY(bool syncing READ isSyncing NOTIFY changed FINAL)
     // Sync now can run: the time is set automatically and nothing else is running.
-    Q_PROPERTY(bool canSync READ canSync NOTIFY changed)
+    Q_PROPERTY(bool canSync READ canSync NOTIFY changed FINAL)
     // How the last Sync now went, or empty.
-    Q_PROPERTY(QString syncResult READ syncResult NOTIFY changed)
-    Q_PROPERTY(bool syncFailed READ syncFailed NOTIFY changed)
+    Q_PROPERTY(QString syncResult READ syncResult NOTIFY changed FINAL)
+    Q_PROPERTY(bool syncFailed READ syncFailed NOTIFY changed FINAL)
     // When the clock was last synchronised, and with which server.
-    Q_PROPERTY(QString lastSync READ lastSync NOTIFY changed)
+    Q_PROPERTY(QString lastSync READ lastSync NOTIFY changed FINAL)
 
     // What went wrong with the last change of a switch, or empty.
-    Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(QString error READ error NOTIFY changed FINAL)
 
 public:
     struct Environment

@@ -14,28 +14,28 @@
 
 namespace OrielOSSettingsPages {
 
-// Settings › System › About: what this PC is called, which it can change through systemd-hostnamed,
-// and what the PC and OrielOS are, read from /proc, sysfs, hwdata's pci.ids and os-release. Needs no
-// root to read; renaming asks polkit. Every string is ready to show.
+// Settings › System › About: what this PC is called, read from systemd-hostnamed and changed through
+// rename-pc with pkexec, and what the PC and OrielOS are, read from /proc, sysfs, hwdata's pci.ids
+// and os-release. Needs no root to read; renaming asks polkit. Every string is ready to show.
 class AboutInfo : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
 
     // hostnamed's pretty name, else its static name, else the kernel's.
-    Q_PROPERTY(QString name READ name NOTIFY changed)
+    Q_PROPERTY(QString name READ name NOTIFY changed FINAL)
     // The maker and model, such as "LENOVO Legion Slim 5 16APH8", or empty when the firmware doesn't
     // say.
-    Q_PROPERTY(QString device READ device NOTIFY changed)
+    Q_PROPERTY(QString device READ device NOTIFY changed FINAL)
     // { label, value } for each row of the two cards. A PC with two graphics cards has two Graphics
     // rows.
-    Q_PROPERTY(QVariantList deviceSpecs READ deviceSpecs NOTIFY changed)
-    Q_PROPERTY(QVariantList orielOSSpecs READ orielOSSpecs NOTIFY changed)
-    // A rename is waiting for hostnamed, and for polkit's password prompt.
-    Q_PROPERTY(bool renaming READ isRenaming NOTIFY changed)
+    Q_PROPERTY(QVariantList deviceSpecs READ deviceSpecs NOTIFY changed FINAL)
+    Q_PROPERTY(QVariantList orielOSSpecs READ orielOSSpecs NOTIFY changed FINAL)
+    // A rename is waiting for polkit's password prompt, then for rename-pc.
+    Q_PROPERTY(bool renaming READ isRenaming NOTIFY changed FINAL)
     // What the last rename did, or why a name can't be used. Empty otherwise.
-    Q_PROPERTY(QString message READ message NOTIFY changed)
-    Q_PROPERTY(bool messageIsError READ messageIsError NOTIFY changed)
+    Q_PROPERTY(QString message READ message NOTIFY changed FINAL)
+    Q_PROPERTY(bool messageIsError READ messageIsError NOTIFY changed FINAL)
 
 public:
     struct Environment
@@ -46,16 +46,15 @@ public:
         QString pciIdsPath;
         // Reads hostname1's PrettyHostname, StaticHostname and Hostname and calls done with them.
         std::function<void(std::function<void(const QVariantMap &names)> done)> readNames;
-        // Calls hostname1's SetStaticHostname or SetPrettyHostname with this name, letting polkit ask
-        // for an administrator's password, then done with the D-Bus error's name and message, both
-        // empty when it worked.
-        std::function<void(const QString &method, const QString &name, std::function<void(const QString &errorName, const QString &errorMessage)> done)>
-            setName;
+        // Runs rename-pc with these arguments (the new name) through pkexec, and calls done with its
+        // exit code and the last line it wrote to stderr. pkexec's 126 and 127 mean the password
+        // prompt was dismissed or the user isn't allowed.
+        std::function<void(const QStringList &arguments, std::function<void(int exitCode, const QString &detail)> done)> run;
         // Puts this text on the clipboard.
         std::function<void(const QString &text)> copy;
     };
 
-    // The real /proc, /sys, os-release, pci.ids, hostnamed and clipboard.
+    // The real /proc, /sys, os-release, pci.ids, hostnamed, pkexec and clipboard.
     explicit AboutInfo(QObject *parent = nullptr);
     AboutInfo(Environment environment, QObject *parent);
 
@@ -85,7 +84,6 @@ Q_SIGNALS:
 private:
     void readNames();
     void setNames(const QVariantMap &names);
-    void renameFailed(const QString &errorName, const QString &errorMessage, bool staticNameChanged);
     void showMessage(const QString &message, bool isError);
 
     Environment m_environment;

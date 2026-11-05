@@ -13,9 +13,12 @@
 #include <QDir>
 #include <QFile>
 #include <QGuiApplication>
+#include <QHash>
 #include <QLocale>
 #include <QPointer>
+#include <QProcess>
 #include <QRegularExpression>
+#include <QSet>
 #include <QSysInfo>
 #include <QTextStream>
 
@@ -30,8 +33,10 @@ const QString propertiesInterface = QStringLiteral("org.freedesktop.DBus.Propert
 
 // The longest name hostnamed takes as a static name.
 constexpr int maxNameLength = 63;
-// The password prompt waits for the person; D-Bus's own 25 seconds would end the call first.
-constexpr int renameTimeout = 10 * 60 * 1000;
+constexpr auto renameTool = "/usr/libexec/orielos/rename-pc";
+// pkexec exits with these when the password prompt is dismissed or the user isn't allowed.
+constexpr int pkexecDismissed = 126;
+constexpr int pkexecNotAuthorised = 127;
 
 QString readTrimmed(const QString &path)
 {
@@ -64,22 +69,25 @@ void readHostnamed(std::function<void(const QVariantMap &names)> done)
     });
 }
 
-// SetStaticHostname or SetPrettyHostname, with interactive true so polkit can ask for a password.
-void setHostnamed(const QString &method, const QString &name, std::function<void(const QString &errorName, const QString &errorMessage)> done)
+// pkexec /usr/libexec/orielos/rename-pc <arguments>, where polkit asks for an administrator's
+// password. The process has no parent, so it finishes even if the page closes meanwhile.
+void runPkexec(const QStringList &arguments, std::function<void(int exitCode, const QString &detail)> done)
 {
-    QDBusMessage message = QDBusMessage::createMethodCall(service, path, interface, method);
-    message << name << true;
-    message.setInteractiveAuthorizationAllowed(true);
-    auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(message, renameTimeout));
-    QObject::connect(watcher, &QDBusPendingCallWatcher::finished, watcher, [watcher, done]() {
-        watcher->deleteLater();
-        const QDBusPendingReply<> reply = *watcher;
-        if (reply.isError()) {
-            done(reply.error().name(), reply.error().message());
-        } else {
-            done({ }, { });
+    auto *process = new QProcess;
+    QObject::connect(process, &QProcess::finished, process, [process, done](int exitCode, QProcess::ExitStatus status) {
+        // The helper's reason is the last line it wrote.
+        const QString detail = QString::fromLocal8Bit(process->readAllStandardError()).trimmed().section(QLatin1Char('\n'), -1).trimmed();
+        process->deleteLater();
+        done(status == QProcess::NormalExit ? exitCode : 1, detail);
+    });
+    QObject::connect(process, &QProcess::errorOccurred, process, [process, done](QProcess::ProcessError error) {
+        // Other errors end in finished() above.
+        if (error == QProcess::FailedToStart) {
+            process->deleteLater();
+            done(1, i18nc("@info", "pkexec couldn't be started."));
         }
     });
+    process->start(QStringLiteral("pkexec"), QStringList { QLatin1String(renameTool) } + arguments);
 }
 
 void copyToClipboard(const QString &text)
@@ -147,23 +155,32 @@ QString hexId(const QString &path)
     return id;
 }
 
+// The names pci.ids gives the vendors and devices asked for: vendors by id, devices by
+// "vendor:device".
 struct PciNames
 {
-    QString vendor;
-    QString device;
+    QHash<QString, QString> vendors;
+    QHash<QString, QString> devices;
 };
 
-// The vendor's and device's names in pci.ids: vendor lines at the start of a line, their devices
-// after one tab, subsystems after two, and the class list from the first "C " line on.
-PciNames lookUp(const QString &idsPath, const QString &vendor, const QString &device)
+// Looks up every device in one pass over pci.ids: vendor lines at the start of a line, their
+// devices after one tab, subsystems after two, and the class list from the first "C " line on.
+PciNames lookUp(const QString &idsPath, const QList<std::pair<QString, QString>> &wanted)
 {
     PciNames names;
+    QSet<QString> vendors;
+    QSet<QString> devices;
+    for (const auto &[vendor, device] : wanted) {
+        vendors.insert(vendor);
+        devices.insert(vendor + QLatin1Char(':') + device);
+    }
     QFile file(idsPath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (wanted.isEmpty() || !file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return names;
     }
     QTextStream in(&file);
-    bool inVendor = false;
+    // The vendor whose devices follow, when it's one asked for.
+    QString vendor;
     QString line;
     while (in.readLineInto(&line)) {
         if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) {
@@ -173,18 +190,23 @@ PciNames lookUp(const QString &idsPath, const QString &vendor, const QString &de
             break;
         }
         if (!line.startsWith(QLatin1Char('\t'))) {
-            if (inVendor) {
-                break;
-            }
-            if (line.startsWith(vendor + QLatin1String("  "))) {
-                inVendor = true;
-                names.vendor = line.mid(vendor.size() + 2).trimmed();
+            vendor.clear();
+            const QString id = line.left(4);
+            if (line.mid(4, 2) == QLatin1String("  ") && vendors.contains(id)) {
+                vendor = id;
+                names.vendors.insert(id, line.mid(6).trimmed());
             }
             continue;
         }
-        if (inVendor && !line.startsWith(QLatin1String("\t\t")) && line.mid(1).startsWith(device + QLatin1String("  "))) {
-            names.device = line.mid(device.size() + 3).trimmed();
-            break;
+        if (vendor.isEmpty() || line.startsWith(QLatin1String("\t\t")) || line.mid(5, 2) != QLatin1String("  ")) {
+            continue;
+        }
+        const QString key = vendor + QLatin1Char(':') + line.mid(1, 4);
+        if (devices.contains(key)) {
+            names.devices.insert(key, line.mid(7).trimmed());
+            if (names.devices.size() == devices.size()) {
+                break;
+            }
         }
     }
     return names;
@@ -215,25 +237,29 @@ QString model(const QString &device)
 // Every display controller (PCI class 0x03), in the order of their addresses.
 QStringList readGraphics(const QString &sysRoot, const QString &idsPath)
 {
-    QStringList cards;
-    // The devices are links into the device tree, so links count.
+    // Every display device's ids first, so pci.ids is read once. The devices are links into the
+    // device tree, so links count.
+    QList<std::pair<QString, QString>> ids;
     const QDir devices(sysRoot + QStringLiteral("/bus/pci/devices"));
     const QStringList entries = devices.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System, QDir::Name);
     for (const QString &entry : entries) {
         const QString card = devices.filePath(entry);
-        if (!readTrimmed(card + QStringLiteral("/class")).startsWith(QLatin1String("0x03"))) {
-            continue;
+        if (readTrimmed(card + QStringLiteral("/class")).startsWith(QLatin1String("0x03"))) {
+            ids.append({ hexId(card + QStringLiteral("/vendor")), hexId(card + QStringLiteral("/device")) });
         }
-        const QString vendorId = hexId(card + QStringLiteral("/vendor"));
-        const QString deviceId = hexId(card + QStringLiteral("/device"));
-        const PciNames names = lookUp(idsPath, vendorId, deviceId);
-        const QString maker = shortVendor(names.vendor);
+    }
+
+    const PciNames names = lookUp(idsPath, ids);
+    QStringList cards;
+    for (const auto &[vendorId, deviceId] : std::as_const(ids)) {
+        const QString maker = shortVendor(names.vendors.value(vendorId));
+        const QString device = names.devices.value(vendorId + QLatin1Char(':') + deviceId);
         if (maker.isEmpty()) {
             cards.append(i18nc("@info %1 and %2 are PCI ids, such as 10de and 28e1", "Vendor %1, device %2", vendorId, deviceId));
-        } else if (names.device.isEmpty()) {
+        } else if (device.isEmpty()) {
             cards.append(i18nc("@info %1 is a maker such as NVIDIA, %2 a PCI id such as 28e1", "%1, device %2", maker, deviceId));
         } else {
-            const QString name = model(names.device);
+            const QString name = model(device);
             cards.append(name.startsWith(maker) ? name : QString(maker + QLatin1Char(' ') + name));
         }
     }
@@ -337,7 +363,7 @@ QString textOf(const QVariantList &rows)
 
 AboutInfo::AboutInfo(QObject *parent)
     : AboutInfo(Environment { QStringLiteral("/proc"), QStringLiteral("/sys"), QStringLiteral("/usr/lib/os-release"),
-                    QStringLiteral("/usr/share/hwdata/pci.ids"), readHostnamed, setHostnamed, copyToClipboard },
+                    QStringLiteral("/usr/share/hwdata/pci.ids"), readHostnamed, runPkexec, copyToClipboard },
           parent)
 {
 }
@@ -461,47 +487,33 @@ void AboutInfo::rename(const QString &name)
     m_message.clear();
     m_messageIsError = false;
     Q_EMIT changed();
-    // The static name is the one the network and other PCs see; the pretty name is the one shown.
-    // The rename goes on if the page closes meanwhile.
-    m_environment.setName(
-        QStringLiteral("SetStaticHostname"), name, [self = QPointer<AboutInfo>(this), name](const QString &errorName, const QString &errorMessage) {
-            if (!self) {
-                return;
+    // One privileged step sets the static name, which the network and other PCs see, and the name
+    // shown, so a rename asks for the password once and can't stop halfway. It goes on if the page
+    // closes meanwhile.
+    m_environment.run({ name }, [self = QPointer<AboutInfo>(this), name](int exitCode, const QString &detail) {
+        if (!self) {
+            return;
+        }
+        self->m_renaming = false;
+        if (exitCode == 0) {
+            self->m_name = name;
+            self->showMessage(i18nc("@info %1 is the PC's new name", "This PC is now called %1.", name), false);
+            Q_EMIT self->renamed();
+        } else if (exitCode == pkexecDismissed || exitCode == pkexecNotAuthorised) {
+            // polkit's prompt was dismissed, the password was wrong, or there's no one to ask.
+            self->showMessage(i18nc("@info", "This PC's name wasn't changed: permission wasn't given."), true);
+        } else {
+            // rename-pc's lines start with its name, which the page doesn't need.
+            QString reason = detail;
+            if (reason.startsWith(QLatin1String("rename-pc: "))) {
+                reason = reason.mid(11);
             }
-            if (!errorName.isEmpty()) {
-                self->renameFailed(errorName, errorMessage, false);
-                return;
+            if (reason.isEmpty()) {
+                reason = i18nc("@info", "the rename stopped with an error.");
             }
-            self->m_environment.setName(QStringLiteral("SetPrettyHostname"), name, [self, name](const QString &errorName, const QString &errorMessage) {
-                if (!self) {
-                    return;
-                }
-                if (!errorName.isEmpty()) {
-                    self->renameFailed(errorName, errorMessage, true);
-                    return;
-                }
-                self->m_renaming = false;
-                self->m_name = name;
-                self->showMessage(i18nc("@info %1 is the PC's new name", "This PC is now called %1.", name), false);
-                Q_EMIT self->renamed();
-            });
-        });
-}
-
-void AboutInfo::renameFailed(const QString &errorName, const QString &errorMessage, bool staticNameChanged)
-{
-    m_renaming = false;
-    // polkit's prompt was dismissed, the password was wrong, or there's no one to ask.
-    if (errorName == QLatin1String("org.freedesktop.DBus.Error.AccessDenied")
-        || errorName == QLatin1String("org.freedesktop.DBus.Error.InteractiveAuthorizationRequired")) {
-        showMessage(i18nc("@info", "This PC's name wasn't changed: permission wasn't given."), true);
-    } else {
-        showMessage(i18nc("@info %1 is the reason", "This PC's name couldn't be changed: %1", errorMessage.isEmpty() ? errorName : errorMessage), true);
-    }
-    // Half done, the name shown may have changed too; hostnamed knows what it is now.
-    if (staticNameChanged) {
-        readNames();
-    }
+            self->showMessage(i18nc("@info %1 is the reason", "This PC's name couldn't be changed: %1", reason), true);
+        }
+    });
 }
 
 void AboutInfo::showMessage(const QString &message, bool isError)

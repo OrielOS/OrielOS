@@ -46,7 +46,7 @@ void runProcess(const QString &program, const QStringList &arguments, std::funct
     process->start(program, arguments);
 }
 
-CheckResult::Result resultFrom(const QString &name)
+std::optional<CheckResult::Result> resultFrom(const QString &name)
 {
     if (name == QLatin1String("ok")) {
         return CheckResult::Result::Ok;
@@ -54,7 +54,10 @@ CheckResult::Result resultFrom(const QString &name)
     if (name == QLatin1String("problem")) {
         return CheckResult::Result::Problem;
     }
-    return CheckResult::Result::Skipped;
+    if (name == QLatin1String("skipped")) {
+        return CheckResult::Result::Skipped;
+    }
+    return std::nullopt;
 }
 
 // What a check found when it passed, in a few words, or empty for a reason this app doesn't know.
@@ -163,12 +166,13 @@ std::optional<CheckResult> CheckResult::parse(const QByteArray &line)
 {
     const QJsonObject object = QJsonDocument::fromJson(line).object();
     const QString check = object.value(QStringLiteral("check")).toString();
-    if (check.isEmpty()) {
+    const auto outcome = resultFrom(object.value(QStringLiteral("result")).toString());
+    if (check.isEmpty() || !outcome) {
         return std::nullopt;
     }
     CheckResult result;
     result.check = check;
-    result.result = resultFrom(object.value(QStringLiteral("result")).toString());
+    result.result = *outcome;
     result.reason = object.value(QStringLiteral("reason")).toString();
     result.message = object.value(QStringLiteral("message")).toString();
     result.fix = object.value(QStringLiteral("fix")).toString();
@@ -231,6 +235,23 @@ NetworkCheck::~NetworkCheck()
     }
 }
 
+QString NetworkCheck::stateName(State state)
+{
+    switch (state) {
+    case State::Pending:
+        return QStringLiteral("pending");
+    case State::Running:
+        return QStringLiteral("running");
+    case State::Ok:
+        return QStringLiteral("ok");
+    case State::Problem:
+        return QStringLiteral("problem");
+    case State::Skipped:
+        return QStringLiteral("skipped");
+    }
+    return { };
+}
+
 QVariantList NetworkCheck::checks() const
 {
     QVariantList out;
@@ -238,7 +259,7 @@ QVariantList NetworkCheck::checks() const
         out.append(QVariantMap {
             { QStringLiteral("id"), check.id },
             { QStringLiteral("title"), check.title },
-            { QStringLiteral("state"), check.state },
+            { QStringLiteral("state"), stateName(check.state) },
             { QStringLiteral("detail"), check.detail },
         });
     }
@@ -247,7 +268,7 @@ QVariantList NetworkCheck::checks() const
 
 bool NetworkCheck::allPassed() const
 {
-    return m_finished && std::all_of(m_checks.cbegin(), m_checks.cend(), [](const Check &check) { return check.state == QLatin1String("ok"); });
+    return m_finished && std::all_of(m_checks.cbegin(), m_checks.cend(), [](const Check &check) { return check.state == State::Ok; });
 }
 
 void NetworkCheck::run()
@@ -273,10 +294,10 @@ void NetworkCheck::start()
     m_problemFix.clear();
     m_buffer.clear();
     for (Check &check : m_checks) {
-        check.state = QStringLiteral("pending");
+        check.state = State::Pending;
         check.detail.clear();
     }
-    m_checks.first().state = QStringLiteral("running");
+    m_checks.first().state = State::Running;
     m_checks.first().detail = i18nc("@info:status", "Checking…");
     Q_EMIT changed();
     m_process.start(m_environment.program, QStringList { });
@@ -302,13 +323,13 @@ void NetworkCheck::apply(const CheckResult &result)
     }
     switch (result.result) {
     case CheckResult::Result::Ok: {
-        check->state = QStringLiteral("ok");
+        check->state = State::Ok;
         const QString detail = passedDetail(result.reason);
         check->detail = detail.isEmpty() ? result.message : detail;
         break;
     }
     case CheckResult::Result::Problem:
-        check->state = QStringLiteral("problem");
+        check->state = State::Problem;
         check->detail = i18nc("@info:status", "Problem found");
         // network-check stops at the first problem; only that one is shown.
         if (m_problemReason.isEmpty()) {
@@ -319,14 +340,14 @@ void NetworkCheck::apply(const CheckResult &result)
         }
         break;
     case CheckResult::Result::Skipped:
-        check->state = QStringLiteral("skipped");
+        check->state = State::Skipped;
         check->detail = i18nc("@info:status", "Checked once the problem above is fixed");
         break;
     }
     // The next check is the one running now, until a problem stops them.
-    const auto next = std::find_if(m_checks.begin(), m_checks.end(), [](const Check &check) { return check.state == QLatin1String("pending"); });
+    const auto next = std::find_if(m_checks.begin(), m_checks.end(), [](const Check &check) { return check.state == State::Pending; });
     if (next != m_checks.end() && m_problemReason.isEmpty()) {
-        next->state = QStringLiteral("running");
+        next->state = State::Running;
         next->detail = i18nc("@info:status", "Checking…");
     }
 }
@@ -347,8 +368,8 @@ void NetworkCheck::onChecksFinished(int exitCode, QProcess::ExitStatus status)
     // Checks that never reported go back to waiting.
     bool incomplete = false;
     for (Check &check : m_checks) {
-        if (check.state == QLatin1String("pending") || check.state == QLatin1String("running")) {
-            check.state = QStringLiteral("pending");
+        if (check.state == State::Pending || check.state == State::Running) {
+            check.state = State::Pending;
             check.detail.clear();
             incomplete = true;
         }

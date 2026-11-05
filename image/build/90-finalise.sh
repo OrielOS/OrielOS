@@ -188,6 +188,10 @@ for f in network-check restart-networking; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done
 [[ -r /usr/share/polkit-1/actions/org.orielos.network.policy ]] || update_errors+=("org.orielos.network.policy is missing, so the network troubleshooter can't restart the network service")
+# Rename this PC (Settings › System › About): one helper through pkexec.
+[[ -x /usr/libexec/orielos/rename-pc ]] || update_errors+=("/usr/libexec/orielos/rename-pc is not executable")
+[[ -r /usr/share/polkit-1/actions/org.orielos.rename.policy ]] || update_errors+=("org.orielos.rename.policy is missing, so Settings can't rename this PC")
+command -v hostnamectl >/dev/null || update_errors+=("hostnamectl, which rename-pc needs, is not installed")
 for f in rotation-lock reset-displays restart-desktop fps-overlay; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done
