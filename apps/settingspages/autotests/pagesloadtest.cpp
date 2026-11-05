@@ -69,6 +69,8 @@ private Q_SLOTS:
         QTest::newRow("fps overlay") << QStringLiteral("kcm_orielos_fpsoverlay") << QStringLiteral("FPS Overlay") << QStringLiteral("hardware");
         QTest::newRow("installed apps") << QStringLiteral("kcm_orielos_installedapps") << QStringLiteral("Installed Apps") << QStringLiteral("applications");
         QTest::newRow("recovery") << QStringLiteral("kcm_orielos_recovery") << QStringLiteral("Recovery") << QStringLiteral("system-administration");
+        QTest::newRow("about") << QStringLiteral("kcm_orielos_about") << QStringLiteral("About") << QStringLiteral("system-administration");
+        QTest::newRow("date and time") << QStringLiteral("kcm_orielos_datetime") << QStringLiteral("Date & Time") << QStringLiteral("regionalsettings");
     }
 
     void loadsThePage()

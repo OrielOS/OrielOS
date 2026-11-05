@@ -68,6 +68,18 @@ ecm_add_test(resetpctest.cpp
 )
 set_tests_properties(resetpctest PROPERTIES ENVIRONMENT "LANGUAGE=en_GB;LC_ALL=en_GB.UTF-8")
 
+ecm_add_test(aboutinfotest.cpp
+    TEST_NAME aboutinfotest
+    LINK_LIBRARIES OrielOSAbout Qt6::Test
+)
+set_tests_properties(aboutinfotest PROPERTIES ENVIRONMENT "LANGUAGE=en_GB;LC_ALL=en_GB.UTF-8")
+
+ecm_add_test(datetimesettingstest.cpp
+    TEST_NAME datetimesettingstest
+    LINK_LIBRARIES OrielOSDateTime Qt6::Test
+)
+set_tests_properties(datetimesettingstest PROPERTIES ENVIRONMENT "LANGUAGE=en_GB;LC_ALL=en_GB.UTF-8")
+
 ecm_add_test(desktopbackgroundtest.cpp
     TEST_NAME desktopbackgroundtest
     LINK_LIBRARIES OrielOSBackground Qt6::Qml Qt6::Test
@@ -99,7 +111,8 @@ ecm_add_test(pagesloadtest.cpp
     LINK_LIBRARIES KF6::KCMUtilsQuick KF6::CoreAddons Qt6::Quick Qt6::Test
 )
 add_dependencies(pagesloadtest kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb kcm_orielos_background kcm_orielos_recentactivity
-    kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps kcm_orielos_recovery)
+    kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps kcm_orielos_recovery
+    kcm_orielos_about kcm_orielos_datetime)
 set_tests_properties(pagesloadtest PROPERTIES
     ENVIRONMENT "QT_PLUGIN_PATH=$<TARGET_FILE_DIR:kcm_orielos_accent>/../../..;QT_QPA_PLATFORM=offscreen"
 )

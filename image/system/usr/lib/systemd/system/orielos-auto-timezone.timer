@@ -1,0 +1,13 @@
+[Unit]
+Description=Set the time zone from this PC's location now and then
+Documentation=https://github.com/OrielOS/OrielOS
+
+[Timer]
+# Enabled only while "Set time zone automatically" is on in Settings › Date & time: a while after
+# each start, once the network is up, then every six hours, which catches a PC that moved while it
+# slept. NetworkManager also starts the service each time the PC gets online.
+OnBootSec=2min
+OnUnitActiveSec=6h
+
+[Install]
+WantedBy=timers.target

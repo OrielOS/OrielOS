@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Restarts NetworkManager, for the network troubleshooter's Fix it when NetworkManager has stopped
+# or stopped answering, then waits up to 30 seconds for it to finish starting and bring the
+# connections back. Runs as root through pkexec (org.orielos.network.restart in
+# org.orielos.network.policy), which allows nothing else.
+#   restart-networking
+set -euo pipefail
+
+if (($# > 0)); then
+    printf 'restart-networking: takes no arguments\n' >&2
+    exit 2
+fi
+systemctl restart NetworkManager.service
+nm-online -s -q -t 30 || true

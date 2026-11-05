@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Sets the time zone again each time this PC gets online, while "Set time zone automatically" is on
+# in Settings › Date & time: a PC that moved gets its new zone as soon as it has a connection.
+# NetworkManager runs it as root with the interface and the action; connectivity-change says the
+# new state in CONNECTIVITY_STATE. The service does the work, without holding NetworkManager up.
+#
+# Tests set ORIELOS_AUTO_TIMEZONE_ROOT to look for the setting in a scratch directory, with a
+# stand-in for systemctl.
+set -Eeuo pipefail
+
+CONFIG="${ORIELOS_AUTO_TIMEZONE_ROOT:-}/etc/orielos/auto-timezone"
+
+case "${2:-}" in
+    up) ;;
+    connectivity-change) [[ "${CONNECTIVITY_STATE:-}" == FULL ]] || exit 0 ;;
+    *) exit 0 ;;
+esac
+[[ -e "$CONFIG" ]] || exit 0
+systemctl start --no-block orielos-auto-timezone.service

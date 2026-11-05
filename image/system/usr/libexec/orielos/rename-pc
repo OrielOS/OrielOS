@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Gives this PC a new name: the static name, which the network and other PCs see, and the name the
+# desktop shows, in one step through hostnamectl, so a rename can't stop halfway. Settings' About
+# page runs it through pkexec (org.orielos.rename-pc), so polkit asks for an administrator's
+# password once. The name takes effect at once; nothing needs a restart.
+#
+# Usage: rename-pc NAME
+#   NAME  1 to 63 letters A to Z, numbers and hyphens, not starting or ending with a hyphen
+# Exit status: 0 on success, 1 on errors (the last line on stderr says why), 2 on a name that can't
+# be used.
+# Runs as root.
+set -Eeuo pipefail
+# Letter ranges mean A to Z only in the C locale.
+export LC_ALL=C
+
+# Tests set ORIELOS_RENAME_ROOT to run against a scratch directory, with a stand-in hostnamectl,
+# without root. pkexec never passes it, so it can't redirect a real run.
+PREFIX="${ORIELOS_RENAME_ROOT:-}"
+HOSTNAMECTL="$PREFIX/usr/bin/hostnamectl"
+
+die() {
+    printf 'rename-pc: %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+# Prints why the name can't be used, or nothing when it can. The same rules as the About page.
+problem() {
+    local name="$1"
+    if [[ -z "$name" ]]; then
+        echo "enter a name"
+    elif [[ "${#name}" -gt 63 ]]; then
+        echo "use up to 63 characters"
+    elif [[ "$name" == *[[:space:]]* ]]; then
+        echo "spaces can't be used, try a hyphen instead"
+    elif [[ ! "$name" =~ ^[A-Za-z0-9-]+$ ]]; then
+        echo "use only letters A to Z, numbers and hyphens"
+    elif [[ "$name" == -* || "$name" == *- ]]; then
+        echo "the name can't start or end with a hyphen"
+    fi
+}
+
+main() {
+    [[ $# -eq 1 ]] || die "usage: rename-pc NAME" 2
+    local name="$1" reason out
+    reason="$(problem "$name")"
+    [[ -z "$reason" ]] || die "$reason" 2
+    if [[ -z "$PREFIX" ]]; then
+        [[ "$EUID" -eq 0 ]] || die "run rename-pc as root, for example with pkexec"
+    fi
+    if ! out="$("$HOSTNAMECTL" hostname "$name" 2>&1)"; then
+        out="${out##*$'\n'}"
+        die "${out:-hostnamectl failed to set the name}"
+    fi
+}
+
+main "$@"

@@ -133,7 +133,7 @@ done
 for module in kcm_orielos_accessories kcm_orielos_accent kcm_orielos_start kcm_orielos_taskbar kcm_orielos_security \
     kcm_orielos_powermode kcm_orielos_signin kcm_orielos_multitasking kcm_orielos_pointer kcm_orielos_storage kcm_orielos_fonts kcm_orielos_donotdisturb \
     kcm_orielos_background kcm_orielos_recentactivity kcm_orielos_camera kcm_orielos_fpsoverlay kcm_orielos_installedapps \
-    kcm_orielos_recovery; do
+    kcm_orielos_recovery kcm_orielos_about kcm_orielos_datetime; do
     for f in "/usr/lib64/qt6/plugins/plasma/kcms/systemsettings/$module.so" "/usr/share/applications/$module.desktop"; do
         [[ -r "$f" ]] || update_errors+=("$f is missing")
     done
@@ -181,6 +181,17 @@ grep -qxF 'Title=Shutting down' /usr/share/plymouth/themes/orielos/orielos.plymo
 # Set up this PC, the tour that first-sign-in opens once after an account's first sign-in.
 [[ -x /usr/bin/orielos-tour ]] || update_errors+=("Set up this PC, /usr/bin/orielos-tour, is missing")
 [[ -r /usr/share/applications/org.orielos.Tour.desktop ]] || update_errors+=("Set up this PC isn't in Start: org.orielos.Tour.desktop is missing")
+# The network troubleshooter, from Quick Settings' menu and Start, and its checks.
+[[ -x /usr/bin/orielos-network-troubleshooter ]] || update_errors+=("The network troubleshooter, /usr/bin/orielos-network-troubleshooter, is missing")
+[[ -r /usr/share/applications/org.orielos.NetworkTroubleshooter.desktop ]] || update_errors+=("The network troubleshooter isn't in Start: org.orielos.NetworkTroubleshooter.desktop is missing")
+for f in network-check restart-networking; do
+    [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
+done
+[[ -r /usr/share/polkit-1/actions/org.orielos.network.policy ]] || update_errors+=("org.orielos.network.policy is missing, so the network troubleshooter can't restart the network service")
+# Rename this PC (Settings › System › About): one helper through pkexec.
+[[ -x /usr/libexec/orielos/rename-pc ]] || update_errors+=("/usr/libexec/orielos/rename-pc is not executable")
+[[ -r /usr/share/polkit-1/actions/org.orielos.rename.policy ]] || update_errors+=("org.orielos.rename.policy is missing, so Settings can't rename this PC")
+command -v hostnamectl >/dev/null || update_errors+=("hostnamectl, which rename-pc needs, is not installed")
 for f in rotation-lock reset-displays restart-desktop fps-overlay; do
     [[ -x "/usr/libexec/orielos/$f" ]] || update_errors+=("/usr/libexec/orielos/$f is not executable")
 done
@@ -291,6 +302,27 @@ if [[ -e /var/lib/orielos/reset || -e /etc/orielos/reset-apply ]]; then
 fi
 if [[ "${#reset_errors[@]}" -gt 0 ]]; then
     printf 'error: %s\n' "${reset_errors[@]}" >&2
+    exit 1
+fi
+
+# Date & time (Settings › Time & language): setting the time zone automatically and Sync now. The
+# timer is enabled only when someone turns the setting on, so it must not be enabled in the image.
+time_errors=()
+for f in /usr/libexec/orielos/auto-timezone /usr/libexec/orielos/time-sync /usr/lib/NetworkManager/dispatcher.d/90-orielos-auto-timezone; do
+    [[ -x "$f" ]] || time_errors+=("$f is not executable")
+done
+for f in /usr/lib/systemd/system/orielos-auto-timezone.service /usr/lib/systemd/system/orielos-auto-timezone.timer /usr/share/polkit-1/actions/org.orielos.time.policy; do
+    [[ -r "$f" ]] || time_errors+=("$f is missing")
+done
+if [[ "$(systemctl is-enabled orielos-auto-timezone.timer 2>/dev/null)" == "enabled" ]]; then
+    time_errors+=("orielos-auto-timezone.timer is enabled in the image")
+fi
+for cmd in chronyc curl jq timedatectl pkexec; do
+    command -v "$cmd" >/dev/null || time_errors+=("$cmd, which Date & time needs, is not installed")
+done
+[[ ! -e /etc/orielos/auto-timezone ]] || time_errors+=("setting the time zone automatically is turned on in the image")
+if [[ "${#time_errors[@]}" -gt 0 ]]; then
+    printf 'error: %s\n' "${time_errors[@]}" >&2
     exit 1
 fi
 

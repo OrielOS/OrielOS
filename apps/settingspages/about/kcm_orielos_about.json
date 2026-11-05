@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "This PC's name, which you can change, and what's inside it",
+        "Icon": "computer",
+        "Name": "About"
+    },
+    "X-KDE-Keywords": "about,rename,rename this pc,pc name,computer name,device name,hostname,specifications,specs,processor,cpu,memory,ram,graphics,gpu,version,kernel,system information",
+    "X-KDE-System-Settings-Parent-Category": "system-administration",
+    "X-KDE-Weight": 10
+}

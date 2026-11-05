@@ -16,6 +16,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.networkmanagement as PlasmaNM
+import org.kde.plasma.plasma5support as P5Support
 import org.kde.plasma.plasmoid
 import org.kde.plasma.private.battery as Battery
 import org.kde.plasma.private.batterymonitor as Power
@@ -119,6 +120,33 @@ PlasmoidItem {
     }
 
     Plasmoid.onActivated: root.open = !root.open
+
+    // Right-clicking the button: the network troubleshooter and the network's settings, as the
+    // network icon's menu offers them. The button takes only left and middle clicks, so a right
+    // click reaches the taskbar, which shows this menu.
+    Plasmoid.contextualActions: [
+        PlasmaCore.Action {
+            text: i18nc("@action:inmenu", "Find and fix network problems")
+            icon.name: "tools-wizard"
+            // Through the app's desktop entry, so it runs as an app of its own rather than a child
+            // of the taskbar.
+            onTriggered: {
+                root.open = false;
+                runner.connectSource("kioclient exec /usr/share/applications/org.orielos.NetworkTroubleshooter.desktop");
+            }
+        },
+        PlasmaCore.Action {
+            text: i18nc("@action:inmenu", "Network settings")
+            icon.name: "preferences-system-network"
+            onTriggered: root.openSettings("network")
+        }
+    ]
+
+    P5Support.DataSource {
+        id: runner
+        engine: "executable"
+        onNewData: source => disconnectSource(source)
+    }
 
     PlasmaCore.Dialog {
         id: panelWindow

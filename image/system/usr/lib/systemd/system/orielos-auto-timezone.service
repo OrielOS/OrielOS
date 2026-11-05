@@ -1,0 +1,34 @@
+[Unit]
+Description=Set the time zone from this PC's location
+Documentation=https://github.com/OrielOS/OrielOS
+# Runs only while "Set time zone automatically" is on in Settings › Date & time.
+ConditionPathExists=/etc/orielos/auto-timezone
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Started by orielos-auto-timezone.timer, and by NetworkManager each time the PC gets online.
+Type=oneshot
+ExecStart=/usr/libexec/orielos/auto-timezone set
+# It asks the location service over the network and asks systemd-timedated over D-Bus to change the
+# zone; timedated writes /etc/localtime itself, so nothing here needs to write anywhere. timedated
+# lets a caller holding CAP_SYS_TIME change the zone without polkit, so that one capability stays
+# (ProtectClock would drop it).
+CapabilityBoundingSet=CAP_SYS_TIME
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
