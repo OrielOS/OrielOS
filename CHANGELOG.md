@@ -6,6 +6,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Added
 
+- The first-run setup offers a PIN straight after you create your account, so you can sign in with it from the first time. It's 4 to 12 digits, typed twice, and works only on this computer; leave it empty to skip, and set one up later in Settings → Accounts → Sign-in options.
 - Rename this PC, in Settings → System → About, which is now OrielOS's own page: the computer's name, with its maker and model, and its specifications (processor, memory, graphics card, OrielOS's version), each list with a Copy button. The new name takes effect at once, after an administrator's password, with no restart. All system details opens the full list.
 - Date & time, in Settings → Time & language, is now OrielOS's own page: switches to set the time and the time zone automatically, Sync now, and when the clock last synchronised and with which server. Setting the time zone automatically is off until you turn it on; it looks the time zone up from your connection's address, again after each new connection and every 6 hours, so it follows you when you travel. More date and time settings sets them by hand.
 - A network troubleshooter: right-click the network icon on the taskbar and choose Find and fix network problems, or find it in Start. It checks each part of the connection in turn, from the network adapter and Wi-Fi to the router, name lookups and the internet, says in plain words what's wrong and fixes it where it can, such as turning Wi-Fi or the network back on, reconnecting, or opening a hotel or café Wi-Fi's sign-in page.
@@ -46,6 +47,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- GE-Proton is ready as soon as you install Steam: OrielOS now installs it for Steam a minute or so after the computer starts, before Steam is installed, instead of only once Steam was there, which could leave Steam without it for up to six hours.
 - An update is no longer undone after only one of its starts went without anyone signing in: when no one had signed in before the computer restarted into the update either, that earlier start counted as the update's first failure.
 - Holding Shift while choosing Restart shows the boot menu on computers installed before that was added: OrielOS now brings its part of the boot menu up to date at each start.
 - The FPS overlay's processor and graphics card labels are grey, like the rest of the overlay, instead of blue and green.

@@ -109,10 +109,13 @@ fi
 # tray icon and the Update settings page; both units are enabled here for the same reason as above. No update state may be in
 # the image: it belongs to each computer.
 systemctl enable orielos-update-check.timer orielos-update-state.service orielos-app-update.timer
+# GE-Proton for Steam is installed soon after start-up, before Steam usually is.
+systemctl enable orielos-ge-proton.timer
 # The update screen at shut down starts with whichever unit finishes a staged update.
 systemctl enable orielos-update-splash.service
 update_errors=()
-for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer orielos-update-splash.service; do
+for unit in orielos-update-check.timer orielos-update-state.service orielos-app-update.timer orielos-ge-proton.timer \
+    orielos-update-splash.service; do
     if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
         update_errors+=("$unit is not enabled")
     fi
@@ -381,12 +384,15 @@ fi
 
 # Quick sign-in: the PIN service, started for each request by its socket, which the sign-in screen,
 # the lock screen and administrator prompts ask through pin-auth (29-quick-sign-in.sh) and Settings
-# asks to set or remove a PIN.
-systemctl enable orielos-pin.socket
-if [[ "$(systemctl is-enabled orielos-pin.socket 2>/dev/null)" != "enabled" ]]; then
-    printf 'error: orielos-pin.socket is not enabled\n' >&2
-    exit 1
-fi
+# asks to set or remove a PIN. The first-run setup's PIN page stages a PIN for the account it's about
+# to create, and orielos-pin-staged gives it to that account once the setup has finished.
+systemctl enable orielos-pin.socket orielos-pin-staged.path orielos-pin-staged.service
+for unit in orielos-pin.socket orielos-pin-staged.path orielos-pin-staged.service; do
+    if [[ "$(systemctl is-enabled "$unit" 2>/dev/null)" != "enabled" ]]; then
+        printf 'error: %s is not enabled\n' "$unit" >&2
+        exit 1
+    fi
+done
 for f in /usr/libexec/orielos/pin-service /usr/libexec/orielos/pin-auth; do
     [[ -x "$f" ]] || {
         printf 'error: %s is not executable\n' "$f" >&2
@@ -589,8 +595,9 @@ fi
     exit 1
 }
 
-# GE-Proton is the default for Windows games: orielos-update installs it next to Steam from the
-# Store, and this timer sets it as each user's Steam default, once, while Steam is closed.
+# GE-Proton is the default for Windows games: orielos-update installs it for Steam from the Store
+# soon after start-up, and this timer sets it as each user's Steam default, once, while Steam is
+# closed.
 systemctl --global enable orielos-steam-default-proton.timer
 if [[ "$(systemctl --global is-enabled orielos-steam-default-proton.timer 2>/dev/null)" != "enabled" ]]; then
     printf 'error: orielos-steam-default-proton.timer is not enabled for users\n' >&2

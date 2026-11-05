@@ -10,12 +10,19 @@ standard input and output. A client sends one JSON request on one line and gets 
     {"op": "check", "user": NAME, "pin": "123456"}   -> {"ok": true} or {"ok": false, "wait": SECONDS}
     {"op": "set", "pin": "123456", "credential": C}  -> {"ok": true} or {"ok": false, "error": TEXT}
     {"op": "remove", "credential": C}                -> {"ok": true} or {"ok": false, "error": TEXT}
+    {"op": "stage", "user": NAME, "pin": "123456"}   -> {"ok": true} or {"ok": false, "error": TEXT}
 
 "info", "set" and "remove" are about the caller's own account. "check" is for the caller's own
 account, or any account when the caller is root (the sign-in screen and administrator prompts, through
 pam_exec and /usr/libexec/orielos/pin-auth). Setting or removing a PIN needs the account's password
 or its current PIN as C, so nothing running as the user can give itself a PIN to answer
 administrator prompts with.
+
+"stage" is for the first-run setup's PIN page. Plasma Setup creates the account only as it finishes,
+so the page hands the PIN over first, for an account that doesn't exist yet; an empty PIN clears it.
+Only the plasma-setup user may stage, only while the setup runs and before anyone has an account.
+When the setup writes /etc/plasma-setup-done, orielos-pin-staged.service runs
+`pin-service --apply-staged`, which gives the staged PIN to the account the setup made.
 
 Each PIN is kept as a salted scrypt hash, encrypted with systemd-creds: sealed to the TPM where the
 computer has one, so the file is useless on any other computer, or to the computer's own credential
@@ -48,6 +55,14 @@ ALLOWED_FAILURES = 5
 FIRST_WAIT = 30
 LONGEST_WAIT = 900
 SCRYPT = {"n": 2**15, "r": 8, "p": 1, "maxmem": 64 * 1024 * 1024}
+# The PIN chosen in the first-run setup, waiting for the account it's for: {"user", "salt", "hash",
+# "length"}, encrypted as each PIN is.
+STAGED = f"{STORE}/staged.cred"
+SETUP_USER = "plasma-setup"
+SETUP_DONE = "/etc/plasma-setup-done"
+# The user IDs of people's accounts (login.defs' UID_MIN and UID_MAX).
+FIRST_UID = 1000
+LAST_UID = 60000
 
 
 def peer_uid():
@@ -61,25 +76,39 @@ def paths(uid):
     return f"{STORE}/{uid}.cred", f"{STORE}/{uid}.state"
 
 
-def read_pin(uid):
-    """The stored record ({"salt", "hash", "length"}), or None."""
-    cred, _ = paths(uid)
-    if not os.path.exists(cred):
+def unseal(path):
+    """A record encrypted by seal(), or None if there's no file."""
+    if not os.path.exists(path):
         return None
-    out = subprocess.run(["systemd-creds", "decrypt", f"--name={CREDENTIAL_NAME}", cred, "-"],
+    out = subprocess.run(["systemd-creds", "decrypt", f"--name={CREDENTIAL_NAME}", path, "-"],
                          capture_output=True, check=True, timeout=30).stdout
     return json.loads(out)
 
 
-def write_pin(uid, pin):
-    salt = os.urandom(16)
-    record = {"salt": salt.hex(), "hash": hashlib.scrypt(pin.encode(), salt=salt, **SCRYPT).hex(),
-              "length": len(pin)}
-    cred, _ = paths(uid)
-    subprocess.run(["systemd-creds", "encrypt", f"--name={CREDENTIAL_NAME}", "--with-key=auto", "-", cred + ".new"],
+def seal(record, path):
+    subprocess.run(["systemd-creds", "encrypt", f"--name={CREDENTIAL_NAME}", "--with-key=auto", "-", path + ".new"],
                    input=json.dumps(record).encode(), capture_output=True, check=True, timeout=30)
-    os.chmod(cred + ".new", 0o600)
-    os.replace(cred + ".new", cred)
+    os.chmod(path + ".new", 0o600)
+    os.replace(path + ".new", path)
+
+
+def make_record(pin):
+    salt = os.urandom(16)
+    return {"salt": salt.hex(), "hash": hashlib.scrypt(pin.encode(), salt=salt, **SCRYPT).hex(),
+            "length": len(pin)}
+
+
+def valid_pin(pin):
+    return pin.isascii() and pin.isdigit() and MIN_LENGTH <= len(pin) <= MAX_LENGTH
+
+
+def read_pin(uid):
+    """The stored record ({"salt", "hash", "length"}), or None."""
+    return unseal(paths(uid)[0])
+
+
+def write_pin(uid, pin):
+    seal(make_record(pin), paths(uid)[0])
 
 
 def matches(record, pin):
@@ -130,7 +159,7 @@ class State:
 
 
 def check(uid, pin):
-    if not pin.isdigit() or not MIN_LENGTH <= len(pin) <= MAX_LENGTH:
+    if not valid_pin(pin):
         # A password typed into the box isn't a wrong PIN.
         return {"ok": False}
     record = read_pin(uid)
@@ -228,7 +257,7 @@ def handle(request, caller):
             write_info(account, None)
             return {"ok": True}
         pin = str(request.get("pin", ""))
-        if not pin.isdigit() or not MIN_LENGTH <= len(pin) <= MAX_LENGTH:
+        if not valid_pin(pin):
             return {"ok": False, "error": f"a PIN is {MIN_LENGTH} to {MAX_LENGTH} digits"}
         write_pin(caller, pin)
         state = State(caller)
@@ -236,7 +265,59 @@ def handle(request, caller):
         state.save()
         write_info(account, len(pin))
         return {"ok": True}
+    if op == "stage":
+        return stage(account, str(request.get("user", "")), str(request.get("pin", "")))
     return {"ok": False, "error": "unknown request"}
+
+
+def people():
+    """The accounts of people, as opposed to system accounts."""
+    return [a for a in pwd.getpwall() if FIRST_UID <= a.pw_uid <= LAST_UID]
+
+
+def stage(caller, user, pin):
+    """Keeps the first-run setup's PIN for the account it's about to create."""
+    if caller.pw_name != SETUP_USER or os.path.exists(SETUP_DONE):
+        return {"ok": False, "error": "not allowed"}
+    # Plasma Setup creates an account only when there's none, so a staged PIN can never reach an
+    # account that already existed, which could then answer administrator prompts with it.
+    if people():
+        return {"ok": False, "error": "an account already exists"}
+    if not pin:
+        if os.path.exists(STAGED):
+            os.remove(STAGED)
+        return {"ok": True}
+    if not user or len(user) > 32 or "/" in user:
+        return {"ok": False, "error": "no account name"}
+    if not valid_pin(pin):
+        return {"ok": False, "error": f"a PIN is {MIN_LENGTH} to {MAX_LENGTH} digits"}
+    seal(dict(make_record(pin), user=user), STAGED)
+    return {"ok": True}
+
+
+def apply_staged():
+    """Gives the staged PIN to the account the first-run setup made, then forgets it. Returns a
+    line for the journal."""
+    record = unseal(STAGED)
+    if record is None:
+        return "no PIN was chosen in the first-run setup"
+    if not os.path.exists(SETUP_DONE):
+        return "the first-run setup hasn't finished; the PIN stays staged"
+    try:
+        try:
+            account = pwd.getpwnam(record["user"])
+        except KeyError:
+            return "the first-run setup didn't create the account; the PIN it chose is dropped"
+        if not FIRST_UID <= account.pw_uid <= LAST_UID:
+            return "the PIN's account isn't a person's; the PIN is dropped"
+        seal({k: record[k] for k in ("salt", "hash", "length")}, paths(account.pw_uid)[0])
+        state = State(account.pw_uid)
+        state.succeeded()
+        state.save()
+        write_info(account, record["length"])
+        return f"{account.pw_name} signs in with the PIN chosen in the first-run setup"
+    finally:
+        os.remove(STAGED)
 
 
 def main():
@@ -244,6 +325,9 @@ def main():
     os.makedirs(STORE, mode=0o700, exist_ok=True)
     os.makedirs(INFO, mode=0o755, exist_ok=True)
     os.chmod(INFO, 0o755)
+    if sys.argv[1:] == ["--apply-staged"]:
+        print(f"pin-service: {apply_staged()}")
+        return
     caller = peer_uid()
     line = sys.stdin.buffer.readline(4096)
     try:
