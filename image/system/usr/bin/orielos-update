@@ -21,6 +21,7 @@
 #        orielos-update forget DIGEST
 #        orielos-update app-updates on|off
 #        orielos-update apps
+#        orielos-update ge-proton
 #        orielos-update restart-at TIME|cancel
 #        orielos-update active-hours START END
 #        orielos-update auto-restart on|off
@@ -49,7 +50,10 @@
 #   app-updates
 #              turn automatic updates of apps from the Store on or off; they're on until turned off
 #   apps       update every app and runtime from the Store, unless app updates are off or the
-#              connection is metered; orielos-app-update.service runs it
+#              connection is metered, and install GE-Proton for Steam if it's missing;
+#              orielos-app-update.service runs it
+#   ge-proton  install GE-Proton for Steam if it's missing, whether or not Steam is installed, unless
+#              app updates are off or the connection is metered; orielos-ge-proton.service runs it
 #   restart-at restart at TIME (UTC, as 2026-11-02T03:00:00Z), within a week, to finish the update or
 #              go back, replacing any restart scheduled before; cancel drops it
 #   active-hours
@@ -78,8 +82,7 @@ REJECTED="$STATE_DIR/rejected-digests"
 SETTINGS="$STATE_DIR/settings"
 # When the apps from the Store were last brought up to date.
 APPS_STATE="$STATE_DIR/apps"
-# Steam from the Store, and Flathub's GE-Proton extension for it.
-STEAM_APP=com.valvesoftware.Steam
+# Flathub's GE-Proton extension for Steam from the Store.
 GE_PROTON=com.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable
 STATE_FILE="$STATE_DIR/state.json"
 # The running build's digest and when it first started, for removing the previous build on time.
@@ -846,6 +849,39 @@ cmd_app_updates() {
     fi
 }
 
+# GE-Proton is the default for Windows games. Flathub's GE-Proton extension for Steam is installed
+# whether or not Steam is, so it's already there when Steam from the Store is installed (flatpak
+# doesn't install it with Steam by itself); each user's Steam is then set to it by
+# /usr/libexec/orielos/steam-default-proton, and app updates keep it current. A failure exits 1.
+install_ge_proton() {
+    local out
+    flatpak info --system "$GE_PROTON" >/dev/null 2>&1 && return 0
+    printf 'Installing GE-Proton for Steam\n'
+    if ! out="$(flatpak install --system --noninteractive flathub "$GE_PROTON" 2>&1)"; then
+        die "couldn't install GE-Proton for Steam: $(tail -n1 <<<"$out")"
+    fi
+}
+
+# Install GE-Proton for Steam if it's missing, unless app updates are off or the connection is
+# metered. orielos-ge-proton.service runs it soon after start-up.
+cmd_ge_proton() {
+    need flatpak
+    if flatpak info --system "$GE_PROTON" >/dev/null 2>&1; then
+        printf 'GE-Proton for Steam is installed.\n'
+        return 0
+    fi
+    if [[ "$(app_updates_setting)" == off ]]; then
+        printf "Automatic app updates are off, so GE-Proton for Steam isn't installed.\n"
+        return 0
+    fi
+    if metered; then
+        printf 'GE-Proton for Steam is installed later, not on a metered connection.\n'
+        return 0
+    fi
+    install_ge_proton
+    printf 'GE-Proton for Steam is installed.\n'
+}
+
 # Update the apps and runtimes installed from the Store (Flatpak, system-wide). A runtime's related
 # extensions come with it, among them Flathub's NVIDIA GL extension for the installed driver. A
 # failure exits 1, so the service tries again later.
@@ -864,15 +900,8 @@ cmd_apps() {
         die "couldn't update the apps: $(tail -n1 <<<"$out")"
     fi
     printf '%s\n' "$out"
-    # GE-Proton is the default for Windows games: Steam from the Store gets Flathub's GE-Proton
-    # extension, which flatpak doesn't install with Steam by itself, and each user's Steam is set to
-    # it by /usr/libexec/orielos/steam-default-proton. Updates then keep it current.
-    if flatpak info --system "$STEAM_APP" >/dev/null 2>&1 && ! flatpak info --system "$GE_PROTON" >/dev/null 2>&1; then
-        printf 'Installing GE-Proton for Steam\n'
-        if ! out="$(flatpak install --system --noninteractive flathub "$GE_PROTON" 2>&1)"; then
-            die "couldn't install GE-Proton for Steam: $(tail -n1 <<<"$out")"
-        fi
-    fi
+    # Put GE-Proton back if it was removed.
+    install_ge_proton
     mkdir -p "$STATE_DIR"
     printf 'updated_at=%s\n' "$(iso_time "$(now)")" >"$APPS_STATE.new"
     chmod 0644 "$APPS_STATE.new"
@@ -979,7 +1008,7 @@ main() {
             usage
             return 0
             ;;
-        status | check | check-now | resume | refresh | rollback | remove-previous | undo-update | apps | restart-if-waiting)
+        status | check | check-now | resume | refresh | rollback | remove-previous | undo-update | apps | ge-proton | restart-if-waiting)
             [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2
             ;;
         pause | channel | stage | forget | app-updates | restart-at | auto-restart) [[ $# -eq 2 ]] || die "$cmd needs one argument (see orielos-update --help)" 2 ;;
@@ -1019,6 +1048,7 @@ main() {
         forget) cmd_forget "$2" ;;
         app-updates) cmd_app_updates "$2" ;;
         apps) cmd_apps ;;
+        ge-proton) cmd_ge_proton ;;
         restart-at) cmd_restart_at "$2" ;;
         active-hours) cmd_active_hours "$2" "$3" ;;
         auto-restart) cmd_auto_restart "$2" ;;

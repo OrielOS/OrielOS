@@ -1,0 +1,13 @@
+[Unit]
+Description=Install GE-Proton for Steam from the Store soon after start-up
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/games-and-controllers.md
+
+[Timer]
+# A minute after start-up, so GE-Proton is usually there before Steam is installed, even on the
+# first start after installing OrielOS. Then every six hours, which installs it again if it was
+# removed or a run skipped it on a metered connection.
+OnBootSec=1min
+OnUnitActiveSec=6h
+
+[Install]
+WantedBy=timers.target
