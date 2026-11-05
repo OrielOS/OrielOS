@@ -1,0 +1,11 @@
+[Unit]
+Description=Watch for the first-run setup to finish, to give the new account its PIN
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/install.md
+
+[Path]
+# Plasma Setup creates the account, then writes this file as it finishes.
+PathChanged=/etc/plasma-setup-done
+Unit=orielos-pin-staged.service
+
+[Install]
+WantedBy=paths.target
