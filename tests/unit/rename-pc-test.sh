@@ -117,7 +117,12 @@ if [[ "$EUID" -ne 0 ]]; then
     OUT="$(env -u ORIELOS_RENAME_ROOT bash "$TOOL" games-pc 2>&1)" || RC=$?
     check "it refuses without root" test "$RC" -eq 1 -a "$OUT" == "rename-pc: run rename-pc as root, for example with pkexec"
 elif command -v setpriv >/dev/null 2>&1; then
-    OUT="$(env -u ORIELOS_RENAME_ROOT setpriv --reuid=65534 --regid=65534 --clear-groups bash "$TOOL" games-pc 2>&1)" || RC=$?
+    # A copy nobody can read: the checkout may be in root's home, which nobody can't open.
+    OPEN="$(mktemp -d)"
+    chmod 0755 "$OPEN"
+    install -m 0755 "$TOOL" "$OPEN/rename-pc"
+    OUT="$(cd / && env -u ORIELOS_RENAME_ROOT setpriv --reuid=65534 --regid=65534 --clear-groups bash "$OPEN/rename-pc" games-pc 2>&1)" || RC=$?
+    rm -rf "$OPEN"
     check "it refuses without root" test "$RC" -eq 1 -a "$OUT" == "rename-pc: run rename-pc as root, for example with pkexec"
 else
     printf 'SKIP  it refuses without root (running as root, without setpriv)\n'
