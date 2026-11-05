@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Installs the OrielOS image to a disk file, boots it under QEMU/KVM with Secure Boot, a software
 # TPM and a 1920x1080 screen, and saves a numbered set of screenshots that show what OrielOS looks
-# like: the boot splash, Plasma Setup's pages, the sign-in screen, Set up this PC, the desktop, Start, a setting
-# found from Start, Files, the Store, System Monitor, the taskbar's menu for an app that isn't
-# pinned and one that is, Settings and some of its pages, Firefox,
+# like: the boot splash, Plasma Setup's pages, the sign-in screen, Set up this PC, the desktop,
+# Start (on a centred taskbar and a left-aligned one), a setting found from Start, Files, the Store,
+# System Monitor, the taskbar's menu for an app that isn't pinned and one that is, Settings and
+# some of its pages, Firefox,
 # Screenshot, the overview, the lock screen (idle and unlocking), the dark theme and the dark lock
 # screen. It drives the VM with QMP mouse clicks and key presses, as a person would, and uses SSH
 # through a vsock device to wait for each step and to close windows between screenshots.
@@ -271,6 +272,31 @@ open_app() {
     sleep "$seconds"
 }
 
+# Centre the taskbar's icons or align them to the left, as Settings does: the panel spacer just
+# before Start fills the space or shrinks to nothing. set_taskbar_centred <true|false>
+set_taskbar_centred() {
+    local script="$WORK/taskbar-align.sh"
+    cat >"$script" <<'SH'
+#!/bin/sh
+busctl --user call org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell evaluateScript s "
+panels().forEach(function (panel) {
+    var start = panel.widgets('org.orielos.startmenu')[0];
+    if (!start) { return; }
+    panel.currentConfigGroup = ['General'];
+    var ids = String(panel.readConfig('AppletOrder', '')).split(';').map(Number);
+    var at = ids.indexOf(start.id);
+    var spacer = at > 0 ? panel.widgetById(ids[at - 1]) : null;
+    if (spacer && spacer.type === 'org.kde.plasma.panelspacer') {
+        spacer.currentConfigGroup = ['General'];
+        spacer.writeConfig('expanding', $1);
+        spacer.reloadConfig();
+    }
+});"
+SH
+    vm_copy "$script" /var/tmp/taskbar-align.sh && in_session sh /var/tmp/taskbar-align.sh "$1" >/dev/null 2>&1 || return 1
+    sleep 3
+}
+
 # The desktop, one screenshot each, closing windows in between.
 desktop_tour() {
     # Set up this PC opens by itself at the first sign-in.
@@ -286,6 +312,15 @@ desktop_tour() {
     press_and_shot 07-start-search 3 type:store
     vm_qmp keys:esc wait:1 keys:esc >/dev/null 2>&1 || true
     sleep 2
+    # Start on a left-aligned taskbar opens at the taskbar's start; then centred again.
+    if set_taskbar_centred false; then
+        press_and_shot 06-start-menu-left 3 keys:meta_l
+        vm_qmp keys:esc >/dev/null 2>&1 || true
+        sleep 1
+        set_taskbar_centred true || warn "Could not centre the taskbar again"
+    else
+        warn "Could not align the taskbar to the left"
+    fi
     # A setting found from Start, which Enter opens in Settings.
     press_and_shot 07-start-search-setting 3 keys:meta_l wait:2 "type:dark mode"
     press_and_shot 07-start-search-setting-opened 10 keys:ret

@@ -9,8 +9,8 @@
 // Plasma's popup for widgets in a panel (plasma-desktop's shell, applet/CompactApplet.qml), with
 // OrielOS's changes for its new look: popups from the taskbar float a little above it, like Sill's,
 // with all their corners rounded; a widget that declares `centredPopup: true` (Start) opens its
-// popup in the middle of the taskbar rather than over itself; an open widget is lit by a rounded
-// highlight rather than a tab.
+// popup in the middle of a centred taskbar, or at the start of a left-aligned one, rather than over
+// itself; an open widget is lit by a rounded highlight rather than a tab.
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Window
@@ -46,15 +46,31 @@ PlasmaCore.ToolTipArea {
         .includes(Plasmoid.location)
     readonly property bool centredPopup: inPanel && plasmoidItem?.centredPopup === true
 
-    // OrielOS: puts the centre anchor in the middle of the panel's window, along the panel.
+    // OrielOS: places the anchor a centred popup opens over. On a centred taskbar it's in the middle
+    // of the panel's window, along the panel. On a left-aligned one the widget is first on the
+    // panel, so the anchor takes the popup's own size and starts a gap from the panel's start (its
+    // end in right-to-left languages), and the popup opens there, as Start does in Windows.
     function placeCentreAnchor() {
         const window = root.Window.window;
         if (!window) {
             return;
         }
         const origin = root.mapToItem(null, 0, 0);
-        centreAnchor.x = vertical ? 0 : window.width / 2 - origin.x - centreAnchor.width / 2;
-        centreAnchor.y = vertical ? window.height / 2 - origin.y - centreAnchor.height / 2 : 0;
+        const along = vertical ? window.height : window.width;
+        const at = vertical ? origin.y : origin.x;
+        const size = vertical ? root.height : root.width;
+        const mirrored = !vertical && Qt.application.layoutDirection === Qt.RightToLeft;
+        const fromStart = mirrored ? along - at - size : at;
+        let length = size;
+        let start = along / 2 - size / 2;
+        if (fromStart < size) {
+            length = vertical ? dialog.height : dialog.width;
+            start = mirrored ? along - popupGap - length : popupGap;
+        }
+        centreAnchor.width = vertical ? root.width : length;
+        centreAnchor.height = vertical ? length : root.height;
+        centreAnchor.x = vertical ? 0 : start - at;
+        centreAnchor.y = vertical ? start - at : 0;
     }
 
     onCompactRepresentationChanged: {
@@ -90,11 +106,9 @@ PlasmaCore.ToolTipArea {
         }
     }
 
-    // OrielOS: what a centred popup opens over, as big as the widget.
+    // OrielOS: what a centred popup opens over, sized and placed by placeCentreAnchor().
     Item {
         id: centreAnchor
-        width: root.width
-        height: root.height
     }
 
     Connections {
@@ -106,6 +120,22 @@ PlasmaCore.ToolTipArea {
                 root.placeCentreAnchor();
                 dialog.queuePositionUpdate();
             }
+        }
+    }
+
+    // OrielOS: the popup's size is known only once it has opened the first time, and a
+    // left-aligned anchor takes that size.
+    Connections {
+        target: dialog
+        enabled: root.centredPopup && root.plasmoidItem.expanded
+
+        function onWidthChanged() {
+            root.placeCentreAnchor();
+            dialog.queuePositionUpdate();
+        }
+        function onHeightChanged() {
+            root.placeCentreAnchor();
+            dialog.queuePositionUpdate();
         }
     }
 
