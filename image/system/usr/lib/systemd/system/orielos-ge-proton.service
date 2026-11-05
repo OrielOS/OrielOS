@@ -1,0 +1,26 @@
+[Unit]
+Description=Install GE-Proton for Steam from the Store
+Documentation=https://github.com/OrielOS/OrielOS/blob/main/docs/games-and-controllers.md
+After=network-online.target
+Wants=network-online.target
+# A failure is tried again every 15 minutes, for as long as it takes, for example while offline.
+StartLimitIntervalSec=0
+
+[Service]
+# Started by orielos-ge-proton.timer. orielos-update installs GE-Proton only if it's missing, so
+# once it's there each run ends at once, and skips it when app updates are off or the connection
+# is metered.
+Type=oneshot
+ExecStart=/usr/bin/orielos-update ge-proton
+Restart=on-failure
+RestartSec=15min
+# The download must not slow down whatever the user is doing.
+Nice=19
+CPUSchedulingPolicy=idle
+IOSchedulingClass=idle
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+LockPersonality=true

@@ -595,21 +595,51 @@ check "apps records when the apps were updated" test "$RC" -eq 0 -a "$(state .ap
 run status
 check "status shows app updates and when they last ran" grep -qF "App updates: on, last updated $(iso "$NOW")" <<<"$OUT"
 
-setup
-run apps
-check "apps installs no GE-Proton without Steam" not_called "flatpak install"
+GE_INSTALL="flatpak install --system --noninteractive flathub com.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable"
 
 setup
-printf 'com.valvesoftware.Steam\n' >"$WORK/stub/installed"
 run apps
-check "apps installs GE-Proton next to Steam from the Store" \
-    called "flatpak install --system --noninteractive flathub com.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable"
+check "apps installs GE-Proton for Steam, even before Steam is installed" called "$GE_INSTALL"
 check "and still records the update" test "$RC" -eq 0 -a "$(state .appsUpdatedAt)" == "$(iso "$NOW")"
 
 setup
-printf 'com.valvesoftware.Steam\ncom.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable\n' >"$WORK/stub/installed"
+printf 'com.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable\n' >"$WORK/stub/installed"
 run apps
 check "apps leaves GE-Proton alone once it's installed" not_called "flatpak install"
+
+setup
+run ge-proton
+check "ge-proton installs GE-Proton for Steam without Steam installed" test "$RC" -eq 0
+check "with flatpak, system-wide and without asking" called "$GE_INSTALL"
+check "and updates no other app" not_called "flatpak update"
+
+setup
+printf 'com.valvesoftware.Steam.CompatibilityTool.Proton-GE//stable\n' >"$WORK/stub/installed"
+run ge-proton
+check "ge-proton does nothing once GE-Proton is installed" test "$RC" -eq 0
+check "and installs nothing" not_called "flatpak install"
+
+setup
+run app-updates off
+run ge-proton
+check "ge-proton skips while app updates are off" test "$RC" -eq 0
+check "and installs nothing" not_called "flatpak install"
+
+setup
+printf 'u 1\n' >"$WORK/stub/metered"
+run ge-proton
+check "ge-proton skips a metered connection" test "$RC" -eq 0
+check "and installs nothing" not_called "flatpak install"
+
+setup
+: >"$WORK/stub/flatpak-fails"
+run ge-proton
+check "a failed GE-Proton install exits 1, so the service tries again" test "$RC" -eq 1
+
+setup
+run ge-proton now
+check "ge-proton with an argument is refused with exit 2" test "$RC" -eq 2
+check "and runs no flatpak" not_called "flatpak"
 
 setup
 : >"$WORK/stub/flatpak-fails"

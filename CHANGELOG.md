@@ -46,6 +46,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 
 ### Fixed
 
+- GE-Proton is ready as soon as you install Steam: OrielOS now installs it for Steam a minute or so after the computer starts, before Steam is installed, instead of only once Steam was there, which could leave Steam without it for up to six hours.
 - An update is no longer undone after only one of its starts went without anyone signing in: when no one had signed in before the computer restarted into the update either, that earlier start counted as the update's first failure.
 - Holding Shift while choosing Restart shows the boot menu on computers installed before that was added: OrielOS now brings its part of the boot menu up to date at each start.
 - The FPS overlay's processor and graphics card labels are grey, like the rest of the overlay, instead of blue and green.

@@ -17,7 +17,7 @@ OrielOS doesn't preinstall any of them.
 
 Windows games run on OrielOS through Proton, a compatibility layer. OrielOS makes **GE-Proton** Steam's default: a community build of Valve's Proton that carries newer fixes, and plays many in-game videos and cutscenes that Valve's build can't.
 
-- When you install Steam from the Store, OrielOS also installs GE-Proton for it, the next time it updates your apps (a few minutes after you start the computer, then about every six hours). It's about 570 MB, and it then updates with your other apps.
+- OrielOS installs GE-Proton for Steam by itself, a minute or so after you first start the computer, so it's already there when you install Steam from the Store. It's about 570 MB to download, and it then updates with your other apps. It waits while the connection is metered, and isn't installed while automatic app updates are off.
 - The next time Steam is closed after that, OrielOS sets GE-Proton as Steam's default for Windows games, once. It doesn't change anything while Steam is open, because Steam saves its settings when it closes.
 - If Steam already had a default you chose, OrielOS leaves it as it is.
 

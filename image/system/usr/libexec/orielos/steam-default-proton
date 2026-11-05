@@ -6,7 +6,7 @@
 Steam keeps its default for Windows games in config.vdf, under CompatToolMapping, as the entry for
 app 0; a game's own entry, which Steam writes when the user picks a tool in the game's properties,
 wins over it. This adds the default entry for GE-Proton (Flathub's GE-Proton extension for Steam,
-which orielos-update installs next to Steam) only when:
+which orielos-update installs soon after start-up) only when:
 
 - Steam isn't running, since it writes config.vdf when it quits and would undo the change;
 - the extension is installed;
