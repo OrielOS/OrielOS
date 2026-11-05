@@ -115,6 +115,9 @@ private Q_SLOTS:
         QTest::newRow("specs") << QStringLiteral("specs") << QStringLiteral("about");
         QTest::newRow("reset this pc") << QStringLiteral("reset this pc") << QStringLiteral("recovery");
         QTest::newRow("factory reset") << QStringLiteral("factory reset") << QStringLiteral("recovery");
+        QTest::newRow("rename this pc") << QStringLiteral("rename this pc") << QStringLiteral("about");
+        QTest::newRow("computer name") << QStringLiteral("computer name") << QStringLiteral("about");
+        QTest::newRow("sync now") << QStringLiteral("sync now") << QStringLiteral("date-time");
         QTest::newRow("secure boot") << QStringLiteral("secure boot") << QStringLiteral("device-security");
         QTest::newRow("anti-cheat") << QStringLiteral("anti-cheat") << QStringLiteral("device-security");
         QTest::newRow("sticky keys") << QStringLiteral("sticky keys") << QStringLiteral("accessibility");

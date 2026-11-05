@@ -1,0 +1,370 @@
+#!/usr/bin/bash
+# SPDX-FileCopyrightText: 2026 OrielOS contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# The network troubleshooter's checks and fixes. The checks follow the connection outwards, from
+# the network adapter to the internet, and the first one that fails is the problem: the checks
+# after it are skipped, so only that one is shown. Each check prints one JSON object on its own
+# line as it finishes:
+#   {"check": "<id>", "result": "ok|problem|skipped", "reason": "<id>", "message": "<sentence>",
+#    "fix": "<fix id or empty>"}
+# The app shows its own translated words for each reason; message is the same in English, for
+# people running this in a terminal.
+#
+# Usage: network-check                run the checks: adapter, radio, connected, address, gateway,
+#                                     dns, internet
+#        network-check fix <fix id>   apply a fix: wifi-on, airplane-off, networking-on, reconnect,
+#                                     flush-dns, open-portal, restart-networking
+#        network-check --help
+# Every fix but restart-networking works as the signed-in user; restart-networking asks for an
+# administrator through pkexec unless it runs as root.
+# Exit status: 0 when the checks ran, whatever they found, or the fix worked; 1 when a fix failed;
+# 2 on wrong usage or an unknown fix.
+set -euo pipefail
+
+# Tests set ORIELOS_NETWORK_CHECK_ROOT to read a scratch sysfs and configuration instead of the
+# real ones; the commands come from PATH.
+PREFIX="${ORIELOS_NETWORK_CHECK_ROOT:-}"
+RFKILL_DIR="$PREFIX/sys/class/rfkill"
+RESTART_TOOL="${ORIELOS_NETWORK_CHECK_RESTART:-/usr/libexec/orielos/restart-networking}"
+# Plasma's airplane mode, which Quick Settings' tile turns on and off.
+PLASMA_NM_CONF="${XDG_CONFIG_HOME:-${HOME:-}/.config}/plasma-nm"
+# The address NetworkManager's connectivity check fetches on Fedora (NetworkManager-config-
+# connectivity-fedora). On a network with a sign-in page, opening it in a browser lands there.
+FEDORA_CONNECTIVITY_URI=http://fedoraproject.org/static/hotspot.txt
+# Where NetworkManager reads its configuration, in the order later files override earlier ones.
+NM_CONF_FILES=("$PREFIX/etc/NetworkManager/NetworkManager.conf" "$PREFIX"/usr/lib/NetworkManager/conf.d/*.conf
+    "$PREFIX"/run/NetworkManager/conf.d/*.conf "$PREFIX"/etc/NetworkManager/conf.d/*.conf)
+CHECKS=(adapter radio connected address gateway dns internet)
+
+# The network adapters NetworkManager manages: Wi-Fi and Ethernet only, read by load_devices.
+DEV_NAME=()
+DEV_TYPE=()
+DEV_STATE=()
+# NetworkManager's own internet check, run once: full, portal, limited, none or unknown.
+CONNECTIVITY=""
+# What the check that just ran found.
+RESULT=""
+REASON=""
+MESSAGE=""
+FIX=""
+
+die() {
+    printf 'network-check: %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+usage() {
+    sed -n '5,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+found() {
+    RESULT="$1"
+    REASON="$2"
+    MESSAGE="$3"
+    FIX="${4:-}"
+}
+
+emit() {
+    jq -cn --arg check "$1" --arg result "$2" --arg reason "$3" --arg message "$4" --arg fix "$5" \
+        '{check: $check, result: $result, reason: $reason, message: $message, fix: $fix}'
+}
+
+nm_running() {
+    [[ "$(nmcli -t -f RUNNING general 2>/dev/null)" == running ]]
+}
+
+load_devices() {
+    local name type state
+    DEV_NAME=()
+    DEV_TYPE=()
+    DEV_STATE=()
+    while IFS=: read -r name type state; do
+        [[ "$type" == wifi || "$type" == ethernet ]] || continue
+        [[ "$state" != unmanaged* ]] || continue
+        DEV_NAME+=("$name")
+        DEV_TYPE+=("$type")
+        DEV_STATE+=("$state")
+    done < <(nmcli -t -f DEVICE,TYPE,STATE device 2>/dev/null || true)
+}
+
+# The first managed adapter of a type whose state starts with one of the given words:
+#   device_where <wifi|ethernet|any> <state>...
+device_where() {
+    local want="$1" i state
+    shift
+    for i in "${!DEV_NAME[@]}"; do
+        [[ "$want" == any || "${DEV_TYPE[$i]}" == "$want" ]] || continue
+        for state in "$@"; do
+            if [[ "${DEV_STATE[$i]}" == "$state"* ]]; then
+                printf '%s\n' "${DEV_NAME[$i]}"
+                return 0
+            fi
+        done
+    done
+    return 1
+}
+
+has_type() {
+    local type
+    for type in "${DEV_TYPE[@]}"; do
+        [[ "$type" == "$1" ]] && return 0
+    done
+    return 1
+}
+
+# Whether a radio switch or key has turned the Wi-Fi off: an rfkill device of type wlan is hard
+# blocked.
+wifi_hard_blocked() {
+    local dev
+    for dev in "$RFKILL_DIR"/*; do
+        [[ -r "$dev/type" && "$(<"$dev/type")" == wlan ]] || continue
+        [[ -r "$dev/hard" && "$(<"$dev/hard")" == 1 ]] && return 0
+    done
+    return 1
+}
+
+# Whether every radio is soft blocked, which is what airplane mode leaves; a single radio is just
+# that radio turned off.
+all_radios_blocked() {
+    local dev count=0
+    for dev in "$RFKILL_DIR"/*; do
+        [[ -r "$dev/soft" ]] || continue
+        [[ "$(<"$dev/soft")" == 1 ]] || return 1
+        count=$((count + 1))
+    done
+    ((count > 1))
+}
+
+plasma_airplane_mode() {
+    [[ -r "$PLASMA_NM_CONF" ]] || return 1
+    awk -F= '/^\[/ { section = $0; next }
+        section == "[General]" && $1 == "AirplaneModeEnabled" { on = ($2 == "true") }
+        END { exit !on }' "$PLASMA_NM_CONF"
+}
+
+wifi_radio_on() {
+    [[ "$(nmcli radio wifi 2>/dev/null)" == enabled ]]
+}
+
+load_connectivity() {
+    if [[ -z "$CONNECTIVITY" ]]; then
+        CONNECTIVITY="$(timeout 20 nmcli -t networking connectivity check 2>/dev/null || true)"
+        CONNECTIVITY="${CONNECTIVITY:-unknown}"
+    fi
+}
+
+check_adapter() {
+    if ! nm_running; then
+        found problem nm-not-running "NetworkManager, which runs this PC's network connections, isn't running." restart-networking
+        return
+    fi
+    load_devices
+    if ((${#DEV_NAME[@]} == 0)); then
+        found problem no-adapter "No network adapter was found. If this PC has one, its driver may be missing."
+    elif has_type wifi && has_type ethernet; then
+        found ok adapter-both "This PC has Wi-Fi and a network cable socket."
+    elif has_type wifi; then
+        found ok adapter-wifi "This PC has Wi-Fi."
+    else
+        found ok adapter-ethernet "This PC has a network cable socket."
+    fi
+}
+
+check_radio() {
+    if ! has_type wifi; then
+        found ok radio-not-needed "This PC connects by cable, so it doesn't need Wi-Fi."
+    elif device_where ethernet connected >/dev/null; then
+        found ok radio-not-needed "This PC is connected by cable, so it doesn't need Wi-Fi."
+    elif wifi_hard_blocked; then
+        found problem hard-blocked "Wi-Fi is turned off by a switch or key on this PC. Turn it on with the wireless switch, or the key with the wireless symbol."
+    elif all_radios_blocked || { plasma_airplane_mode && ! wifi_radio_on; }; then
+        found problem airplane "Airplane mode is on, so Wi-Fi is off." airplane-off
+    elif ! wifi_radio_on; then
+        found problem wifi-off "Wi-Fi is turned off." wifi-on
+    else
+        found ok radio-ok "Wi-Fi is on."
+    fi
+}
+
+check_connected() {
+    local state
+    state="$(nmcli -t -f STATE general 2>/dev/null || true)"
+    case "$state" in
+        connected*) found ok connected "This PC is connected to a network." ;;
+        asleep) found problem networking-off "Networking is turned off." networking-on ;;
+        connecting) found problem connecting "This PC is still connecting to a network. Wait a moment, then check again." ;;
+        *)
+            if device_where ethernet disconnected >/dev/null; then
+                found problem disconnected "This PC isn't connected to a network." reconnect
+            elif device_where wifi disconnected >/dev/null; then
+                if nmcli -t -f TYPE connection show 2>/dev/null | grep -qx '802-11-wireless'; then
+                    found problem disconnected "This PC isn't connected to a network." reconnect
+                else
+                    found problem no-saved-network "This PC isn't connected to a network. Choose a Wi-Fi network in Quick Settings, or plug in a network cable."
+                fi
+            else
+                found problem no-cable "No network cable is plugged in. Plug one in, or connect to Wi-Fi."
+            fi
+            ;;
+    esac
+}
+
+check_address() {
+    local dev addresses
+    dev="$(device_where any connected || true)"
+    if [[ -z "$dev" ]]; then
+        dev="$(ip route show default 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit } }')"
+    fi
+    if [[ -z "$dev" ]]; then
+        found ok address-unchecked "This PC is connected through something other than Wi-Fi or a cable, so its address wasn't checked."
+        return
+    fi
+    # Link-local addresses (fe80::, 169.254.x.x) are what's left when the router gave none.
+    addresses="$(nmcli -t -f IP4.ADDRESS,IP6.ADDRESS device show "$dev" 2>/dev/null |
+        sed -e 's/^[^:]*://' -e 's/\\:/:/g' | grep -viE '^(fe80:|169\.254\.|$)' || true)"
+    if [[ -z "$addresses" ]]; then
+        found problem no-address "This PC is connected, but the network didn't give it an address." reconnect
+    else
+        found ok address-ok "This PC has a network address."
+    fi
+}
+
+check_gateway() {
+    local gateway target dev=""
+    gateway="$(ip route show default 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "via") { print $(i + 1); exit } }')"
+    target="$gateway"
+    if [[ -z "$gateway" ]]; then
+        # An IPv6 router is usually a link-local address, which needs its adapter's name.
+        read -r gateway dev < <(ip -6 route show default 2>/dev/null | awk '{
+            for (i = 1; i < NF; i++) { if ($i == "via") via = $(i + 1); if ($i == "dev") dev = $(i + 1) }
+            if (via != "") { print via, dev; exit } }') || true
+        target="${gateway:-}"
+        if [[ "$target" == fe80:* && -n "${dev:-}" ]]; then target="$target%$dev"; fi
+    fi
+    if [[ -z "$target" ]]; then
+        found problem no-gateway "This PC has no way out to the internet: the network didn't tell it where its router is." reconnect
+    elif ping -c 2 -W 2 "$target" >/dev/null 2>&1; then
+        found ok gateway-ok "The router answers."
+    elif load_connectivity && [[ "$CONNECTIVITY" == full ]]; then
+        # Some routers ignore pings; traffic reaching the internet shows this one works.
+        found ok gateway-quiet "The router doesn't answer test messages, but traffic gets through it."
+    else
+        found problem gateway-down "The router doesn't answer. Restart it: switch it off, wait 30 seconds, then switch it on again."
+    fi
+}
+
+check_dns() {
+    if timeout 5 getent ahosts orielos.org >/dev/null 2>&1; then
+        found ok dns-ok "Website names can be looked up."
+    else
+        found problem dns-failed "Website names can't be looked up, so websites won't open." flush-dns
+    fi
+}
+
+check_internet() {
+    load_connectivity
+    case "$CONNECTIVITY" in
+        full) found ok internet-ok "This PC can reach the internet." ;;
+        portal) found problem portal "This network wants you to sign in, as on hotel or café Wi-Fi." open-portal ;;
+        limited | none) found problem limited "The network isn't reaching the internet. Restart the router, or ask whoever runs the network." ;;
+        *) found ok internet-unchecked "Internet access wasn't checked, because this PC's internet check is turned off." ;;
+    esac
+}
+
+run_checks() {
+    local check failed=false
+    for check in "${CHECKS[@]}"; do
+        if [[ "$failed" == true ]]; then
+            emit "$check" skipped "" "" ""
+            continue
+        fi
+        "check_$check" </dev/null
+        emit "$check" "$RESULT" "$REASON" "$MESSAGE" "$FIX"
+        if [[ "$RESULT" == problem ]]; then failed=true; fi
+    done
+}
+
+# NetworkManager connects in the background once a radio or networking is on; wait a little for
+# it, so the checks that follow see the connection.
+wait_online() {
+    nm-online -q -t 15 >/dev/null 2>&1 || true
+}
+
+# The address NetworkManager's connectivity check uses, from its configuration.
+portal_uri() {
+    local file value uri=""
+    for file in "${NM_CONF_FILES[@]}"; do
+        [[ -r "$file" ]] || continue
+        value="$(awk '/^\[/ { section = $0; next }
+            section == "[connectivity]" && /^[ \t]*uri[ \t]*=/ { sub(/^[^=]*=[ \t]*/, ""); print }' "$file" | tail -n1)"
+        if [[ -n "$value" ]]; then uri="$value"; fi
+    done
+    if [[ ! "$uri" =~ ^https?:// ]]; then uri="$FEDORA_CONNECTIVITY_URI"; fi
+    printf '%s\n' "$uri"
+}
+
+# Connect again: the adapter that's connected (to get a new address), else a plugged-in cable,
+# else Wi-Fi, with the connection it has or the one NetworkManager picks for it.
+reconnect() {
+    local dev uuid
+    load_devices
+    dev="$(device_where any connected || device_where ethernet disconnected || device_where wifi disconnected connecting || true)"
+    [[ -n "$dev" ]] || die "there's no network adapter to connect"
+    uuid="$(nmcli -g GENERAL.CON-UUID device show "$dev" 2>/dev/null || true)"
+    if [[ -n "$uuid" ]]; then
+        nmcli --wait 30 connection up uuid "$uuid" >/dev/null || die "couldn't connect $dev again"
+    else
+        nmcli --wait 30 device connect "$dev" >/dev/null || die "couldn't connect $dev"
+    fi
+}
+
+fix() {
+    case "$1" in
+        wifi-on)
+            nmcli radio wifi on || die "couldn't turn Wi-Fi on"
+            rfkill unblock wlan >/dev/null 2>&1 || true
+            wait_online
+            ;;
+        airplane-off)
+            nmcli radio all on || die "couldn't turn the radios on"
+            # Airplane mode blocks Bluetooth too. The signed-in user may unblock radios.
+            rfkill unblock all >/dev/null 2>&1 || true
+            if command -v kwriteconfig6 >/dev/null 2>&1; then
+                kwriteconfig6 --file plasma-nm --group General --key AirplaneModeEnabled false >/dev/null 2>&1 || true
+            fi
+            wait_online
+            ;;
+        networking-on)
+            nmcli networking on || die "couldn't turn networking on"
+            wait_online
+            ;;
+        reconnect) reconnect ;;
+        flush-dns) resolvectl flush-caches || die "couldn't clear the saved website names" ;;
+        open-portal) xdg-open "$(portal_uri)" >/dev/null 2>&1 || die "couldn't open the sign-in page" ;;
+        restart-networking)
+            # Tests set ORIELOS_NETWORK_CHECK_UID to take either path whoever runs them; without
+            # root, the tool itself fails.
+            if ((${ORIELOS_NETWORK_CHECK_UID:-$EUID} == 0)); then
+                "$RESTART_TOOL"
+            else
+                pkexec "$RESTART_TOOL"
+            fi
+            ;;
+        *) die "unknown fix: $1" 2 ;;
+    esac
+}
+
+main() {
+    case "${1:-}" in
+        "") run_checks ;;
+        fix)
+            [[ $# -eq 2 ]] || die "fix takes one fix id; see --help" 2
+            fix "$2"
+            ;;
+        --help | -h) usage ;;
+        *) die "unknown command: $1; see --help" 2 ;;
+    esac
+}
+
+main "$@"

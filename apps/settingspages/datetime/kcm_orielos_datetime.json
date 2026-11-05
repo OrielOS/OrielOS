@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Description": "The time and time zone, set automatically or by hand, and synchronising the clock",
+        "Icon": "preferences-system-time",
+        "Name": "Date & Time"
+    },
+    "X-KDE-Keywords": "date,time,clock,time zone,timezone,ntp,network time,set time automatically,set time zone automatically,sync now,synchronise,synchronize,chrony",
+    "X-KDE-System-Settings-Parent-Category": "regionalsettings",
+    "X-KDE-Weight": 20
+}

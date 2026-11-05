@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# Sets this PC's time zone automatically, for "Set time zone automatically" in Settings › Date &
+# time. It asks Fedora's location service, which first-run setup and Fedora's installer also ask,
+# which time zone this PC's internet address is in, and sets that zone if it's a known one and not
+# the zone already set. It runs while /etc/orielos/auto-timezone exists: at each turn on, from
+# orielos-auto-timezone.timer a while after each start and every six hours, and from
+# NetworkManager each time the PC gets online.
+#
+# Usage: auto-timezone on|off|set
+#        auto-timezone --help
+#   on    turn it on: create /etc/orielos/auto-timezone, enable orielos-auto-timezone.timer and set
+#         the time zone once now
+#   off   turn it off: remove /etc/orielos/auto-timezone and disable the timer; the time zone stays
+#         as it is
+#   set   set the time zone from the location service if it's turned on; otherwise do nothing
+# A failed lookup or a zone the system doesn't know changes nothing; the next run tries again.
+# Exit status: 0 on success, 1 on errors, 2 on wrong usage.
+# Runs as root.
+set -Eeuo pipefail
+
+# Tests set ORIELOS_AUTO_TIMEZONE_ROOT to run against a scratch directory without root. pkexec and
+# systemd never pass it, so it can't redirect a real run.
+PREFIX="${ORIELOS_AUTO_TIMEZONE_ROOT:-}"
+CONFIG="$PREFIX/etc/orielos/auto-timezone"
+TIMER=orielos-auto-timezone.timer
+# Fedora's location service; its JSON answer names the time zone in time_zone.
+GEOIP_URL=https://geoip.fedoraproject.org/city
+
+log() {
+    printf 'auto-timezone: %s\n' "$1"
+}
+
+die() {
+    printf 'auto-timezone: %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+usage() {
+    sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+need() {
+    local cmd
+    for cmd in "$@"; do
+        command -v "$cmd" >/dev/null 2>&1 || die "$cmd is not installed"
+    done
+}
+
+cmd_set() {
+    local answer zone current
+    if [[ ! -e "$CONFIG" ]]; then
+        return 0
+    fi
+    need curl jq timedatectl
+    if ! answer="$(curl -fsS --max-time 10 "$GEOIP_URL" 2>&1)"; then
+        log "couldn't ask the location service, so the time zone stays as it is: ${answer:-no answer}"
+        return 0
+    fi
+    zone="$(jq -r '.time_zone // empty | strings' <<<"$answer" 2>/dev/null)" || zone=""
+    # Only a zone name, such as Europe/London, is passed on; the full check is the system's list.
+    if [[ ! "$zone" =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ ]] || ! timedatectl list-timezones | grep -qxF -- "$zone"; then
+        log "the location service named no time zone this system knows, so the time zone stays as it is"
+        return 0
+    fi
+    current="$(timedatectl show -p Timezone --value)"
+    if [[ "$zone" == "$current" ]]; then
+        log "the time zone stays $current"
+        return 0
+    fi
+    timedatectl set-timezone "$zone" || die "couldn't change the time zone to $zone"
+    log "changed the time zone from ${current:-none} to $zone"
+}
+
+cmd_on() {
+    need systemctl
+    mkdir -p "$(dirname "$CONFIG")"
+    printf '# While this file exists, OrielOS sets the time zone automatically (Settings, Date & time).\n' >"$CONFIG"
+    systemctl enable --now "$TIMER" >/dev/null 2>&1 || die "couldn't turn on $TIMER"
+    cmd_set
+}
+
+cmd_off() {
+    need systemctl
+    rm -f "$CONFIG"
+    systemctl disable --now "$TIMER" >/dev/null 2>&1 || die "couldn't turn off $TIMER"
+    log "the time zone is no longer set automatically"
+}
+
+main() {
+    local cmd="${1:-}"
+    case "$cmd" in
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        on | off | set) [[ $# -eq 1 ]] || die "$cmd takes no arguments" 2 ;;
+        "")
+            usage >&2
+            exit 2
+            ;;
+        *)
+            usage >&2
+            die "unknown command: $cmd" 2
+            ;;
+    esac
+    if [[ -z "$PREFIX" ]]; then
+        [[ "$EUID" -eq 0 ]] || die "run auto-timezone as root, for example with sudo"
+    fi
+    case "$cmd" in
+        on) cmd_on ;;
+        off) cmd_off ;;
+        set) cmd_set ;;
+    esac
+}
+
+main "$@"

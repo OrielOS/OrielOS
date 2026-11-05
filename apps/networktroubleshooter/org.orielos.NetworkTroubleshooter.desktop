@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Network troubleshooter
+GenericName=Find and fix network problems
+Comment=Check each part of the network connection, from the adapter to the internet, and fix the first problem found
+Exec=orielos-network-troubleshooter
+Icon=network-wireless
+Categories=Settings;System;
+Keywords=network;internet;wifi;wi-fi;troubleshoot;diagnose;no internet;connection problem;fix;

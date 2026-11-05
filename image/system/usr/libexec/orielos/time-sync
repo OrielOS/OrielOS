@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Synchronises the clock with the network time servers now, for "Sync now" in Settings › Date &
+# time. chronyd keeps the clock right by itself; this asks it to measure the servers at once
+# (burst), waits up to about ten seconds for a new measurement, then steps the clock to the right
+# time if it's off (makestep), rather than letting chronyd correct it slowly.
+#
+# Usage: time-sync
+#        time-sync --help
+# Exit status: 0 when the clock is synchronised, 1 when chronyd isn't running or no server
+# answered, 2 on wrong usage. On failure the one line on stderr says why.
+# Runs as root.
+set -Eeuo pipefail
+
+# Tests set ORIELOS_TIME_SYNC_TEST to run without root, with stand-ins for chronyc, systemctl and
+# sleep. pkexec never passes it.
+TESTING="${ORIELOS_TIME_SYNC_TEST:-}"
+# How many times to look for a new measurement, a second apart.
+TRIES=10
+
+die() {
+    printf 'time-sync: %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+usage() {
+    sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+# The time of chronyd's last measurement of the server it follows, in seconds since 1970 (field 4
+# of "chronyc -c tracking"), or 0 when it isn't synchronised to one: no reference time, no reference
+# (00000000) or only the PC's own clock (7F7F0101).
+last_measurement() {
+    local line id time leap
+    line="$(chronyc -c -n tracking 2>/dev/null)" || {
+        printf '0\n'
+        return 0
+    }
+    IFS=, read -r id _ _ time _ _ _ _ _ _ _ _ _ leap _ <<<"$line"
+    if [[ "$id" == 00000000 || "$id" == 7F7F0101 || "$leap" == "Not synchronised" || ! "$time" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+        printf '0\n'
+        return 0
+    fi
+    printf '%s\n' "${time%%.*}"
+}
+
+main() {
+    case "${1:-}" in
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        "") ;;
+        *)
+            usage >&2
+            die "takes no arguments" 2
+            ;;
+    esac
+    if [[ -z "$TESTING" ]]; then
+        [[ "$EUID" -eq 0 ]] || die "run time-sync as root, for example with sudo"
+    fi
+    command -v chronyc >/dev/null 2>&1 || die "chrony, which keeps the time, is not installed"
+    systemctl is-active --quiet chronyd.service || die "network time (chronyd) isn't running"
+
+    local before after try
+    before="$(last_measurement)"
+    chronyc burst 4/4 >/dev/null || die "chronyd didn't take the request to measure the time servers"
+    after="$before"
+    for ((try = 0; try < TRIES; try++)); do
+        sleep 1
+        after="$(last_measurement)"
+        if [[ "$after" != 0 && "$after" != "$before" ]]; then
+            break
+        fi
+    done
+    # An earlier measurement still counts: the clock is synchronised, if not this very moment.
+    if [[ "$after" == 0 ]]; then
+        die "no time server answered; check the internet connection"
+    fi
+    chronyc makestep >/dev/null || die "chronyd couldn't set the clock"
+}
+
+main "$@"
