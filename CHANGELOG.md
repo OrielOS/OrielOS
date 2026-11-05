@@ -53,6 +53,7 @@ All notable changes to OrielOS are recorded here. The format follows [Keep a Cha
 - The FPS overlay's processor and graphics card labels are grey, like the rest of the overlay, instead of blue and green.
 - Settings → Themes no longer lists the first sign-in's welcome screen as a theme called "OrielOS first sign-in".
 - Pages from Info Center in Settings show all their labels.
+- With the taskbar's apps on the left, Start opens on the left next to the Start button, instead of in the middle of the screen.
 
 ## [0.1.9] - 2026-11-01
 
