@@ -1,10 +1,12 @@
 ---
 title: Coming to testing: Reset this PC
 date: 2026-11-04
-summary: Reset this PC puts a fresh OrielOS back from Settings, keeping your accounts and files or removing everything, without repartitioning. It's not in a build yet.
+summary: Reset this PC puts a fresh OrielOS back from Settings, keeping your accounts and files or removing everything, without repartitioning. In testing since v0.3.1.
 ---
 
-OrielOS now has Reset this PC. It's merged, but it isn't in a published build yet: it reaches the testing channel first, then the stable version, the one the [download](/download/) installs, once it's been checked on real PCs.
+**Update, 8 November:** Reset this PC is in testing builds since [v0.3.1](/releases/#v0.3.1). It reaches the stable version, the one the [download](/download/) installs, once it's been checked on real PCs.
+
+OrielOS now has Reset this PC. It goes to the testing channel first, then the stable version once it's been checked on real PCs.
 
 ## What it does
 
@@ -25,6 +27,6 @@ It needs an internet connection and about 10 GB of free space, and the page says
 
 ## Trying it
 
-Once it's in a testing build, switch to the testing channel in Settings → Update and it arrives by itself. It's been tested in virtual machines and with a keep files reset on a real laptop. It hasn't been tried yet on a computer that also has Windows installed.
+Switch to the testing channel in Settings → Update and it arrives by itself. It's been tested in virtual machines and with a keep files reset on a real laptop. It hasn't been tried yet on a computer that also has Windows installed.
 
 It's still early. [Known limitations](/guides/known-limitations/) lists what doesn't work, including games whose anti-cheat doesn't allow Linux, no Hibernate, and no Microsoft 365 or Adobe apps.
