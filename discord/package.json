@@ -12,7 +12,7 @@
     "post": "node src/post.js"
   },
   "dependencies": {
-    "discord.js": "14.27.0"
+    "discord.js": "14.28.1"
   },
   "devDependencies": {
     "fast-check": "4.10.2"
