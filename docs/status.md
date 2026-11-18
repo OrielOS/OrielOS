@@ -44,7 +44,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 - **The Store** installs apps from Flathub; Firefox arrives on the first start. See [Installing apps](apps.md). Checked on the laptop, and in virtual machines.
 - **Steam from the Store** sees the NVIDIA graphics card. Checked on the laptop.
-- **GE-Proton is Steam's default** for Windows games: OrielOS installs it with Steam and sets it once, keeping any default you chose. See [Games and controllers](games-and-controllers.md#ge-proton-for-windows-games-in-steam). **(testing; not yet in stable v0.0.7)**
+- **GE-Proton is Steam's default** for Windows games: OrielOS installs it with Steam and sets it once, keeping any default you chose. See [Games and controllers](games-and-controllers.md#ge-proton-for-windows-games-in-steam).
 
 ### Games and drivers
 
@@ -56,7 +56,7 @@ OrielOS is made for desktop PCs with NVIDIA RTX graphics, 20-series or newer. No
 
 - **Few real PCs so far.** Only one laptop has run OrielOS. Desktop PCs with NVIDIA graphics are what it's for, and the first one is still to be tested.
 - **PCs with only AMD or Intel graphics** aren't supported yet: OrielOS is built and tested for NVIDIA. (On the laptop, Intel graphics drive its own screen alongside the RTX 4050, as on most laptops.)
-- **Run this app is new:** Windows programs run with a double-click, but it has been tried with only a few programs (see [Windows programs](windows-programs.md)). **(testing; not yet in stable v0.0.7)**
+- **Run this app is new:** Windows programs run with a double-click, but it has been tried with only a few programs (see [Windows programs](windows-programs.md)).
 - **No game has been played on OrielOS yet** in its tests: Steam and the graphics driver work, but playing games is the next step.
 - **Sleep and wake** haven't been checked on a real PC yet.
 - **The first start's welcome page** still says "Welcome to Plasma Desktop", the name of the desktop OrielOS is built on.
